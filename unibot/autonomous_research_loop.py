@@ -359,7 +359,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "open_science_reproducibility_release_alignment",
             "priority": 16,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align publication, open-science roadmap, reproducibility evidence, release gates, and bachelor-thesis claims.",
             "allowed_files": [
                 "unibot/publication.py",
@@ -369,6 +369,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_publication.py tests/test_unibot_readiness.py -q"],
             "review_gate": "open_science_reproducibility_release_human_review_traceability",
+            "closure_evidence": {
+                "commit": "ecfa4f8",
+                "summary": "Publication reproducibility alignment added with public reproduction, manual release, authority/compliance, Gretel/GLM thesis, autonomy, release-gate, source-card, and human-gate mapping.",
+            },
+        },
+        {
+            "work_id": "course_material_public_boundary_alignment",
+            "priority": 17,
+            "status": "ready",
+            "goal": "Align course-material public summaries, private-source exclusions, adaptive task demos, and readiness gates.",
+            "allowed_files": [
+                "unibot/materials.py",
+                "tests/test_unibot_materials.py",
+                "docs/unibot/UNIBOT_COURSE_MATERIALS.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_materials.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "course_material_public_private_boundary_traceability",
         },
     ]
 

@@ -57,9 +57,9 @@ contract change.
 
 ## Current Work Queue
 
-1. `open_science_reproducibility_release_alignment`: align publication,
-   open-science roadmap, reproducibility evidence, release gates, and
-   bachelor-thesis claims.
+1. `course_material_public_boundary_alignment`: align course-material public
+   summaries, private-source exclusions, adaptive task demos, and readiness
+   gates.
 
 ## Closed Harnessed Work
 
@@ -104,6 +104,9 @@ contract change.
 - `glm_provider_redaction_evidence_alignment`: closed in `a41b060` with
   source-basis, redaction-receipt, provider-lock, proposal-validation,
   apply/publish/Final-Go, readiness, and human-gate mapping.
+- `open_science_reproducibility_release_alignment`: closed in `ecfa4f8` with
+  public reproduction, manual release, authority/compliance, Gretel/GLM thesis,
+  autonomy, release-gate, source-card, and human-gate mapping.
 
 ## Automation Rule
 
