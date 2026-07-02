@@ -57,8 +57,9 @@ contract change.
 
 ## Current Work Queue
 
-1. `data_protection_evidence_alignment`: align data-protection screening with
-   pilot records, retention, access, source cards, and human review gates.
+1. `glm_provider_redaction_evidence_alignment`: align the GLM proposal lane with
+   redaction receipts, provider-call locks, source cards, and human review
+   gates.
 
 ## Closed Harnessed Work
 
@@ -97,6 +98,9 @@ contract change.
 - `pilot_protocol_evidence_alignment`: closed in `30a81a8` with consent,
   ethics, data, session-flow, release-boundary, source-card, readiness, and
   human-gate mapping.
+- `data_protection_evidence_alignment`: closed in `4b5fbbc` with processing
+  principles, pilot records, retention, public-boundary, exam-boundary,
+  source-card, risk, readiness, and human-gate mapping.
 
 ## Automation Rule
 

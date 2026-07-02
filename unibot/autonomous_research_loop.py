@@ -321,7 +321,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "data_protection_evidence_alignment",
             "priority": 14,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align data-protection screening with pilot records, retention, access, source cards, and human review gates.",
             "allowed_files": [
                 "unibot/privacy.py",
@@ -331,6 +331,26 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_privacy.py tests/test_unibot_readiness.py -q"],
             "review_gate": "datenschutz_pilot_records_human_review_traceability",
+            "closure_evidence": {
+                "commit": "4b5fbbc",
+                "summary": "Data-protection evidence alignment added with processing principles, pilot records, retention, public-boundary, exam-boundary, source-card, risk, readiness, and human-gate mapping.",
+            },
+        },
+        {
+            "work_id": "glm_provider_redaction_evidence_alignment",
+            "priority": 15,
+            "status": "ready",
+            "goal": "Align the GLM proposal lane with redaction receipts, provider-call locks, source cards, and human review gates.",
+            "allowed_files": [
+                "unibot/gretel_glm_evolve.py",
+                "tests/test_unibot_gretel_glm_evolve.py",
+                "docs/unibot/UNIBOT_GRETEL_GLM_EVOLVE_LANE.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": [
+                "python3 -m pytest tests/test_unibot_gretel_glm_evolve.py tests/test_unibot_readiness.py -q"
+            ],
+            "review_gate": "glm_redacted_proposal_provider_lock_human_review_traceability",
         },
     ]
 
