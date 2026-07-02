@@ -57,12 +57,21 @@ contract change.
 
 ## Current Work Queue
 
-1. `intent_contract_regression_pack`: keep the intent, standards, and loop
-   boundaries testable.
-2. `scientific_evaluation_depth`: improve synthetic evaluation dimensions for
-   Socratic help quality, source anchoring, and refusal clarity.
-3. `github_review_packet_hardening`: make review packets clearer for outside
-   scientific reviewers without auto-publishing.
+1. `autonomy_progress_memory`: keep the loop from repeating completed work by
+   recording closed items, next candidates, and evidence.
+2. `readiness_perf_guard`: keep recurring low-budget runs from accidentally
+   choosing expensive full-suite paths.
+
+## Closed Harnessed Work
+
+- `intent_contract_regression_pack`: closed in `fa942b0` with autonomous loop,
+  intent contract, budget policy, API routes, docs, and tests.
+- `scientific_evaluation_depth`: closed in `2b6473b` with a public-safe
+  scientific quality rubric for Socratic help, source grounding, refusal
+  clarity, privacy, and learner agency.
+- `github_review_packet_hardening`: closed in `9a28675` with manual review
+  contract, evidence requirements, publication gate, and manual-publish
+  invariant.
 
 ## Automation Rule
 

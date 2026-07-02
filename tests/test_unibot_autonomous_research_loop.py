@@ -54,9 +54,17 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
     def test_work_queue_is_small_testable_and_harnessed(self) -> None:
         loop = build_autonomous_research_loop()
         queue = loop["work_queue"]
+        by_id = {item["work_id"]: item for item in queue}
 
-        self.assertGreaterEqual(len(queue), 3)
-        self.assertEqual(queue[0]["status"], "ready")
+        self.assertGreaterEqual(len(queue), 5)
+        self.assertEqual(by_id["intent_contract_regression_pack"]["status"], "closed_harnessed")
+        self.assertEqual(by_id["intent_contract_regression_pack"]["closure_evidence"]["commit"], "fa942b0")
+        self.assertEqual(by_id["scientific_evaluation_depth"]["status"], "closed_harnessed")
+        self.assertEqual(by_id["scientific_evaluation_depth"]["closure_evidence"]["commit"], "2b6473b")
+        self.assertEqual(by_id["github_review_packet_hardening"]["status"], "closed_harnessed")
+        self.assertEqual(by_id["github_review_packet_hardening"]["closure_evidence"]["commit"], "9a28675")
+        self.assertEqual(loop["next_recommended_work_id"], "autonomy_progress_memory")
+        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 3)
         self.assertLessEqual(loop["budget_policy"]["cadence"]["max_active_work_item_per_run"], 1)
         for item in queue:
             self.assertIn("acceptance_tests", item)
@@ -71,6 +79,8 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("Public safety: pass", markdown)
         self.assertIn("Default reasoning effort: low", markdown)
         self.assertIn("Autonomous GitHub push: False", markdown)
+        self.assertIn("Closed harnessed items: 3", markdown)
+        self.assertIn("Next recommended work: autonomy_progress_memory", markdown)
 
         status, loop = route_request("/api/unibot/autonomous-research-loop", {})
         self.assertEqual(status, 200)
