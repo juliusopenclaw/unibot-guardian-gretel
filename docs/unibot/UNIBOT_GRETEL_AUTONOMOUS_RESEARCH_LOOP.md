@@ -57,8 +57,9 @@ contract change.
 
 ## Current Work Queue
 
-1. `source_card_drift_guard`: keep source-card coverage and readiness evidence
-   aligned so scientific claims stay source-bound as the project grows.
+1. `bachelor_thesis_evidence_index`: keep the Gretel-authored bachelor-thesis
+   package aligned with readiness evidence, source cards, tests, and human
+   review gates.
 
 ## Closed Harnessed Work
 
@@ -75,6 +76,8 @@ contract change.
 - `readiness_perf_guard`: closed in `c6581a3` with a focused runtime guard for
   recurring readiness checks, low reasoning effort, and escalated
   full-suite/provider work.
+- `source_card_drift_guard`: closed in `afeb0d5` with source-card drift report,
+  API route, readiness gate, stale-source harness, and public docs.
 
 ## Automation Rule
 

@@ -176,7 +176,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "source_card_drift_guard",
             "priority": 6,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Keep source-card coverage and readiness evidence aligned so scientific claims stay source-bound as the project grows.",
             "allowed_files": [
                 "unibot/source_cards.py",
@@ -186,6 +186,26 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_readiness.py -q"],
             "review_gate": "source_bound_public_science",
+            "closure_evidence": {
+                "commit": "afeb0d5",
+                "summary": "Source-card drift report, API route, readiness gate, stale-source harness, and public docs added.",
+            },
+        },
+        {
+            "work_id": "bachelor_thesis_evidence_index",
+            "priority": 7,
+            "status": "ready",
+            "goal": "Keep the Gretel-authored bachelor-thesis package aligned with readiness evidence, source cards, tests, and human review gates.",
+            "allowed_files": [
+                "unibot/bachelor_thesis.py",
+                "tests/test_unibot_bachelor_thesis.py",
+                "docs/unibot/UNIBOT_GRETEL_BACHELOR_THESIS_PACKAGE.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": [
+                "python3 -m pytest tests/test_unibot_bachelor_thesis.py tests/test_unibot_readiness.py -q"
+            ],
+            "review_gate": "thesis_claims_source_bound_and_human_gated",
         },
     ]
 
