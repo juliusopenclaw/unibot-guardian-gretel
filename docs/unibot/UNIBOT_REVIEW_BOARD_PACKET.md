@@ -15,6 +15,8 @@ What it does:
 - Define cross-cutting red lines that remain active in all modes.
 - Summarise evidence status from handoff, compliance, pilot, and data-protection
   layers.
+- Align each reviewer role with thesis evidence claims, readiness check IDs,
+  source-card IDs, human gates, and the readiness evidence snapshot contract.
 - Keep language non-committal (`beantragt / nicht offiziell freigegeben`) until
   written approvals exist.
 
@@ -34,12 +36,25 @@ Reviewer packet content:
 - `must_not_claim`: claims that must be avoided in public language
 - `clearance_text_must_include`: minimum wording for transparent communication
 
+Evidence alignment content:
+
+- `thesis_evidence_index_status`: whether the Gretel bachelor-thesis evidence
+  index is ready
+- `readiness_snapshot_contract`: expected snapshot schema and scientific gate
+  IDs
+- `reviewer_alignment`: reviewer-to-claim, reviewer-to-readiness-check, and
+  reviewer-to-source-card mapping
+- `required_human_gates`: gates that still control real submission, provider
+  calls, public release, or exam use
+
 Readiness for publication is a separate check:
 
 - `reviewer_packets` count >= 6
 - each reviewer has at least one open decision
 - `public_safety_status` pass
 - `exam_deployment_status` not_cleared
+- `evidence_alignment` ready, public-safe, and without unmapped reviewers or
+  missing thesis claims
 
 The packet is intentionally not an approval and does not replace formal
 authority decisions. It prepares the right questions in a structured, reproducible,

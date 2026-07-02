@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .compliance import build_compliance_matrix
+from .bachelor_thesis import build_bachelor_thesis_evidence_index
 from .handoff import build_authority_handoff_packet
 from .pilot import build_pilot_protocol
 from .privacy import build_data_protection_screening
@@ -14,6 +15,79 @@ from .python_exam_local_cycle_chain_snapshot import build_python_exam_local_cycl
 
 
 REVIEW_BOARD_SCHEMA_VERSION = "unibot-review-board-packet-v1"
+
+
+def build_review_board_evidence_alignment(reviewers: list[dict[str, Any]]) -> dict[str, Any]:
+    thesis_evidence = build_bachelor_thesis_evidence_index()
+    claim_by_id = {item["claim_id"]: item for item in thesis_evidence["evidence_items"]}
+    reviewer_claim_map = {
+        "Pruefungsamt": ["exam_boundary_not_clearance", "source_bound_public_science"],
+        "Inklusionsbuero / Nachteilsausgleich": ["exam_boundary_not_clearance", "public_safety_and_privacy"],
+        "Datenschutz": ["public_safety_and_privacy", "source_bound_public_science"],
+        "IT / SZI": ["glm_52_basis", "public_safety_and_privacy"],
+        "Lehreinheit / Modulverantwortliche": ["reproducible_evaluation_package", "source_bound_public_science"],
+        "Thesis supervision": ["gretel_authorship_label", "glm_52_basis", "reproducible_evaluation_package"],
+    }
+    reviewer_rows = []
+    for reviewer in reviewers:
+        claim_ids = reviewer_claim_map.get(reviewer["reviewer"], [])
+        mapped_claims = [claim_by_id[claim_id] for claim_id in claim_ids if claim_id in claim_by_id]
+        reviewer_rows.append(
+            {
+                "reviewer": reviewer["reviewer"],
+                "claim_ids": claim_ids,
+                "readiness_check_ids": sorted(
+                    {check_id for claim in mapped_claims for check_id in claim["readiness_check_ids"]}
+                ),
+                "source_card_ids": sorted({source_id for claim in mapped_claims for source_id in claim["source_card_ids"]}),
+                "human_gates": sorted({claim["human_gate"] for claim in mapped_claims}),
+                "missing_claim_ids": sorted(set(claim_ids) - set(claim_by_id)),
+            }
+        )
+
+    required_snapshot_gate_ids = sorted(
+        {
+            "public_safety",
+            "readiness_runtime_guard",
+            "source_card_drift_guard",
+            "evaluation_packet",
+            "redteam",
+            "publication_package",
+            "review_board_packet",
+            "gretel_glm_evolve_lane",
+            "gretel_bachelor_thesis_package",
+            "gretel_autonomous_research_loop",
+            "exam_boundary",
+        }
+    )
+    alignment = {
+        "schema_version": "unibot-review-board-evidence-alignment-v1",
+        "status": "ready",
+        "thesis_evidence_index_status": thesis_evidence["status"],
+        "thesis_claim_count": thesis_evidence["claim_count"],
+        "readiness_snapshot_contract": {
+            "expected_schema_version": "unibot-readiness-evidence-snapshot-v1",
+            "required_status": "ready",
+            "required_gate_ids": required_snapshot_gate_ids,
+            "use": "Compare recurring Gretel readiness snapshots before human review, not as approval.",
+        },
+        "reviewer_alignment": reviewer_rows,
+        "unmapped_reviewer_count": len([row for row in reviewer_rows if not row["claim_ids"]]),
+        "missing_claim_ids": sorted({claim_id for row in reviewer_rows for claim_id in row["missing_claim_ids"]}),
+        "required_human_gates": thesis_evidence["required_human_gates"],
+        "human_gate_reminder": "Review-board alignment prepares human audit; it is not exam clearance, legal approval, provider approval, or thesis submission approval.",
+    }
+    if (
+        thesis_evidence["status"] != "ready"
+        or alignment["unmapped_reviewer_count"] != 0
+        or alignment["missing_claim_ids"]
+    ):
+        alignment["status"] = "blocked"
+    scan = scan_text(json.dumps(alignment, ensure_ascii=False), "unibot-review-board-evidence-alignment")
+    alignment["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        alignment["status"] = "blocked"
+    return alignment
 
 
 def _build_reviewer_packet(
@@ -221,6 +295,7 @@ def build_review_board_packet(
             ],
         ),
     ]
+    evidence_alignment = build_review_board_evidence_alignment(reviewers)
 
     review_board = {
         "schema_version": REVIEW_BOARD_SCHEMA_VERSION,
@@ -237,11 +312,15 @@ def build_review_board_packet(
             "privacy_status": privacy["status"],
             "compliance_source_cards": compliance["source_card_count"],
             "redteam_status": handoff["evidence"]["redteam"]["status"],
+            "evidence_alignment_status": evidence_alignment["status"],
+            "evidence_alignment_public_safety_status": evidence_alignment["public_safety_status"],
+            "evidence_alignment_reviewer_count": len(evidence_alignment["reviewer_alignment"]),
             "local_cycle_chain_snapshot_status": local_cycle_chain_snapshot.get("status", "missing"),
             "local_cycle_chain_snapshot_hash": local_cycle_chain_snapshot.get("chain_snapshot_summary", {}).get("snapshot_hash", "")
             if isinstance(local_cycle_chain_snapshot.get("chain_snapshot_summary"), dict)
             else "",
         },
+        "evidence_alignment": evidence_alignment,
         "local_cycle_chain_snapshot": local_cycle_chain_snapshot,
         "cross_cutting_red_lines": [
             "No proctoring and no hidden monitoring claims",
@@ -321,6 +400,11 @@ def build_review_board_packet_markdown() -> str:
         for name, details in packet["clearance_requirements"].items()
     )
     evidence = packet["evidence_summary"]
+    alignment = packet["evidence_alignment"]
+    alignment_lines = "\n".join(
+        f"- {item['reviewer']}: claims {', '.join(item['claim_ids'])}; checks {', '.join(item['readiness_check_ids'])}"
+        for item in alignment["reviewer_alignment"]
+    )
     chain = packet.get("local_cycle_chain_snapshot", {})
     chain_summary = chain.get("chain_snapshot_summary", {}) if isinstance(chain.get("chain_snapshot_summary"), dict) else {}
     chain_step_lines = "\n".join(
@@ -346,6 +430,12 @@ def build_review_board_packet_markdown() -> str:
         f"- Pilot protocol: {evidence['pilot_protocol_status']}\n"
         f"- Privacy screening: {evidence['privacy_status']}\n"
         f"- Red-team: {evidence['redteam_status']}\n\n"
+        "## Evidence Alignment\n\n"
+        f"- Status: {alignment['status']}\n"
+        f"- Thesis claims: {alignment['thesis_claim_count']}\n"
+        f"- Snapshot schema: {alignment['readiness_snapshot_contract']['expected_schema_version']}\n"
+        f"- Snapshot gate count: {len(alignment['readiness_snapshot_contract']['required_gate_ids'])}\n"
+        f"{alignment_lines}\n\n"
         "## Local Cycle Chain\n\n"
         f"- Status: {chain.get('status', 'missing')}\n"
         f"- Snapshot hash: {chain_summary.get('snapshot_hash', '')}\n"

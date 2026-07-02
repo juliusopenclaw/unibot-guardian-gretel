@@ -124,7 +124,7 @@ from .privacy import build_data_protection_screening, build_data_protection_scre
 from .private_tutor_use_flow import build_private_tutor_use_flow_dry_run
 from .private_extraction_runner import run_private_extraction_batch
 from .video_transcription_runner import run_video_transcription_batch, video_transcription_capabilities
-from .review_board import build_review_board_packet, build_review_board_packet_markdown
+from .review_board import build_review_board_evidence_alignment, build_review_board_packet, build_review_board_packet_markdown
 from .publication import build_publication_markdown, build_publication_package
 from .public_safety import scan_public_files, scan_text
 from .python_exam_cockpit_flow import build_python_exam_cockpit_flow
@@ -250,6 +250,7 @@ __all__ = [
     "video_transcription_capabilities",
     "build_review_board_packet",
     "build_review_board_packet_markdown",
+    "build_review_board_evidence_alignment",
     "run_redteam_smoke",
     "build_routed_action_executor",
     "build_authority_handoff_packet",

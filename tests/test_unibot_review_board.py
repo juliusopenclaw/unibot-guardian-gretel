@@ -9,7 +9,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.review_board import build_review_board_packet, build_review_board_packet_markdown  # noqa: E402
+from unibot.review_board import (  # noqa: E402
+    build_review_board_evidence_alignment,
+    build_review_board_packet,
+    build_review_board_packet_markdown,
+)
 from unibot.server import route_request  # noqa: E402
 from unibot.python_exam_local_cycle_operator_workspace_card import build_python_exam_local_cycle_operator_workspace_card  # noqa: E402
 from unibot.python_exam_local_cycle_readiness_handoff import build_python_exam_local_cycle_readiness_handoff  # noqa: E402
@@ -40,11 +44,38 @@ class UniBotReviewBoardTests(unittest.TestCase):
         self.assertTrue(any("Thesis supervision" in item["reviewer"] for item in packet["reviewer_packets"]))
         self.assertIn("No automatic grading", packet["cross_cutting_red_lines"])
         self.assertIn("exam_controlled", packet["not_ready_for"])
+        self.assertEqual(packet["evidence_alignment"]["status"], "ready")
+        self.assertEqual(packet["evidence_alignment"]["public_safety_status"], "pass")
+        self.assertEqual(packet["evidence_alignment"]["unmapped_reviewer_count"], 0)
+        self.assertEqual(packet["evidence_alignment"]["missing_claim_ids"], [])
+        self.assertGreaterEqual(packet["evidence_alignment"]["thesis_claim_count"], 6)
+
+    def test_review_board_evidence_alignment_maps_reviewers_to_readiness_gates(self) -> None:
+        packet = build_review_board_packet()
+        alignment = build_review_board_evidence_alignment(packet["reviewer_packets"])
+        by_reviewer = {item["reviewer"]: item for item in alignment["reviewer_alignment"]}
+
+        self.assertEqual(alignment["schema_version"], "unibot-review-board-evidence-alignment-v1")
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["unmapped_reviewer_count"], 0)
+        self.assertEqual(alignment["missing_claim_ids"], [])
+        self.assertIn("unibot-readiness-evidence-snapshot-v1", alignment["readiness_snapshot_contract"]["expected_schema_version"])
+        self.assertIn("review_board_packet", alignment["readiness_snapshot_contract"]["required_gate_ids"])
+        self.assertIn("gretel_bachelor_thesis_package", alignment["readiness_snapshot_contract"]["required_gate_ids"])
+        self.assertIn("exam_boundary_not_clearance", by_reviewer["Pruefungsamt"]["claim_ids"])
+        self.assertIn("exam_boundary", by_reviewer["Pruefungsamt"]["readiness_check_ids"])
+        self.assertIn("public_safety_and_privacy", by_reviewer["Datenschutz"]["claim_ids"])
+        self.assertIn("public_safety", by_reviewer["Datenschutz"]["readiness_check_ids"])
+        self.assertIn("reproducible_evaluation_package", by_reviewer["Thesis supervision"]["claim_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
 
     def test_review_board_markdown_and_api_routes(self) -> None:
         markdown = build_review_board_packet_markdown()
         self.assertIn("# UniBot Review Board Packet", markdown)
         self.assertIn("Cross-cutting Red Lines", markdown)
+        self.assertIn("Evidence Alignment", markdown)
+        self.assertIn("Snapshot gate count", markdown)
         self.assertIn("Open Decisions", markdown)
 
         status, packet = route_request("/api/unibot/review-board-packet", {})

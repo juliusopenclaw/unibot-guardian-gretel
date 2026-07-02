@@ -498,13 +498,22 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and review_board_packet["public_safety_status"] == "pass"
             and review_board_packet["exam_deployment_status"] == "not_cleared"
             and len(review_board_packet["reviewer_packets"]) >= 6
-            and len(review_board_packet["open_decision_register"]) >= 6,
+            and len(review_board_packet["open_decision_register"]) >= 6
+            and review_board_packet["evidence_alignment"]["status"] == "ready"
+            and review_board_packet["evidence_alignment"]["public_safety_status"] == "pass"
+            and review_board_packet["evidence_alignment"]["unmapped_reviewer_count"] == 0
+            and review_board_packet["evidence_alignment"]["missing_claim_ids"] == [],
             "evidence": {
                 "status": review_board_packet["status"],
                 "public_safety_status": review_board_packet["public_safety_status"],
                 "reviewer_count": len(review_board_packet["reviewer_packets"]),
                 "open_decision_count": len(review_board_packet["open_decision_register"]),
                 "exam_deployment_status": review_board_packet["exam_deployment_status"],
+                "evidence_alignment_status": review_board_packet["evidence_alignment"]["status"],
+                "evidence_alignment_reviewer_count": len(review_board_packet["evidence_alignment"]["reviewer_alignment"]),
+                "readiness_snapshot_gate_count": len(
+                    review_board_packet["evidence_alignment"]["readiness_snapshot_contract"]["required_gate_ids"]
+                ),
             },
         },
         {
