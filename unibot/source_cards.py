@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from datetime import date
 from typing import Any
+
+from .public_safety import scan_text
 
 
 LAST_CHECKED = "2026-06-13"
@@ -293,6 +296,9 @@ def required_source_card_ids() -> list[str]:
         "gemini-code-assist-validation",
         "openai-evals",
         "deepseek-chat-completion-api",
+        "zai-glm-52",
+        "zai-glm-52-migration",
+        "zai-glm-pricing",
         "chrome-content-scripts",
         "chrome-webrequest-mv3",
         "chrome-limited-use",
@@ -303,3 +309,71 @@ def required_source_card_ids() -> list[str]:
         "unesco-genai-2023",
         "oecd-digital-education-2026",
     ]
+
+
+def build_source_card_drift_report(*, as_of: str | None = None, max_age_days: int = 120) -> dict[str, Any]:
+    cards = list_source_cards()
+    required_ids = required_source_card_ids()
+    source_ids = [card["source_id"] for card in cards]
+    duplicate_ids = sorted({source_id for source_id in source_ids if source_ids.count(source_id) > 1})
+    required_id_set = set(required_ids)
+    high_risk_ids = sorted(card["source_id"] for card in cards if card["risk_level"] == "high")
+    as_of_date = date.fromisoformat(as_of) if as_of else date.today()
+
+    invalid_last_checked: list[str] = []
+    stale_source_ids: list[str] = []
+    for card in cards:
+        try:
+            checked_date = date.fromisoformat(card["last_checked"])
+        except ValueError:
+            invalid_last_checked.append(card["source_id"])
+            continue
+        if (as_of_date - checked_date).days > max_age_days:
+            stale_source_ids.append(card["source_id"])
+
+    report = {
+        "schema_version": "unibot-source-card-drift-report-v1",
+        "status": "pass",
+        "as_of": as_of_date.isoformat(),
+        "max_age_days": max_age_days,
+        "card_count": len(cards),
+        "required_source_card_count": len(required_ids),
+        "high_risk_source_card_count": len(high_risk_ids),
+        "source_kind_count": len({card["source_kind"] for card in cards}),
+        "authority_type_count": len({card["authority_type"] for card in cards}),
+        "duplicate_source_ids": duplicate_ids,
+        "missing_required_source_card_ids": sorted(required_id_set - set(source_ids)),
+        "unlisted_high_risk_source_card_ids": sorted(set(high_risk_ids) - required_id_set),
+        "invalid_https_source_ids": sorted(card["source_id"] for card in cards if not card["url"].startswith("https://")),
+        "missing_product_rule_source_ids": sorted(card["source_id"] for card in cards if not card["product_rule"].strip()),
+        "invalid_risk_level_source_ids": sorted(
+            card["source_id"] for card in cards if card["risk_level"] not in {"low", "medium", "high"}
+        ),
+        "invalid_public_status_source_ids": sorted(
+            card["source_id"] for card in cards if card["public_status"] != "public-link-only"
+        ),
+        "invalid_last_checked_source_ids": sorted(invalid_last_checked),
+        "stale_source_card_ids": sorted(stale_source_ids),
+        "policy": (
+            "Source-bound scientific claims require stable source-card IDs, HTTPS public links, product rules, "
+            "known risk levels, required high-risk coverage, and recent review dates."
+        ),
+    }
+    issue_keys = [
+        "duplicate_source_ids",
+        "missing_required_source_card_ids",
+        "unlisted_high_risk_source_card_ids",
+        "invalid_https_source_ids",
+        "missing_product_rule_source_ids",
+        "invalid_risk_level_source_ids",
+        "invalid_public_status_source_ids",
+        "invalid_last_checked_source_ids",
+        "stale_source_card_ids",
+    ]
+    if any(report[key] for key in issue_keys):
+        report["status"] = "blocked"
+    scan = scan_text(str(report), "unibot-source-card-drift-report")
+    report["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        report["status"] = "blocked"
+    return report

@@ -350,6 +350,7 @@ for the current public-safe architecture and policy rationale.
 - Source Cards are available both as documentation and through the local API:
   - `POST /api/unibot/source-cards`
   - `POST /api/unibot/source-card`
+  - `POST /api/unibot/source-card-drift-report`
   - `POST /api/unibot/gretel-loop/run`
   - `POST /api/unibot/gretel-glm-evolve/work-packet`
   - `POST /api/unibot/gretel-glm-evolve/validate-proposal`

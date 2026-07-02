@@ -46,6 +46,7 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertIn("publication_package", check_ids)
         self.assertIn("evaluation_packet", check_ids)
         self.assertIn("authority_handoff", check_ids)
+        self.assertIn("source_card_drift_guard", check_ids)
         self.assertIn("course_material_policy", check_ids)
         self.assertIn("adaptive_task_plan", check_ids)
         self.assertIn("local_demo_run", check_ids)
@@ -68,6 +69,9 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertIs(report["runtime_guard"]["routine_budget"]["full_suite_required_by_default"], False)
         self.assertIs(report["runtime_guard"]["routine_budget"]["provider_calls_allowed_by_default"], False)
         self.assertIs(report["runtime_guard"]["routine_budget"]["external_actions_allowed_by_default"], False)
+        self.assertEqual(report["source_card_drift"]["status"], "pass")
+        self.assertEqual(report["source_card_drift"]["missing_required_source_card_ids"], [])
+        self.assertEqual(report["source_card_drift"]["unlisted_high_risk_source_card_ids"], [])
 
     def test_readiness_runtime_guard_keeps_recurring_runs_lightweight(self) -> None:
         guard = build_readiness_runtime_guard(public_file_count=123)
@@ -100,7 +104,9 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertIn("public_draft_ready", markdown)
         self.assertIn("Exam deployment: not_cleared", markdown)
         self.assertIn("Runtime guard: budget_guard_ready", markdown)
+        self.assertIn("Source-card drift: pass", markdown)
         self.assertIn("`readiness_runtime_guard`: pass", markdown)
+        self.assertIn("`source_card_drift_guard`: pass", markdown)
 
         status, report = route_request("/api/unibot/readiness-check", {})
         self.assertEqual(status, 200)

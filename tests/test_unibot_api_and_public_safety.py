@@ -15,7 +15,12 @@ from unibot.public_safety import scan_public_files, scan_text  # noqa: E402
 from http.server import ThreadingHTTPServer  # noqa: E402
 
 from unibot.server import UniBotRequestHandler, route_request  # noqa: E402
-from unibot.source_cards import get_source_card, list_source_cards, required_source_card_ids  # noqa: E402
+from unibot.source_cards import (  # noqa: E402
+    build_source_card_drift_report,
+    get_source_card,
+    list_source_cards,
+    required_source_card_ids,
+)
 
 
 class UniBotApiAndPublicSafetyTests(unittest.TestCase):
@@ -106,6 +111,8 @@ class UniBotApiAndPublicSafetyTests(unittest.TestCase):
         self.assertEqual(get_source_card("hg-nrw-64")["authority_type"], "state-law")
         self.assertEqual(get_source_card("chrome-limited-use")["source_kind"], "technical-doc")
         self.assertEqual(get_source_card("oecd-digital-education-2026")["authority_type"], "international-organisation")
+        self.assertIn("zai-glm-52", ids)
+        self.assertIn("zai-glm-pricing", required_source_card_ids())
         self.assertTrue(all(card["url"].startswith("https://") for card in cards))
 
         status, response = route_request("/api/unibot/source-cards", {"source_kind": "paper"})
@@ -116,6 +123,27 @@ class UniBotApiAndPublicSafetyTests(unittest.TestCase):
         status, response = route_request("/api/unibot/source-card", {"source_id": "hg-nrw-2025"})
         self.assertEqual(status, 200)
         self.assertEqual(response["source_card"]["authority_type"], "state-law")
+
+    def test_source_card_drift_report_keeps_scientific_sources_current(self) -> None:
+        report = build_source_card_drift_report(as_of="2026-07-02")
+
+        self.assertEqual(report["status"], "pass")
+        self.assertEqual(report["public_safety_status"], "pass")
+        self.assertGreaterEqual(report["card_count"], 25)
+        self.assertEqual(report["missing_required_source_card_ids"], [])
+        self.assertEqual(report["unlisted_high_risk_source_card_ids"], [])
+        self.assertEqual(report["duplicate_source_ids"], [])
+        self.assertEqual(report["invalid_https_source_ids"], [])
+        self.assertEqual(report["stale_source_card_ids"], [])
+
+        stale_report = build_source_card_drift_report(as_of="2027-01-01", max_age_days=120)
+        self.assertEqual(stale_report["status"], "blocked")
+        self.assertTrue(stale_report["stale_source_card_ids"])
+
+        status, response = route_request("/api/unibot/source-card-drift-report", {})
+        self.assertEqual(status, 200)
+        self.assertIn(response["status"], {"pass", "blocked"})
+        self.assertEqual(response["public_safety_status"], "pass")
 
     def test_http_handler_roundtrip(self) -> None:
         server = ThreadingHTTPServer(("127.0.0.1", 0), UniBotRequestHandler)

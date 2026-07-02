@@ -192,7 +192,7 @@ from .routed_action_executor import build_routed_action_executor
 from .simulation_loop import run_gretel_unibot_loop
 from .skill_to_workspace_session_carryover import build_skill_to_workspace_session_carryover
 from .skill_to_workspace_live_flow import build_skill_to_workspace_live_flow
-from .source_cards import get_source_card, list_source_cards
+from .source_cards import build_source_card_drift_report, get_source_card, list_source_cards
 from .study_session import build_course_study_session_plan, build_study_session_review_report, validate_study_session_receipt
 from .submission import build_stakeholder_submission_bundle, build_stakeholder_submission_markdown
 from .timeline_export_receipt_journal import (
@@ -3766,6 +3766,8 @@ def route_request(path: str, payload: dict[str, Any] | None = None, method: str 
     if path == "/api/unibot/source-cards":
         cards = list_source_cards(source_kind=payload.get("source_kind"))
         return 200, {"status": "ok", "count": len(cards), "source_cards": cards}
+    if path == "/api/unibot/source-card-drift-report":
+        return 200, build_source_card_drift_report()
     if path == "/api/unibot/source-card":
         source_id = str(payload.get("source_id", ""))
         card = get_source_card(source_id)

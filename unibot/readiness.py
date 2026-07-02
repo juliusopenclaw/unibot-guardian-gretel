@@ -25,7 +25,7 @@ from .publication import build_publication_package
 from .public_safety import scan_public_files, scan_text
 from .redteam import run_redteam_smoke
 from .release_runbook import build_release_runbook
-from .source_cards import list_source_cards
+from .source_cards import build_source_card_drift_report, list_source_cards
 from .triage import build_feedback_triage
 from .review_board import build_review_board_packet
 
@@ -102,6 +102,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     handoff = build_authority_handoff_packet()
     notebook = generate_practice_notebook("UniBot readiness notebook smoke")
     source_cards = list_source_cards()
+    source_card_drift = build_source_card_drift_report()
     material_manifest = build_demo_material_manifest()
     material_summary = build_public_material_summary(material_manifest["records"])
     material_summary_scan = scan_text(json.dumps(material_summary, ensure_ascii=False), "unibot-material-summary")
@@ -277,6 +278,25 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             "evidence": {
                 "source_card_count": len(source_cards),
                 "high_risk_count": len([card for card in source_cards if card["risk_level"] == "high"]),
+            },
+        },
+        {
+            "check_id": "source_card_drift_guard",
+            "passed": source_card_drift["status"] == "pass"
+            and source_card_drift["public_safety_status"] == "pass"
+            and source_card_drift["missing_required_source_card_ids"] == []
+            and source_card_drift["unlisted_high_risk_source_card_ids"] == []
+            and source_card_drift["duplicate_source_ids"] == []
+            and source_card_drift["stale_source_card_ids"] == [],
+            "evidence": {
+                "status": source_card_drift["status"],
+                "public_safety_status": source_card_drift["public_safety_status"],
+                "card_count": source_card_drift["card_count"],
+                "required_source_card_count": source_card_drift["required_source_card_count"],
+                "high_risk_source_card_count": source_card_drift["high_risk_source_card_count"],
+                "source_kind_count": source_card_drift["source_kind_count"],
+                "authority_type_count": source_card_drift["authority_type_count"],
+                "stale_source_card_count": len(source_card_drift["stale_source_card_ids"]),
             },
         },
         {
@@ -562,6 +582,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
         "failed_count": len(failed),
         "checks": checks,
         "runtime_guard": runtime_guard,
+        "source_card_drift": source_card_drift,
         "policy": "Readiness means public-safe draft only, not exam clearance or legal approval.",
     }
 
@@ -579,6 +600,9 @@ def build_readiness_markdown(paths: Iterable[str | Path] | None = None) -> str:
         f"Runtime guard: {report['runtime_guard']['status']} "
         f"({report['runtime_guard']['routine_budget']['default_execution_mode']}, "
         f"full suite default: {report['runtime_guard']['routine_budget']['full_suite_required_by_default']})\n\n"
+        f"Source-card drift: {report['source_card_drift']['status']} "
+        f"({report['source_card_drift']['card_count']} cards, "
+        f"{report['source_card_drift']['required_source_card_count']} required)\n\n"
         "## Checks\n\n"
         f"{check_lines}\n\n"
         f"Policy: {report['policy']}\n"

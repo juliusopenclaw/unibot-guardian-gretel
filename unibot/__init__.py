@@ -159,7 +159,7 @@ from .routed_action_executor import build_routed_action_executor
 from .skill_to_workspace_session_carryover import build_skill_to_workspace_session_carryover
 from .skill_to_workspace_live_flow import build_skill_to_workspace_live_flow
 from .server import route_request
-from .source_cards import get_source_card, list_source_cards, required_source_card_ids
+from .source_cards import build_source_card_drift_report, get_source_card, list_source_cards, required_source_card_ids
 from .study_session import build_course_study_session_plan, build_study_session_review_report, validate_study_session_receipt
 from .tutor_coverage import build_course_tutor_coverage_plan
 from .timeline_export_receipt_journal import (
@@ -219,6 +219,7 @@ __all__ = [
     "get_source_card",
     "list_source_cards",
     "required_source_card_ids",
+    "build_source_card_drift_report",
     "append_ledger_event",
     "read_ledger",
     "summarize_ledger",
