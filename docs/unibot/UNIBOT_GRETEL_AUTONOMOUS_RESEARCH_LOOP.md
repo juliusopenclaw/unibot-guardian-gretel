@@ -57,9 +57,8 @@ contract change.
 
 ## Current Work Queue
 
-1. `feedback_issue_evidence_traceability`: align feedback triage and GitHub
-   issue packets with readiness evidence so public reviewer follow-up remains
-   traceable and manual.
+1. `release_runbook_evidence_alignment`: align release runbook evidence with
+   readiness snapshots, review-board gates, and manual-publication boundaries.
 
 ## Closed Harnessed Work
 
@@ -86,6 +85,9 @@ contract change.
   docs, and tests.
 - `review_board_evidence_alignment`: closed in `f449f88` with reviewer-to-thesis
   claim, readiness-gate, source-card, and human-gate evidence mapping.
+- `feedback_issue_evidence_traceability`: closed in `99d36ff` with
+  feedback-derived GitHub issues mapped to readiness gates, source cards, human
+  gates, and the evidence-snapshot contract.
 
 ## Automation Rule
 

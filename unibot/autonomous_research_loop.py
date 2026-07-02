@@ -249,7 +249,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "feedback_issue_evidence_traceability",
             "priority": 10,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align feedback triage and GitHub issue packets with readiness evidence so public reviewer follow-up remains traceable and manual.",
             "allowed_files": [
                 "unibot/github_issues.py",
@@ -259,6 +259,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_github_issues.py tests/test_unibot_publication.py -q"],
             "review_gate": "manual_public_feedback_traceability",
+            "closure_evidence": {
+                "commit": "99d36ff",
+                "summary": "Feedback-derived GitHub issues now carry readiness-gate, source-card, human-gate, and evidence-snapshot traceability.",
+            },
+        },
+        {
+            "work_id": "release_runbook_evidence_alignment",
+            "priority": 11,
+            "status": "ready",
+            "goal": "Align release runbook evidence with readiness snapshots, review-board gates, and manual-publication boundaries.",
+            "allowed_files": [
+                "unibot/release_runbook.py",
+                "tests/test_unibot_release_runbook.py",
+                "docs/unibot/UNIBOT_RELEASE_RUNBOOK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_release_runbook.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "manual_release_evidence_traceability",
         },
     ]
 
