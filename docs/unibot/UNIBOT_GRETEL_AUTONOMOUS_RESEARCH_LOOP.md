@@ -57,9 +57,9 @@ contract change.
 
 ## Current Work Queue
 
-1. `bachelor_thesis_evidence_index`: keep the Gretel-authored bachelor-thesis
-   package aligned with readiness evidence, source cards, tests, and human
-   review gates.
+1. `readiness_evidence_snapshot`: create a compact public-safe readiness
+   evidence snapshot so recurring Gretel runs can compare scientific gate
+   coverage over time.
 
 ## Closed Harnessed Work
 
@@ -78,6 +78,9 @@ contract change.
   full-suite/provider work.
 - `source_card_drift_guard`: closed in `afeb0d5` with source-card drift report,
   API route, readiness gate, stale-source harness, and public docs.
+- `bachelor_thesis_evidence_index`: closed in `400fc92` with claim-to-test,
+  readiness-check, source-card, and human-gate evidence mapping for the
+  Gretel-authored bachelor-thesis package.
 
 ## Automation Rule
 

@@ -194,7 +194,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "bachelor_thesis_evidence_index",
             "priority": 7,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Keep the Gretel-authored bachelor-thesis package aligned with readiness evidence, source cards, tests, and human review gates.",
             "allowed_files": [
                 "unibot/bachelor_thesis.py",
@@ -206,6 +206,23 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
                 "python3 -m pytest tests/test_unibot_bachelor_thesis.py tests/test_unibot_readiness.py -q"
             ],
             "review_gate": "thesis_claims_source_bound_and_human_gated",
+            "closure_evidence": {
+                "commit": "400fc92",
+                "summary": "Bachelor-thesis evidence index added with claim-to-test/readiness/source-card/human-gate mapping.",
+            },
+        },
+        {
+            "work_id": "readiness_evidence_snapshot",
+            "priority": 8,
+            "status": "ready",
+            "goal": "Create a compact public-safe readiness evidence snapshot so recurring Gretel runs can compare scientific gate coverage over time.",
+            "allowed_files": [
+                "unibot/readiness.py",
+                "tests/test_unibot_readiness.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_readiness.py -q"],
+            "review_gate": "public_safe_reproducible_readiness_evidence",
         },
     ]
 
