@@ -413,7 +413,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "evaluation_learner_agency_boundary_alignment",
             "priority": 19,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align evaluation packets with adaptive learner-agency evidence, source boundaries, source cards, and readiness gates.",
             "allowed_files": [
                 "unibot/evaluation.py",
@@ -423,6 +423,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_evaluation.py tests/test_unibot_readiness.py -q"],
             "review_gate": "evaluation_learner_agency_source_boundary_traceability",
+            "closure_evidence": {
+                "commit": "7c04e0d",
+                "summary": "Evaluation learner-agency boundary alignment added with adaptive trace, rubric, measurement-exclusion, source-card, readiness, and human-gate contracts.",
+            },
+        },
+        {
+            "work_id": "bachelor_thesis_evaluation_claim_alignment",
+            "priority": 20,
+            "status": "ready",
+            "goal": "Align the Gretel-authored bachelor-thesis package with evaluation learner-agency evidence, adaptive task boundaries, source cards, and readiness gates.",
+            "allowed_files": [
+                "unibot/bachelor_thesis.py",
+                "tests/test_unibot_bachelor_thesis.py",
+                "docs/unibot/UNIBOT_GRETEL_BACHELOR_THESIS_PACKAGE.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_bachelor_thesis.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "bachelor_thesis_evaluation_claim_traceability",
         },
     ]
 

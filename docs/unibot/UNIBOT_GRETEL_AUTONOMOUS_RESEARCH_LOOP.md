@@ -57,9 +57,9 @@ contract change.
 
 ## Current Work Queue
 
-1. `evaluation_learner_agency_boundary_alignment`: align evaluation packets with
-   adaptive learner-agency evidence, source boundaries, source cards, and
-   readiness gates.
+1. `bachelor_thesis_evaluation_claim_alignment`: align the Gretel-authored
+   bachelor-thesis package with evaluation learner-agency evidence, adaptive
+   task boundaries, source cards, and readiness gates.
 
 ## Closed Harnessed Work
 
@@ -113,6 +113,9 @@ contract change.
 - `adaptive_task_source_boundary_alignment`: closed in `00bc10e` with
   public-summary source contracts, learner-agency checks, readiness gates, and
   public-summary excerpt hardening.
+- `evaluation_learner_agency_boundary_alignment`: closed in `7c04e0d` with
+  adaptive trace, rubric, measurement-exclusion, source-card, readiness, and
+  human-gate contracts.
 
 ## Automation Rule
 
