@@ -57,9 +57,9 @@ contract change.
 
 ## Current Work Queue
 
-1. `review_board_evidence_alignment`: align review-board packets with readiness
-   evidence snapshots and thesis claims so human reviewers can audit gates
-   quickly.
+1. `feedback_issue_evidence_traceability`: align feedback triage and GitHub
+   issue packets with readiness evidence so public reviewer follow-up remains
+   traceable and manual.
 
 ## Closed Harnessed Work
 
@@ -84,6 +84,8 @@ contract change.
 - `readiness_evidence_snapshot`: closed in `19d6f8c` with stable-hash
   readiness evidence snapshot, scientific gate coverage, public-safe summary,
   docs, and tests.
+- `review_board_evidence_alignment`: closed in `f449f88` with reviewer-to-thesis
+  claim, readiness-gate, source-card, and human-gate evidence mapping.
 
 ## Automation Rule
 

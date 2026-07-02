@@ -231,7 +231,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "review_board_evidence_alignment",
             "priority": 9,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align review-board packets with readiness evidence snapshots and thesis claims so human reviewers can audit gates quickly.",
             "allowed_files": [
                 "unibot/review_board.py",
@@ -241,6 +241,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_review_board.py tests/test_unibot_readiness.py -q"],
             "review_gate": "human_review_evidence_traceability",
+            "closure_evidence": {
+                "commit": "f449f88",
+                "summary": "Review-board evidence alignment added with reviewer-to-thesis-claim, readiness-gate, source-card, and human-gate mapping.",
+            },
+        },
+        {
+            "work_id": "feedback_issue_evidence_traceability",
+            "priority": 10,
+            "status": "ready",
+            "goal": "Align feedback triage and GitHub issue packets with readiness evidence so public reviewer follow-up remains traceable and manual.",
+            "allowed_files": [
+                "unibot/github_issues.py",
+                "unibot/triage.py",
+                "tests/test_unibot_github_issues.py",
+                "docs/unibot/UNIBOT_GITHUB_ISSUE_BUNDLE.md",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_github_issues.py tests/test_unibot_publication.py -q"],
+            "review_gate": "manual_public_feedback_traceability",
         },
     ]
 

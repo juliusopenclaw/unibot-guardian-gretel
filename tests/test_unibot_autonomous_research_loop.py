@@ -56,7 +56,7 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         queue = loop["work_queue"]
         by_id = {item["work_id"]: item for item in queue}
 
-        self.assertGreaterEqual(len(queue), 9)
+        self.assertGreaterEqual(len(queue), 10)
         self.assertEqual(by_id["intent_contract_regression_pack"]["status"], "closed_harnessed")
         self.assertEqual(by_id["intent_contract_regression_pack"]["closure_evidence"]["commit"], "fa942b0")
         self.assertEqual(by_id["scientific_evaluation_depth"]["status"], "closed_harnessed")
@@ -73,8 +73,10 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertEqual(by_id["bachelor_thesis_evidence_index"]["closure_evidence"]["commit"], "400fc92")
         self.assertEqual(by_id["readiness_evidence_snapshot"]["status"], "closed_harnessed")
         self.assertEqual(by_id["readiness_evidence_snapshot"]["closure_evidence"]["commit"], "19d6f8c")
-        self.assertEqual(loop["next_recommended_work_id"], "review_board_evidence_alignment")
-        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 8)
+        self.assertEqual(by_id["review_board_evidence_alignment"]["status"], "closed_harnessed")
+        self.assertEqual(by_id["review_board_evidence_alignment"]["closure_evidence"]["commit"], "f449f88")
+        self.assertEqual(loop["next_recommended_work_id"], "feedback_issue_evidence_traceability")
+        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 9)
         self.assertLessEqual(loop["budget_policy"]["cadence"]["max_active_work_item_per_run"], 1)
         for item in queue:
             self.assertIn("acceptance_tests", item)
@@ -89,8 +91,8 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("Public safety: pass", markdown)
         self.assertIn("Default reasoning effort: low", markdown)
         self.assertIn("Autonomous GitHub push: False", markdown)
-        self.assertIn("Closed harnessed items: 8", markdown)
-        self.assertIn("Next recommended work: review_board_evidence_alignment", markdown)
+        self.assertIn("Closed harnessed items: 9", markdown)
+        self.assertIn("Next recommended work: feedback_issue_evidence_traceability", markdown)
 
         status, loop = route_request("/api/unibot/autonomous-research-loop", {})
         self.assertEqual(status, 200)
