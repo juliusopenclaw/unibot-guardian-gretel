@@ -267,7 +267,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "release_runbook_evidence_alignment",
             "priority": 11,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align release runbook evidence with readiness snapshots, review-board gates, and manual-publication boundaries.",
             "allowed_files": [
                 "unibot/release_runbook.py",
@@ -277,6 +277,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_release_runbook.py tests/test_unibot_readiness.py -q"],
             "review_gate": "manual_release_evidence_traceability",
+            "closure_evidence": {
+                "commit": "be671ff",
+                "summary": "Release runbook evidence alignment added with readiness snapshot, review-board, GitHub issue, source-card, and human-gate contracts.",
+            },
+        },
+        {
+            "work_id": "compliance_drift_evidence_alignment",
+            "priority": 12,
+            "status": "ready",
+            "goal": "Keep compliance matrix requirements aligned with source-card drift, readiness evidence, and human authority gates.",
+            "allowed_files": [
+                "unibot/compliance.py",
+                "tests/test_unibot_compliance.py",
+                "docs/unibot/UNIBOT_COMPLIANCE_MATRIX.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_compliance.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "compliance_source_bound_human_gated",
         },
     ]
 

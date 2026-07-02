@@ -57,8 +57,9 @@ contract change.
 
 ## Current Work Queue
 
-1. `release_runbook_evidence_alignment`: align release runbook evidence with
-   readiness snapshots, review-board gates, and manual-publication boundaries.
+1. `compliance_drift_evidence_alignment`: keep compliance matrix requirements
+   aligned with source-card drift, readiness evidence, and human authority
+   gates.
 
 ## Closed Harnessed Work
 
@@ -88,6 +89,9 @@ contract change.
 - `feedback_issue_evidence_traceability`: closed in `99d36ff` with
   feedback-derived GitHub issues mapped to readiness gates, source cards, human
   gates, and the evidence-snapshot contract.
+- `release_runbook_evidence_alignment`: closed in `be671ff` with readiness
+  snapshot, review-board, GitHub issue, source-card, and human-gate contracts
+  for release review.
 
 ## Automation Rule
 
