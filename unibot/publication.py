@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from typing import Any
 
@@ -20,11 +21,74 @@ from .privacy import build_data_protection_screening
 from .review_board import build_review_board_packet
 from .redteam import run_redteam_smoke
 from .release_runbook import build_release_runbook
-from .source_cards import list_source_cards
+from .public_safety import scan_text
+from .source_cards import get_source_card, list_source_cards
 from .triage import build_feedback_triage
 
 
 PUBLICATION_SCHEMA_VERSION = "unibot-publication-package-v1"
+PUBLICATION_REPRODUCIBILITY_ALIGNMENT_SCHEMA_VERSION = "unibot-publication-reproducibility-alignment-v1"
+
+PUBLICATION_ALIGNMENT_SECTIONS = [
+    {
+        "section_id": "public_reproduction_bundle",
+        "artifact_ids": ["system_card", "data_card", "limitations", "source_cards", "synthetic_tasks", "codebook"],
+        "release_gate_ids": ["release_ready", "public_safety_required", "redteam_status", "evaluation_status"],
+        "policy_keys": ["collaboration_note"],
+        "source_card_ids": ["dfg-gwp", "openai-evals", "unesco-genai-2023"],
+        "readiness_check_ids": ["publication_package", "evaluation_packet", "redteam", "source_card_drift_guard"],
+        "human_gates": ["human_submission_review_required"],
+    },
+    {
+        "section_id": "manual_release_boundary",
+        "artifact_ids": ["release_runbook", "github_issue_bundle", "review_board_packet"],
+        "release_gate_ids": ["release_runbook_ready", "review_board_packet_ready", "demo_feedback_contract_ready"],
+        "policy_keys": ["release_runbook_policy", "github_issue_policy", "review_board_policy"],
+        "source_card_ids": ["dfg-gwp", "uoc-ki-lehre", "gdpr-2016-679"],
+        "readiness_check_ids": ["publication_package", "release_runbook", "github_issue_bundle", "review_board_packet"],
+        "human_gates": ["human_review_required", "human_submission_review_required"],
+    },
+    {
+        "section_id": "authority_and_compliance_bundle",
+        "artifact_ids": ["compliance_matrix", "pilot_protocol", "data_protection_screening", "authority_handoff_summary"],
+        "release_gate_ids": [
+            "compliance_matrix_ready",
+            "pilot_protocol_ready",
+            "data_protection_screening_ready",
+            "authority_packet_status",
+        ],
+        "policy_keys": ["compliance_matrix_policy", "pilot_protocol_policy", "data_protection_policy"],
+        "source_card_ids": ["gdpr-2016-679", "eu-ai-act-2024", "uoc-ki-lehre", "uoc-nachteilsausgleich"],
+        "readiness_check_ids": ["publication_package", "compliance_matrix", "pilot_protocol", "data_protection_screening"],
+        "human_gates": [
+            "datenschutz_review_required_before_real_pilot",
+            "ethics_or_supervisor_review_required_before_real_pilot",
+            "written_university_clearance_required_before_exam_use",
+        ],
+    },
+    {
+        "section_id": "gretel_glm_thesis_bundle",
+        "artifact_ids": ["gretel_glm_evolve_lane", "gretel_glm_rsi_workboard", "gretel_bachelor_thesis_package"],
+        "release_gate_ids": [
+            "gretel_glm_evolve_lane_ready",
+            "gretel_glm_rsi_workboard_ready",
+            "gretel_bachelor_thesis_package_ready",
+        ],
+        "policy_keys": ["gretel_glm_evolve_policy", "gretel_glm_rsi_visibility_policy", "gretel_bachelor_thesis_policy"],
+        "source_card_ids": ["zai-glm-52", "zai-glm-52-migration", "zai-glm-pricing", "dfg-gwp"],
+        "readiness_check_ids": ["publication_package", "gretel_glm_evolve_lane", "gretel_glm_rsi_visibility_workboard"],
+        "human_gates": ["provider_call_requires_explicit_go_and_redaction_receipt", "human_submission_review_required"],
+    },
+    {
+        "section_id": "budgeted_autonomy_boundary",
+        "artifact_ids": ["gretel_autonomous_research_loop", "paperclip_evaluation_bridge"],
+        "release_gate_ids": ["gretel_autonomous_research_loop_ready", "paperclip_evaluation_bridge_ready"],
+        "policy_keys": ["gretel_autonomy_policy", "paperclip_policy"],
+        "source_card_ids": ["dfg-gwp", "zai-glm-52"],
+        "readiness_check_ids": ["publication_package", "gretel_autonomous_research_loop"],
+        "human_gates": ["human_review_required", "public_safety_required"],
+    },
+]
 
 
 def build_system_card() -> dict[str, Any]:
@@ -116,6 +180,111 @@ def build_limitations() -> list[dict[str, str]]:
             "mitigation": "Use authority handoff for Pruefungsamt, Inklusion, Datenschutz, IT/SZI, and teaching review.",
         },
     ]
+
+
+def build_publication_reproducibility_alignment(package: dict[str, Any] | None = None) -> dict[str, Any]:
+    publication = package or build_publication_package()
+    artifact_ids = set(publication.get("included_artifacts", [])) | {
+        key for key in publication.keys() if key not in {"generated_at_utc", "publication_reproducibility_alignment"}
+    }
+    release_gates = publication.get("release_gates", {})
+    release_gate_ids = set(release_gates)
+    alignment_rows = []
+    for section in PUBLICATION_ALIGNMENT_SECTIONS:
+        missing_artifact_ids = sorted(artifact_id for artifact_id in section["artifact_ids"] if artifact_id not in artifact_ids)
+        missing_release_gate_ids = sorted(
+            gate_id for gate_id in section["release_gate_ids"] if gate_id not in release_gate_ids
+        )
+        missing_policy_keys = sorted(policy_key for policy_key in section["policy_keys"] if policy_key not in publication)
+        missing_source_card_ids = sorted(
+            source_id for source_id in section["source_card_ids"] if get_source_card(source_id) is None
+        )
+        alignment_rows.append(
+            {
+                "section_id": section["section_id"],
+                "artifact_ids": list(section["artifact_ids"]),
+                "release_gate_ids": list(section["release_gate_ids"]),
+                "policy_keys": list(section["policy_keys"]),
+                "source_card_ids": list(section["source_card_ids"]),
+                "readiness_check_ids": list(section["readiness_check_ids"]),
+                "human_gates": list(section["human_gates"]),
+                "missing_artifact_ids": missing_artifact_ids,
+                "missing_release_gate_ids": missing_release_gate_ids,
+                "missing_policy_keys": missing_policy_keys,
+                "missing_source_card_ids": missing_source_card_ids,
+            }
+        )
+    contracts = {
+        "release_ready_public_draft_only": (
+            release_gates.get("release_ready") is True
+            and "not as exam deployment" in str(release_gates.get("release_ready_note", ""))
+            and publication.get("status") == "public_draft_not_exam_release"
+        ),
+        "private_groups_excluded": all(
+            needle in " ".join(publication.get("excluded_file_groups", [])).lower()
+            for needle in ["private", "emails", "local", "exam"]
+        ),
+        "manual_review_policies_present": all(
+            needle in str(publication.get(policy_key, "")).lower()
+            for policy_key, needle in [
+                ("github_issue_policy", "manual review"),
+                ("review_board_policy", "review"),
+                ("gretel_autonomy_policy", "human-gated"),
+            ]
+        ),
+        "gretel_thesis_claim_source_bound": (
+            publication.get("gretel_bachelor_thesis_package", {})
+            .get("evidence_index", {})
+            .get("status")
+            == "ready"
+            and publication.get("gretel_bachelor_thesis_package", {})
+            .get("authorship_statement", {})
+            .get("builder")
+            == "Gretel"
+        ),
+        "glm_provider_locked": (
+            publication.get("gretel_glm_evolve_lane", {}).get("provider_call_executed") is False
+            and publication.get("gretel_glm_rsi_workboard", {}).get("safety", {}).get("provider_call_allowed_now") is False
+        ),
+        "autonomous_release_locked": publication.get("gretel_autonomous_research_loop", {}).get("safety", {}).get(
+            "autonomous_github_push"
+        )
+        is False,
+    }
+    alignment = {
+        "schema_version": PUBLICATION_REPRODUCIBILITY_ALIGNMENT_SCHEMA_VERSION,
+        "status": "ready",
+        "section_count": len(alignment_rows),
+        "sections": alignment_rows,
+        "missing_artifact_ids": sorted({item for row in alignment_rows for item in row["missing_artifact_ids"]}),
+        "missing_release_gate_ids": sorted({item for row in alignment_rows for item in row["missing_release_gate_ids"]}),
+        "missing_policy_keys": sorted({item for row in alignment_rows for item in row["missing_policy_keys"]}),
+        "missing_source_card_ids": sorted({item for row in alignment_rows for item in row["missing_source_card_ids"]}),
+        "failed_contract_ids": sorted(contract_id for contract_id, passed in contracts.items() if not passed),
+        "contracts": contracts,
+        "required_readiness_check_ids": sorted(
+            {check_id for row in alignment_rows for check_id in row["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for row in alignment_rows for gate in row["human_gates"]}),
+        "release_boundary": "public_draft_only_not_exam_deployment_not_university_submission",
+        "policy": (
+            "Publication reproducibility alignment is a review aid for the public package; it is not exam clearance, "
+            "legal advice, Datenschutz approval, provider-call approval, or thesis submission approval."
+        ),
+    }
+    if (
+        alignment["missing_artifact_ids"]
+        or alignment["missing_release_gate_ids"]
+        or alignment["missing_policy_keys"]
+        or alignment["missing_source_card_ids"]
+        or alignment["failed_contract_ids"]
+    ):
+        alignment["status"] = "blocked"
+    scan = scan_text(json.dumps(alignment, ensure_ascii=False), "publication-reproducibility-alignment")
+    alignment["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        alignment["status"] = "blocked_public_safety"
+    return alignment
 
 
 def build_publication_package() -> dict[str, Any]:
@@ -314,7 +483,7 @@ def build_publication_package() -> dict[str, Any]:
         and paperclip_bridge_ready,
         "release_ready_note": "Ready as public-safe draft package, not as exam deployment.",
     }
-    return {
+    package = {
         "schema_version": PUBLICATION_SCHEMA_VERSION,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "status": "public_draft_not_exam_release",
@@ -392,6 +561,8 @@ def build_publication_package() -> dict[str, Any]:
         "data_protection_policy": "Data-protection screening is a planning draft only and must be reviewed before any real pilot data collection.",
         "review_board_policy": "Review board packet is a planning artifact and is not written institutional approval.",
     }
+    package["publication_reproducibility_alignment"] = build_publication_reproducibility_alignment(package)
+    return package
 
 
 def build_publication_markdown() -> str:
@@ -401,6 +572,7 @@ def build_publication_markdown() -> str:
     limitation_lines = "\n".join(f"- {item['limitation']} Mitigation: {item['mitigation']}" for item in package["limitations"])
     included_lines = "\n".join(f"- {item}" for item in package["included_artifacts"])
     excluded_lines = "\n".join(f"- {item}" for item in package["excluded_file_groups"])
+    alignment = package["publication_reproducibility_alignment"]
     return (
         "# UniBot Public Reproduction Package\n\n"
         f"Status: {package['status']}\n\n"
@@ -418,6 +590,11 @@ def build_publication_markdown() -> str:
         f"{excluded_lines}\n\n"
         "## Limitations\n\n"
         f"{limitation_lines}\n\n"
+        "## Reproducibility Alignment\n\n"
+        f"- Alignment: {alignment['status']}\n"
+        f"- Sections: {alignment['section_count']}\n"
+        f"- Release boundary: {alignment['release_boundary']}\n"
+        f"- Human gates: {', '.join(alignment['required_human_gates'])}\n\n"
         "## Release Gates\n\n"
         f"- Red-Team: {package['release_gates']['redteam_status']}\n"
         f"- Evaluation: {package['release_gates']['evaluation_status']}\n"

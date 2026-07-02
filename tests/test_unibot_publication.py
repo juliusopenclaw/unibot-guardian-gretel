@@ -9,7 +9,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.publication import build_publication_markdown, build_publication_package  # noqa: E402
+from unibot.publication import (  # noqa: E402
+    build_publication_markdown,
+    build_publication_package,
+    build_publication_reproducibility_alignment,
+)
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
 
@@ -42,6 +46,8 @@ class UniBotPublicationTests(unittest.TestCase):
         self.assertIn("manual review", package["github_issue_policy"])
         self.assertIn("Gretel-built", package["gretel_bachelor_thesis_policy"])
         self.assertIn("budgeted local autonomous research loop", package["gretel_autonomy_policy"])
+        self.assertEqual(package["publication_reproducibility_alignment"]["status"], "ready")
+        self.assertEqual(package["publication_reproducibility_alignment"]["public_safety_status"], "pass")
         self.assertIn("public draft", package["release_runbook_policy"])
         self.assertIn("not legal advice", package["compliance_matrix_policy"])
         self.assertIn("planning draft", package["pilot_protocol_policy"])
@@ -62,6 +68,30 @@ class UniBotPublicationTests(unittest.TestCase):
         self.assertTrue(package["release_gates"]["gretel_autonomous_research_loop_ready"])
         self.assertTrue(package["release_gates"]["release_ready"])
 
+    def test_publication_reproducibility_alignment_maps_release_evidence(self) -> None:
+        package = build_publication_package()
+        alignment = build_publication_reproducibility_alignment(package)
+        by_section = {section["section_id"]: section for section in alignment["sections"]}
+
+        self.assertEqual(alignment["schema_version"], "unibot-publication-reproducibility-alignment-v1")
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["missing_artifact_ids"], [])
+        self.assertEqual(alignment["missing_release_gate_ids"], [])
+        self.assertEqual(alignment["missing_policy_keys"], [])
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertIn("publication_package", alignment["required_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("provider_call_requires_explicit_go_and_redaction_receipt", alignment["required_human_gates"])
+        self.assertEqual(alignment["release_boundary"], "public_draft_only_not_exam_deployment_not_university_submission")
+        self.assertTrue(alignment["contracts"]["release_ready_public_draft_only"])
+        self.assertTrue(alignment["contracts"]["private_groups_excluded"])
+        self.assertTrue(alignment["contracts"]["gretel_thesis_claim_source_bound"])
+        self.assertTrue(alignment["contracts"]["glm_provider_locked"])
+        self.assertIn("gretel_bachelor_thesis_package", by_section["gretel_glm_thesis_bundle"]["artifact_ids"])
+        self.assertIn("release_runbook_ready", by_section["manual_release_boundary"]["release_gate_ids"])
+
     def test_publication_package_excludes_private_and_exam_materials(self) -> None:
         package_text = json.dumps(build_publication_package(), ensure_ascii=False)
 
@@ -78,6 +108,7 @@ class UniBotPublicationTests(unittest.TestCase):
         self.assertIn("System Card", markdown)
         self.assertIn("Data Card", markdown)
         self.assertIn("Release Gates", markdown)
+        self.assertIn("Reproducibility Alignment", markdown)
         self.assertIn("Course-material policy", markdown)
         self.assertIn("Adaptive task plan", markdown)
         self.assertIn("Local demo run", markdown)

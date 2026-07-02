@@ -135,7 +135,11 @@ from .private_tutor_use_flow import build_private_tutor_use_flow_dry_run
 from .private_extraction_runner import run_private_extraction_batch
 from .video_transcription_runner import run_video_transcription_batch, video_transcription_capabilities
 from .review_board import build_review_board_evidence_alignment, build_review_board_packet, build_review_board_packet_markdown
-from .publication import build_publication_markdown, build_publication_package
+from .publication import (
+    build_publication_markdown,
+    build_publication_package,
+    build_publication_reproducibility_alignment,
+)
 from .public_safety import scan_public_files, scan_text
 from .python_exam_cockpit_flow import build_python_exam_cockpit_flow
 from .python_exam_confirmed_local_export_draft import build_python_exam_confirmed_local_export_draft
@@ -300,6 +304,7 @@ __all__ = [
     "synthetic_tasks",
     "build_publication_package",
     "build_publication_markdown",
+    "build_publication_reproducibility_alignment",
     "default_public_paths",
     "run_readiness_check",
     "build_readiness_markdown",

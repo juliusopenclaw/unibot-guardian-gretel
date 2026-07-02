@@ -34,6 +34,19 @@ Release-ready means only that the package is suitable as a public-safe draft for
 review and collaboration. It does not mean exam clearance, legal approval, or
 deployment readiness.
 
+## Reproducibility Alignment
+
+The generated package includes `publication_reproducibility_alignment`. It maps
+the public reproduction bundle, manual release boundary, authority/compliance
+bundle, Gretel/GLM thesis bundle, and budgeted-autonomy boundary to included
+artifacts, release gates, source cards, readiness checks, policies, and human
+review gates.
+
+The alignment must remain `ready` before the package can be described as a
+public-safe reproduction draft. It is still only a review aid: it is not exam
+clearance, legal advice, Datenschutz approval, provider-call approval, or real
+university thesis submission approval.
+
 The GitHub issue bundle is a manual-review draft. It prepares labels, titles,
 and public-safe bodies, but it does not publish issues automatically.
 

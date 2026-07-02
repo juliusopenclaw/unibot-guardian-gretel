@@ -311,12 +311,22 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             "check_id": "publication_package",
             "passed": publication["status"] == "public_draft_not_exam_release"
             and publication["release_gates"]["release_ready"] is True
-            and publication_scan["status"] == "pass",
+            and publication_scan["status"] == "pass"
+            and publication["publication_reproducibility_alignment"]["status"] == "ready"
+            and publication["publication_reproducibility_alignment"]["public_safety_status"] == "pass"
+            and publication["publication_reproducibility_alignment"]["missing_artifact_ids"] == []
+            and publication["publication_reproducibility_alignment"]["missing_release_gate_ids"] == []
+            and publication["publication_reproducibility_alignment"]["missing_policy_keys"] == []
+            and publication["publication_reproducibility_alignment"]["missing_source_card_ids"] == []
+            and publication["publication_reproducibility_alignment"]["failed_contract_ids"] == [],
             "evidence": {
                 "status": publication["status"],
                 "release_ready": publication["release_gates"]["release_ready"],
                 "release_ready_note": publication["release_gates"]["release_ready_note"],
                 "public_safety_status": publication_scan["status"],
+                "reproducibility_alignment_status": publication["publication_reproducibility_alignment"]["status"],
+                "reproducibility_alignment_section_count": publication["publication_reproducibility_alignment"]["section_count"],
+                "reproducibility_alignment_human_gates": publication["publication_reproducibility_alignment"]["required_human_gates"],
             },
         },
         {
