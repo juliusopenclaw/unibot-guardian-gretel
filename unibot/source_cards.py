@@ -1,0 +1,305 @@
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass
+from typing import Any
+
+
+LAST_CHECKED = "2026-06-13"
+
+
+@dataclass(frozen=True)
+class SourceCard:
+    source_id: str
+    title: str
+    url: str
+    source_kind: str
+    authority_type: str
+    product_rule: str
+    risk_level: str = "medium"
+    public_status: str = "public-link-only"
+    last_checked: str = LAST_CHECKED
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+SOURCE_CARDS = [
+    SourceCard(
+        source_id="hg-nrw-2025",
+        title="Hochschulgesetz Nordrhein-Westfalen, current 2025 version",
+        url="https://recht.nrw.de/lrgv/gesetz/07052025-gesetz-ueber-die-hochschulen-des-landes-nordrhein-westfalen-hochschulgesetz-hg/",
+        source_kind="law",
+        authority_type="state-law",
+        product_rule="Exam and accommodation use must remain tied to the applicable university authority and exam regulation.",
+        risk_level="high",
+    ),
+    SourceCard(
+        source_id="hg-nrw-62b",
+        title="Hochschulgesetz Nordrhein-Westfalen section 62b",
+        url="https://recht.nrw.de/lrgv/gesetz/07052025-gesetz-ueber-die-hochschulen-des-landes-nordrhein-westfalen-hochschulgesetz-hg/",
+        source_kind="law",
+        authority_type="state-law",
+        product_rule="Accommodation interests stay in the institutional inclusion process; UniBot may document support categories but not decide them.",
+        risk_level="high",
+    ),
+    SourceCard(
+        source_id="hg-nrw-64",
+        title="Hochschulgesetz Nordrhein-Westfalen section 64",
+        url="https://recht.nrw.de/lrgv/gesetz/07052025-gesetz-ueber-die-hochschulen-des-landes-nordrhein-westfalen-hochschulgesetz-hg/",
+        source_kind="law",
+        authority_type="state-law",
+        product_rule="Exam procedures, aids, breaches, and online-exam privacy must fit the applicable exam regulation before any exam mode.",
+        risk_level="high",
+    ),
+    SourceCard(
+        source_id="uoc-ki-lehre",
+        title="University of Cologne guidance on generative AI in teaching",
+        url="https://uni-koeln.de/studium-lehre/lehrende/ki-in-der-bildung/wie-kann-ich-generative-ki-im-kontext-von-lehre-und-lernen-produktiv-anwenden",
+        source_kind="university-policy",
+        authority_type="university",
+        product_rule="AI use must be transparent and exam-rule aware.",
+        risk_level="high",
+    ),
+    SourceCard(
+        source_id="uoc-hilfsmittel",
+        title="University of Cologne WiSo aids in exams",
+        url="https://wiso.uni-koeln.de/de/fakultaet/dekanat/zentrale-fakultaetsverwaltung/pruefungsamt/rund-um-pruefungen/hilfsmittel",
+        source_kind="university-policy",
+        authority_type="university-exam-office",
+        product_rule="UniBot must not describe an aid as cleared without written exam-authority clearance.",
+        risk_level="high",
+    ),
+    SourceCard(
+        source_id="uoc-ki-faq",
+        title="University of Cologne FAQ on artificial intelligence",
+        url="https://verwaltung.uni-koeln.de/stabsstelle02.1/content/faq/data/kuenstliche_intelligenz/index_ger.html",
+        source_kind="university-policy",
+        authority_type="university",
+        product_rule="Exam mode must block external KI unless the applicable rule explicitly allows it.",
+        risk_level="high",
+    ),
+    SourceCard(
+        source_id="uoc-nachteilsausgleich",
+        title="University of Cologne Nachteilsausgleich information",
+        url="https://hf-studium.uni-koeln.de/studienorganisation/nachteilsausgleich",
+        source_kind="university-policy",
+        authority_type="university-inclusion-process",
+        product_rule="Accessibility support stays score-neutral and non-decisional.",
+        risk_level="high",
+    ),
+    SourceCard(
+        source_id="gdpr-2016-679",
+        title="General Data Protection Regulation",
+        url="https://eur-lex.europa.eu/eli/reg/2016/679/oj/eng",
+        source_kind="law",
+        authority_type="eu-law",
+        product_rule="Apply lawfulness, transparency, purpose limitation, minimisation, security, and accountability.",
+        risk_level="high",
+    ),
+    SourceCard(
+        source_id="dsk-ai-privacy-2024",
+        title="Datenschutzkonferenz guidance on AI and data protection",
+        url="https://www.datenschutzkonferenz-online.de/media/oh/20240506_DSK_Orientierungshilfe_KI_und_Datenschutz.pdf",
+        source_kind="authority-guidance",
+        authority_type="data-protection-authority",
+        product_rule="Prefer controlled systems, avoid unnecessary prompt histories, and validate outputs.",
+        risk_level="high",
+    ),
+    SourceCard(
+        source_id="eu-ai-act-2024",
+        title="EU AI Act 2024/1689",
+        url="https://eur-lex.europa.eu/eli/reg/2024/1689/oj/eng",
+        source_kind="law",
+        authority_type="eu-law",
+        product_rule="Education assessment and test-behaviour monitoring can become high-risk; keep scores private and avoid proctoring.",
+        risk_level="high",
+    ),
+    SourceCard(
+        source_id="dfg-gwp",
+        title="DFG good research practice",
+        url="https://www.dfg.de/de/grundlagen-themen/grundlagen-und-prinzipien-der-foerderung/gwp",
+        source_kind="research-integrity",
+        authority_type="research-funder",
+        product_rule="Document methods, versions, limitations, and reproducible evidence.",
+    ),
+    SourceCard(
+        source_id="google-colab-gemini",
+        title="Google Colab Gemini code assistance",
+        url="https://docs.cloud.google.com/colab/docs/use-code-completion",
+        source_kind="technical-doc",
+        authority_type="vendor",
+        product_rule="Require validation; do not pass model output through unreviewed.",
+    ),
+    SourceCard(
+        source_id="gemini-code-assist-validation",
+        title="Gemini Code Assist overview and validation guidance",
+        url="https://developers.google.com/gemini-code-assist/docs/overview",
+        source_kind="technical-doc",
+        authority_type="vendor",
+        product_rule="Model output can be plausible but wrong; the simulation loop must validate and filter before use.",
+    ),
+    SourceCard(
+        source_id="openai-evals",
+        title="OpenAI Evals guidance",
+        url="https://developers.openai.com/api/docs/guides/evals",
+        source_kind="technical-doc",
+        authority_type="vendor",
+        product_rule="Use fixed scenarios, clear graders, and repeatable reports to test model-system behaviour.",
+    ),
+    SourceCard(
+        source_id="deepseek-chat-completion-api",
+        title="DeepSeek Chat Completion API",
+        url="https://api-docs.deepseek.com/api/create-chat-completion",
+        source_kind="technical-doc",
+        authority_type="vendor",
+        product_rule="DeepSeek-compatible integration stays mock-first; live calls require explicit opt-in and redacted synthetic inputs.",
+        risk_level="high",
+    ),
+    SourceCard(
+        source_id="zai-glm-52",
+        title="Z.AI GLM-5.2 model documentation",
+        url="https://docs.z.ai/guides/llm/glm-5.2",
+        source_kind="technical-doc",
+        authority_type="vendor",
+        product_rule="GLM-5.2 may be used only through redacted proposal packets for long-context architecture, harness, and documentation review.",
+        risk_level="high",
+        last_checked="2026-07-02",
+    ),
+    SourceCard(
+        source_id="zai-glm-52-migration",
+        title="Z.AI migration guide to GLM-5.2",
+        url="https://docs.z.ai/guides/overview/migrate-to-glm-new",
+        source_kind="technical-doc",
+        authority_type="vendor",
+        product_rule="Model-specific parameters and migration behavior must be documented before any live provider call.",
+        risk_level="high",
+        last_checked="2026-07-02",
+    ),
+    SourceCard(
+        source_id="zai-glm-pricing",
+        title="Z.AI model pricing documentation",
+        url="https://docs.z.ai/guides/overview/pricing",
+        source_kind="technical-doc",
+        authority_type="vendor",
+        product_rule="Provider calls remain disabled by default and require explicit approval plus a budget-aware redaction receipt.",
+        risk_level="high",
+        last_checked="2026-07-02",
+    ),
+    SourceCard(
+        source_id="chrome-content-scripts",
+        title="Chrome extension content scripts",
+        url="https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts",
+        source_kind="technical-doc",
+        authority_type="vendor",
+        product_rule="A browser overlay can support practice UX by reading and modifying page DOM.",
+    ),
+    SourceCard(
+        source_id="chrome-webrequest-mv3",
+        title="Chrome webRequest in Manifest V3",
+        url="https://developer.chrome.com/docs/extensions/reference/api/webRequest",
+        source_kind="technical-doc",
+        authority_type="vendor",
+        product_rule="Normal MV3 extensions must not be treated as hard response interception or exam security.",
+        risk_level="high",
+    ),
+    SourceCard(
+        source_id="chrome-limited-use",
+        title="Chrome Web Store Limited Use policy",
+        url="https://developer.chrome.com/docs/webstore/program-policies/limited-use",
+        source_kind="technical-doc",
+        authority_type="vendor",
+        product_rule="Browser extension data collection must be visible, limited to the stated purpose, and not over-collected.",
+        risk_level="medium",
+    ),
+    SourceCard(
+        source_id="jupyter-ai",
+        title="Jupyter AI",
+        url="https://github.com/jupyterlab/jupyter-ai",
+        source_kind="technical-doc",
+        authority_type="open-source-project",
+        product_rule="A local or managed Jupyter route is a plausible controlled-channel path.",
+    ),
+    SourceCard(
+        source_id="cs50-ai-2024",
+        title="Teaching CS50 with AI",
+        url="https://dl.acm.org/doi/10.1145/3626252.3630938",
+        source_kind="paper",
+        authority_type="research-publication",
+        product_rule="Course-specific AI support should be constrained by teaching policy and human oversight.",
+    ),
+    SourceCard(
+        source_id="vanlehn-2011",
+        title="Relative effectiveness of human tutoring, intelligent tutoring systems, and other tutoring systems",
+        url="https://www.tandfonline.com/doi/abs/10.1080/00461520.2011.611369",
+        source_kind="paper",
+        authority_type="research-publication",
+        product_rule="Scaffold steps and feedback instead of giving final answers.",
+    ),
+    SourceCard(
+        source_id="kulik-fletcher-2016",
+        title="Effectiveness of intelligent tutoring systems",
+        url="https://journals.sagepub.com/doi/10.3102/0034654315581420",
+        source_kind="paper",
+        authority_type="research-publication",
+        product_rule="Evaluate learning-process outcomes, not only generated-output quality.",
+    ),
+    SourceCard(
+        source_id="unesco-genai-2023",
+        title="UNESCO guidance for generative AI in education and research",
+        url="https://www.unesco.org/en/articles/guidance-generative-ai-education-and-research",
+        source_kind="international-guidance",
+        authority_type="international-organisation",
+        product_rule="Protect privacy, human agency, and pedagogical validation.",
+    ),
+    SourceCard(
+        source_id="oecd-digital-education-2026",
+        title="OECD Digital Education Outlook 2026",
+        url="https://www.oecd.org/en/publications/oecd-digital-education-outlook-2026_062a7394-en.html",
+        source_kind="international-guidance",
+        authority_type="international-organisation",
+        product_rule="Avoid false mastery by preserving learner cognitive work when external AI scaffolds practice.",
+    ),
+]
+
+
+def list_source_cards(source_kind: str | None = None) -> list[dict[str, Any]]:
+    cards = SOURCE_CARDS
+    if source_kind:
+        cards = [card for card in cards if card.source_kind == source_kind]
+    return [card.to_dict() for card in cards]
+
+
+def get_source_card(source_id: str) -> dict[str, Any] | None:
+    for card in SOURCE_CARDS:
+        if card.source_id == source_id:
+            return card.to_dict()
+    return None
+
+
+def required_source_card_ids() -> list[str]:
+    return [
+        "hg-nrw-2025",
+        "hg-nrw-62b",
+        "hg-nrw-64",
+        "uoc-ki-lehre",
+        "uoc-hilfsmittel",
+        "uoc-ki-faq",
+        "uoc-nachteilsausgleich",
+        "gdpr-2016-679",
+        "dsk-ai-privacy-2024",
+        "eu-ai-act-2024",
+        "dfg-gwp",
+        "google-colab-gemini",
+        "gemini-code-assist-validation",
+        "openai-evals",
+        "deepseek-chat-completion-api",
+        "chrome-content-scripts",
+        "chrome-webrequest-mv3",
+        "chrome-limited-use",
+        "jupyter-ai",
+        "cs50-ai-2024",
+        "vanlehn-2011",
+        "kulik-fletcher-2016",
+        "unesco-genai-2023",
+        "oecd-digital-education-2026",
+    ]

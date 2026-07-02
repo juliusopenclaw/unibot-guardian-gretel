@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <title>UniBot Guardian</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 14px;
+        font-family: system-ui, sans-serif;
+        color: #111827;
+        background: #f9fafb;
+      }
+      h1 {
+        margin: 0 0 10px;
+        font-size: 18px;
+      }
+      h2 {
+        margin: 18px 0 8px;
+        font-size: 15px;
+      }
+      label {
+        display: block;
+        margin: 12px 0 6px;
+        font-size: 13px;
+        font-weight: 650;
+      }
+      textarea,
+      select,
+      button {
+        box-sizing: border-box;
+        width: 100%;
+        font: inherit;
+      }
+      textarea {
+        min-height: 96px;
+        padding: 8px;
+        resize: vertical;
+      }
+      select,
+      button {
+        min-height: 36px;
+      }
+      button {
+        margin-top: 10px;
+        border: 0;
+        border-radius: 7px;
+        color: white;
+        background: #2563eb;
+        cursor: pointer;
+      }
+      output {
+        display: block;
+        margin-top: 12px;
+        white-space: pre-wrap;
+        font-size: 13px;
+      }
+      .note {
+        font-size: 12px;
+        color: #4b5563;
+      }
+      .checkrow {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-top: 10px;
+        font-size: 13px;
+      }
+      .checkrow input {
+        width: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>UniBot Guardian</h1>
+    <p class="note">Practice-Mantel. Keine Pruefungssicherheits-Garantie.</p>
+
+    <label for="task">Aufgabe</label>
+    <textarea id="task" placeholder="Woran arbeitest du?"></textarea>
+
+    <label for="help">Hilfestufe</label>
+    <select id="help">
+      <option>A2 - Konzeptfrage</option>
+      <option>A0 - nur Barrierefreiheit</option>
+      <option>A1 - Orientierung</option>
+      <option>A3 - kleiner Hinweis</option>
+      <option>A4 - deutlicher Hinweis</option>
+      <option>A5 - starke Hilfe</option>
+      <option>A6 - Loesung gesehen</option>
+    </select>
+
+    <label for="external">Externe KI-Antwort</label>
+    <textarea id="external" placeholder="Hier Gemini-/Colab-/Jupyter-AI-Antwort einfuegen"></textarea>
+
+    <label for="reflection">Reflexion</label>
+    <textarea id="reflection" placeholder="Was bleibt dein eigener naechster Schritt? Keine privaten Daten eintragen."></textarea>
+
+    <label for="notebookCell">Lokale Notebook-Zelle</label>
+    <textarea id="notebookCell" placeholder="Optional lokale Zelle nur fuer Hash-Checkpoint einfuegen"></textarea>
+
+    <h2>Operator Confirmations</h2>
+    <label class="checkrow"><input id="confirmCheckpointStore" type="checkbox"> Checkpoint speichern</label>
+    <label class="checkrow"><input id="confirmExamWorkspaceRun" type="checkbox"> Workspace starten</label>
+    <label class="checkrow"><input id="confirmManifestApply" type="checkbox"> Manifest anwenden</label>
+    <label class="checkrow"><input id="confirmTutorIndexBuild" type="checkbox"> Tutor-Index bauen</label>
+    <label class="checkrow"><input id="confirmHelpLedgerAppend" type="checkbox"> Help-Ledger schreiben</label>
+    <label class="checkrow"><input id="confirmExamLedgerAppend" type="checkbox"> Exam-Ledger schreiben</label>
+    <label class="checkrow"><input id="confirmTimelineExportReceiptJournalAppend" type="checkbox"> Timeline-Receipt-Journal schreiben</label>
+    <label class="checkrow"><input id="confirmDrillLoopProgressJournalAppend" type="checkbox"> Drill-Loop Progress-Journal schreiben</label>
+    <label class="checkrow"><input id="confirmLocalExportDraftWrite" type="checkbox"> Lokalen Export-Draft schreiben</label>
+
+    <button id="selection">Auswahl aus Seite holen</button>
+    <button id="prompt">Promptkarte erzeugen</button>
+    <button id="review">Antwort pruefen</button>
+    <button id="ledger">Flow pruefen und Ledger speichern</button>
+    <button id="adaptive">Uebungsaufgaben erzeugen</button>
+    <button id="notebook">Notebook-Vorlage kopieren</button>
+
+    <h2>Command Center</h2>
+    <p class="note">Projektstatus, Material-Compiler und Chat-Handoff fuer den UniBot-Hub.</p>
+    <button id="commandCenter">Command Center pruefen</button>
+    <button id="compilerPlan">Kursmaterial-Compiler pruefen</button>
+    <button id="extractionQueue">Extraktionsqueue pruefen</button>
+    <button id="decisionPacket">Rechte-/Datenschutzpaket pruefen</button>
+    <button id="localDecisionIntake">Decision-Intake pruefen</button>
+    <button id="localDecisionWorkspace">Decision-Workspace vorbereiten</button>
+    <button id="operatorPacket">Extraktions-Operator pruefen</button>
+    <button id="privateExtractionRun">Private-Extraction Harness pruefen</button>
+    <button id="privateExtractionRunOcr">OCR-first Private-Extraction pruefen</button>
+    <button id="ocrFirstOperatorRun">OCR-first Operator-Run pruefen</button>
+    <button id="videoTranscriptionRun">Video-Transkriptions-Harness pruefen</button>
+    <button id="extractionProgress">Extraktions-Fortschritt pruefen</button>
+    <button id="extractionReceiptJournal">Receipt-Journal pruefen</button>
+    <button id="extractionHumanReviewPlan">Human-Review Apply-Plan pruefen</button>
+    <button id="privateManifestApplyDryRun">Private Manifest-Apply Dry-Run pruefen</button>
+    <button id="privateTutorIndexDryRun">Private Tutor-Index Dry-Run pruefen</button>
+    <button id="privateIndexTutorResponse">Private Index-Tutor Antwort pruefen</button>
+    <button id="privateTutorUseFlow">Private Tutor-Use Flow pruefen</button>
+    <button id="notebookCheckpointAdapter">Notebook-Checkpoint pruefen</button>
+    <button id="examWorkspaceRun">Exam-Workspace Run pruefen</button>
+    <button id="extractionDeferralValidate">Deferral-Schema pruefen</button>
+    <button id="extractionCompletionReport">Completion-Report pruefen</button>
+    <button id="extractionBatchPlan">Extraktions-Batchplan pruefen</button>
+    <button id="extractionBatchPlanOcr">OCR-first Batchplan pruefen</button>
+    <button id="batchReceiptPacket">Batch-Receipt-Paket pruefen</button>
+    <button id="batchReceiptPacketOcr">OCR-first Receipt-Paket pruefen</button>
+    <button id="manifestUpdatePlan">Manifest-Update-Plan pruefen</button>
+    <button id="tutorCoveragePlan">Tutor-Coverage-Plan pruefen</button>
+    <button id="materialCoverageRun">Material-Coverage Run pruefen</button>
+    <button id="examSkillDrilldown">Exam-Skill-Drilldown pruefen</button>
+    <button id="skillToWorkspaceRun">Skill-Workspace Dry-Run starten</button>
+    <button id="skillToWorkspaceSessionCarryover">Skill-Workspace Carryover</button>
+    <button id="examSessionConsole">Session-Konsole pruefen</button>
+    <button id="examRunHistoryReview">Run-History Export pruefen</button>
+    <button id="courseExamCoverageDashboard">Course-Coverage Dashboard pruefen</button>
+    <button id="perSkillActionRouter">Per-Skill Action Router pruefen</button>
+    <button id="executeRoutedAction">Routed Dry-Run ausfuehren</button>
+    <button id="examRunPacket">Exam Run Packet bauen</button>
+    <button id="examPacketTimeline">Exam Packet Timeline pruefen</button>
+    <button id="timelineExportReviewPacket">Timeline Export Review Packet bauen</button>
+    <button id="timelineExportReceiptJournalAppend">Timeline Receipt-Journal Preview/Append</button>
+    <button id="timelineExportReceiptJournalSummary">Timeline Receipt-Journal Summary</button>
+    <button id="reviewChainIntegrityCheck">Review Chain Integrity pruefen</button>
+    <button id="pythonExamReadinessConsole">Python Exam Readiness Console</button>
+    <button id="pythonExamCockpitFlow">Python Exam Cockpit Flow</button>
+    <button id="pythonExamLiveControlSurface">Python Exam Live Control</button>
+    <button id="pythonExamEvidenceExportPreview">Python Exam Evidence Export Preview</button>
+    <button id="pythonExamTutorDrillPack">Python Exam Tutor Drill Pack</button>
+    <button id="pythonExamDrillSessionRunner">Python Exam Drill Session</button>
+    <button id="pythonExamDrillSessionReviewLoop">Python Exam Drill Review Loop</button>
+    <button id="pythonExamDrillLoopControlPanel">Python Exam Drill Control Panel</button>
+    <button id="pythonExamDrillLoopProgressJournal">Python Exam Drill Progress Journal</button>
+    <button id="pythonExamResumeLauncher">Python Exam Resume Launcher</button>
+    <button id="pythonExamActiveStudyLoopDashboard">Python Exam Active Study Loop</button>
+    <button id="pythonExamActiveStudyGuidedRunner">Python Exam Guided Runner</button>
+    <button id="pythonExamGuidedActionExecutionBridge">Python Exam Execution Bridge</button>
+    <button id="pythonExamSafeCycleConsole">Python Exam Safe Cycle Console</button>
+    <button id="pythonExamSafeCycleOperatorGate">Python Exam Operator Gate</button>
+    <button id="pythonExamOperatorGateDecisionReceipt">Python Exam Gate Decision Receipt</button>
+    <button id="pythonExamLocalCycleStartPacket">Python Exam Local Cycle Start Packet</button>
+    <button id="pythonExamLocalCycleReadinessReview">Python Exam Local Cycle Readiness Review</button>
+    <button id="pythonExamLocalCycleReadinessHandoff">Python Exam Local Cycle Handoff</button>
+    <button id="pythonExamLocalCycleWorkspaceCard">Python Exam Local Cycle Workspace</button>
+    <button id="pythonExamLocalCycleChainSnapshot">Python Exam Local Cycle Chain Snapshot</button>
+    <button id="pythonExamManualConfirmationConsole">Python Exam Manual Confirmation Console</button>
+    <button id="pythonExamManualCycleLaunchReceipt">Python Exam Manual Cycle Launch Receipt</button>
+    <button id="pythonExamManualCycleEvidenceBinder">Python Exam Manual Cycle Evidence Binder</button>
+    <button id="pythonExamManualPostCycleReceiptIntake">Python Exam Manual Post-Cycle Receipt Intake</button>
+    <button id="pythonExamManualCycleClosureLedger">Python Exam Manual Cycle Closure Ledger</button>
+    <button id="pythonExamManualCycleReviewTimeline">Python Exam Manual Cycle Review Timeline</button>
+    <button id="pythonExamManualCycleReviewPacket">Python Exam Manual Cycle Review Packet</button>
+    <button id="pythonExamManualReviewExportPreview">Python Exam Manual Review Export Preview</button>
+    <button id="pythonExamManualReviewExportAuthorizationGate">Python Exam Export Authorization Gate</button>
+    <button id="pythonExamManualExportReviewQueue">Python Exam Export Review Queue</button>
+    <button id="pythonExamManualExportReviewerPacket">Python Exam Export Reviewer Packet</button>
+    <button id="pythonExamManualArchiveDecisionDraft">Python Exam Archive Decision Draft</button>
+    <button id="pythonExamManualFinalReviewHandoff">Python Exam Final Review Handoff</button>
+    <button id="pythonExamManualFinalReviewReceiptLedger">Python Exam Final Review Receipt Ledger</button>
+    <button id="pythonExamFinalReviewLedgerIntegrityGate">Python Exam Final Integrity Gate</button>
+    <button id="pythonExamFinalManualReviewConsole">Python Exam Final Review Console</button>
+    <button id="pythonExamFinalManualReviewActionLock">Python Exam Final Action Lock</button>
+    <button id="pythonExamLockedFinalReviewBoard">Python Exam Locked Final Review Board</button>
+    <button id="pythonExamConfirmedLocalExportDraft">Python Exam Local Export Draft</button>
+    <button id="pythonExamDraftPackageReviewConsole">Python Exam Draft Review Console</button>
+    <button id="pythonExamHumanHandoffPacket">Python Exam Human Handoff</button>
+    <button id="pythonExamFullLocalRehearsalPack">Python Exam Full Local Rehearsal</button>
+    <button id="pythonExamRehearsalPlaybackGapCoach">Python Exam Gap Coach</button>
+    <button id="pythonExamGapCoachGuidedLoop">Python Exam Guided Loop</button>
+    <button id="pythonExamGuidedLoopControlSurface">Python Exam Loop Control</button>
+    <button id="pythonExamLockedFinalReviewGapResolver">Python Exam Final Gap Resolver</button>
+    <button id="examWorkspaceOperatorRun">Start Exam Workspace pruefen</button>
+    <button id="examWorkspaceLaunchFlow">Exam-Workspace Launch pruefen</button>
+    <button id="studySessionPlan">Study-Session-Plan erzeugen</button>
+    <button id="studyReceiptValidate">Study-Receipt pruefen</button>
+    <button id="studyReviewReport">Study-Review-Report pruefen</button>
+    <button id="clearanceBoard">Clearance-Board pruefen</button>
+    <button id="submissionBundle">Submission-Bundle pruefen</button>
+    <button id="decisionRequest">Decision-Request vorbereiten</button>
+    <button id="decisionRequestMarkdown">Decision-Request Markdown kopieren</button>
+    <button id="decisionJournal">Decision-Journal pruefen</button>
+    <button id="decisionRecordJournal">Decision-Record-Journal pruefen</button>
+    <button id="decisionState">Decision-State pruefen</button>
+    <button id="contextPacket">QA Context Packet kopieren</button>
+
+    <h2>Demo-Feedback</h2>
+
+    <label for="feedbackScenario">Szenario</label>
+    <select id="feedbackScenario">
+      <option value="demo_setup">demo_setup</option>
+      <option value="demo_prompt_card">demo_prompt_card</option>
+      <option value="demo_block_solution">demo_block_solution</option>
+      <option value="demo_allowed_flow_and_ledger">demo_allowed_flow_and_ledger</option>
+      <option value="demo_adaptive_tasks">demo_adaptive_tasks</option>
+      <option value="demo_notebook_template">demo_notebook_template</option>
+      <option value="demo_redteam_smoke">demo_redteam_smoke</option>
+    </select>
+
+    <label for="feedbackOutcome">Ergebnis</label>
+    <select id="feedbackOutcome">
+      <option value="fail">fail</option>
+      <option value="pass">pass</option>
+      <option value="blocked">blocked</option>
+      <option value="confusing">confusing</option>
+      <option value="not_tested">not_tested</option>
+    </select>
+
+    <label for="feedbackSeverity">Schweregrad</label>
+    <select id="feedbackSeverity">
+      <option value="minor">minor</option>
+      <option value="info">info</option>
+      <option value="major">major</option>
+      <option value="critical">critical</option>
+    </select>
+
+    <label for="feedbackEndpoint">Button oder Endpoint</label>
+    <select id="feedbackEndpoint">
+      <option>Promptkarte erzeugen</option>
+      <option>Antwort pruefen</option>
+      <option>Flow pruefen und Ledger speichern</option>
+      <option>Uebungsaufgaben erzeugen</option>
+      <option>Notebook-Vorlage kopieren</option>
+      <option>/api/unibot/demo-run</option>
+      <option>/api/unibot/readiness-check</option>
+    </select>
+
+    <label for="feedbackTried">Versuch</label>
+    <textarea id="feedbackTried" placeholder="Was hast du versucht?"></textarea>
+
+    <label for="feedbackExpected">Erwartung</label>
+    <textarea id="feedbackExpected" placeholder="Was haette passieren sollen?"></textarea>
+
+    <label for="feedbackHappened">Beobachtung</label>
+    <textarea id="feedbackHappened" placeholder="Was ist passiert?"></textarea>
+
+    <label for="feedbackPublicText">Public-safe Zusatz</label>
+    <textarea id="feedbackPublicText" placeholder="Optionaler Text ohne private Daten"></textarea>
+
+    <label class="checkrow">
+      <input id="feedbackPrivateRemoved" type="checkbox" checked>
+      Private Daten entfernt
+    </label>
+
+    <button id="feedbackValidate">Feedback validieren</button>
+    <button id="feedbackSave">Feedback lokal speichern</button>
+
+    <output id="result"></output>
+    <script src="sidepanel.js"></script>
+  </body>
+</html>

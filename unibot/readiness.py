@@ -1,0 +1,491 @@
+from __future__ import annotations
+
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Iterable
+
+from .adaptive_tasks import generate_adaptive_practice_plan
+from .bachelor_thesis import build_bachelor_thesis_package
+from .compliance import build_compliance_matrix
+from .demo import build_local_demo_run
+from .evaluation import build_evaluation_packet
+from .feedback import demo_feedback_template, export_public_demo_feedback_summary, validate_demo_feedback
+from .github_issues import build_github_issue_bundle
+from .gretel_glm_evolve import build_glm_evolve_work_packet, build_glm_rsi_workboard
+from .handoff import build_authority_handoff_packet
+from .materials import build_demo_material_manifest, build_public_material_summary
+from .notebooks import generate_practice_notebook
+from .orchestration import build_unibot_command_center, validate_chat_handoff
+from .paperclip_evaluation_bridge import build_paperclip_evaluation_request, paperclip_status
+from .pilot import build_pilot_protocol
+from .privacy import build_data_protection_screening
+from .publication import build_publication_package
+from .public_safety import scan_public_files, scan_text
+from .redteam import run_redteam_smoke
+from .release_runbook import build_release_runbook
+from .source_cards import list_source_cards
+from .triage import build_feedback_triage
+from .review_board import build_review_board_packet
+
+
+READINESS_SCHEMA_VERSION = "unibot-readiness-check-v1"
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def default_public_paths(include_tests: bool = True) -> list[Path]:
+    paths = [
+        ROOT / "README.md",
+        ROOT / "CONTRIBUTING.md",
+        ROOT / "SECURITY.md",
+        ROOT / "CODE_OF_CONDUCT.md",
+        ROOT / "LICENSE",
+        ROOT / "pyproject.toml",
+        *sorted((ROOT / "docs" / "unibot").glob("*.md")),
+        *sorted((ROOT / "unibot").glob("*.py")),
+        *sorted(path for path in (ROOT / "unibot" / "browser_extension").glob("*") if path.is_file()),
+    ]
+    if include_tests:
+        paths.extend(sorted((ROOT / "tests").glob("test_unibot_*.py")))
+    return paths
+
+
+def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, Any]:
+    public_paths = list(paths) if paths is not None else default_public_paths()
+    public_scan = scan_public_files(public_paths)
+    redteam = run_redteam_smoke()
+    publication = build_publication_package()
+    publication_scan = scan_text(json.dumps(publication, ensure_ascii=False), "unibot-publication-package")
+    evaluation = build_evaluation_packet()
+    handoff = build_authority_handoff_packet()
+    notebook = generate_practice_notebook("UniBot readiness notebook smoke")
+    source_cards = list_source_cards()
+    material_manifest = build_demo_material_manifest()
+    material_summary = build_public_material_summary(material_manifest["records"])
+    material_summary_scan = scan_text(json.dumps(material_summary, ensure_ascii=False), "unibot-material-summary")
+    adaptive_plan = generate_adaptive_practice_plan(
+        skill_state={"python_lists": {"signals": 3, "high_help_events": 1}},
+        material_records=material_manifest["records"],
+        max_tasks=3,
+        public_safe=True,
+    )
+    demo_run = build_local_demo_run()
+    feedback_template = demo_feedback_template()
+    feedback_template_scan = scan_text(json.dumps(feedback_template, ensure_ascii=False), "unibot-feedback-template")
+    demo_feedback_validation = validate_demo_feedback(
+        {
+            "scenario_id": "demo_prompt_card",
+            "outcome": "fail",
+            "severity": "minor",
+            "what_i_tried": "Clicked prompt card after entering a synthetic Python-list task.",
+            "expected": "Clipboard contains a Socratic prompt.",
+            "what_happened": "Clipboard stayed empty.",
+            "button_or_endpoint": "Promptkarte erzeugen",
+            "public_safe_text": "No private data included.",
+            "private_data_removed": True,
+        }
+    )
+    feedback_summary_scan = scan_text(
+        json.dumps(export_public_demo_feedback_summary(), ensure_ascii=False),
+        "unibot-feedback-public-summary",
+    )
+    feedback_triage = build_feedback_triage(
+        records=[
+            {
+                "feedback_id": "demo-feedback-1",
+                "scenario_id": "demo_prompt_card",
+                "outcome": "fail",
+                "severity": "minor",
+                "button_or_endpoint": "Promptkarte erzeugen",
+                "private_data_removed": True,
+                "has_public_safe_text": False,
+                "has_follow_up_note": False,
+            }
+        ]
+    )
+    github_issue_bundle = build_github_issue_bundle(
+        records=[
+            {
+                "feedback_id": "demo-feedback-1",
+                "scenario_id": "demo_prompt_card",
+                "outcome": "fail",
+                "severity": "minor",
+                "button_or_endpoint": "Promptkarte erzeugen",
+                "private_data_removed": True,
+                "has_public_safe_text": False,
+                "has_follow_up_note": False,
+            }
+        ]
+    )
+    release_runbook = build_release_runbook()
+    compliance_matrix = build_compliance_matrix()
+    pilot_protocol = build_pilot_protocol()
+    data_protection = build_data_protection_screening()
+    review_board_packet = build_review_board_packet()
+    glm_evolve_packet = build_glm_evolve_work_packet()
+    glm_rsi_workboard = build_glm_rsi_workboard()
+    glm_rsi_workboard_scan = scan_text(json.dumps(glm_rsi_workboard, ensure_ascii=False), "unibot-glm-rsi-workboard-readiness")
+    bachelor_thesis_package = build_bachelor_thesis_package()
+    bachelor_thesis_scan = scan_text(
+        json.dumps(bachelor_thesis_package, ensure_ascii=False),
+        "unibot-gretel-bachelor-thesis-readiness",
+    )
+    paperclip_status_payload = paperclip_status()
+    paperclip_bridge = build_paperclip_evaluation_request()
+    paperclip_bridge_scan = scan_text(json.dumps(paperclip_bridge, ensure_ascii=False), "unibot-paperclip-evaluation-readiness")
+    command_center = build_unibot_command_center()
+    command_center_scan = scan_text(json.dumps(command_center, ensure_ascii=False), "unibot-command-center-readiness")
+    handoff_validation = validate_chat_handoff(
+        {
+            "role_id": "qa_redteam",
+            "goal": "Run the UniBot orchestration smoke and report public-safe status.",
+            "changed_files": ["unibot/orchestration.py", "tests/test_unibot_orchestration.py"],
+            "tests": ["python3 scripts/unibot_pipeline_smoke.py --json"],
+            "risks": ["real exam use remains blocked until written authority clearance"],
+            "evidence": ["pipeline smoke", "public-safety scan", "red-team smoke"],
+            "next_step": "merge only after green smoke and public-safety 0 findings",
+        }
+    )
+
+    checks = [
+        {
+            "check_id": "public_safety",
+            "passed": public_scan["status"] == "pass",
+            "evidence": {
+                "status": public_scan["status"],
+                "scanned_count": public_scan["scanned_count"],
+                "finding_count": public_scan["finding_count"],
+            },
+        },
+        {
+            "check_id": "redteam",
+            "passed": redteam["status"] == "pass" and redteam["failed_count"] == 0,
+            "evidence": {
+                "status": redteam["status"],
+                "passed_count": redteam["passed_count"],
+                "scenario_count": redteam["scenario_count"],
+            },
+        },
+        {
+            "check_id": "publication_package",
+            "passed": publication["status"] == "public_draft_not_exam_release"
+            and publication["release_gates"]["release_ready"] is True
+            and publication_scan["status"] == "pass",
+            "evidence": {
+                "status": publication["status"],
+                "release_ready": publication["release_gates"]["release_ready"],
+                "release_ready_note": publication["release_gates"]["release_ready_note"],
+                "public_safety_status": publication_scan["status"],
+            },
+        },
+        {
+            "check_id": "evaluation_packet",
+            "passed": evaluation["status"] == "draft_not_ethics_or_authority_cleared"
+            and len(evaluation["synthetic_tasks"]) >= 4
+            and bool(evaluation["codebook"]["coding_rules"]),
+            "evidence": {
+                "status": evaluation["status"],
+                "task_count": len(evaluation["synthetic_tasks"]),
+                "coding_rule_count": len(evaluation["codebook"]["coding_rules"]),
+            },
+        },
+        {
+            "check_id": "authority_handoff",
+            "passed": handoff["status"] == "draft_not_officially_cleared"
+            and handoff["evidence"]["redteam"]["status"] == "pass",
+            "evidence": {
+                "status": handoff["status"],
+                "redteam_status": handoff["evidence"]["redteam"]["status"],
+                "reviewer_count": len(handoff["intended_reviewers"]),
+            },
+        },
+        {
+            "check_id": "notebook_template",
+            "passed": notebook["audit"]["status"] == "pass",
+            "evidence": notebook["audit"],
+        },
+        {
+            "check_id": "source_cards",
+            "passed": len(source_cards) >= 10,
+            "evidence": {
+                "source_card_count": len(source_cards),
+                "high_risk_count": len([card for card in source_cards if card["risk_level"] == "high"]),
+            },
+        },
+        {
+            "check_id": "course_material_policy",
+            "passed": material_manifest["record_count"] >= 2
+            and material_manifest["public_release_allowed_count"] == 1
+            and material_summary_scan["status"] == "pass",
+            "evidence": {
+                "record_count": material_manifest["record_count"],
+                "tutor_usable_count": material_manifest["tutor_usable_count"],
+                "public_release_allowed_count": material_manifest["public_release_allowed_count"],
+                "public_summary_scan": material_summary_scan["status"],
+            },
+        },
+        {
+            "check_id": "adaptive_task_plan",
+            "passed": adaptive_plan["status"] == "ok"
+            and adaptive_plan["public_safety_status"] == "pass"
+            and adaptive_plan["task_count"] >= 3
+            and all(task["public_safe"] for task in adaptive_plan["tasks"]),
+            "evidence": {
+                "status": adaptive_plan["status"],
+                "task_count": adaptive_plan["task_count"],
+                "public_safety_status": adaptive_plan["public_safety_status"],
+                "eligible_material_count": adaptive_plan["eligible_material_count"],
+            },
+        },
+        {
+            "check_id": "local_demo_run",
+            "passed": demo_run["status"] == "practice_demo_ready_not_exam"
+            and demo_run["public_safety_status"] == "pass"
+            and demo_run["scenario_count"] >= 7,
+            "evidence": {
+                "status": demo_run["status"],
+                "scenario_count": demo_run["scenario_count"],
+                "public_safety_status": demo_run["public_safety_status"],
+            },
+        },
+        {
+            "check_id": "demo_feedback_contract",
+            "passed": feedback_template_scan["status"] == "pass"
+            and demo_feedback_validation["status"] == "ok"
+            and feedback_summary_scan["status"] == "pass",
+            "evidence": {
+                "template_status": feedback_template["status"],
+                "template_public_safety_status": feedback_template_scan["status"],
+                "validation_status": demo_feedback_validation["status"],
+                "public_summary_scan": feedback_summary_scan["status"],
+            },
+        },
+        {
+            "check_id": "demo_feedback_triage",
+            "passed": feedback_triage["status"] == "ready" and feedback_triage["public_safety_status"] == "pass",
+            "evidence": {
+                "triage_status": feedback_triage["status"],
+                "triage_count": feedback_triage["triage_count"],
+                "public_safety_status": feedback_triage["public_safety_status"],
+            },
+        },
+        {
+            "check_id": "github_issue_bundle",
+            "passed": github_issue_bundle["status"] == "ready"
+            and github_issue_bundle["public_safety_status"] == "pass"
+            and github_issue_bundle["issue_count"] >= 1,
+            "evidence": {
+                "status": github_issue_bundle["status"],
+                "issue_count": github_issue_bundle["issue_count"],
+                "public_safety_status": github_issue_bundle["public_safety_status"],
+            },
+        },
+        {
+            "check_id": "release_runbook",
+            "passed": release_runbook["status"] == "public_draft_runbook_not_exam_release"
+            and release_runbook["public_safety_status"] == "pass"
+            and release_runbook["manual_review_required"] is True
+            and release_runbook["exam_deployment_status"] == "not_cleared",
+            "evidence": {
+                "status": release_runbook["status"],
+                "public_safety_status": release_runbook["public_safety_status"],
+                "manual_review_required": release_runbook["manual_review_required"],
+                "exam_deployment_status": release_runbook["exam_deployment_status"],
+            },
+        },
+        {
+            "check_id": "compliance_matrix",
+            "passed": compliance_matrix["status"] == "draft_ready_for_authority_review"
+            and compliance_matrix["public_safety_status"] == "pass"
+            and compliance_matrix["missing_source_card_ids"] == []
+            and compliance_matrix["exam_deployment_status"] == "not_cleared",
+            "evidence": {
+                "status": compliance_matrix["status"],
+                "requirement_count": compliance_matrix["requirement_count"],
+                "high_risk_requirement_count": compliance_matrix["high_risk_requirement_count"],
+                "public_safety_status": compliance_matrix["public_safety_status"],
+                "missing_source_card_ids": compliance_matrix["missing_source_card_ids"],
+                "exam_deployment_status": compliance_matrix["exam_deployment_status"],
+            },
+        },
+        {
+            "check_id": "pilot_protocol",
+            "passed": pilot_protocol["status"] == "draft_not_ethics_or_authority_cleared"
+            and pilot_protocol["public_safety_status"] == "pass"
+            and pilot_protocol["exam_deployment_status"] == "not_cleared"
+            and len(pilot_protocol["consent_items"]) >= 7,
+            "evidence": {
+                "status": pilot_protocol["status"],
+                "public_safety_status": pilot_protocol["public_safety_status"],
+                "consent_item_count": len(pilot_protocol["consent_items"]),
+                "ethics_trigger_count": len(pilot_protocol["ethics_review_triggers"]),
+                "exam_deployment_status": pilot_protocol["exam_deployment_status"],
+            },
+        },
+        {
+            "check_id": "data_protection_screening",
+            "passed": data_protection["status"] == "draft_for_datenschutz_review"
+            and data_protection["public_safety_status"] == "pass"
+            and data_protection["review_gates"]["datenschutz_review_required_before_real_pilot"] is True
+            and data_protection["exam_deployment_status"] == "not_cleared",
+            "evidence": {
+                "status": data_protection["status"],
+                "public_safety_status": data_protection["public_safety_status"],
+                "processing_activity_count": len(data_protection["processing_activities"]),
+                "risk_count": len(data_protection["risk_register"]),
+                "datenschutz_review_required": data_protection["review_gates"]["datenschutz_review_required_before_real_pilot"],
+                "exam_deployment_status": data_protection["exam_deployment_status"],
+            },
+        },
+        {
+            "check_id": "review_board_packet",
+            "passed": review_board_packet["status"] == "draft_for_institutional_review"
+            and review_board_packet["public_safety_status"] == "pass"
+            and review_board_packet["exam_deployment_status"] == "not_cleared"
+            and len(review_board_packet["reviewer_packets"]) >= 6
+            and len(review_board_packet["open_decision_register"]) >= 6,
+            "evidence": {
+                "status": review_board_packet["status"],
+                "public_safety_status": review_board_packet["public_safety_status"],
+                "reviewer_count": len(review_board_packet["reviewer_packets"]),
+                "open_decision_count": len(review_board_packet["open_decision_register"]),
+                "exam_deployment_status": review_board_packet["exam_deployment_status"],
+            },
+        },
+        {
+            "check_id": "exam_boundary",
+            "passed": "exam_controlled" in publication["system_card"]["blocked_or_not_cleared_modes"],
+            "evidence": {
+                "blocked_or_not_cleared_modes": publication["system_card"]["blocked_or_not_cleared_modes"],
+                "exam_deployment_status": "not_cleared",
+            },
+        },
+        {
+            "check_id": "orchestration_command_center",
+            "passed": command_center["status"] == "ready_to_orchestrate"
+            and command_center["deployment_line"]["exam_deployment_status"] == "not_cleared"
+            and command_center["public_safety_status"] == "pass"
+            and command_center_scan["status"] == "pass"
+            and handoff_validation["status"] == "ok",
+            "evidence": {
+                "status": command_center["status"],
+                "role_lane_count": len(command_center["role_lanes"]),
+                "public_safety_status": command_center["public_safety_status"],
+                "handoff_validation_status": handoff_validation["status"],
+                "exam_deployment_status": command_center["deployment_line"]["exam_deployment_status"],
+            },
+        },
+        {
+            "check_id": "gretel_glm_evolve_lane",
+            "passed": glm_evolve_packet["status"] == "prepared_no_provider_call"
+            and glm_evolve_packet["public_safety_status"] == "pass"
+            and glm_evolve_packet["provider_call_executed"] is False
+            and glm_evolve_packet["raw_private_context_shared"] is False
+            and glm_evolve_packet["autonomous_apply"] is False
+            and glm_evolve_packet["route"] == "proposal_only_requires_codex_and_human_review",
+            "evidence": {
+                "status": glm_evolve_packet["status"],
+                "public_safety_status": glm_evolve_packet["public_safety_status"],
+                "provider_call_executed": glm_evolve_packet["provider_call_executed"],
+                "raw_private_context_shared": glm_evolve_packet["raw_private_context_shared"],
+                "autonomous_apply": glm_evolve_packet["autonomous_apply"],
+                "route": glm_evolve_packet["route"],
+                "model_hint": glm_evolve_packet["model_hint"],
+            },
+        },
+        {
+            "check_id": "gretel_glm_rsi_visibility_workboard",
+            "passed": glm_rsi_workboard["status"] == "visible"
+            and glm_rsi_workboard["public_safety_status"] == "pass"
+            and glm_rsi_workboard_scan["status"] == "pass"
+            and glm_rsi_workboard["safety"]["provider_call_executed"] is False
+            and glm_rsi_workboard["safety"]["provider_call_allowed_now"] is False
+            and glm_rsi_workboard["safety"]["autonomous_apply"] is False
+            and glm_rsi_workboard["safety"]["final_go"] is False
+            and glm_rsi_workboard["active_item_count"] >= 1,
+            "evidence": {
+                "status": glm_rsi_workboard["status"],
+                "public_safety_status": glm_rsi_workboard["public_safety_status"],
+                "scan_status": glm_rsi_workboard_scan["status"],
+                "active_item_count": glm_rsi_workboard["active_item_count"],
+                "blocked_item_count": glm_rsi_workboard["blocked_item_count"],
+                "provider_call_executed": glm_rsi_workboard["safety"]["provider_call_executed"],
+                "provider_call_allowed_now": glm_rsi_workboard["safety"]["provider_call_allowed_now"],
+                "autonomous_apply": glm_rsi_workboard["safety"]["autonomous_apply"],
+            },
+        },
+        {
+            "check_id": "gretel_bachelor_thesis_package",
+            "passed": bachelor_thesis_package["status"] == "public_scientific_draft_bachelor_thesis_level_not_real_submission"
+            and bachelor_thesis_package["public_safety_status"] == "pass"
+            and bachelor_thesis_scan["status"] == "pass"
+            and bachelor_thesis_package["authorship_statement"]["builder"] == "Gretel"
+            and bachelor_thesis_package["authorship_statement"]["documentation_author"] == "Gretel"
+            and bachelor_thesis_package["glm_technology_basis"]["primary_model_hint"] == "zai/glm-5.2"
+            and bachelor_thesis_package["review_gates"]["human_submission_review_required"] is True
+            and bachelor_thesis_package["review_gates"]["no_autonomous_github_publish"] is True
+            and bachelor_thesis_package["review_gates"]["no_final_go_by_gretel_or_glm"] is True,
+            "evidence": {
+                "status": bachelor_thesis_package["status"],
+                "public_safety_status": bachelor_thesis_package["public_safety_status"],
+                "scan_status": bachelor_thesis_scan["status"],
+                "builder": bachelor_thesis_package["authorship_statement"]["builder"],
+                "documentation_author": bachelor_thesis_package["authorship_statement"]["documentation_author"],
+                "model_hint": bachelor_thesis_package["glm_technology_basis"]["primary_model_hint"],
+                "institutional_status": bachelor_thesis_package["authorship_statement"]["institutional_status"],
+            },
+        },
+        {
+            "check_id": "paperclip_evaluation_bridge",
+            "passed": paperclip_status_payload["status"] == "optional_not_active"
+            and paperclip_bridge["status"] == "needs_codex_review"
+            and paperclip_bridge["public_safety_status"] == "pass"
+            and paperclip_bridge_scan["status"] == "pass"
+            and paperclip_bridge["critical_path"] is False
+            and paperclip_bridge["chrome_extension_dependency"] is False
+            and paperclip_bridge["provider_call_executed"] is False
+            and paperclip_bridge["paperclip_execution_requested"] is False
+            and paperclip_bridge["raw_private_context_shared"] is False
+            and paperclip_bridge["autonomous_apply"] is False
+            and paperclip_bridge["receipt"]["status"] in {"proposal_ready", "blocked", "needs_codex_review", "discarded"},
+            "evidence": {
+                "status": paperclip_bridge["status"],
+                "paperclip_status": paperclip_status_payload["status"],
+                "public_safety_status": paperclip_bridge["public_safety_status"],
+                "critical_path": paperclip_bridge["critical_path"],
+                "chrome_extension_dependency": paperclip_bridge["chrome_extension_dependency"],
+                "provider_call_executed": paperclip_bridge["provider_call_executed"],
+                "ticket_status": paperclip_bridge["receipt"]["status"],
+            },
+        },
+    ]
+    failed = [check for check in checks if not check["passed"]]
+    return {
+        "schema_version": READINESS_SCHEMA_VERSION,
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "status": "public_draft_ready" if not failed else "blocked",
+        "exam_deployment_status": "not_cleared",
+        "ready_for": ["public draft review", "local practice demo"] if not failed else [],
+        "not_ready_for": ["exam deployment", "official grading", "proctoring", "KI-detection use"],
+        "check_count": len(checks),
+        "passed_count": len(checks) - len(failed),
+        "failed_count": len(failed),
+        "checks": checks,
+        "policy": "Readiness means public-safe draft only, not exam clearance or legal approval.",
+    }
+
+
+def build_readiness_markdown(paths: Iterable[str | Path] | None = None) -> str:
+    report = run_readiness_check(paths)
+    check_lines = "\n".join(
+        f"- `{check['check_id']}`: {'pass' if check['passed'] else 'blocked'}" for check in report["checks"]
+    )
+    return (
+        "# UniBot Readiness Check\n\n"
+        f"Status: {report['status']}\n\n"
+        f"Exam deployment: {report['exam_deployment_status']}\n\n"
+        f"Passed: {report['passed_count']}/{report['check_count']}\n\n"
+        "## Checks\n\n"
+        f"{check_lines}\n\n"
+        f"Policy: {report['policy']}\n"
+    )

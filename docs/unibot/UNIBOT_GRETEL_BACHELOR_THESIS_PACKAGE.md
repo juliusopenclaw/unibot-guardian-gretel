@@ -1,0 +1,86 @@
+# UniBot Gretel Bachelor-Thesis-Level Package
+
+Status: public scientific draft at bachelor-thesis level, not a real university
+submission.
+
+## Label
+
+This package is explicitly labelled as Gretel-built and Gretel-documented.
+Julius is not presented as the programmer of the bot. "Bachelor thesis" means
+the level of rigor, transparency, reproducibility, and documentation, not that
+this artifact is already a real submitted thesis. Julius or another human
+reviewer remains responsible for review, ethics, legal checks, institutional
+clearance, and any real submission decision.
+
+## Thesis Framing
+
+Working title:
+
+`UniBot Guardian: A Gretel-Built GLM-Ready Socratic Integrity Layer for Coding-Practice Workflows`
+
+Research question:
+
+How can a public, source-bound AI practice layer support coding learners without
+replacing their own work, leaking private material, or claiming exam clearance?
+
+## GLM Basis
+
+The implementation is GLM-ready and uses `zai/glm-5.2` as the primary model
+hint for redacted proposal packets. GLM is used only as an architecture,
+harness, documentation, and test proposal reviewer. It does not apply code,
+publish to GitHub, send messages, claim clearance, request private context, or
+issue Final-Go.
+
+Official source cards:
+
+- `zai-glm-52`
+- `zai-glm-52-migration`
+- `zai-glm-pricing`
+
+## Scientific Contribution
+
+- Socratic integrity layer for coding-practice workflows.
+- Three Golden Rules that preserve learner work, source boundaries, and privacy.
+- Public-safety scanner for local paths, secrets, personal data, private course
+  references, and raw external AI transcripts.
+- Synthetic evaluation, red-team checks, readiness gates, and publication
+  package.
+- GLM-5.2-ready proposal lane where every accepted idea must become a test,
+  red-team scenario, documentation improvement, review-board entry, or blocked
+  reason.
+
+## Deliverables
+
+- Public Python package and local API.
+- Public docs under `docs/unibot/`.
+- Synthetic tests under `tests/`.
+- Public reproduction package.
+- Readiness report.
+- Review-board and authority handoff drafts.
+- Gretel/GLM proposal lane.
+- Bachelor-thesis-level research package.
+
+## Boundaries
+
+Ready for:
+
+- public code review,
+- bachelor-thesis supervision discussion,
+- local practice demo.
+
+Not ready for:
+
+- real university thesis submission without human review,
+- exam deployment,
+- grading,
+- proctoring,
+- AI-detection evidence.
+
+## Required Gates
+
+- Public-safety scan must pass.
+- Written university clearance is required before any exam use.
+- Human review is required before real submission or publication.
+- No autonomous GitHub publish.
+- No Final-Go by Gretel, GLM, Codex, or a test harness.
+- Provider calls require explicit go and a passing redaction receipt.

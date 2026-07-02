@@ -1,0 +1,311 @@
+from __future__ import annotations
+
+import json
+from datetime import datetime, timezone
+from typing import Any
+
+from .compliance import build_compliance_matrix
+from .materials import sha256_text
+from .public_safety import scan_text
+from .review_board import build_review_board_packet
+from .source_cards import get_source_card
+
+
+INSTITUTIONAL_CLEARANCE_SCHEMA_VERSION = "unibot-institutional-clearance-v1"
+
+ALLOWED_DECISION_STATUSES = {"needs_review", "approved", "rejected"}
+STANDARD_HELP_LEVELS = {"A0", "A1", "A2"}
+BLOCKED_HELP_LEVELS = {"A6"}
+
+CLEARANCE_SCOPES: dict[str, dict[str, Any]] = {
+    "practice_public_draft": {
+        "label": "Public draft and local practice demo",
+        "current_status": "ready_for_public_draft_review",
+        "exam_deployment_status": "not_cleared",
+        "allowed_modes": ["practice_overlay", "selftest_guardian", "course_tutor_mode"],
+        "required_reviewer_roles": ["Lehreinheit / Modulverantwortliche"],
+        "required_source_card_ids": ["uoc-ki-faq", "uoc-ki-lehre", "dfg-gwp"],
+        "decision_needed": "Confirm public wording, local-only practice scope, and source-card boundaries.",
+        "does_not_authorize": ["exam deployment", "official grading", "proctoring", "KI detection"],
+    },
+    "local_private_extraction": {
+        "label": "Local private OCR/transcription for course tutor indexing",
+        "current_status": "pending_rights_privacy_decision",
+        "exam_deployment_status": "not_cleared",
+        "allowed_modes": ["course_material_extraction", "course_tutor_mode"],
+        "required_reviewer_roles": ["Datenschutz", "Lehreinheit / Modulverantwortliche", "IT / SZI"],
+        "required_source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024", "uoc-ki-lehre", "dfg-gwp"],
+        "decision_needed": "Confirm local processing, storage, retention, access roles, and human review before tutor indexing.",
+        "does_not_authorize": ["public raw text release", "exam deployment", "cloud processing"],
+    },
+    "formative_pilot": {
+        "label": "Formative pilot or master-thesis study rehearsal",
+        "current_status": "pending_ethics_privacy_teaching_review",
+        "exam_deployment_status": "not_cleared",
+        "allowed_modes": ["practice_overlay", "selftest_guardian", "course_tutor_mode"],
+        "required_reviewer_roles": [
+            "Datenschutz",
+            "Lehreinheit / Modulverantwortliche",
+            "Thesis supervision",
+        ],
+        "required_source_card_ids": ["dfg-gwp", "eu-ai-act-2024", "unesco-genai-2023"],
+        "decision_needed": "Confirm participant information, consent boundary, stop rules, and synthetic/practice-only data scope.",
+        "does_not_authorize": ["real exam deployment", "official grading", "disciplinary decisions"],
+    },
+    "exam_controlled_gateway": {
+        "label": "Controlled exam gateway / managed notebook",
+        "current_status": "real_world_clearance_reminder_not_technical_blocker",
+        "exam_deployment_status": "not_cleared",
+        "allowed_modes": ["exam_controlled_gateway", "controlled_notebook"],
+        "required_reviewer_roles": [
+            "Pruefungsamt",
+            "Datenschutz",
+            "IT / SZI",
+            "Lehreinheit / Modulverantwortliche",
+            "Inklusionsbuero / Nachteilsausgleich",
+        ],
+        "required_source_card_ids": [
+            "hg-nrw-2025",
+            "hg-nrw-64",
+            "uoc-hilfsmittel",
+            "uoc-ki-faq",
+            "eu-ai-act-2024",
+            "jupyter-ai",
+        ],
+        "decision_needed": "Confirm written exam scope, controlled channel, A0-A2 help policy, ledger/export evidence, and incident handling.",
+        "does_not_authorize": [
+            "uncontrolled external generative help",
+            "automatic grading",
+            "proctoring",
+            "KI detection",
+            "A6 solution delivery",
+        ],
+    },
+}
+
+
+def build_institutional_clearance_board(*, public_safe: bool = True) -> dict[str, Any]:
+    review_board = build_review_board_packet()
+    compliance = build_compliance_matrix()
+    lanes = [clearance_lane(scope_id, scope) for scope_id, scope in CLEARANCE_SCOPES.items()]
+    board = {
+        "schema_version": INSTITUTIONAL_CLEARANCE_SCHEMA_VERSION,
+        "artifact_type": "unibot_institutional_clearance_board",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "status": "pending_written_clearance",
+        "status_label_de": "Institutionelles Clearance-Board: Entscheidungen vorbereitet, nicht erteilt",
+        "exam_deployment_status": "not_cleared",
+        "decision_boundary": (
+            "This board prepares human authority decisions. It is not approval, legal advice, "
+            "Datenschutz approval, exam clearance, or a deployment switch."
+        ),
+        "golden_rule_alignment": {
+            "pm_gr1_generalize": "One clearance schema covers public draft, extraction, pilot, and exam gateway scopes.",
+            "pm_gr2_harness_engineering": "Each written record can be validated before any mode changes.",
+            "pm_gr3_recursive_self_improvement": "Missing roles, unsafe clauses, or overbroad modes become regression checks.",
+        },
+        "strict_non_goals": [
+            "no proctoring",
+            "no KI detection as evidence",
+            "no automatic grading",
+            "no accommodation decision by UniBot",
+            "no real exam deployment without written authority clearance",
+            "no public release of raw private course text",
+        ],
+        "default_help_policy": {
+            "standard_allowed": ["A0", "A1", "A2"],
+            "non_standard_visible_exception": ["A3", "A4", "A5"],
+            "always_blocked": ["A6"],
+            "eigenleistung_claim": "Use help-level profile, blocks, checkpoints, source links, and reflection; never claim a percentage.",
+        },
+        "scope_lanes": lanes,
+        "required_record_fields": [
+            "clearance_scope",
+            "decision_status",
+            "reviewer_roles",
+            "decision_reference",
+            "allowed_modes",
+            "help_levels_allowed",
+            "no_proctoring",
+            "no_ai_detection",
+            "no_automatic_grading",
+            "human_review_required",
+            "raw_text_public_release_allowed",
+        ],
+        "evidence_summary": {
+            "review_board_status": review_board.get("status"),
+            "reviewer_packet_count": len(review_board.get("reviewer_packets", [])),
+            "compliance_matrix_status": compliance.get("status"),
+            "high_risk_requirement_count": compliance.get("high_risk_requirement_count"),
+            "source_card_count": compliance.get("source_card_count"),
+        },
+        "ready_for": ["public draft review", "local practice demo", "stakeholder decision preparation"],
+        "not_ready_for": ["exam deployment", "official grading", "automatic support claims", "exam_controlled_gateway"],
+        "next_actions": [
+            "Collect written records per scope with the required reviewer roles.",
+            "Validate records with the clearance validator before changing any local gate.",
+            "Keep real exam deployment not_cleared until the responsible authorities have issued written clearance.",
+        ],
+    }
+    attach_public_scan(board, public_safe=public_safe, source_name="institutional-clearance-board")
+    return board
+
+
+def clearance_lane(scope_id: str, scope: dict[str, Any]) -> dict[str, Any]:
+    source_cards = [
+        {
+            "source_id": card["source_id"],
+            "title": card["title"],
+            "authority_type": card["authority_type"],
+            "product_rule": card["product_rule"],
+        }
+        for source_id in scope["required_source_card_ids"]
+        if (card := get_source_card(source_id))
+    ]
+    return {
+        "clearance_scope": scope_id,
+        "label": scope["label"],
+        "current_status": scope["current_status"],
+        "exam_deployment_status": scope["exam_deployment_status"],
+        "required_reviewer_roles": scope["required_reviewer_roles"],
+        "allowed_modes_if_cleared": scope["allowed_modes"],
+        "decision_needed": scope["decision_needed"],
+        "does_not_authorize": scope["does_not_authorize"],
+        "source_cards": source_cards,
+        "minimum_record_template": {
+            "clearance_scope": scope_id,
+            "decision_status": "needs_review",
+            "reviewer_roles": scope["required_reviewer_roles"],
+            "decision_reference": "hash-only reference; do not publish the written record text",
+            "allowed_modes": scope["allowed_modes"],
+            "help_levels_allowed": ["A0", "A1", "A2"],
+            "no_proctoring": True,
+            "no_ai_detection": True,
+            "no_automatic_grading": True,
+            "human_review_required": True,
+            "raw_text_public_release_allowed": False,
+            "notes": "scope-specific written decision required before use",
+        },
+    }
+
+
+def validate_clearance_record(record: dict[str, Any] | None) -> dict[str, Any]:
+    payload = dict(record or {})
+    issues: list[str] = []
+    warnings: list[str] = []
+
+    scope_id = str(payload.get("clearance_scope", "")).strip()
+    scope = CLEARANCE_SCOPES.get(scope_id)
+    if scope is None:
+        issues.append("unsupported_clearance_scope")
+
+    decision_status = str(payload.get("decision_status", "")).strip()
+    if decision_status not in ALLOWED_DECISION_STATUSES:
+        issues.append("unsupported_decision_status")
+
+    reviewer_roles = [str(item).strip() for item in payload.get("reviewer_roles", []) if str(item).strip()]
+    required_roles = list(scope.get("required_reviewer_roles", [])) if scope else []
+    missing_roles = [role for role in required_roles if role not in reviewer_roles]
+    if missing_roles:
+        issues.append("missing_required_reviewer_roles")
+
+    allowed_modes = [str(item).strip() for item in payload.get("allowed_modes", []) if str(item).strip()]
+    if not allowed_modes:
+        issues.append("allowed_modes_required")
+    if scope:
+        unsupported_modes = [mode for mode in allowed_modes if mode not in scope["allowed_modes"]]
+        if unsupported_modes:
+            issues.append("allowed_modes_outside_clearance_scope")
+
+    help_levels_allowed = [str(item).strip() for item in payload.get("help_levels_allowed", []) if str(item).strip()]
+    if not help_levels_allowed:
+        issues.append("help_levels_allowed_required")
+    if any(level in BLOCKED_HELP_LEVELS for level in help_levels_allowed):
+        issues.append("a6_must_always_be_blocked")
+    if scope_id == "exam_controlled_gateway":
+        outside_standard = [level for level in help_levels_allowed if level not in STANDARD_HELP_LEVELS]
+        if outside_standard:
+            issues.append("exam_gateway_allows_only_a0_a2_standard_help")
+
+    if not bool(payload.get("no_proctoring", False)):
+        issues.append("no_proctoring_clause_required")
+    if not bool(payload.get("no_ai_detection", False)):
+        issues.append("no_ai_detection_clause_required")
+    if not bool(payload.get("no_automatic_grading", False)):
+        issues.append("no_automatic_grading_clause_required")
+    if not bool(payload.get("human_review_required", False)):
+        issues.append("human_review_required")
+    if bool(payload.get("raw_text_public_release_allowed", False)):
+        issues.append("raw_text_public_release_must_remain_false")
+
+    decision_reference = str(payload.get("decision_reference", "")).strip()
+    if not decision_reference:
+        issues.append("decision_reference_required")
+    decision_reference_hash = sha256_text(decision_reference) if decision_reference else ""
+
+    if decision_status == "approved" and scope_id != "practice_public_draft":
+        warnings.append("approval_record_must_stay_scope_bound_and_human_reviewable")
+    if scope_id == "exam_controlled_gateway" and decision_status == "approved":
+        warnings.append("validator_checks_record_shape_only_not_real_world_authority_or_deployment")
+
+    safe_summary = {
+        "schema_version": INSTITUTIONAL_CLEARANCE_SCHEMA_VERSION,
+        "artifact_type": "institutional_clearance_record_validation",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "status": record_status(decision_status, issues, scope_id),
+        "clearance_scope": scope_id or "missing",
+        "decision_status": decision_status or "missing",
+        "issues": sorted(set(issues)),
+        "warnings": sorted(set(warnings)),
+        "required_reviewer_roles": required_roles,
+        "reviewer_roles": reviewer_roles,
+        "allowed_modes": allowed_modes,
+        "help_levels_allowed": help_levels_allowed,
+        "cleared_scope_by_record": not issues and decision_status == "approved",
+        "exam_deployment_status": "not_cleared",
+        "record_effect": record_effect(scope_id, decision_status, issues),
+        "decision_reference_hash": decision_reference_hash,
+        "raw_decision_reference_stored": False,
+        "policy": (
+            "A valid record is a human-reviewable clearance artifact for the named scope only. "
+            "It does not by itself publish private material, grade students, detect KI use, "
+            "or switch the running system into real exam deployment."
+        ),
+    }
+    scan = scan_text(json.dumps(safe_summary, ensure_ascii=False), "institutional-clearance-validation")
+    safe_summary["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        safe_summary["status"] = "blocked"
+        safe_summary["public_safety_findings"] = scan["findings"]
+    return safe_summary
+
+
+def record_status(decision_status: str, issues: list[str], scope_id: str) -> str:
+    if issues:
+        return "blocked"
+    if decision_status == "approved":
+        return f"ok_{scope_id}_clearance_record"
+    if decision_status == "rejected":
+        return "rejected"
+    return "needs_review"
+
+
+def record_effect(scope_id: str, decision_status: str, issues: list[str]) -> str:
+    if issues:
+        return "no_effect_blocked_record"
+    if decision_status == "approved":
+        return f"scope_clearance_record_valid_for_{scope_id}"
+    if decision_status == "rejected":
+        return "scope_rejected_by_record"
+    return "scope_still_needs_human_review"
+
+
+def attach_public_scan(payload: dict[str, Any], *, public_safe: bool, source_name: str) -> None:
+    if not public_safe:
+        payload["public_safety_status"] = "local_private_mode"
+        return
+    scan = scan_text(json.dumps(payload, ensure_ascii=False), source_name)
+    payload["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        payload["status"] = "blocked_public_safety"
+        payload["public_safety_findings"] = scan["findings"]

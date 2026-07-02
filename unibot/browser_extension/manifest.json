@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "UniBot Guardian Mantel",
+  "description": "Separate practice overlay for Colab, Jupyter, and coding AI help. Not an exam security guarantee.",
+  "version": "0.1.0",
+  "permissions": ["activeTab", "storage", "sidePanel"],
+  "host_permissions": [
+    "https://colab.research.google.com/*",
+    "https://*.googleusercontent.com/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://colab.research.google.com/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "UniBot Guardian"
+  }
+}

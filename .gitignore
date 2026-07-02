@@ -1,0 +1,14 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pytest_cache/
+.coverage
+coverage/
+build/
+dist/
+tmp/
+*.ipynb_checkpoints/
+MIGRATION_DIFF.md

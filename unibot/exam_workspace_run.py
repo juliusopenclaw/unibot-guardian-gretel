@@ -1,0 +1,649 @@
+from __future__ import annotations
+
+import base64
+import json
+import re
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+from .course_tutor import DEFAULT_COURSE_ID, safe_course_id
+from .materials import sha256_text
+from .private_tutor_use_flow import build_private_tutor_use_flow_dry_run
+from .public_safety import scan_text
+from .tutor_index import build_private_index_tutor_response_dry_run
+
+
+EXAM_WORKSPACE_RUN_SCHEMA_VERSION = "unibot-exam-workspace-run-v1"
+SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
+
+
+def build_exam_workspace_run_dry_run(
+    query: str,
+    *,
+    course_id: str = DEFAULT_COURSE_ID,
+    base_path: str | None = None,
+    max_files: int = 260,
+    review_policy: str = "staged",
+    decision_record: dict[str, Any] | None = None,
+    decision_record_journal_path: str | Path | None = None,
+    receipts: list[dict[str, Any]] | None = None,
+    receipt_journal_path: str | Path | None = None,
+    private_manifest_path: str | Path | None = None,
+    manifest_apply_journal_path: str | Path | None = None,
+    tutor_index_path: str | Path | None = None,
+    tutor_index_journal_path: str | Path | None = None,
+    ledger_path: str | Path | None = None,
+    requested_help_level: str = "A2",
+    exam_status: str = "strict",
+    notebook: dict[str, Any] | None = None,
+    notebook_content_base64: str | None = None,
+    notebook_filename: str = "exam_workspace_notebook.ipynb",
+    cell_index: int = 0,
+    cell_id: str | None = None,
+    cell_type: str = "code",
+    cell_source: str = "",
+    notebook_work_sha256_override: str = "",
+    material_files: list[dict[str, Any]] | None = None,
+    student_reflection: str = "",
+    study_receipt: dict[str, Any] | None = None,
+    operator_confirmed_exam_workspace_run: bool = False,
+    operator_confirmed_manifest_apply: bool = False,
+    operator_confirmed_tutor_index_build: bool = False,
+    operator_confirmed_help_ledger_append: bool = False,
+    operator_confirmed_exam_ledger_append: bool = False,
+    public_safe: bool = True,
+) -> dict[str, Any]:
+    safe_id = safe_course_id(course_id)
+    notebook_payload = notebook_from_payload(notebook=notebook, notebook_content_base64=notebook_content_base64)
+    selected_source = str(cell_source or source_from_notebook(notebook_payload, cell_index))
+    cell_hash = sha256_text(f"{safe_id}:{cell_index}:{cell_id or ''}:{selected_source}")[:16]
+    task_id = f"exam-cell-{cell_hash}"
+    notebook_sha = sha256_text(json.dumps(notebook_payload, ensure_ascii=False, sort_keys=True))
+
+    session = session_step(
+        course_id=safe_id,
+        notebook_session_id=task_id,
+        confirmed=operator_confirmed_exam_workspace_run,
+    )
+    materials = material_freeze_step(
+        course_id=safe_id,
+        material_files=material_files or [],
+        confirmed=operator_confirmed_exam_workspace_run,
+    )
+    notebook_step = notebook_open_step(
+        course_id=safe_id,
+        notebook_payload=notebook_payload,
+        notebook_content_base64=notebook_content_base64,
+        notebook_filename=notebook_filename,
+        confirmed=operator_confirmed_exam_workspace_run,
+    )
+    cell_run = notebook_cell_step(
+        course_id=safe_id,
+        session_id=str(session.get("session_id", "")),
+        cell_index=cell_index,
+        cell_source=selected_source,
+        confirmed=operator_confirmed_exam_workspace_run,
+    )
+    notebook_work_sha256 = valid_sha256(notebook_work_sha256_override) or str(
+        cell_run.get("notebook_work_sha256", sha256_text(selected_source))
+    )
+    cell_source_sha256 = valid_sha256(notebook_work_sha256_override) or sha256_text(selected_source)
+    cell_run["notebook_work_sha256"] = notebook_work_sha256
+
+    tutor_flow = build_private_tutor_use_flow_dry_run(
+        query,
+        course_id=safe_id,
+        base_path=base_path,
+        max_files=max_files,
+        review_policy=review_policy,
+        decision_record=decision_record,
+        decision_record_journal_path=decision_record_journal_path,
+        receipts=receipts,
+        receipt_journal_path=receipt_journal_path,
+        private_manifest_path=private_manifest_path,
+        manifest_apply_journal_path=manifest_apply_journal_path,
+        tutor_index_path=tutor_index_path,
+        tutor_index_journal_path=tutor_index_journal_path,
+        ledger_path=ledger_path,
+        requested_help_level=requested_help_level,
+        mode="exam_controlled_gateway",
+        exam_status=exam_status,
+        operator_confirmed_manifest_apply=operator_confirmed_manifest_apply,
+        operator_confirmed_tutor_index_build=operator_confirmed_tutor_index_build,
+        operator_confirmed_help_ledger_append=operator_confirmed_help_ledger_append,
+        study_receipt=workspace_study_receipt(
+            task_id=task_id,
+            query=query,
+            reflection=student_reflection,
+            study_receipt=study_receipt,
+        ),
+        public_safe=public_safe,
+    )
+    sidecar_response = build_private_index_tutor_response_dry_run(
+        query,
+        course_id=safe_id,
+        tutor_index_path=tutor_index_path,
+        mode="exam_controlled_gateway",
+        requested_help_level=requested_help_level,
+        exam_status=exam_status,
+        public_safe=public_safe,
+    )
+    exam_ledger = exam_ledger_step(
+        course_id=safe_id,
+        session_id=str(session.get("session_id", "")),
+        gateway_session_id=str(session.get("session_id", "")),
+        cell_index=cell_index,
+        cell_id=cell_id or task_id,
+        cell_type=cell_type,
+        prompt=query,
+        raw_response=f"sidecar_response_sha256:{sha256_text(str(sidecar_response.get('answer_markdown', '')))}",
+        student_reflection=student_reflection,
+        notebook_work_sha256=str(cell_run.get("notebook_work_sha256", sha256_text(selected_source))),
+        source_card_ids=list(sidecar_response.get("source_card_ids", []) or [])[:8],
+        help_level=str(sidecar_response.get("effective_help_level", requested_help_level)),
+        confirmed=operator_confirmed_exam_ledger_append,
+    )
+    package = export_step(
+        course_id=safe_id,
+        notebook_payload=notebook_payload,
+        session=session,
+        materials=materials,
+        cell_run=cell_run,
+        sidecar_response=sidecar_response,
+        exam_ledger=exam_ledger,
+    )
+
+    report = {
+        "schema_version": EXAM_WORKSPACE_RUN_SCHEMA_VERSION,
+        "artifact_type": "exam_workspace_run_dry_run",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "course_id": safe_id,
+        "status": exam_workspace_status(tutor_flow=tutor_flow, sidecar_response=sidecar_response, exam_ledger=exam_ledger),
+        "exam_deployment_status": "not_cleared",
+        "execution_boundary": (
+            "Controlled exam-workspace run. It links a notebook cell checkpoint, A0-A2 private tutor sidecar, "
+            "Help-Ledger evidence, study-receipt validation, and a human-review export receipt. Standard use is "
+            "dry-run; local writes require explicit operator confirmations. It never returns raw queries, raw "
+            "course text, notebook code, local paths, complete solutions, inserted values, final interpretation, "
+            "grading, proctoring, AI detection, or exam clearance."
+        ),
+        "operator_confirmations": {
+            "exam_workspace_run": bool(operator_confirmed_exam_workspace_run),
+            "manifest_apply": bool(operator_confirmed_manifest_apply),
+            "tutor_index_build": bool(operator_confirmed_tutor_index_build),
+            "help_ledger_append": bool(operator_confirmed_help_ledger_append),
+            "exam_ledger_append": bool(operator_confirmed_exam_ledger_append),
+        },
+        "session_summary": public_session_summary(session),
+        "material_freeze_summary": public_material_summary(materials),
+        "notebook_checkpoint": {
+            "step_id": "notebook_checkpoint",
+            "status": notebook_step.get("status", "unknown"),
+            "notebook_sha256": notebook_sha,
+            "cell_index": int(cell_index or 0),
+            "cell_id_hash": sha256_text(cell_id or task_id),
+            "cell_task_id": task_id,
+            "cell_source_sha256": cell_source_sha256,
+            "cell_type": str(cell_type or "code")[:40],
+            "run_status": cell_run.get("status", "unknown"),
+            "execution_id": cell_run.get("execution_id", ""),
+            "notebook_work_sha256": notebook_work_sha256,
+            "notebook_work_hash_override_used": bool(valid_sha256(notebook_work_sha256_override)),
+            "kernel_execution_started": cell_run.get("status") not in {"kernel-unavailable", "dry_run_not_executed"},
+            "raw_notebook_returned": False,
+            "notebook_code_returned": False,
+            "local_path_returned": False,
+        },
+        "tutor_sidecar": sidecar_public_summary(sidecar_response),
+        "private_tutor_use_flow_summary": {
+            "status": tutor_flow.get("status", "unknown"),
+            "manifest_apply": tutor_flow.get("manifest_apply_summary", {}),
+            "tutor_index": tutor_flow.get("tutor_index_summary", {}),
+            "tutor_response": tutor_flow.get("tutor_response_summary", {}),
+            "ledger_append": tutor_flow.get("ledger_append_summary", {}),
+            "study_receipt_validation": tutor_flow.get("study_receipt_validation", {}),
+        },
+        "cell_evidence_link": {
+            "cell_task_id": task_id,
+            "study_receipt_task_id": tutor_flow.get("study_receipt_validation", {}).get("task_id", ""),
+            "study_receipt_status": tutor_flow.get("study_receipt_validation", {}).get("status", "unknown"),
+            "exam_ledger_status": exam_ledger.get("status", "unknown"),
+            "general_help_ledger_status": tutor_flow.get("ledger_append_summary", {}).get("status", "unknown"),
+            "source_anchor_id_hash": tutor_flow.get("study_receipt_validation", {}).get("source_anchor_id_hash", ""),
+            "notebook_work_sha256": cell_run.get("notebook_work_sha256", ""),
+            "eigenleistung_percentage_claimed": False,
+        },
+        "exam_ledger_append_summary": exam_ledger_public_summary(exam_ledger),
+        "export_package_summary": package,
+        "raw_query_returned": False,
+        "raw_text_returned": False,
+        "raw_notebook_returned": False,
+        "notebook_code_returned": False,
+        "local_paths_returned": False,
+        "private_manifest_path_returned": False,
+        "tutor_index_path_returned": False,
+        "ledger_path_returned": False,
+        "automatic_grading_started": False,
+        "proctoring_started": False,
+        "ai_detection_started": False,
+        "exam_clearance_claimed": False,
+        "real_world_clearance_reminder": (
+            "Real exam authority clearance is a real-world follow-up. UniBot reminds the operator and remains not_cleared."
+        ),
+        "next_actions": exam_workspace_next_actions(tutor_flow=tutor_flow, sidecar_response=sidecar_response, exam_ledger=exam_ledger),
+    }
+    attach_public_scan(report, public_safe=public_safe)
+    return report
+
+
+def notebook_from_payload(*, notebook: dict[str, Any] | None, notebook_content_base64: str | None) -> dict[str, Any]:
+    if isinstance(notebook, dict):
+        return notebook
+    if notebook_content_base64:
+        try:
+            decoded = base64.b64decode(str(notebook_content_base64).encode("ascii")).decode("utf-8")
+            payload = json.loads(decoded)
+            if isinstance(payload, dict):
+                return payload
+        except (ValueError, json.JSONDecodeError):
+            pass
+    return {
+        "cells": [
+            {
+                "cell_type": "code",
+                "metadata": {},
+                "outputs": [],
+                "source": [],
+            }
+        ],
+        "metadata": {"unibot": {"exam_workspace": True}},
+        "nbformat": 4,
+        "nbformat_minor": 5,
+    }
+
+
+def source_from_notebook(notebook: dict[str, Any], cell_index: int) -> str:
+    cells = notebook.get("cells", [])
+    if not isinstance(cells, list) or not cells:
+        return ""
+    try:
+        cell = cells[int(cell_index or 0)]
+    except (IndexError, TypeError, ValueError):
+        return ""
+    if not isinstance(cell, dict):
+        return ""
+    source = cell.get("source", "")
+    if isinstance(source, list):
+        return "".join(str(part) for part in source)
+    return str(source or "")
+
+
+def valid_sha256(value: str | None) -> str:
+    candidate = str(value or "").strip().lower()
+    return candidate if SHA256_RE.match(candidate) else ""
+
+
+def session_step(*, course_id: str, notebook_session_id: str, confirmed: bool) -> dict[str, Any]:
+    if not confirmed:
+        return {
+            "status": "dry_run_not_started",
+            "mode": "exam_controlled_gateway",
+            "course_id": course_id,
+            "session_id": "",
+            "session_id_hash": sha256_text(f"{course_id}:{notebook_session_id}")[:20],
+            "allowed_help_levels": ["A0", "A1", "A2"],
+            "exam_deployment_status": "not_cleared",
+        }
+    from exam_mode import start_exam_gateway_session
+
+    session = start_exam_gateway_session({"course_id": course_id, "notebook_session_id": notebook_session_id})
+    return {
+        "status": session.get("status", "started"),
+        "mode": session.get("mode", "exam_controlled_gateway"),
+        "course_id": course_id,
+        "session_id": session.get("session_id", ""),
+        "session_id_hash": sha256_text(str(session.get("session_id", "")))[:20],
+        "allowed_help_levels": list(session.get("allowed_help_levels", ["A0", "A1", "A2"])),
+        "exam_deployment_status": session.get("exam_deployment_status", "not_cleared"),
+    }
+
+
+def material_freeze_step(*, course_id: str, material_files: list[dict[str, Any]], confirmed: bool) -> dict[str, Any]:
+    if not confirmed:
+        return {
+            "status": "dry_run_not_frozen",
+            "imported_file_count": 0,
+            "candidate_file_count": len([item for item in material_files if isinstance(item, dict)]),
+            "freeze_written": False,
+            "exam_rule": "A0-A2 only",
+        }
+    from exam_mode import freeze_exam_materials, import_exam_materials
+
+    imported_count = 0
+    if material_files:
+        imported = import_exam_materials({"course_id": course_id, "source": "exam_workspace_run", "files": material_files})
+        imported_count = int(imported.get("file_count", 0) or 0)
+    frozen = freeze_exam_materials({"course_id": course_id, "exam_rule": "A0-A2 only"})
+    return {
+        "status": frozen.get("status", "frozen"),
+        "imported_file_count": imported_count,
+        "candidate_file_count": len([item for item in material_files if isinstance(item, dict)]),
+        "freeze_written": frozen.get("status") == "frozen",
+        "exam_rule": frozen.get("exam_rule", "A0-A2 only"),
+    }
+
+
+def notebook_open_step(
+    *,
+    course_id: str,
+    notebook_payload: dict[str, Any],
+    notebook_content_base64: str | None,
+    notebook_filename: str,
+    confirmed: bool,
+) -> dict[str, Any]:
+    if not confirmed:
+        return {"status": "dry_run_not_opened", "notebook_written": False, "notebook_path_returned": False}
+    from exam_mode import open_exam_notebook
+
+    encoded = notebook_content_base64 or base64.b64encode(
+        json.dumps(notebook_payload, ensure_ascii=False).encode("utf-8")
+    ).decode("ascii")
+    opened = open_exam_notebook(
+        {
+            "course_id": course_id,
+            "filename": Path(str(notebook_filename or "exam_workspace_notebook.ipynb")).name,
+            "content_base64": encoded,
+            "strip_outputs": True,
+        }
+    )
+    return {
+        "status": opened.get("status", "opened"),
+        "notebook_written": opened.get("status") == "opened",
+        "notebook_path_returned": False,
+        "session_id_hash": sha256_text(str(opened.get("session_id", "")))[:20],
+    }
+
+
+def notebook_cell_step(
+    *,
+    course_id: str,
+    session_id: str,
+    cell_index: int,
+    cell_source: str,
+    confirmed: bool,
+) -> dict[str, Any]:
+    if not confirmed:
+        return {
+            "artifact_type": "exam_notebook_cell_run",
+            "status": "dry_run_not_executed",
+            "notebook_work_sha256": sha256_text(cell_source),
+            "session_id": "",
+            "cell_index": int(cell_index or 0),
+            "execution_id": sha256_text(f"dry:{course_id}:{cell_index}:{cell_source}")[:16],
+        }
+    from exam_mode import run_exam_notebook_cell
+
+    return run_exam_notebook_cell(
+        {
+            "course_id": course_id,
+            "session_id": session_id,
+            "cell_index": int(cell_index or 0),
+            "source": cell_source,
+            "prior_code": "",
+        }
+    )
+
+
+def workspace_study_receipt(
+    *,
+    task_id: str,
+    query: str,
+    reflection: str,
+    study_receipt: dict[str, Any] | None,
+) -> dict[str, Any]:
+    base = {
+        "task_id": task_id,
+        "prediction_present": bool(str(query or "").strip()),
+        "notebook_action_present": True,
+        "reflection_present": bool(str(reflection or "").strip()),
+        "notebook_cell_task_id": task_id,
+    }
+    if study_receipt:
+        base.update(
+            {
+                key: value
+                for key, value in study_receipt.items()
+                if key not in {"solution", "final_answer", "raw_private_text", "raw_course_text", "local_path"}
+            }
+        )
+    return base
+
+
+def exam_ledger_step(
+    *,
+    course_id: str,
+    session_id: str,
+    gateway_session_id: str,
+    cell_index: int,
+    cell_id: str,
+    cell_type: str,
+    prompt: str,
+    raw_response: str,
+    student_reflection: str,
+    notebook_work_sha256: str,
+    source_card_ids: list[str],
+    help_level: str,
+    confirmed: bool,
+) -> dict[str, Any]:
+    event_seed = {
+        "course_id": course_id,
+        "cell_index": int(cell_index or 0),
+        "cell_id_hash": sha256_text(cell_id),
+        "prompt_sha256": sha256_text(prompt),
+        "response_sha256": sha256_text(raw_response),
+        "notebook_work_sha256": notebook_work_sha256,
+        "help_level": help_level,
+        "source_card_ids": source_card_ids[:8],
+    }
+    if not confirmed:
+        return {
+            "status": "dry_run_not_written",
+            "ledger_written": False,
+            "path_returned": False,
+            "event_hash": sha256_text(json.dumps(event_seed, sort_keys=True, ensure_ascii=False)),
+            "record": event_seed,
+        }
+    from exam_mode import append_exam_ledger_event
+
+    appended = append_exam_ledger_event(
+        {
+            "course_id": course_id,
+            "session_id": session_id,
+            "gateway_session_id": gateway_session_id,
+            "cell_index": int(cell_index or 0),
+            "cell_id": cell_id,
+            "cell_type": cell_type,
+            "help_level": help_level,
+            "decision": "allowed",
+            "source": "private_tutor_index",
+            "source_card_ids": source_card_ids[:8],
+            "prompt": prompt,
+            "raw_response": raw_response,
+            "student_reflection": student_reflection,
+            "notebook_work_sha256": notebook_work_sha256,
+        }
+    )
+    return {
+        "status": appended.get("status", "unknown"),
+        "ledger_written": appended.get("status") == "appended",
+        "path_returned": False,
+        "event_hash": sha256_text(json.dumps(appended.get("record", {}), sort_keys=True, ensure_ascii=False)),
+        "record": appended.get("record", {}),
+        "ledger_summary": appended.get("ledger_summary", {}),
+    }
+
+
+def export_step(
+    *,
+    course_id: str,
+    notebook_payload: dict[str, Any],
+    session: dict[str, Any],
+    materials: dict[str, Any],
+    cell_run: dict[str, Any],
+    sidecar_response: dict[str, Any],
+    exam_ledger: dict[str, Any],
+) -> dict[str, Any]:
+    from exam_mode import export_exam_package
+
+    ledger_record = exam_ledger.get("record", {})
+    package = export_exam_package(
+        {
+            "course_id": course_id,
+            "notebook": notebook_payload,
+            "session_log": [
+                {"name": "session_start", "status": session.get("status", "")},
+                {"name": "materials_freeze", "status": materials.get("status", "")},
+                {"name": "run_cell", "status": cell_run.get("status", "")},
+                {"name": "tutor_sidecar", "status": sidecar_response.get("status", "")},
+                {"name": "exam_ledger", "status": exam_ledger.get("status", "")},
+            ],
+            "help_ledger": [ledger_record] if isinstance(ledger_record, dict) and ledger_record else [],
+        }
+    )
+    confirmation = package.get("technical_confirmation", {})
+    return {
+        "status": package.get("status", "unknown"),
+        "package_id": package.get("package_id", ""),
+        "exam_deployment_status": package.get("exam_deployment_status", "not_cleared"),
+        "not_cleared_receipt": package.get("exam_deployment_status") == "not_cleared",
+        "notebook_included": package.get("notebook_receipt", {}).get("included", False),
+        "notebook_sha256": package.get("notebook_receipt", {}).get("notebook_sha256", ""),
+        "help_ledger_entry_count": package.get("gateway_help_ledger_summary", {}).get("entry_count", 0),
+        "blocked_count": package.get("gateway_help_ledger_summary", {}).get("blocked_count", 0),
+        "human_reviewable_independence_evidence": confirmation.get("human_reviewable_independence_evidence", False),
+        "raw_transcripts_included": confirmation.get("raw_transcripts_included", False),
+        "automatic_grading_included": confirmation.get("automatic_grading_included", False),
+        "proctoring_included": confirmation.get("proctoring_included", False),
+        "ai_detection_included": confirmation.get("ai_detection_included", False),
+        "local_path_returned": False,
+        "raw_notebook_returned": False,
+    }
+
+
+def public_session_summary(session: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "status": session.get("status", "unknown"),
+        "mode": session.get("mode", "exam_controlled_gateway"),
+        "session_id_hash": session.get("session_id_hash", sha256_text(str(session.get("session_id", "")))[:20]),
+        "allowed_help_levels": list(session.get("allowed_help_levels", ["A0", "A1", "A2"])),
+        "exam_deployment_status": session.get("exam_deployment_status", "not_cleared"),
+        "session_id_returned": False,
+    }
+
+
+def public_material_summary(materials: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "status": materials.get("status", "unknown"),
+        "freeze_written": bool(materials.get("freeze_written", False)),
+        "candidate_file_count": int(materials.get("candidate_file_count", 0) or 0),
+        "imported_file_count": int(materials.get("imported_file_count", 0) or 0),
+        "exam_rule": materials.get("exam_rule", "A0-A2 only"),
+        "raw_text_returned": False,
+        "local_path_returned": False,
+    }
+
+
+def sidecar_public_summary(response: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "status": response.get("status", "unknown"),
+        "mode": response.get("mode", "exam_controlled_gateway"),
+        "strict_exam_boundary": bool(response.get("strict_exam_boundary", True)),
+        "effective_help_level": response.get("effective_help_level", "A2"),
+        "selected_skill": response.get("selected_skill", {}),
+        "source_anchor_count": len(response.get("source_anchors", []) or []),
+        "source_card_ids": list(response.get("source_card_ids", []) or [])[:8],
+        "answer_markdown": response.get("answer_markdown", ""),
+        "socratic_questions": list(response.get("socratic_questions", []) or [])[:3],
+        "next_task": response.get("next_task", {}),
+        "raw_query_returned": False,
+        "raw_text_returned": False,
+        "local_paths_returned": False,
+    }
+
+
+def exam_ledger_public_summary(exam_ledger: dict[str, Any]) -> dict[str, Any]:
+    record = exam_ledger.get("record", {}) if isinstance(exam_ledger.get("record"), dict) else {}
+    return {
+        "status": exam_ledger.get("status", "unknown"),
+        "ledger_written": bool(exam_ledger.get("ledger_written", False)),
+        "event_hash": exam_ledger.get("event_hash", ""),
+        "help_level": record.get("help_level", ""),
+        "allowed": record.get("allowed", exam_ledger.get("status") in {"dry_run_not_written", "appended"}),
+        "blocked": bool(record.get("blocked", False)),
+        "repeat_task_required": bool(record.get("repeat_task_required", False)),
+        "path_returned": False,
+        "prompt_returned": False,
+        "raw_response_returned": False,
+    }
+
+
+def exam_workspace_status(
+    *,
+    tutor_flow: dict[str, Any],
+    sidecar_response: dict[str, Any],
+    exam_ledger: dict[str, Any],
+) -> str:
+    if tutor_flow.get("status") == "blocked_public_safety" or sidecar_response.get("status") == "blocked_public_safety":
+        return "blocked_public_safety"
+    if str(tutor_flow.get("status", "")).startswith("waiting_for") or sidecar_response.get("status") in {
+        "waiting_for_private_tutor_index_build",
+        "no_index_anchor",
+    }:
+        return "exam_workspace_waiting_for_tutor_flow"
+    if sidecar_response.get("status") != "allowed":
+        return f"exam_workspace_tutor_{sidecar_response.get('status', 'blocked')}"
+    receipt_status = tutor_flow.get("study_receipt_validation", {}).get("status")
+    if receipt_status != "ok_study_session_receipt":
+        return "exam_workspace_study_receipt_needs_evidence"
+    if exam_ledger.get("ledger_written"):
+        return "exam_workspace_ready_with_exam_ledger"
+    return "exam_workspace_dry_run_ready"
+
+
+def exam_workspace_next_actions(
+    *,
+    tutor_flow: dict[str, Any],
+    sidecar_response: dict[str, Any],
+    exam_ledger: dict[str, Any],
+) -> list[str]:
+    if sidecar_response.get("status") in {"waiting_for_private_tutor_index_build", "no_index_anchor"}:
+        return [
+            "Apply reviewed private manifest metadata and build the hash-only tutor index before relying on the sidecar.",
+            "Keep the exam workspace not_cleared; real authority clearance remains a real-world reminder, not a technical blocker.",
+        ]
+    if sidecar_response.get("status") != "allowed":
+        return ["Rephrase as A0-A2 help: source anchor, syntax pointer, or one Socratic next-check question."]
+    if tutor_flow.get("study_receipt_validation", {}).get("status") != "ok_study_session_receipt":
+        return ["Add hash-only evidence: own prediction, notebook action, source anchor, and reflection."]
+    if not exam_ledger.get("ledger_written"):
+        return [
+            "Review the dry-run, then set operator_confirmed_exam_ledger_append only if this cell help should be stored locally.",
+            "Use the export summary as human-reviewable evidence; do not convert it into a grade or Eigenleistung percentage.",
+        ]
+    return [
+        "Export the package summary for human review after checking the local notebook checkpoint and ledger.",
+        "Continue closing course-material gaps through reviewed receipts and tutor-index rebuilds.",
+        "Reminder: real exam authority clearance remains outside the bot; UniBot stays not_cleared.",
+    ]
+
+
+def attach_public_scan(payload: dict[str, Any], *, public_safe: bool) -> None:
+    if not public_safe:
+        payload["public_safety_status"] = "local_private_mode"
+        return
+    scan = scan_text(json.dumps(payload, ensure_ascii=False), "exam-workspace-run")
+    payload["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        payload["status"] = "blocked_public_safety"
+        payload["public_safety_findings"] = scan["findings"]

@@ -1,0 +1,412 @@
+from __future__ import annotations
+
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+from .course_tutor import DEFAULT_COURSE_ID, safe_course_id
+from .exam_workspace_operator_run import build_exam_workspace_operator_run_dry_run
+from .materials import sha256_text
+from .public_safety import scan_text
+
+
+EXAM_WORKSPACE_SESSION_CONSOLE_SCHEMA_VERSION = "unibot-exam-workspace-session-console-v1"
+SESSION_CONSOLE_ENDPOINT = "/api/unibot/exam-workspace/session-console"
+
+
+def build_exam_workspace_session_console(
+    *,
+    course_id: str = DEFAULT_COURSE_ID,
+    base_path: str | None = None,
+    max_files: int = 260,
+    review_policy: str = "staged",
+    decision_record: dict[str, Any] | None = None,
+    decision_record_journal_path: str | Path | None = None,
+    receipts: list[dict[str, Any]] | None = None,
+    receipt_journal_path: str | Path | None = None,
+    private_manifest_path: str | Path | None = None,
+    manifest_apply_journal_path: str | Path | None = None,
+    tutor_index_path: str | Path | None = None,
+    tutor_index_journal_path: str | Path | None = None,
+    ledger_path: str | Path | None = None,
+    focus_query: str = "",
+    query: str = "",
+    selected_skill_tag: str = "",
+    requested_help_level: str = "A2",
+    exam_status: str = "strict",
+    student_reflection: str = "",
+    study_receipt: dict[str, Any] | None = None,
+    notebook_checkpoint: dict[str, Any] | None = None,
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
+    cell_source: str = "",
+    cell_index: int = 0,
+    cell_id: str = "",
+    cell_type: str = "code",
+    checkpoint_journal_path: str | Path | None = None,
+    repeat_run_index: int = 1,
+    previous_console_receipts: list[dict[str, Any]] | None = None,
+    operator_confirmed_checkpoint_store: bool = False,
+    operator_confirmed_exam_workspace_run: bool = False,
+    operator_confirmed_manifest_apply: bool = False,
+    operator_confirmed_tutor_index_build: bool = False,
+    operator_confirmed_help_ledger_append: bool = False,
+    operator_confirmed_exam_ledger_append: bool = False,
+    public_safe: bool = True,
+) -> dict[str, Any]:
+    safe_id = safe_course_id(course_id)
+    skill_focus = str(selected_skill_tag or focus_query or query or "").strip()
+    local_cycle_workspace_card = (
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else {}
+    )
+    operator = build_exam_workspace_operator_run_dry_run(
+        course_id=safe_id,
+        base_path=base_path,
+        max_files=max_files,
+        review_policy=review_policy,
+        decision_record=decision_record,
+        decision_record_journal_path=decision_record_journal_path,
+        receipts=receipts,
+        receipt_journal_path=receipt_journal_path,
+        private_manifest_path=private_manifest_path,
+        manifest_apply_journal_path=manifest_apply_journal_path,
+        tutor_index_path=tutor_index_path,
+        tutor_index_journal_path=tutor_index_journal_path,
+        ledger_path=ledger_path,
+        focus_query=skill_focus,
+        query=skill_focus,
+        requested_help_level=requested_help_level,
+        exam_status=exam_status,
+        student_reflection=student_reflection,
+        study_receipt=study_receipt,
+        notebook_checkpoint=notebook_checkpoint,
+        cell_source=cell_source,
+        cell_index=cell_index,
+        cell_id=cell_id,
+        cell_type=cell_type,
+        checkpoint_journal_path=checkpoint_journal_path,
+        operator_confirmed_checkpoint_store=operator_confirmed_checkpoint_store,
+        operator_confirmed_exam_workspace_run=operator_confirmed_exam_workspace_run,
+        operator_confirmed_manifest_apply=operator_confirmed_manifest_apply,
+        operator_confirmed_tutor_index_build=operator_confirmed_tutor_index_build,
+        operator_confirmed_help_ledger_append=operator_confirmed_help_ledger_append,
+        operator_confirmed_exam_ledger_append=operator_confirmed_exam_ledger_append,
+        public_safe=public_safe,
+    )
+    console = session_console_view(operator=operator, repeat_run_index=repeat_run_index)
+    receipt = session_console_receipt(
+        course_id=safe_id,
+        operator=operator,
+        console=console,
+        repeat_run_index=repeat_run_index,
+        previous_console_receipts=previous_console_receipts or [],
+    )
+    report = {
+        "schema_version": EXAM_WORKSPACE_SESSION_CONSOLE_SCHEMA_VERSION,
+        "artifact_type": "exam_workspace_session_console",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "course_id": safe_id,
+        "status": session_console_status(operator),
+        "exam_deployment_status": "not_cleared",
+        "execution_boundary": (
+            "Exam Workspace Session Console. It summarizes the selected skill, workspace status, hash-only notebook "
+            "checkpoint, A0-A2 tutor state, Help-Ledger preview, export receipt, and open operator confirmations. "
+            "It supports repeated dry-runs for the same skill, but never returns raw queries, course raw text, "
+            "notebook code, local paths, values, final interpretations, grading, proctoring, AI detection, or "
+            "exam clearance."
+        ),
+        "session_console": console,
+        "session_console_markdown": session_console_markdown(console),
+        "session_console_receipt": receipt,
+        "operator_summary": operator_summary(operator),
+        "operator_confirmation_matrix": operator.get("operator_confirmation_matrix", {}),
+        "local_cycle_operator_workspace_card": safe_local_cycle_workspace_card(local_cycle_workspace_card),
+        "local_cycle_operator_workspace_card_source": safe_local_cycle_workspace_card_source(local_cycle_workspace_card),
+        "raw_query_returned": False,
+        "raw_text_returned": False,
+        "raw_cell_returned": False,
+        "raw_notebook_returned": False,
+        "notebook_code_returned": False,
+        "local_paths_returned": False,
+        "private_manifest_path_returned": False,
+        "tutor_index_path_returned": False,
+        "ledger_path_returned": False,
+        "automatic_grading_started": False,
+        "proctoring_started": False,
+        "ai_detection_started": False,
+        "exam_clearance_claimed": False,
+        "real_world_clearance_reminder": (
+            "Reale Pruefungsfreigabe bleibt ausserhalb des Bots; die Session Console bleibt not_cleared."
+        ),
+        "next_actions": session_console_next_actions(operator),
+    }
+    attach_public_scan(report, public_safe=public_safe)
+    return report
+
+
+def session_console_status(operator: dict[str, Any]) -> str:
+    status = str(operator.get("status", "unknown"))
+    if status == "exam_workspace_operator_dry_run_ready":
+        return "exam_workspace_session_console_ready"
+    if status == "exam_workspace_operator_ready_with_confirmed_local_writes":
+        return "exam_workspace_session_console_ready_with_confirmed_local_writes"
+    if status == "exam_workspace_operator_repeat_task_required":
+        return "exam_workspace_session_console_repeat_task_required"
+    if status == "exam_workspace_operator_waiting_for_required_evidence":
+        return "exam_workspace_session_console_waiting_for_required_evidence"
+    return "exam_workspace_session_console_review_required"
+
+
+def session_console_view(
+    *,
+    operator: dict[str, Any],
+    repeat_run_index: int,
+    local_cycle_operator_workspace_card: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    receipt = operator.get("dry_run_receipt", {}) if isinstance(operator.get("dry_run_receipt"), dict) else {}
+    coverage = operator.get("coverage_summary", {}) if isinstance(operator.get("coverage_summary"), dict) else {}
+    start = coverage.get("start_point", {}) if isinstance(coverage.get("start_point"), dict) else {}
+    checkpoint = operator.get("local_notebook_checkpoint", {}) if isinstance(operator.get("local_notebook_checkpoint"), dict) else {}
+    workspace = operator.get("exam_workspace_run_summary", {}) if isinstance(operator.get("exam_workspace_run_summary"), dict) else {}
+    ledger = operator.get("help_ledger_preview", {}) if isinstance(operator.get("help_ledger_preview"), dict) else {}
+    export = operator.get("export_receipt", {}) if isinstance(operator.get("export_receipt"), dict) else {}
+    confirmations = operator.get("operator_confirmation_matrix", {}) if isinstance(operator.get("operator_confirmation_matrix"), dict) else {}
+    steps = confirmations.get("steps", {}) if isinstance(confirmations.get("steps"), dict) else {}
+    open_steps = [key for key, step in steps.items() if isinstance(step, dict) and not step.get("confirmed")]
+    workspace_card = safe_local_cycle_workspace_card(local_cycle_operator_workspace_card or {})
+    return {
+        "title": "Exam Workspace Session Console",
+        "status": console_view_status(operator),
+        "mode": "exam_controlled_gateway",
+        "exam_deployment_status": "not_cleared",
+        "selected_skill": {
+            "skill_tag": receipt.get("selected_skill_tag", start.get("skill_tag", "")),
+            "start_point_status": receipt.get("start_point_status", start.get("status", "unknown")),
+            "source_anchor_count": start.get("source_anchor_count", 0),
+            "raw_source_text_returned": False,
+        },
+        "workspace_status": {
+            "operator_status": operator.get("status", "unknown"),
+            "launch_status": operator.get("launch_status", "unknown"),
+            "workspace_run_status": workspace.get("status", "unknown"),
+            "session_status": workspace.get("session_status", "dry_run_not_started"),
+            "exam_deployment_status": "not_cleared",
+        },
+        "notebook_checkpoint": {
+            "status": checkpoint.get("status", "not_provided"),
+            "notebook_work_sha256": checkpoint.get("notebook_work_sha256", ""),
+            "checkpoint_journal_written": bool(checkpoint.get("checkpoint_journal_written", False)),
+            "raw_cell_returned": False,
+            "notebook_code_returned": False,
+        },
+        "tutor_state": {
+            "tutor_status": workspace.get("tutor_status", "unknown"),
+            "effective_help_level": receipt.get("effective_help_level", ledger.get("help_level", "A2")),
+            "study_receipt_status": receipt.get("study_receipt_status", workspace.get("study_receipt_status", "unknown")),
+            "allowed_help_boundary": "A0-A2",
+            "automatic_grading_started": False,
+        },
+        "help_ledger_preview": {
+            "status": ledger.get("status", "unknown"),
+            "help_level": ledger.get("help_level", "A2"),
+            "general_help_ledger_written": bool(ledger.get("general_help_ledger_written", False)),
+            "exam_ledger_written": bool(ledger.get("exam_ledger_written", False)),
+            "event_hash": ledger.get("event_hash", ""),
+            "raw_help_text_returned": False,
+        },
+        "local_cycle_operator_workspace_card": workspace_card,
+        "export_receipt": {
+            "status": export.get("status", "unknown"),
+            "package_id": export.get("package_id", ""),
+            "not_cleared_receipt": bool(export.get("not_cleared_receipt", True)),
+            "human_reviewable_independence_evidence": bool(export.get("human_reviewable_independence_evidence", False)),
+            "raw_export_returned": False,
+        },
+        "operator_confirmations": {
+            "status": confirmations.get("status", "unknown"),
+            "confirmed_count": confirmations.get("confirmed_count", 0),
+            "write_step_count": confirmations.get("write_step_count", 0),
+            "open_steps": open_steps,
+            "local_writes_requested": bool(confirmations.get("local_writes_requested", False)),
+            "default_policy": confirmations.get("default_policy", "dry_run_until_individual_operator_confirmation"),
+        },
+        "repeat_dry_run": {
+            "supported": True,
+            "repeat_run_index": max(1, int(repeat_run_index or 1)),
+            "same_skill_repeat_allowed": True,
+            "local_write_default": False,
+        },
+    }
+
+
+def console_view_status(operator: dict[str, Any]) -> str:
+    status = session_console_status(operator)
+    if status == "exam_workspace_session_console_ready":
+        return "ready_dry_run"
+    if status == "exam_workspace_session_console_ready_with_confirmed_local_writes":
+        return "ready_with_confirmed_local_writes"
+    if status == "exam_workspace_session_console_repeat_task_required":
+        return "repeat_task_required"
+    if status == "exam_workspace_session_console_waiting_for_required_evidence":
+        return "waiting_for_required_evidence"
+    return "review_required"
+
+
+def session_console_receipt(
+    *,
+    course_id: str,
+    operator: dict[str, Any],
+    console: dict[str, Any],
+    repeat_run_index: int,
+    previous_console_receipts: list[dict[str, Any]],
+) -> dict[str, Any]:
+    operator_receipt = operator.get("dry_run_receipt", {}) if isinstance(operator.get("dry_run_receipt"), dict) else {}
+    selected = console.get("selected_skill", {}) if isinstance(console.get("selected_skill"), dict) else {}
+    checkpoint = console.get("notebook_checkpoint", {}) if isinstance(console.get("notebook_checkpoint"), dict) else {}
+    workspace_card = console.get("local_cycle_operator_workspace_card", {}) if isinstance(console.get("local_cycle_operator_workspace_card"), dict) else {}
+    workspace_card_hash = (
+        str(workspace_card.get("help_ledger_preview_hash", ""))
+        or str(workspace_card.get("task_hash", ""))
+        or str(workspace_card.get("checkpoint_hash", ""))
+        or str(workspace_card.get("status", ""))
+    )
+    previous_hashes = [
+        str(item.get("receipt_hash", item.get("receipt_id", "")))
+        for item in previous_console_receipts
+        if isinstance(item, dict)
+    ][:12]
+    seed = {
+        "course_id": course_id,
+        "skill_tag": selected.get("skill_tag", ""),
+        "checkpoint_hash": checkpoint.get("notebook_work_sha256", ""),
+        "operator_receipt_id": operator_receipt.get("receipt_id", ""),
+        "workspace_card_hash": workspace_card_hash,
+        "repeat_run_index": max(1, int(repeat_run_index or 1)),
+        "previous_hashes": previous_hashes,
+    }
+    receipt_hash = sha256_text(json.dumps(seed, sort_keys=True, ensure_ascii=False))
+    return {
+        "status": "session_console_receipt_ready_not_exam_clearance",
+        "receipt_id": receipt_hash[:20],
+        "receipt_hash": receipt_hash,
+        "operator_receipt_id": operator_receipt.get("receipt_id", ""),
+        "exam_deployment_status": "not_cleared",
+        "not_cleared_receipt": True,
+        "selected_skill_tag": selected.get("skill_tag", ""),
+        "notebook_work_sha256": checkpoint.get("notebook_work_sha256", ""),
+        "repeat_run_index": max(1, int(repeat_run_index or 1)),
+        "previous_console_receipt_count": len(previous_console_receipts),
+        "previous_console_receipt_hashes_returned": previous_hashes,
+        "supports_repeated_dry_runs": True,
+        "workspace_card_hash": workspace_card_hash,
+        "raw_query_returned": False,
+        "raw_text_returned": False,
+        "raw_cell_returned": False,
+        "notebook_code_returned": False,
+        "local_paths_returned": False,
+    }
+
+
+def operator_summary(operator: dict[str, Any]) -> dict[str, Any]:
+    receipt = operator.get("dry_run_receipt", {}) if isinstance(operator.get("dry_run_receipt"), dict) else {}
+    return {
+        "artifact_type": operator.get("artifact_type", ""),
+        "status": operator.get("status", "unknown"),
+        "receipt_id": receipt.get("receipt_id", ""),
+        "selected_skill_tag": receipt.get("selected_skill_tag", ""),
+        "effective_help_level": receipt.get("effective_help_level", "A2"),
+        "not_cleared_receipt": bool(receipt.get("not_cleared_receipt", True)),
+        "raw_operator_report_embedded": False,
+    }
+
+
+def session_console_markdown(console: dict[str, Any]) -> str:
+    selected = console.get("selected_skill", {}) if isinstance(console.get("selected_skill"), dict) else {}
+    workspace = console.get("workspace_status", {}) if isinstance(console.get("workspace_status"), dict) else {}
+    checkpoint = console.get("notebook_checkpoint", {}) if isinstance(console.get("notebook_checkpoint"), dict) else {}
+    tutor = console.get("tutor_state", {}) if isinstance(console.get("tutor_state"), dict) else {}
+    confirmations = console.get("operator_confirmations", {}) if isinstance(console.get("operator_confirmations"), dict) else {}
+    workspace_card = console.get("local_cycle_operator_workspace_card", {}) if isinstance(console.get("local_cycle_operator_workspace_card"), dict) else {}
+    return "\n".join(
+        [
+            "# Exam Workspace Session Console",
+            f"- Status: {console.get('status', 'unknown')}",
+            f"- Exam Deployment: {console.get('exam_deployment_status', 'not_cleared')}",
+            f"- Skill: {selected.get('skill_tag', '')}",
+            f"- Workspace: {workspace.get('workspace_run_status', 'unknown')}",
+            f"- Checkpoint Hash: {checkpoint.get('notebook_work_sha256', '')}",
+            f"- Tutor Help: {tutor.get('effective_help_level', 'A2')}",
+            f"- Confirmations: {confirmations.get('confirmed_count', 0)}/{confirmations.get('write_step_count', 0)}",
+            f"- Local Cycle Workspace Card: {workspace_card.get('status', 'missing')}; {workspace_card.get('help_ledger_preview_status', 'no-ledger')}; next={workspace_card.get('next_safe_action', '') or 'review_skill_readiness'}",
+        ]
+    )
+
+
+def session_console_next_actions(operator: dict[str, Any]) -> list[str]:
+    status = session_console_status(operator)
+    if status == "exam_workspace_session_console_ready":
+        return [
+            "Repeat the dry-run for the same skill after the next local notebook checkpoint if needed.",
+            "Keep local writes behind individual operator confirmations and keep exam_deployment_status not_cleared.",
+        ]
+    if status == "exam_workspace_session_console_repeat_task_required":
+        return ["Remove final-solution-like notebook content and repeat with an own prediction/checkpoint."]
+    return operator.get("next_actions", ["Review the selected skill coverage before continuing."])
+
+
+def attach_public_scan(payload: dict[str, Any], *, public_safe: bool) -> None:
+    if not public_safe:
+        payload["public_safety_status"] = "local_private_mode"
+        return
+    scan = scan_text(json.dumps(payload, ensure_ascii=False), "exam-workspace-session-console")
+    payload["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        payload["status"] = "blocked_public_safety"
+        payload["public_safety_findings"] = scan["findings"]
+
+
+def safe_local_cycle_workspace_card(workspace_card: dict[str, Any]) -> dict[str, Any]:
+    summary = workspace_card.get("workspace_card_summary", {}) if isinstance(workspace_card.get("workspace_card_summary"), dict) else {}
+    review = workspace_card.get("readiness_review", {}) if isinstance(workspace_card.get("readiness_review"), dict) else {}
+    handoff = workspace_card.get("readiness_handoff", {}) if isinstance(workspace_card.get("readiness_handoff"), dict) else {}
+    ledger = workspace_card.get("help_ledger_preview", {}) if isinstance(workspace_card.get("help_ledger_preview"), dict) else {}
+    if not summary and (
+        workspace_card.get("help_ledger_preview_hash") is not None
+        or workspace_card.get("ready_for_operator_prefill") is not None
+        or workspace_card.get("help_ledger_preview_status") is not None
+    ):
+        summary = workspace_card
+    return {
+        "status": workspace_card.get("status", "missing"),
+        "recommendation": str(summary.get("recommendation", review.get("recommendation", "keep_blocked"))),
+        "recommendation_reason": str(summary.get("recommendation_reason", review.get("recommendation_reason", "missing_start_packet"))),
+        "ready_for_operator_prefill": bool(summary.get("ready_for_operator_prefill", False)),
+        "help_ledger_preview_status": str(summary.get("help_ledger_preview_status", ledger.get("status", "missing"))),
+        "selected_skill_tag": str(summary.get("selected_skill_tag", workspace_card.get("selected_skill_tag", ""))),
+        "next_safe_action": str(summary.get("next_safe_action", review.get("next_safe_action", ""))),
+        "next_safe_user_action": str(summary.get("next_safe_user_action", review.get("next_safe_user_action", ""))),
+        "operator_run_endpoint": str(summary.get("operator_run_endpoint", handoff.get("operator_run_endpoint", ""))),
+        "operator_run_method": str(summary.get("operator_run_method", handoff.get("operator_run_method", "POST"))),
+        "help_level": str(summary.get("help_level", ledger.get("help_level", "A2"))),
+        "task_hash": str(summary.get("task_hash", "")),
+        "checkpoint_hash": str(summary.get("checkpoint_hash", "")),
+        "source_card_ids": [str(item) for item in (summary.get("source_card_ids", []) or [])][:8],
+        "source_anchor_count": int(summary.get("source_anchor_count", 0) or 0),
+        "help_ledger_preview_hash": str(summary.get("help_ledger_preview_hash", ledger.get("preview_hash", ""))),
+        "not_cleared_receipt": bool(workspace_card.get("not_cleared_receipt", True)),
+        "exam_deployment_status": "not_cleared",
+    }
+
+
+def safe_local_cycle_workspace_card_source(workspace_card: dict[str, Any]) -> dict[str, Any]:
+    if not workspace_card:
+        return {"status": "missing", "artifact_type": "missing", "schema_version": "", "exam_deployment_status": "not_cleared"}
+    return {
+        "status": str(workspace_card.get("status", "missing")),
+        "artifact_type": str(workspace_card.get("artifact_type", "python_exam_local_cycle_operator_workspace_card")),
+        "schema_version": str(workspace_card.get("schema_version", "")),
+        "selected_skill_tag": str(workspace_card.get("selected_skill_tag", "")),
+        "exam_deployment_status": "not_cleared",
+    }
