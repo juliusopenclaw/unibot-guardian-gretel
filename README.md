@@ -34,6 +34,8 @@ grader, or an exam-clearance decision system.
   `docs/unibot/UNIBOT_GRETEL_GLM_EVOLVE_LANE.md`.
 - The Gretel-built bachelor-thesis-style research package is in
   `docs/unibot/UNIBOT_GRETEL_BACHELOR_THESIS_PACKAGE.md`.
+- The budgeted Gretel autonomous research loop is in
+  `docs/unibot/UNIBOT_GRETEL_AUTONOMOUS_RESEARCH_LOOP.md`.
 - Public work uses synthetic tasks, source cards, test fixtures, and redacted
   review artifacts only.
 - Exam-controlled use remains `not_cleared` until written authority clearance

@@ -26,6 +26,7 @@ It contains:
 - review board packet
 - Gretel/GLM proposal lane
 - Gretel Bachelor-thesis-level package
+- Gretel autonomous research loop
 - included and excluded artifact groups
 - collaboration note
 
@@ -68,6 +69,11 @@ Gretel-documented, uses GLM-5.2 as the public-safe proposal model basis, and
 keeps Julius or another human reviewer as the review, ethics, legal, release and
 real submission gate. The phrase marks the level of rigor, not a real official
 university submission by itself.
+
+The Gretel autonomous research loop is the budgeted 24/7-safe lane. It keeps
+Gretel aligned to the UniBot intent, selects at most one small work item per run,
+requires tests and readiness checks, and blocks provider calls, external
+messages, Final-Go and autonomous public GitHub pushes.
 
 Excluded from the public package:
 

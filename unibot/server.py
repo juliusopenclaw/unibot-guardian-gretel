@@ -7,6 +7,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from .adaptive_tasks import generate_adaptive_practice_plan
+from .autonomous_research_loop import build_autonomous_research_loop, build_autonomous_research_markdown
 from .bachelor_thesis import build_bachelor_thesis_markdown, build_bachelor_thesis_package
 from .clearance import build_institutional_clearance_board, validate_clearance_record
 from .compliance import build_compliance_matrix, build_compliance_matrix_markdown
@@ -3706,6 +3707,10 @@ def route_request(path: str, payload: dict[str, Any] | None = None, method: str 
         return 200, build_bachelor_thesis_package()
     if path == "/api/unibot/bachelor-thesis-markdown":
         return 200, {"status": "ok", "markdown": build_bachelor_thesis_markdown()}
+    if path == "/api/unibot/autonomous-research-loop":
+        return 200, build_autonomous_research_loop()
+    if path == "/api/unibot/autonomous-research-markdown":
+        return 200, {"status": "ok", "markdown": build_autonomous_research_markdown()}
     if path == "/api/unibot/publication-package":
         return 200, build_publication_package()
     if path == "/api/unibot/publication-package-markdown":

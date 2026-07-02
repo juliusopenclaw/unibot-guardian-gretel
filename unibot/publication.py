@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .adaptive_tasks import generate_adaptive_practice_plan
+from .autonomous_research_loop import build_autonomous_research_loop
 from .bachelor_thesis import build_bachelor_thesis_package
 from .compliance import build_compliance_matrix
 from .demo import build_local_demo_run
@@ -44,6 +45,7 @@ def build_system_card() -> dict[str, Any]:
             "generate adaptive practice plans from skill tags and reviewed material metadata",
             "run red-team smokes",
             "prepare redacted Gretel/GLM proposal packets for reviewed self-improvement",
+            "run a budgeted Gretel autonomous research loop for local, public-safe improvement candidates",
             "prepare optional Paperclip control-plane evaluation receipts without making Paperclip a runtime dependency",
         ],
         "non_goals": [
@@ -80,6 +82,7 @@ def build_data_card() -> dict[str, Any]:
             "compliance matrix",
             "pilot protocol",
             "data-protection screening",
+            "Gretel autonomous research loop",
         ],
         "public_release_excluded": [
             "private course materials",
@@ -180,6 +183,7 @@ def build_publication_package() -> dict[str, Any]:
     glm_evolve_packet = build_glm_evolve_work_packet()
     glm_rsi_workboard = build_glm_rsi_workboard()
     bachelor_thesis_package = build_bachelor_thesis_package()
+    autonomous_research_loop = build_autonomous_research_loop()
     paperclip_bridge = build_paperclip_evaluation_request()
     material_policy_ready = (
         material_manifest["record_count"] >= 2
@@ -261,6 +265,15 @@ def build_publication_package() -> dict[str, Any]:
         and bachelor_thesis_package["review_gates"]["no_autonomous_github_publish"] is True
         and bachelor_thesis_package["review_gates"]["no_final_go_by_gretel_or_glm"] is True
     )
+    autonomous_loop_ready = (
+        autonomous_research_loop["status"] == "ready_for_budgeted_recurring_local_runs"
+        and autonomous_research_loop["public_safety_status"] == "pass"
+        and autonomous_research_loop["budget_policy"]["token_policy"]["default_reasoning_effort"] == "low"
+        and autonomous_research_loop["budget_policy"]["cadence"]["max_active_work_item_per_run"] == 1
+        and autonomous_research_loop["safety"]["provider_call_executed"] is False
+        and autonomous_research_loop["safety"]["autonomous_github_push"] is False
+        and autonomous_research_loop["safety"]["final_go"] is False
+    )
     release_gates = {
         "redteam_status": redteam["status"],
         "evaluation_status": evaluation["status"],
@@ -278,6 +291,7 @@ def build_publication_package() -> dict[str, Any]:
         "gretel_glm_evolve_lane_ready": glm_evolve_ready,
         "gretel_glm_rsi_workboard_ready": glm_rsi_workboard_ready,
         "gretel_bachelor_thesis_package_ready": bachelor_thesis_ready,
+        "gretel_autonomous_research_loop_ready": autonomous_loop_ready,
         "paperclip_evaluation_bridge_ready": paperclip_bridge_ready,
         "public_safety_required": True,
         "release_ready": redteam["status"] == "pass"
@@ -296,6 +310,7 @@ def build_publication_package() -> dict[str, Any]:
         and glm_evolve_ready
         and glm_rsi_workboard_ready
         and bachelor_thesis_ready
+        and autonomous_loop_ready
         and paperclip_bridge_ready,
         "release_ready_note": "Ready as public-safe draft package, not as exam deployment.",
     }
@@ -322,6 +337,7 @@ def build_publication_package() -> dict[str, Any]:
         "gretel_glm_evolve_lane": glm_evolve_packet,
         "gretel_glm_rsi_workboard": glm_rsi_workboard,
         "gretel_bachelor_thesis_package": bachelor_thesis_package,
+        "gretel_autonomous_research_loop": autonomous_research_loop,
         "paperclip_evaluation_bridge": paperclip_bridge,
         "public_file_groups": [
             "unibot/",
@@ -357,6 +373,7 @@ def build_publication_package() -> dict[str, Any]:
             "gretel_glm_evolve_lane",
             "gretel_glm_rsi_workboard",
             "gretel_bachelor_thesis_package",
+            "gretel_autonomous_research_loop",
             "paperclip_evaluation_bridge",
             "system_card",
             "data_card",
@@ -366,6 +383,7 @@ def build_publication_package() -> dict[str, Any]:
         "gretel_glm_evolve_policy": "Gretel/GLM may prepare redacted proposals only; Codex and human review remain the apply and release gate.",
         "gretel_glm_rsi_visibility_policy": "Gretel's GLM-RSI workboard must show active, blocked and harnessed proposal work without provider calls or private raw context.",
         "gretel_bachelor_thesis_policy": "The UniBot package is labelled as Gretel-built and Gretel-documented at bachelor-thesis level, GLM-5.2-ready, public-safe, and not a real university submission without human review.",
+        "gretel_autonomy_policy": "Gretel may run a budgeted local autonomous research loop for one small public-safe work item at a time; provider calls, external messages, Final-Go and public GitHub pushes remain human-gated.",
         "paperclip_policy": "Paperclip may be evaluated as an optional local control plane only; it is not required by the browser extension and must not apply code or execute provider calls without explicit review.",
         "github_issue_policy": "Issue bundle drafts require manual review before publication and never include private feedback text.",
         "release_runbook_policy": "Runbook status is public draft only and must not be represented as exam clearance.",
@@ -416,5 +434,6 @@ def build_publication_markdown() -> str:
         f"- Gretel GLM evolve lane: {package['release_gates']['gretel_glm_evolve_lane_ready']}\n"
         f"- Gretel GLM-RSI workboard: {package['release_gates']['gretel_glm_rsi_workboard_ready']}\n"
         f"- Gretel Bachelor thesis package: {package['release_gates']['gretel_bachelor_thesis_package_ready']}\n"
+        f"- Gretel autonomous research loop: {package['release_gates']['gretel_autonomous_research_loop_ready']}\n"
         f"- Public draft ready: {package['release_gates']['release_ready']}\n"
     )

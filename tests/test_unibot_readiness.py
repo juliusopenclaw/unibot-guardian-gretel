@@ -53,6 +53,7 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertIn("review_board_packet", check_ids)
         self.assertIn("gretel_glm_evolve_lane", check_ids)
         self.assertIn("gretel_bachelor_thesis_package", check_ids)
+        self.assertIn("gretel_autonomous_research_loop", check_ids)
         self.assertIn("exam_boundary", check_ids)
         self.assertIn("public draft review", report["ready_for"])
         self.assertIn("exam deployment", report["not_ready_for"])

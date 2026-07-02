@@ -1,0 +1,86 @@
+from __future__ import annotations
+
+import json
+import sys
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from unibot.autonomous_research_loop import (  # noqa: E402
+    build_autonomous_research_loop,
+    build_autonomous_research_markdown,
+    build_unibot_intent_contract,
+)
+from unibot.public_safety import scan_text  # noqa: E402
+from unibot.server import route_request  # noqa: E402
+
+
+class UniBotAutonomousResearchLoopTests(unittest.TestCase):
+    def test_intent_contract_names_user_intent_and_always_use_standards(self) -> None:
+        contract = build_unibot_intent_contract()
+        intent_ids = {item["intent_id"] for item in contract["product_intents"]}
+
+        self.assertEqual(contract["owner"], "Gretel")
+        self.assertIn("bachelor-thesis-level research project", contract["north_star"])
+        self.assertIn("socratic_integrity_layer", intent_ids)
+        self.assertIn("open_science_reproducibility", intent_ids)
+        self.assertIn("glm_scientific_engineering", intent_ids)
+        self.assertIn("autonomous_quality_loop", intent_ids)
+        self.assertIn("public-safety scan", contract["always_use_standards"])
+        self.assertIn("readiness check", contract["always_use_standards"])
+        self.assertIn("Gretel/GLM proposal-only lane", contract["always_use_standards"])
+
+    def test_autonomous_loop_is_budgeted_public_safe_and_not_external(self) -> None:
+        loop = build_autonomous_research_loop()
+        payload = json.dumps(loop, ensure_ascii=False)
+
+        self.assertEqual(loop["schema_version"], "unibot-gretel-autonomous-research-loop-v1")
+        self.assertEqual(loop["status"], "ready_for_budgeted_recurring_local_runs")
+        self.assertEqual(loop["public_safety_status"], "pass")
+        self.assertEqual(scan_text(payload, "autonomous-loop")["status"], "pass")
+        self.assertEqual(loop["budget_policy"]["cadence"]["recommended_cron"], "every_6_hours")
+        self.assertEqual(loop["budget_policy"]["token_policy"]["default_reasoning_effort"], "low")
+        self.assertFalse(loop["safety"]["provider_call_executed"])
+        self.assertFalse(loop["safety"]["autonomous_github_push"])
+        self.assertFalse(loop["safety"]["mail_calendar_chat_actions"])
+        self.assertFalse(loop["safety"]["final_go"])
+        self.assertIn("publish or push to GitHub without explicit human review", loop["budget_policy"]["blocked_autonomous_actions"])
+        self.assertNotIn("/" + "Users/", payload)
+        self.assertNotIn("api" + "_key", payload.lower())
+
+    def test_work_queue_is_small_testable_and_harnessed(self) -> None:
+        loop = build_autonomous_research_loop()
+        queue = loop["work_queue"]
+
+        self.assertGreaterEqual(len(queue), 3)
+        self.assertEqual(queue[0]["status"], "ready")
+        self.assertLessEqual(loop["budget_policy"]["cadence"]["max_active_work_item_per_run"], 1)
+        for item in queue:
+            self.assertIn("acceptance_tests", item)
+            self.assertTrue(item["acceptance_tests"])
+            self.assertIn("review_gate", item)
+            self.assertLessEqual(len(item["allowed_files"]), 4)
+
+    def test_markdown_and_api_routes(self) -> None:
+        markdown = build_autonomous_research_markdown()
+
+        self.assertIn("# UniBot Gretel Autonomous Research Loop", markdown)
+        self.assertIn("Public safety: pass", markdown)
+        self.assertIn("Default reasoning effort: low", markdown)
+        self.assertIn("Autonomous GitHub push: False", markdown)
+
+        status, loop = route_request("/api/unibot/autonomous-research-loop", {})
+        self.assertEqual(status, 200)
+        self.assertEqual(loop["status"], "ready_for_budgeted_recurring_local_runs")
+
+        status, response = route_request("/api/unibot/autonomous-research-markdown", {})
+        self.assertEqual(status, 200)
+        self.assertEqual(response["status"], "ok")
+        self.assertIn("North Star", response["markdown"])
+
+
+if __name__ == "__main__":
+    unittest.main()

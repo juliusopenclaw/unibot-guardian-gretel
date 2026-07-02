@@ -38,8 +38,10 @@ class UniBotPublicationTests(unittest.TestCase):
         self.assertIn("review_board_packet", package)
         self.assertIn("gretel_glm_evolve_lane", package)
         self.assertIn("gretel_bachelor_thesis_package", package)
+        self.assertIn("gretel_autonomous_research_loop", package)
         self.assertIn("manual review", package["github_issue_policy"])
         self.assertIn("Gretel-built", package["gretel_bachelor_thesis_policy"])
+        self.assertIn("budgeted local autonomous research loop", package["gretel_autonomy_policy"])
         self.assertIn("public draft", package["release_runbook_policy"])
         self.assertIn("not legal advice", package["compliance_matrix_policy"])
         self.assertIn("planning draft", package["pilot_protocol_policy"])
@@ -57,6 +59,7 @@ class UniBotPublicationTests(unittest.TestCase):
         self.assertTrue(package["release_gates"]["review_board_packet_ready"])
         self.assertTrue(package["release_gates"]["gretel_glm_evolve_lane_ready"])
         self.assertTrue(package["release_gates"]["gretel_bachelor_thesis_package_ready"])
+        self.assertTrue(package["release_gates"]["gretel_autonomous_research_loop_ready"])
         self.assertTrue(package["release_gates"]["release_ready"])
 
     def test_publication_package_excludes_private_and_exam_materials(self) -> None:
@@ -86,6 +89,7 @@ class UniBotPublicationTests(unittest.TestCase):
         self.assertIn("Review board packet", markdown)
         self.assertIn("Gretel GLM evolve lane", markdown)
         self.assertIn("Gretel Bachelor thesis package", markdown)
+        self.assertIn("Gretel autonomous research loop", markdown)
 
         status, package = route_request("/api/unibot/publication-package", {})
         self.assertEqual(status, 200)

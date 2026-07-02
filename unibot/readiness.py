@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from .adaptive_tasks import generate_adaptive_practice_plan
+from .autonomous_research_loop import build_autonomous_research_loop
 from .bachelor_thesis import build_bachelor_thesis_package
 from .compliance import build_compliance_matrix
 from .demo import build_local_demo_run
@@ -129,6 +130,11 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     bachelor_thesis_scan = scan_text(
         json.dumps(bachelor_thesis_package, ensure_ascii=False),
         "unibot-gretel-bachelor-thesis-readiness",
+    )
+    autonomous_research_loop = build_autonomous_research_loop()
+    autonomous_research_loop_scan = scan_text(
+        json.dumps(autonomous_research_loop, ensure_ascii=False),
+        "unibot-gretel-autonomous-research-loop-readiness",
     )
     paperclip_status_payload = paperclip_status()
     paperclip_bridge = build_paperclip_evaluation_request()
@@ -433,6 +439,29 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "documentation_author": bachelor_thesis_package["authorship_statement"]["documentation_author"],
                 "model_hint": bachelor_thesis_package["glm_technology_basis"]["primary_model_hint"],
                 "institutional_status": bachelor_thesis_package["authorship_statement"]["institutional_status"],
+            },
+        },
+        {
+            "check_id": "gretel_autonomous_research_loop",
+            "passed": autonomous_research_loop["status"] == "ready_for_budgeted_recurring_local_runs"
+            and autonomous_research_loop["public_safety_status"] == "pass"
+            and autonomous_research_loop_scan["status"] == "pass"
+            and autonomous_research_loop["budget_policy"]["cadence"]["recommended_cron"] == "every_6_hours"
+            and autonomous_research_loop["budget_policy"]["token_policy"]["default_reasoning_effort"] == "low"
+            and autonomous_research_loop["budget_policy"]["cadence"]["max_active_work_item_per_run"] == 1
+            and autonomous_research_loop["safety"]["provider_call_executed"] is False
+            and autonomous_research_loop["safety"]["autonomous_github_push"] is False
+            and autonomous_research_loop["safety"]["mail_calendar_chat_actions"] is False
+            and autonomous_research_loop["safety"]["final_go"] is False,
+            "evidence": {
+                "status": autonomous_research_loop["status"],
+                "public_safety_status": autonomous_research_loop["public_safety_status"],
+                "scan_status": autonomous_research_loop_scan["status"],
+                "recommended_cron": autonomous_research_loop["budget_policy"]["cadence"]["recommended_cron"],
+                "default_reasoning_effort": autonomous_research_loop["budget_policy"]["token_policy"]["default_reasoning_effort"],
+                "ready_work_items": autonomous_research_loop["receipt"]["ready_work_items"],
+                "candidate_work_items": autonomous_research_loop["receipt"]["candidate_work_items"],
+                "autonomous_github_push": autonomous_research_loop["safety"]["autonomous_github_push"],
             },
         },
         {
