@@ -41,6 +41,17 @@ ethics or supervisor review, Pruefungsamt, IT/SZI, and teaching review.
 - Whether any cloud service may be used.
 - Withdrawal and deletion workflow before recruitment.
 
+## Evidence Alignment
+
+The generated screening includes `data_protection_evidence_alignment`. It maps
+processing principles, synthetic pilot records, access/retention/withdrawal,
+public-repository boundaries, and exam/accommodation boundaries to source
+cards, readiness checks, processing activities, risks, and human gates.
+
+The alignment must remain `ready` before public draft review. It is still only
+a review aid: it is not legal advice, Datenschutz approval, participant
+recruitment approval, cloud-storage approval, or exam clearance.
+
 ## Release Rule
 
 The screening is public-draft ready only when the public-safety scan passes,

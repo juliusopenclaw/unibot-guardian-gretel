@@ -11,6 +11,61 @@ from .source_cards import get_source_card
 
 
 DATA_PROTECTION_SCHEMA_VERSION = "unibot-data-protection-screening-v1"
+DATA_PROTECTION_EVIDENCE_ALIGNMENT_SCHEMA_VERSION = "unibot-data-protection-evidence-alignment-v1"
+
+DATA_PROTECTION_ALIGNMENT_SECTIONS = [
+    {
+        "section_id": "processing_principles",
+        "screening_keys": ["processing_principles"],
+        "processing_activity_ids": [],
+        "risk_ids": [],
+        "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024"],
+        "readiness_check_ids": ["data_protection_screening", "compliance_matrix", "source_card_drift_guard"],
+        "human_gates": ["datenschutz_review_required_before_real_pilot"],
+    },
+    {
+        "section_id": "pilot_records",
+        "screening_keys": ["processing_activities", "pilot_alignment"],
+        "processing_activity_ids": ["synthetic_pilot_records"],
+        "risk_ids": ["private_data_entry", "external_tool_transfer"],
+        "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024", "unesco-genai-2023"],
+        "readiness_check_ids": ["data_protection_screening", "pilot_protocol", "public_safety"],
+        "human_gates": [
+            "datenschutz_review_required_before_real_pilot",
+            "ethics_or_supervisor_review_required_before_real_pilot",
+        ],
+    },
+    {
+        "section_id": "access_retention_withdrawal",
+        "screening_keys": ["open_decisions_for_datenschutz", "processing_activities"],
+        "processing_activity_ids": ["help_ledger", "synthetic_pilot_records"],
+        "risk_ids": ["private_data_entry", "public_repository_leak"],
+        "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024"],
+        "readiness_check_ids": ["data_protection_screening", "pilot_protocol", "review_board_packet"],
+        "human_gates": ["datenschutz_review_required_before_real_pilot", "human_review_required"],
+    },
+    {
+        "section_id": "public_repository_boundary",
+        "screening_keys": ["risk_register", "review_gates"],
+        "processing_activity_ids": ["demo_feedback"],
+        "risk_ids": ["public_repository_leak"],
+        "source_card_ids": ["gdpr-2016-679", "chrome-limited-use", "uoc-ki-lehre"],
+        "readiness_check_ids": ["data_protection_screening", "public_safety", "github_issue_bundle"],
+        "human_gates": ["public_safety_required", "human_submission_review_required"],
+    },
+    {
+        "section_id": "exam_and_accommodation_boundary",
+        "screening_keys": ["processing_activities", "review_gates", "exam_deployment_status"],
+        "processing_activity_ids": ["exam_controlled_mode"],
+        "risk_ids": ["score_misuse", "browser_overlay_overclaim"],
+        "source_card_ids": ["eu-ai-act-2024", "uoc-ki-lehre", "uoc-nachteilsausgleich"],
+        "readiness_check_ids": ["data_protection_screening", "exam_boundary", "release_runbook"],
+        "human_gates": [
+            "datenschutz_review_required_before_real_pilot",
+            "written_university_clearance_required_before_exam_use",
+        ],
+    },
+]
 
 
 def build_data_protection_screening() -> dict[str, Any]:
@@ -184,12 +239,96 @@ def build_data_protection_screening() -> dict[str, Any]:
         "source_cards": source_cards,
         "policy": "Data-protection screening is a planning artifact only; real pilots require institutional Datenschutz review before recruitment or data collection.",
     }
+    screening["data_protection_evidence_alignment"] = build_data_protection_evidence_alignment(screening)
     scan = scan_text(json.dumps(screening, ensure_ascii=False), "data-protection-screening")
     screening["public_safety_status"] = scan["status"]
     if scan["status"] != "pass":
         screening["status"] = "blocked_public_safety"
         screening["public_safety_findings"] = scan["findings"]
     return screening
+
+
+def build_data_protection_evidence_alignment(screening: dict[str, Any] | None = None) -> dict[str, Any]:
+    data_protection = screening or build_data_protection_screening()
+    activity_ids = {item["activity_id"] for item in data_protection.get("processing_activities", [])}
+    risk_ids = {item["risk_id"] for item in data_protection.get("risk_register", [])}
+    alignment_rows = []
+    for section in DATA_PROTECTION_ALIGNMENT_SECTIONS:
+        missing_screening_keys = sorted(key for key in section["screening_keys"] if key not in data_protection)
+        missing_activity_ids = sorted(
+            activity_id for activity_id in section["processing_activity_ids"] if activity_id not in activity_ids
+        )
+        missing_risk_ids = sorted(risk_id for risk_id in section["risk_ids"] if risk_id not in risk_ids)
+        missing_source_card_ids = sorted(
+            source_id for source_id in section["source_card_ids"] if get_source_card(source_id) is None
+        )
+        alignment_rows.append(
+            {
+                "section_id": section["section_id"],
+                "screening_keys": list(section["screening_keys"]),
+                "processing_activity_ids": list(section["processing_activity_ids"]),
+                "risk_ids": list(section["risk_ids"]),
+                "source_card_ids": list(section["source_card_ids"]),
+                "readiness_check_ids": list(section["readiness_check_ids"]),
+                "human_gates": list(section["human_gates"]),
+                "missing_screening_keys": missing_screening_keys,
+                "missing_processing_activity_ids": missing_activity_ids,
+                "missing_risk_ids": missing_risk_ids,
+                "missing_source_card_ids": missing_source_card_ids,
+            }
+        )
+    alignment = {
+        "schema_version": DATA_PROTECTION_EVIDENCE_ALIGNMENT_SCHEMA_VERSION,
+        "status": "ready",
+        "section_count": len(alignment_rows),
+        "sections": alignment_rows,
+        "missing_screening_keys": sorted(
+            {key for row in alignment_rows for key in row["missing_screening_keys"]}
+        ),
+        "missing_processing_activity_ids": sorted(
+            {activity_id for row in alignment_rows for activity_id in row["missing_processing_activity_ids"]}
+        ),
+        "missing_risk_ids": sorted({risk_id for row in alignment_rows for risk_id in row["missing_risk_ids"]}),
+        "missing_source_card_ids": sorted(
+            {source_id for row in alignment_rows for source_id in row["missing_source_card_ids"]}
+        ),
+        "required_readiness_check_ids": sorted(
+            {check_id for row in alignment_rows for check_id in row["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for row in alignment_rows for gate in row["human_gates"]}),
+        "pilot_contract": {
+            "expected_check_id": "pilot_protocol",
+            "expected_alignment_status": "ready",
+        },
+        "source_card_drift_contract": {
+            "expected_check_id": "source_card_drift_guard",
+            "required_status": "pass",
+        },
+        "review_board_contract": {
+            "expected_check_id": "review_board_packet",
+            "required_status": "draft_for_institutional_review",
+        },
+        "release_boundary_contract": {
+            "exam_deployment_status": "not_cleared",
+            "real_pilot_status": "blocked_until_datenschutz_ethics_and_authority_review",
+        },
+        "policy": (
+            "Data-protection evidence alignment is a review aid only; it is not legal advice, "
+            "Datenschutz approval, participant recruitment approval, cloud-storage approval, or exam clearance."
+        ),
+    }
+    if (
+        alignment["missing_screening_keys"]
+        or alignment["missing_processing_activity_ids"]
+        or alignment["missing_risk_ids"]
+        or alignment["missing_source_card_ids"]
+    ):
+        alignment["status"] = "blocked"
+    scan = scan_text(json.dumps(alignment, ensure_ascii=False), "data-protection-evidence-alignment")
+    alignment["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        alignment["status"] = "blocked_public_safety"
+    return alignment
 
 
 def build_data_protection_screening_markdown() -> str:
@@ -210,6 +349,7 @@ def build_data_protection_screening_markdown() -> str:
     source_lines = "\n".join(
         f"- `{card['source_id']}`: {card['product_rule']}" for card in screening["source_cards"]
     )
+    alignment = screening["data_protection_evidence_alignment"]
     return (
         "# UniBot Data Protection Screening\n\n"
         f"Status: {screening['status_label_de']}\n\n"
@@ -224,6 +364,10 @@ def build_data_protection_screening_markdown() -> str:
         f"{risk_lines}\n\n"
         "## Open Decisions For Datenschutz\n\n"
         f"{decision_lines}\n\n"
+        "## Evidence Alignment\n\n"
+        f"- Alignment: {alignment['status']}\n"
+        f"- Sections: {alignment['section_count']}\n"
+        f"- Human gates: {', '.join(alignment['required_human_gates'])}\n\n"
         "## Source Cards\n\n"
         f"{source_lines}\n\n"
         f"Policy: {screening['policy']}\n"

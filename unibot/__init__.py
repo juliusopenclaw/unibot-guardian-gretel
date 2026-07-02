@@ -125,7 +125,11 @@ from .orchestration import (
     validate_chat_handoff,
 )
 from .pilot import build_pilot_evidence_alignment, build_pilot_protocol, build_pilot_protocol_markdown
-from .privacy import build_data_protection_screening, build_data_protection_screening_markdown
+from .privacy import (
+    build_data_protection_evidence_alignment,
+    build_data_protection_screening,
+    build_data_protection_screening_markdown,
+)
 from .private_tutor_use_flow import build_private_tutor_use_flow_dry_run
 from .private_extraction_runner import run_private_extraction_batch
 from .video_transcription_runner import run_video_transcription_batch, video_transcription_capabilities
@@ -249,6 +253,7 @@ __all__ = [
     "validate_chat_handoff",
     "build_pilot_protocol",
     "build_pilot_protocol_markdown",
+    "build_data_protection_evidence_alignment",
     "build_data_protection_screening",
     "build_data_protection_screening_markdown",
     "build_private_tutor_use_flow_dry_run",

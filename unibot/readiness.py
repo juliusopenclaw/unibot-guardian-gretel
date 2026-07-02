@@ -511,7 +511,13 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             "passed": data_protection["status"] == "draft_for_datenschutz_review"
             and data_protection["public_safety_status"] == "pass"
             and data_protection["review_gates"]["datenschutz_review_required_before_real_pilot"] is True
-            and data_protection["exam_deployment_status"] == "not_cleared",
+            and data_protection["exam_deployment_status"] == "not_cleared"
+            and data_protection["data_protection_evidence_alignment"]["status"] == "ready"
+            and data_protection["data_protection_evidence_alignment"]["public_safety_status"] == "pass"
+            and data_protection["data_protection_evidence_alignment"]["missing_screening_keys"] == []
+            and data_protection["data_protection_evidence_alignment"]["missing_processing_activity_ids"] == []
+            and data_protection["data_protection_evidence_alignment"]["missing_risk_ids"] == []
+            and data_protection["data_protection_evidence_alignment"]["missing_source_card_ids"] == [],
             "evidence": {
                 "status": data_protection["status"],
                 "public_safety_status": data_protection["public_safety_status"],
@@ -519,6 +525,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "risk_count": len(data_protection["risk_register"]),
                 "datenschutz_review_required": data_protection["review_gates"]["datenschutz_review_required_before_real_pilot"],
                 "exam_deployment_status": data_protection["exam_deployment_status"],
+                "data_protection_evidence_alignment_status": data_protection["data_protection_evidence_alignment"]["status"],
+                "data_protection_alignment_section_count": data_protection["data_protection_evidence_alignment"]["section_count"],
+                "data_protection_alignment_human_gates": data_protection["data_protection_evidence_alignment"]["required_human_gates"],
             },
         },
         {
