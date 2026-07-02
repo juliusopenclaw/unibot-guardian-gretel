@@ -6,11 +6,56 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .public_safety import scan_text
+from .source_cards import get_source_card
 
 
 GLM_EVOLVE_SCHEMA_VERSION = "unibot-gretel-glm-evolve-v1"
 GLM_EVOLVE_MODEL_HINT = "zai/glm-5.2"
 GLM_RSI_WORKBOARD_SCHEMA_VERSION = "unibot-gretel-glm-rsi-workboard-v1"
+GLM_PROVIDER_REDACTION_ALIGNMENT_SCHEMA_VERSION = "unibot-glm-provider-redaction-alignment-v1"
+
+GLM_PROVIDER_ALIGNMENT_SECTIONS = [
+    {
+        "section_id": "glm_source_basis",
+        "packet_keys": ["model_hint", "knowledge_inventory"],
+        "workboard_keys": ["items"],
+        "source_card_ids": ["zai-glm-52", "zai-glm-52-migration", "zai-glm-pricing"],
+        "readiness_check_ids": ["gretel_glm_evolve_lane", "source_card_drift_guard"],
+        "human_gates": ["human_review_required"],
+    },
+    {
+        "section_id": "redaction_receipt",
+        "packet_keys": ["receipt", "redaction_level", "allowed_context", "blocked_context", "raw_private_context_shared"],
+        "workboard_keys": ["privacy"],
+        "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024", "zai-glm-52"],
+        "readiness_check_ids": ["gretel_glm_evolve_lane", "public_safety", "data_protection_screening"],
+        "human_gates": ["provider_call_requires_explicit_go_and_redaction_receipt", "public_safety_required"],
+    },
+    {
+        "section_id": "provider_call_lock",
+        "packet_keys": ["provider_call_executed", "external_actions_allowed", "route"],
+        "workboard_keys": ["safety"],
+        "source_card_ids": ["zai-glm-52", "zai-glm-52-migration", "zai-glm-pricing"],
+        "readiness_check_ids": ["gretel_glm_evolve_lane", "gretel_glm_rsi_visibility_workboard"],
+        "human_gates": ["provider_call_requires_explicit_go_and_redaction_receipt", "human_review_required"],
+    },
+    {
+        "section_id": "proposal_validation",
+        "packet_keys": ["request_to_gretel_glm", "autonomous_apply", "route"],
+        "workboard_keys": ["items"],
+        "source_card_ids": ["dfg-gwp", "zai-glm-52"],
+        "readiness_check_ids": ["gretel_glm_evolve_lane", "gretel_bachelor_thesis_package"],
+        "human_gates": ["human_submission_review_required", "human_review_required"],
+    },
+    {
+        "section_id": "apply_publish_final_go_boundary",
+        "packet_keys": ["autonomous_apply", "external_actions_allowed", "request_to_gretel_glm"],
+        "workboard_keys": ["safety", "policy"],
+        "source_card_ids": ["uoc-ki-lehre", "dfg-gwp", "zai-glm-52"],
+        "readiness_check_ids": ["gretel_glm_evolve_lane", "publication_package", "release_runbook"],
+        "human_gates": ["human_submission_review_required", "human_review_required", "written_university_clearance_required_before_exam_use"],
+    },
+]
 
 
 PUBLIC_UNIBOT_DOCS = [
@@ -201,6 +246,91 @@ def build_glm_evolve_receipt(packet: dict[str, Any], *, outcome: str = "prepared
     }
 
 
+def build_glm_provider_redaction_alignment(
+    packet: dict[str, Any] | None = None,
+    workboard: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    work_packet = packet or build_glm_evolve_work_packet()
+    rsi_workboard = workboard or build_glm_rsi_workboard()
+    alignment_rows = []
+    for section in GLM_PROVIDER_ALIGNMENT_SECTIONS:
+        missing_packet_keys = sorted(key for key in section["packet_keys"] if key not in work_packet)
+        missing_workboard_keys = sorted(key for key in section["workboard_keys"] if key not in rsi_workboard)
+        missing_source_card_ids = sorted(
+            source_id for source_id in section["source_card_ids"] if get_source_card(source_id) is None
+        )
+        alignment_rows.append(
+            {
+                "section_id": section["section_id"],
+                "packet_keys": list(section["packet_keys"]),
+                "workboard_keys": list(section["workboard_keys"]),
+                "source_card_ids": list(section["source_card_ids"]),
+                "readiness_check_ids": list(section["readiness_check_ids"]),
+                "human_gates": list(section["human_gates"]),
+                "missing_packet_keys": missing_packet_keys,
+                "missing_workboard_keys": missing_workboard_keys,
+                "missing_source_card_ids": missing_source_card_ids,
+            }
+        )
+    contracts = {
+        "redaction_receipt_ready": (
+            work_packet.get("receipt", {}).get("provider_call_executed") is False
+            and work_packet.get("receipt", {}).get("raw_private_context_shared") is False
+            and work_packet.get("raw_private_context_shared") is False
+            and "credentials" in work_packet.get("blocked_context", [])
+            and "local filesystem details" in work_packet.get("blocked_context", [])
+        ),
+        "provider_call_locked": (
+            work_packet.get("provider_call_executed") is False
+            and rsi_workboard.get("safety", {}).get("provider_call_executed") is False
+            and rsi_workboard.get("safety", {}).get("provider_call_allowed_now") is False
+        ),
+        "proposal_only_route": (
+            work_packet.get("route") == "proposal_only_requires_codex_and_human_review"
+            and work_packet.get("autonomous_apply") is False
+            and rsi_workboard.get("safety", {}).get("autonomous_apply") is False
+        ),
+        "external_actions_locked": (
+            work_packet.get("external_actions_allowed") == []
+            and rsi_workboard.get("safety", {}).get("external_actions") == []
+            and rsi_workboard.get("safety", {}).get("github_publish") is False
+        ),
+        "final_go_locked": rsi_workboard.get("safety", {}).get("final_go") is False,
+    }
+    alignment = {
+        "schema_version": GLM_PROVIDER_REDACTION_ALIGNMENT_SCHEMA_VERSION,
+        "status": "ready",
+        "section_count": len(alignment_rows),
+        "sections": alignment_rows,
+        "missing_packet_keys": sorted({key for row in alignment_rows for key in row["missing_packet_keys"]}),
+        "missing_workboard_keys": sorted({key for row in alignment_rows for key in row["missing_workboard_keys"]}),
+        "missing_source_card_ids": sorted(
+            {source_id for row in alignment_rows for source_id in row["missing_source_card_ids"]}
+        ),
+        "failed_contract_ids": sorted(contract_id for contract_id, passed in contracts.items() if not passed),
+        "contracts": contracts,
+        "required_readiness_check_ids": sorted(
+            {check_id for row in alignment_rows for check_id in row["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for row in alignment_rows for gate in row["human_gates"]}),
+        "provider_call_policy": "blocked_until_explicit_go_and_redaction_receipt",
+        "redaction_receipt_policy": "public_safe_metadata_only_before_any_provider_call",
+        "human_review_policy": "GLM may propose only; Codex and human review remain apply, publish, release, and Final-Go gates.",
+    }
+    if (
+        alignment["missing_packet_keys"]
+        or alignment["missing_workboard_keys"]
+        or alignment["missing_source_card_ids"]
+        or alignment["failed_contract_ids"]
+    ):
+        alignment["status"] = "blocked"
+    scan = scan_text(json.dumps(alignment, ensure_ascii=False), "glm-provider-redaction-alignment")
+    alignment["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        alignment["status"] = "blocked_public_safety"
+    return alignment
+
+
 def validate_glm_evolve_proposal(proposal: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(proposal, dict):
         return {"status": "blocked", "blocked_reason": "invalid_proposal_type"}
@@ -351,6 +481,7 @@ def build_glm_rsi_workboard(
 def build_glm_evolve_markdown() -> str:
     packet = build_glm_evolve_work_packet()
     workboard = build_glm_rsi_workboard()
+    alignment = build_glm_provider_redaction_alignment(packet, workboard)
     chunks = "\n".join(
         f"- `{chunk['chunk_id']}`: {chunk['goal']} Acceptance: {chunk['acceptance']}"
         for chunk in packet["next_safe_chunks"]
@@ -370,6 +501,11 @@ def build_glm_evolve_markdown() -> str:
         f"- Active items: `{workboard['active_item_count']}`\n"
         f"- Blocked items: `{workboard['blocked_item_count']}`\n"
         f"- Provider call allowed now: `{workboard['safety']['provider_call_allowed_now']}`\n\n"
+        "## Provider Redaction Alignment\n\n"
+        f"- Alignment: `{alignment['status']}`\n"
+        f"- Sections: `{alignment['section_count']}`\n"
+        f"- Provider call policy: `{alignment['provider_call_policy']}`\n"
+        f"- Human gates: `{', '.join(alignment['required_human_gates'])}`\n\n"
         "## Golden Rules\n\n"
         f"{rules}\n\n"
         "## Next Safe Chunks\n\n"

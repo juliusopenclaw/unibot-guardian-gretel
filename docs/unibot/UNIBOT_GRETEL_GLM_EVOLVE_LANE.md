@@ -48,6 +48,18 @@ that cannot be verified stays a note, not a system change.
 The work packet contains only public-safe metadata and explicitly reports
 whether a provider call happened. The default is no provider call.
 
+## Provider Redaction Alignment
+
+The generated lane includes `glm_provider_redaction_alignment`. It maps the GLM
+source basis, redaction receipt, provider-call lock, proposal validation, and
+apply/publish/Final-Go boundary to source cards, readiness checks, and human
+review gates.
+
+The alignment must remain `ready` before any public draft can describe the lane
+as GLM-ready. It is still only a review aid: it does not authorize a provider
+call, publish action, external send, code application, university submission, or
+Final-Go.
+
 ## Review Rule
 
 A proposal is blocked when it requests autonomous apply, raw private context,

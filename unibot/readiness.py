@@ -14,7 +14,11 @@ from .demo import build_local_demo_run
 from .evaluation import build_evaluation_packet
 from .feedback import demo_feedback_template, export_public_demo_feedback_summary, validate_demo_feedback
 from .github_issues import build_github_issue_bundle
-from .gretel_glm_evolve import build_glm_evolve_work_packet, build_glm_rsi_workboard
+from .gretel_glm_evolve import (
+    build_glm_evolve_work_packet,
+    build_glm_provider_redaction_alignment,
+    build_glm_rsi_workboard,
+)
 from .handoff import build_authority_handoff_packet
 from .materials import build_demo_material_manifest, build_public_material_summary
 from .notebooks import generate_practice_notebook
@@ -235,6 +239,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     review_board_packet = build_review_board_packet()
     glm_evolve_packet = build_glm_evolve_work_packet()
     glm_rsi_workboard = build_glm_rsi_workboard()
+    glm_provider_redaction_alignment = build_glm_provider_redaction_alignment(glm_evolve_packet, glm_rsi_workboard)
     glm_rsi_workboard_scan = scan_text(json.dumps(glm_rsi_workboard, ensure_ascii=False), "unibot-glm-rsi-workboard-readiness")
     bachelor_thesis_package = build_bachelor_thesis_package()
     bachelor_thesis_scan = scan_text(
@@ -584,7 +589,13 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and glm_evolve_packet["provider_call_executed"] is False
             and glm_evolve_packet["raw_private_context_shared"] is False
             and glm_evolve_packet["autonomous_apply"] is False
-            and glm_evolve_packet["route"] == "proposal_only_requires_codex_and_human_review",
+            and glm_evolve_packet["route"] == "proposal_only_requires_codex_and_human_review"
+            and glm_provider_redaction_alignment["status"] == "ready"
+            and glm_provider_redaction_alignment["public_safety_status"] == "pass"
+            and glm_provider_redaction_alignment["failed_contract_ids"] == []
+            and glm_provider_redaction_alignment["missing_packet_keys"] == []
+            and glm_provider_redaction_alignment["missing_workboard_keys"] == []
+            and glm_provider_redaction_alignment["missing_source_card_ids"] == [],
             "evidence": {
                 "status": glm_evolve_packet["status"],
                 "public_safety_status": glm_evolve_packet["public_safety_status"],
@@ -593,6 +604,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "autonomous_apply": glm_evolve_packet["autonomous_apply"],
                 "route": glm_evolve_packet["route"],
                 "model_hint": glm_evolve_packet["model_hint"],
+                "provider_redaction_alignment_status": glm_provider_redaction_alignment["status"],
+                "provider_redaction_alignment_section_count": glm_provider_redaction_alignment["section_count"],
+                "provider_redaction_alignment_human_gates": glm_provider_redaction_alignment["required_human_gates"],
             },
         },
         {

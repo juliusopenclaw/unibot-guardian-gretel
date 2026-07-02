@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT))
 from unibot.gretel_glm_evolve import (  # noqa: E402
     build_glm_evolve_markdown,
     build_glm_evolve_work_packet,
+    build_glm_provider_redaction_alignment,
     build_glm_rsi_workboard,
     build_public_knowledge_inventory,
     validate_glm_evolve_proposal,
@@ -52,6 +53,29 @@ class UniBotGretelGlmEvolveTests(unittest.TestCase):
         self.assertNotIn("solution_key", payload)
         self.assertIn("receipt", packet)
         self.assertEqual(packet["receipt"]["provider_call_executed"], False)
+
+    def test_provider_redaction_alignment_maps_glm_locks_to_review_gates(self) -> None:
+        packet = build_glm_evolve_work_packet()
+        workboard = build_glm_rsi_workboard()
+        alignment = build_glm_provider_redaction_alignment(packet, workboard)
+        by_section = {section["section_id"]: section for section in alignment["sections"]}
+
+        self.assertEqual(alignment["schema_version"], "unibot-glm-provider-redaction-alignment-v1")
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["missing_packet_keys"], [])
+        self.assertEqual(alignment["missing_workboard_keys"], [])
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertTrue(alignment["contracts"]["redaction_receipt_ready"])
+        self.assertTrue(alignment["contracts"]["provider_call_locked"])
+        self.assertTrue(alignment["contracts"]["proposal_only_route"])
+        self.assertTrue(alignment["contracts"]["external_actions_locked"])
+        self.assertTrue(alignment["contracts"]["final_go_locked"])
+        self.assertIn("provider_call_requires_explicit_go_and_redaction_receipt", alignment["required_human_gates"])
+        self.assertIn("gretel_glm_rsi_visibility_workboard", alignment["required_readiness_check_ids"])
+        self.assertIn("zai-glm-52", by_section["glm_source_basis"]["source_card_ids"])
+        self.assertIn("blocked_context", by_section["redaction_receipt"]["packet_keys"])
 
     def test_validator_accepts_safe_proposal_and_blocks_unsafe_proposal(self) -> None:
         safe = {
@@ -104,6 +128,7 @@ class UniBotGretelGlmEvolveTests(unittest.TestCase):
         self.assertEqual(response["status"], "ok")
         self.assertIn("UniBot Gretel GLM Evolve Lane", response["markdown"])
         self.assertIn("Provider call executed: False", build_glm_evolve_markdown())
+        self.assertIn("Provider Redaction Alignment", build_glm_evolve_markdown())
 
     def test_glm_rsi_workboard_is_visible_and_proposal_only(self) -> None:
         workboard = build_glm_rsi_workboard()
@@ -144,6 +169,8 @@ class UniBotGretelGlmEvolveTests(unittest.TestCase):
         self.assertIn("gretel_glm_rsi_workboard", package["included_artifacts"])
         self.assertIn("gretel_glm_evolve_lane", check_ids)
         self.assertIn("gretel_glm_rsi_visibility_workboard", check_ids)
+        glm_check = next(check for check in readiness["checks"] if check["check_id"] == "gretel_glm_evolve_lane")
+        self.assertEqual(glm_check["evidence"]["provider_redaction_alignment_status"], "ready")
         self.assertEqual(readiness["status"], "public_draft_ready")
 
 

@@ -41,6 +41,7 @@ from .github_issues import build_github_issue_bundle, build_github_issue_bundle_
 from .gretel_glm_evolve import (
     build_glm_evolve_markdown,
     build_glm_evolve_work_packet,
+    build_glm_provider_redaction_alignment,
     build_glm_rsi_workboard,
     build_public_knowledge_inventory,
     validate_glm_evolve_proposal,
@@ -215,6 +216,7 @@ __all__ = [
     "build_public_knowledge_inventory",
     "build_glm_evolve_work_packet",
     "build_glm_evolve_markdown",
+    "build_glm_provider_redaction_alignment",
     "build_glm_rsi_workboard",
     "validate_glm_evolve_proposal",
     "GuardianEvent",

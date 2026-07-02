@@ -94,6 +94,12 @@ class UniBotReadinessTests(unittest.TestCase):
             "datenschutz_review_required_before_real_pilot",
             data_protection["evidence"]["data_protection_alignment_human_gates"],
         )
+        glm = next(check for check in report["checks"] if check["check_id"] == "gretel_glm_evolve_lane")
+        self.assertEqual(glm["evidence"]["provider_redaction_alignment_status"], "ready")
+        self.assertIn(
+            "provider_call_requires_explicit_go_and_redaction_receipt",
+            glm["evidence"]["provider_redaction_alignment_human_gates"],
+        )
         self.assertEqual(report["evidence_snapshot"]["status"], "ready")
         self.assertEqual(report["evidence_snapshot"]["public_safety_status"], "pass")
         self.assertEqual(report["evidence_snapshot"]["failed_check_ids"], [])
