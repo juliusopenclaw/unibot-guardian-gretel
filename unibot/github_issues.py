@@ -11,6 +11,42 @@ from .triage import build_feedback_triage
 
 GITHUB_ISSUE_BUNDLE_SCHEMA_VERSION = "unibot-github-issue-bundle-v1"
 
+SCENARIO_EVIDENCE_MAP = {
+    "demo_setup": {
+        "readiness_check_ids": ["public_safety", "local_demo_run", "readiness_runtime_guard"],
+        "source_card_ids": ["chrome-content-scripts", "chrome-limited-use"],
+    },
+    "demo_prompt_card": {
+        "readiness_check_ids": ["evaluation_packet", "source_card_drift_guard", "gretel_bachelor_thesis_package"],
+        "source_card_ids": ["vanlehn-2011", "uoc-ki-lehre", "dfg-gwp"],
+    },
+    "demo_block_solution": {
+        "readiness_check_ids": ["redteam", "evaluation_packet", "exam_boundary"],
+        "source_card_ids": ["uoc-ki-faq", "uoc-hilfsmittel", "eu-ai-act-2024"],
+    },
+    "demo_allowed_flow_and_ledger": {
+        "readiness_check_ids": ["notebook_template", "demo_feedback_contract", "public_safety"],
+        "source_card_ids": ["dfg-gwp", "gdpr-2016-679"],
+    },
+    "demo_adaptive_tasks": {
+        "readiness_check_ids": ["adaptive_task_plan", "course_material_policy", "source_card_drift_guard"],
+        "source_card_ids": ["vanlehn-2011", "kulik-fletcher-2016", "dfg-gwp"],
+    },
+    "demo_notebook_template": {
+        "readiness_check_ids": ["notebook_template", "source_cards", "public_safety"],
+        "source_card_ids": ["google-colab-gemini", "jupyter-ai", "dfg-gwp"],
+    },
+    "demo_redteam_smoke": {
+        "readiness_check_ids": ["redteam", "readiness_runtime_guard", "publication_package"],
+        "source_card_ids": ["openai-evals", "dfg-gwp"],
+    },
+}
+
+FALLBACK_EVIDENCE = {
+    "readiness_check_ids": ["public_safety", "readiness_runtime_guard"],
+    "source_card_ids": ["dfg-gwp"],
+}
+
 
 def build_issue_review_contract() -> dict[str, Any]:
     return {
@@ -21,6 +57,7 @@ def build_issue_review_contract() -> dict[str, Any]:
             "Confirm the scenario is synthetic or public-safe.",
             "Confirm the issue does not claim exam clearance, grading authority, proctoring reliability, or AI-detection evidence.",
             "Confirm at least one focused test or readiness gate is named.",
+            "Confirm the evidence traceability fields match the issue scenario.",
             "Confirm the issue can be closed by code, docs, tests, or a documented blocked reason.",
         ],
         "evidence_requirements": [
@@ -43,6 +80,7 @@ def build_github_issue_bundle(
     triage = build_feedback_triage(path=path, records=records)
     issues = [_issue_from_triage_item(item) for item in triage["items"]]
     review_contract = build_issue_review_contract()
+    traceability = build_issue_evidence_traceability(issues)
     bundle = {
         "schema_version": GITHUB_ISSUE_BUNDLE_SCHEMA_VERSION,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -50,6 +88,7 @@ def build_github_issue_bundle(
         "source_triage_status": triage["status"],
         "issue_count": len(issues),
         "review_contract": review_contract,
+        "evidence_traceability": traceability,
         "issues": issues,
         "public_policy": "Draft issues use sanitized triage metadata only; no private data, screenshots, copied free text, local paths, or real exam material.",
         "publishing_note": "Review manually before creating GitHub issues. Do not claim exam clearance.",
@@ -60,6 +99,44 @@ def build_github_issue_bundle(
         bundle["status"] = "blocked"
         bundle["public_safety_findings"] = scan["findings"]
     return bundle
+
+
+def build_issue_evidence_traceability(issues: Iterable[dict[str, Any]]) -> dict[str, Any]:
+    issue_rows = [
+        {
+            "issue_id": issue["issue_id"],
+            "scenario_id": issue["scenario_id"],
+            "component": issue["component"],
+            "priority": issue["priority"],
+            "readiness_check_ids": issue["readiness_check_ids"],
+            "source_card_ids": issue["source_card_ids"],
+            "human_gates": issue["human_gates"],
+            "manual_publish_only": issue["manual_publish_only"],
+        }
+        for issue in issues
+    ]
+    traceability = {
+        "schema_version": "unibot-github-issue-evidence-traceability-v1",
+        "status": "ready" if issue_rows else "empty",
+        "issue_count": len(issue_rows),
+        "manual_publish_only": all(row["manual_publish_only"] for row in issue_rows),
+        "publication_gate": "human_review_before_github_create",
+        "readiness_snapshot_contract": {
+            "expected_schema_version": "unibot-readiness-evidence-snapshot-v1",
+            "required_status": "ready",
+            "use": "Use the latest readiness evidence snapshot to confirm issue follow-up remains public-safe and science-gated.",
+        },
+        "issues": issue_rows,
+        "unique_readiness_check_ids": sorted({check_id for row in issue_rows for check_id in row["readiness_check_ids"]}),
+        "unique_source_card_ids": sorted({source_id for row in issue_rows for source_id in row["source_card_ids"]}),
+        "required_human_gates": sorted({gate for row in issue_rows for gate in row["human_gates"]}),
+        "policy": "Feedback-derived issue drafts stay sanitized, source-bound, readiness-gated, and manually published only.",
+    }
+    scan = scan_text(json.dumps(traceability, ensure_ascii=False), "github-issue-evidence-traceability")
+    traceability["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        traceability["status"] = "blocked"
+    return traceability
 
 
 def build_github_issue_bundle_markdown(
@@ -85,6 +162,9 @@ def build_github_issue_bundle_markdown(
                 f"- Labels: {', '.join(issue['labels'])}",
                 f"- Publication gate: {issue['publication_gate']}",
                 f"- Manual publish only: {issue['manual_publish_only']}",
+                f"- Readiness checks: {', '.join(issue['readiness_check_ids'])}",
+                f"- Source cards: {', '.join(issue['source_card_ids'])}",
+                f"- Human gates: {', '.join(issue['human_gates'])}",
                 "",
                 issue["body"],
                 "",
@@ -104,6 +184,7 @@ def _issue_from_triage_item(item: dict[str, Any]) -> dict[str, Any]:
     contract = build_issue_review_contract()
     labels = sorted(set(str(label) for label in draft.get("labels", [])))
     filename = f"{item['priority'].lower()}-{item['scenario_id']}-{item['triage_id']}.md"
+    evidence = SCENARIO_EVIDENCE_MAP.get(item["scenario_id"], FALLBACK_EVIDENCE)
     return {
         "issue_id": item["triage_id"],
         "feedback_id": item["feedback_id"],
@@ -115,6 +196,9 @@ def _issue_from_triage_item(item: dict[str, Any]) -> dict[str, Any]:
         "component": item["component"],
         "scenario_id": item["scenario_id"],
         "suggested_test": item["suggested_test"],
+        "readiness_check_ids": list(evidence["readiness_check_ids"]),
+        "source_card_ids": list(evidence["source_card_ids"]),
+        "human_gates": ["human_review_before_github_create", "public_safety_required"],
         "review_checklist": contract["review_checklist"],
         "evidence_requirements": contract["evidence_requirements"],
         "publication_gate": contract["publication_gate"],

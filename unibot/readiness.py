@@ -428,11 +428,18 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             "check_id": "github_issue_bundle",
             "passed": github_issue_bundle["status"] == "ready"
             and github_issue_bundle["public_safety_status"] == "pass"
-            and github_issue_bundle["issue_count"] >= 1,
+            and github_issue_bundle["issue_count"] >= 1
+            and github_issue_bundle["evidence_traceability"]["status"] == "ready"
+            and github_issue_bundle["evidence_traceability"]["public_safety_status"] == "pass"
+            and github_issue_bundle["evidence_traceability"]["manual_publish_only"] is True,
             "evidence": {
                 "status": github_issue_bundle["status"],
                 "issue_count": github_issue_bundle["issue_count"],
                 "public_safety_status": github_issue_bundle["public_safety_status"],
+                "evidence_traceability_status": github_issue_bundle["evidence_traceability"]["status"],
+                "evidence_traceability_public_safety_status": github_issue_bundle["evidence_traceability"]["public_safety_status"],
+                "manual_publish_only": github_issue_bundle["evidence_traceability"]["manual_publish_only"],
+                "readiness_check_count": len(github_issue_bundle["evidence_traceability"]["unique_readiness_check_ids"]),
             },
         },
         {

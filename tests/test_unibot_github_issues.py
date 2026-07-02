@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT))
 from unibot.github_issues import (  # noqa: E402
     build_github_issue_bundle,
     build_github_issue_bundle_markdown,
+    build_issue_evidence_traceability,
     build_issue_review_contract,
 )
 from unibot.public_safety import scan_text  # noqa: E402
@@ -42,6 +43,10 @@ class UniBotGithubIssueBundleTests(unittest.TestCase):
         self.assertEqual(bundle["public_safety_status"], "pass")
         self.assertEqual(bundle["issue_count"], 1)
         self.assertIn("review_contract", bundle)
+        self.assertIn("evidence_traceability", bundle)
+        self.assertEqual(bundle["evidence_traceability"]["status"], "ready")
+        self.assertEqual(bundle["evidence_traceability"]["public_safety_status"], "pass")
+        self.assertTrue(bundle["evidence_traceability"]["manual_publish_only"])
         self.assertIn("title", issue)
         self.assertIn("labels", issue)
         self.assertIn("body", issue)
@@ -49,10 +54,30 @@ class UniBotGithubIssueBundleTests(unittest.TestCase):
         self.assertIn("evidence_requirements", issue)
         self.assertEqual(issue["publication_gate"], "human_review_before_github_create")
         self.assertTrue(issue["manual_publish_only"])
+        self.assertIn("evaluation_packet", issue["readiness_check_ids"])
+        self.assertIn("source_card_drift_guard", issue["readiness_check_ids"])
+        self.assertIn("vanlehn-2011", issue["source_card_ids"])
+        self.assertIn("human_review_before_github_create", issue["human_gates"])
         self.assertIn("guardian_prompt_cards", issue["labels"])
         self.assertIn("manual", bundle["publishing_note"].lower())
         self.assertNotIn("Promptkarte erzeugen", payload)
         self.assertEqual(scan_text(payload, "github-issue-bundle")["status"], "pass")
+
+    def test_issue_evidence_traceability_maps_issues_to_manual_gates(self) -> None:
+        bundle = build_github_issue_bundle(records=[feedback_record()])
+        traceability = build_issue_evidence_traceability(bundle["issues"])
+
+        self.assertEqual(traceability["schema_version"], "unibot-github-issue-evidence-traceability-v1")
+        self.assertEqual(traceability["status"], "ready")
+        self.assertEqual(traceability["public_safety_status"], "pass")
+        self.assertEqual(traceability["issue_count"], 1)
+        self.assertTrue(traceability["manual_publish_only"])
+        self.assertEqual(traceability["publication_gate"], "human_review_before_github_create")
+        self.assertIn("unibot-readiness-evidence-snapshot-v1", traceability["readiness_snapshot_contract"]["expected_schema_version"])
+        self.assertIn("evaluation_packet", traceability["unique_readiness_check_ids"])
+        self.assertIn("source_card_drift_guard", traceability["unique_readiness_check_ids"])
+        self.assertIn("vanlehn-2011", traceability["unique_source_card_ids"])
+        self.assertIn("public_safety_required", traceability["required_human_gates"])
 
     def test_issue_review_contract_blocks_auto_publish_and_high_stakes_claims(self) -> None:
         contract = build_issue_review_contract()
@@ -91,6 +116,9 @@ class UniBotGithubIssueBundleTests(unittest.TestCase):
         self.assertIn("Review checklist", markdown)
         self.assertIn("Evidence requirements", markdown)
         self.assertIn("Manual publish only: True", markdown)
+        self.assertIn("Readiness checks:", markdown)
+        self.assertIn("Source cards:", markdown)
+        self.assertIn("Human gates:", markdown)
         self.assertNotIn("Promptkarte erzeugen", markdown)
 
         status, bundle = route_request("/api/unibot/github-issue-bundle", {"records": [feedback_record()]})

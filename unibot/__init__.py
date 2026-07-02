@@ -32,7 +32,7 @@ from .feedback import (
     summarize_demo_feedback,
     validate_demo_feedback,
 )
-from .github_issues import build_github_issue_bundle, build_github_issue_bundle_markdown
+from .github_issues import build_github_issue_bundle, build_github_issue_bundle_markdown, build_issue_evidence_traceability
 from .gretel_glm_evolve import (
     build_glm_evolve_markdown,
     build_glm_evolve_work_packet,
@@ -201,6 +201,7 @@ __all__ = [
     "build_feedback_triage_markdown",
     "build_github_issue_bundle",
     "build_github_issue_bundle_markdown",
+    "build_issue_evidence_traceability",
     "build_public_knowledge_inventory",
     "build_glm_evolve_work_packet",
     "build_glm_evolve_markdown",
