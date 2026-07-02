@@ -57,8 +57,8 @@ contract change.
 
 ## Current Work Queue
 
-1. `compliance_drift_evidence_alignment`: keep compliance matrix requirements
-   aligned with source-card drift, readiness evidence, and human authority
+1. `pilot_protocol_evidence_alignment`: align pilot protocol consent, ethics,
+   data, and readiness evidence with source cards and human review
    gates.
 
 ## Closed Harnessed Work
@@ -92,6 +92,9 @@ contract change.
 - `release_runbook_evidence_alignment`: closed in `be671ff` with readiness
   snapshot, review-board, GitHub issue, source-card, and human-gate contracts
   for release review.
+- `compliance_drift_evidence_alignment`: closed in `92cb2f1` with
+  requirement-to-readiness, source-card, human-gate, and readiness-protection
+  mapping.
 
 ## Automation Rule
 

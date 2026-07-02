@@ -285,7 +285,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "compliance_drift_evidence_alignment",
             "priority": 12,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Keep compliance matrix requirements aligned with source-card drift, readiness evidence, and human authority gates.",
             "allowed_files": [
                 "unibot/compliance.py",
@@ -295,6 +295,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_compliance.py tests/test_unibot_readiness.py -q"],
             "review_gate": "compliance_source_bound_human_gated",
+            "closure_evidence": {
+                "commit": "92cb2f1",
+                "summary": "Compliance drift alignment added with requirement-to-readiness, source-card, human-gate, and readiness-protection mapping.",
+            },
+        },
+        {
+            "work_id": "pilot_protocol_evidence_alignment",
+            "priority": 13,
+            "status": "ready",
+            "goal": "Align pilot protocol consent, ethics, data, and readiness evidence with source cards and human review gates.",
+            "allowed_files": [
+                "unibot/pilot.py",
+                "tests/test_unibot_pilot.py",
+                "docs/unibot/UNIBOT_PILOT_PROTOCOL.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_pilot.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "pilot_ethics_data_human_review_traceability",
         },
     ]
 
