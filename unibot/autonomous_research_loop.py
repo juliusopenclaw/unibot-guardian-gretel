@@ -339,7 +339,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "glm_provider_redaction_evidence_alignment",
             "priority": 15,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align the GLM proposal lane with redaction receipts, provider-call locks, source cards, and human review gates.",
             "allowed_files": [
                 "unibot/gretel_glm_evolve.py",
@@ -351,6 +351,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
                 "python3 -m pytest tests/test_unibot_gretel_glm_evolve.py tests/test_unibot_readiness.py -q"
             ],
             "review_gate": "glm_redacted_proposal_provider_lock_human_review_traceability",
+            "closure_evidence": {
+                "commit": "a41b060",
+                "summary": "GLM provider redaction alignment added with source-basis, redaction-receipt, provider-lock, proposal-validation, apply/publish/Final-Go, readiness, and human-gate mapping.",
+            },
+        },
+        {
+            "work_id": "open_science_reproducibility_release_alignment",
+            "priority": 16,
+            "status": "ready",
+            "goal": "Align publication, open-science roadmap, reproducibility evidence, release gates, and bachelor-thesis claims.",
+            "allowed_files": [
+                "unibot/publication.py",
+                "tests/test_unibot_publication.py",
+                "docs/unibot/UNIBOT_PUBLICATION_PACKAGE.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_publication.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "open_science_reproducibility_release_human_review_traceability",
         },
     ]
 

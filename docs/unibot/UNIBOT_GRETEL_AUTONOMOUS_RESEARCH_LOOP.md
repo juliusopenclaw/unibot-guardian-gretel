@@ -57,9 +57,9 @@ contract change.
 
 ## Current Work Queue
 
-1. `glm_provider_redaction_evidence_alignment`: align the GLM proposal lane with
-   redaction receipts, provider-call locks, source cards, and human review
-   gates.
+1. `open_science_reproducibility_release_alignment`: align publication,
+   open-science roadmap, reproducibility evidence, release gates, and
+   bachelor-thesis claims.
 
 ## Closed Harnessed Work
 
@@ -101,6 +101,9 @@ contract change.
 - `data_protection_evidence_alignment`: closed in `4b5fbbc` with processing
   principles, pilot records, retention, public-boundary, exam-boundary,
   source-card, risk, readiness, and human-gate mapping.
+- `glm_provider_redaction_evidence_alignment`: closed in `a41b060` with
+  source-basis, redaction-receipt, provider-lock, proposal-validation,
+  apply/publish/Final-Go, readiness, and human-gate mapping.
 
 ## Automation Rule
 
