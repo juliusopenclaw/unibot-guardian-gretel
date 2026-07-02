@@ -9,7 +9,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.evaluation import build_evaluation_markdown, build_evaluation_packet, synthetic_tasks  # noqa: E402
+from unibot.evaluation import (  # noqa: E402
+    build_evaluation_markdown,
+    build_evaluation_packet,
+    build_scientific_quality_rubric,
+    synthetic_tasks,
+)
+from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
 
 
@@ -21,10 +27,25 @@ class UniBotEvaluationTests(unittest.TestCase):
         self.assertEqual(packet["status"], "draft_not_ethics_or_authority_cleared")
         self.assertGreaterEqual(len(packet["synthetic_tasks"]), 4)
         self.assertIn("codebook", packet)
+        self.assertIn("scientific_quality_rubric", packet)
         self.assertIn("measurement_plan", packet)
         self.assertIn("consent_boundary", packet)
         self.assertEqual(packet["quality_gates"]["redteam_status"], "pass")
         self.assertEqual(packet["quality_gates"]["authority_packet_status"], "draft_not_officially_cleared")
+
+    def test_scientific_quality_rubric_covers_socratic_sources_refusal_and_privacy(self) -> None:
+        rubric = build_scientific_quality_rubric()
+        dimension_ids = {dimension["dimension_id"] for dimension in rubric["dimensions"]}
+        payload = json.dumps(rubric, ensure_ascii=False)
+
+        self.assertEqual(rubric["schema_version"], "unibot-scientific-quality-rubric-v1")
+        self.assertIn("socratic_help_quality", dimension_ids)
+        self.assertIn("source_grounding", dimension_ids)
+        self.assertIn("refusal_clarity", dimension_ids)
+        self.assertIn("privacy_and_publication_safety", dimension_ids)
+        self.assertIn("learner_agency_and_fairness", dimension_ids)
+        self.assertIn("Do not collapse scores into grades", rubric["aggregation_rule"])
+        self.assertEqual(scan_text(payload, "scientific-quality-rubric")["status"], "pass")
 
     def test_synthetic_tasks_are_public_safe_and_skill_tagged(self) -> None:
         tasks = synthetic_tasks()
@@ -54,6 +75,8 @@ class UniBotEvaluationTests(unittest.TestCase):
         markdown = build_evaluation_markdown()
         self.assertIn("# UniBot Evaluation Packet", markdown)
         self.assertIn("Synthetic Tasks", markdown)
+        self.assertIn("Scientific Quality Rubric", markdown)
+        self.assertIn("refusal_clarity", markdown)
         self.assertIn("Red-Team: pass", markdown)
 
         status, packet = route_request("/api/unibot/evaluation-packet", {})

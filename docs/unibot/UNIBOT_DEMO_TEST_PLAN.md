@@ -31,6 +31,24 @@ The generated plan includes:
 - notebook handoff
 - red-team/readiness smoke
 
+## Scientific Observation Rubric
+
+During public-safe demos, reviewers should look for five descriptive dimensions:
+
+- Socratic help quality: the learner keeps the next cognitive step.
+- Source grounding: unsourced claims stay uncertain and source checks are
+  explicit.
+- Refusal clarity: blocked requests get a reason and a safe lower-help
+  alternative.
+- Privacy and publication safety: reports use hashes, categories, synthetic
+  tasks, and source cards instead of private content.
+- Learner agency and fairness: accessibility help stays separate from subject
+  help and never becomes grading, proctoring, or AI-detection evidence.
+
+These dimensions are formative research observations. They must not be collapsed
+into grades, exam readiness, disciplinary conclusions, or accommodation
+decisions.
+
 ## Bug Reports
 
 Bug reports should remove private data and include:
