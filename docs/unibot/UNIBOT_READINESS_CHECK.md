@@ -11,6 +11,7 @@ It aggregates:
 
 - public-safety scan over the separate UniBot public file set
 - readiness runtime guard for recurring low-budget Gretel runs
+- readiness evidence snapshot for compact scientific gate comparison
 - source-card drift guard for source-bound scientific claims
 - red-team smoke status
 - publication release gates
@@ -54,6 +55,15 @@ using HTTPS, product rules are empty, risk labels are unknown, public status
 changes away from `public-link-only`, or review dates become stale. This keeps
 UniBot's scientific and university-facing claims tied to named public sources
 instead of drifting into unsupported assertions.
+
+## Evidence Snapshot
+
+The readiness report includes a compact evidence snapshot for recurring Gretel
+runs. It records the readiness status, exam-boundary status, failed check IDs,
+scientific gate coverage, source-card count, runtime-guard mode, and a stable
+snapshot hash derived from non-volatile fields. The snapshot is meant for
+low-budget comparison over time; it is not a substitute for the full readiness
+report, human review, legal approval, provider approval, or exam clearance.
 
 ## Runtime Guard
 

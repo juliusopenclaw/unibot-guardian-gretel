@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -89,6 +90,73 @@ def build_readiness_runtime_guard(public_file_count: int | None = None) -> dict[
     scan = scan_text(json.dumps(guard, ensure_ascii=False), "unibot-readiness-runtime-guard")
     guard["public_safety_status"] = scan["status"]
     return guard
+
+
+def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
+    checks = list(report["checks"])
+    by_id = {check["check_id"]: check for check in checks}
+    scientific_gate_ids = [
+        "public_safety",
+        "readiness_runtime_guard",
+        "source_card_drift_guard",
+        "evaluation_packet",
+        "redteam",
+        "publication_package",
+        "review_board_packet",
+        "gretel_glm_evolve_lane",
+        "gretel_bachelor_thesis_package",
+        "gretel_autonomous_research_loop",
+        "exam_boundary",
+    ]
+    gate_rows = [
+        {
+            "check_id": check_id,
+            "passed": bool(by_id[check_id]["passed"]),
+            "evidence_keys": sorted(by_id[check_id]["evidence"].keys()),
+        }
+        for check_id in scientific_gate_ids
+        if check_id in by_id
+    ]
+    status_payload = {
+        "readiness_status": report["status"],
+        "exam_deployment_status": report["exam_deployment_status"],
+        "check_count": report["check_count"],
+        "passed_count": report["passed_count"],
+        "failed_count": report["failed_count"],
+        "failed_check_ids": sorted(check["check_id"] for check in checks if not check["passed"]),
+        "scientific_gate_ids": [row["check_id"] for row in gate_rows],
+        "scientific_gate_passed_count": len([row for row in gate_rows if row["passed"]]),
+        "source_card_drift_status": report["source_card_drift"]["status"],
+        "source_card_count": report["source_card_drift"]["card_count"],
+        "runtime_guard_status": report["runtime_guard"]["status"],
+        "runtime_default_mode": report["runtime_guard"]["routine_budget"]["default_execution_mode"],
+    }
+    digest = hashlib.sha256(json.dumps(status_payload, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
+    snapshot = {
+        "schema_version": "unibot-readiness-evidence-snapshot-v1",
+        "status": "ready" if report["status"] == "public_draft_ready" and report["failed_count"] == 0 else "blocked",
+        "snapshot_hash": digest,
+        "readiness_status": report["status"],
+        "exam_deployment_status": report["exam_deployment_status"],
+        "check_count": report["check_count"],
+        "passed_count": report["passed_count"],
+        "failed_count": report["failed_count"],
+        "failed_check_ids": status_payload["failed_check_ids"],
+        "scientific_gate_count": len(gate_rows),
+        "scientific_gate_passed_count": status_payload["scientific_gate_passed_count"],
+        "scientific_gates": gate_rows,
+        "source_card_drift_status": report["source_card_drift"]["status"],
+        "source_card_count": report["source_card_drift"]["card_count"],
+        "required_source_card_count": report["source_card_drift"]["required_source_card_count"],
+        "runtime_guard_status": report["runtime_guard"]["status"],
+        "runtime_default_mode": report["runtime_guard"]["routine_budget"]["default_execution_mode"],
+        "human_gate_reminder": "Public draft readiness is not exam clearance, legal approval, provider approval, or real submission approval.",
+    }
+    scan = scan_text(json.dumps(snapshot, ensure_ascii=False), "unibot-readiness-evidence-snapshot")
+    snapshot["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        snapshot["status"] = "blocked"
+    return snapshot
 
 
 def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, Any]:
@@ -578,7 +646,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
         },
     ]
     failed = [check for check in checks if not check["passed"]]
-    return {
+    report = {
         "schema_version": READINESS_SCHEMA_VERSION,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "status": "public_draft_ready" if not failed else "blocked",
@@ -593,6 +661,8 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
         "source_card_drift": source_card_drift,
         "policy": "Readiness means public-safe draft only, not exam clearance or legal approval.",
     }
+    report["evidence_snapshot"] = build_readiness_evidence_snapshot(report)
+    return report
 
 
 def build_readiness_markdown(paths: Iterable[str | Path] | None = None) -> str:
@@ -611,6 +681,9 @@ def build_readiness_markdown(paths: Iterable[str | Path] | None = None) -> str:
         f"Source-card drift: {report['source_card_drift']['status']} "
         f"({report['source_card_drift']['card_count']} cards, "
         f"{report['source_card_drift']['required_source_card_count']} required)\n\n"
+        f"Evidence snapshot: {report['evidence_snapshot']['status']} "
+        f"({report['evidence_snapshot']['scientific_gate_passed_count']}/"
+        f"{report['evidence_snapshot']['scientific_gate_count']} scientific gates)\n\n"
         "## Checks\n\n"
         f"{check_lines}\n\n"
         f"Policy: {report['policy']}\n"
