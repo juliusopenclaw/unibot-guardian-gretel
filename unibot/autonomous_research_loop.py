@@ -214,7 +214,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "readiness_evidence_snapshot",
             "priority": 8,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Create a compact public-safe readiness evidence snapshot so recurring Gretel runs can compare scientific gate coverage over time.",
             "allowed_files": [
                 "unibot/readiness.py",
@@ -223,6 +223,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_readiness.py -q"],
             "review_gate": "public_safe_reproducible_readiness_evidence",
+            "closure_evidence": {
+                "commit": "19d6f8c",
+                "summary": "Readiness evidence snapshot added with stable hash, scientific gate coverage, compact public-safe summary, docs, and tests.",
+            },
+        },
+        {
+            "work_id": "review_board_evidence_alignment",
+            "priority": 9,
+            "status": "ready",
+            "goal": "Align review-board packets with readiness evidence snapshots and thesis claims so human reviewers can audit gates quickly.",
+            "allowed_files": [
+                "unibot/review_board.py",
+                "tests/test_unibot_review_board.py",
+                "docs/unibot/UNIBOT_REVIEW_BOARD_PACKET.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_review_board.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "human_review_evidence_traceability",
         },
     ]
 

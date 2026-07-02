@@ -56,7 +56,7 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         queue = loop["work_queue"]
         by_id = {item["work_id"]: item for item in queue}
 
-        self.assertGreaterEqual(len(queue), 8)
+        self.assertGreaterEqual(len(queue), 9)
         self.assertEqual(by_id["intent_contract_regression_pack"]["status"], "closed_harnessed")
         self.assertEqual(by_id["intent_contract_regression_pack"]["closure_evidence"]["commit"], "fa942b0")
         self.assertEqual(by_id["scientific_evaluation_depth"]["status"], "closed_harnessed")
@@ -71,8 +71,10 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertEqual(by_id["source_card_drift_guard"]["closure_evidence"]["commit"], "afeb0d5")
         self.assertEqual(by_id["bachelor_thesis_evidence_index"]["status"], "closed_harnessed")
         self.assertEqual(by_id["bachelor_thesis_evidence_index"]["closure_evidence"]["commit"], "400fc92")
-        self.assertEqual(loop["next_recommended_work_id"], "readiness_evidence_snapshot")
-        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 7)
+        self.assertEqual(by_id["readiness_evidence_snapshot"]["status"], "closed_harnessed")
+        self.assertEqual(by_id["readiness_evidence_snapshot"]["closure_evidence"]["commit"], "19d6f8c")
+        self.assertEqual(loop["next_recommended_work_id"], "review_board_evidence_alignment")
+        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 8)
         self.assertLessEqual(loop["budget_policy"]["cadence"]["max_active_work_item_per_run"], 1)
         for item in queue:
             self.assertIn("acceptance_tests", item)
@@ -87,8 +89,8 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("Public safety: pass", markdown)
         self.assertIn("Default reasoning effort: low", markdown)
         self.assertIn("Autonomous GitHub push: False", markdown)
-        self.assertIn("Closed harnessed items: 7", markdown)
-        self.assertIn("Next recommended work: readiness_evidence_snapshot", markdown)
+        self.assertIn("Closed harnessed items: 8", markdown)
+        self.assertIn("Next recommended work: review_board_evidence_alignment", markdown)
 
         status, loop = route_request("/api/unibot/autonomous-research-loop", {})
         self.assertEqual(status, 200)

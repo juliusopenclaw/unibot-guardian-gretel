@@ -57,9 +57,9 @@ contract change.
 
 ## Current Work Queue
 
-1. `readiness_evidence_snapshot`: create a compact public-safe readiness
-   evidence snapshot so recurring Gretel runs can compare scientific gate
-   coverage over time.
+1. `review_board_evidence_alignment`: align review-board packets with readiness
+   evidence snapshots and thesis claims so human reviewers can audit gates
+   quickly.
 
 ## Closed Harnessed Work
 
@@ -81,6 +81,9 @@ contract change.
 - `bachelor_thesis_evidence_index`: closed in `400fc92` with claim-to-test,
   readiness-check, source-card, and human-gate evidence mapping for the
   Gretel-authored bachelor-thesis package.
+- `readiness_evidence_snapshot`: closed in `19d6f8c` with stable-hash
+  readiness evidence snapshot, scientific gate coverage, public-safe summary,
+  docs, and tests.
 
 ## Automation Rule
 
