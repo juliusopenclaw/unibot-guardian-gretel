@@ -124,7 +124,7 @@ from .orchestration import (
     build_unibot_command_center,
     validate_chat_handoff,
 )
-from .pilot import build_pilot_protocol, build_pilot_protocol_markdown
+from .pilot import build_pilot_evidence_alignment, build_pilot_protocol, build_pilot_protocol_markdown
 from .privacy import build_data_protection_screening, build_data_protection_screening_markdown
 from .private_tutor_use_flow import build_private_tutor_use_flow_dry_run
 from .private_extraction_runner import run_private_extraction_batch
@@ -255,6 +255,7 @@ __all__ = [
     "run_private_extraction_batch",
     "run_video_transcription_batch",
     "video_transcription_capabilities",
+    "build_pilot_evidence_alignment",
     "build_review_board_packet",
     "build_review_board_packet_markdown",
     "build_review_board_evidence_alignment",

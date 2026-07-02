@@ -490,13 +490,20 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             "passed": pilot_protocol["status"] == "draft_not_ethics_or_authority_cleared"
             and pilot_protocol["public_safety_status"] == "pass"
             and pilot_protocol["exam_deployment_status"] == "not_cleared"
-            and len(pilot_protocol["consent_items"]) >= 7,
+            and len(pilot_protocol["consent_items"]) >= 7
+            and pilot_protocol["pilot_evidence_alignment"]["status"] == "ready"
+            and pilot_protocol["pilot_evidence_alignment"]["public_safety_status"] == "pass"
+            and pilot_protocol["pilot_evidence_alignment"]["missing_protocol_keys"] == []
+            and pilot_protocol["pilot_evidence_alignment"]["missing_source_card_ids"] == [],
             "evidence": {
                 "status": pilot_protocol["status"],
                 "public_safety_status": pilot_protocol["public_safety_status"],
                 "consent_item_count": len(pilot_protocol["consent_items"]),
                 "ethics_trigger_count": len(pilot_protocol["ethics_review_triggers"]),
                 "exam_deployment_status": pilot_protocol["exam_deployment_status"],
+                "pilot_evidence_alignment_status": pilot_protocol["pilot_evidence_alignment"]["status"],
+                "pilot_alignment_section_count": pilot_protocol["pilot_evidence_alignment"]["section_count"],
+                "pilot_alignment_human_gates": pilot_protocol["pilot_evidence_alignment"]["required_human_gates"],
             },
         },
         {

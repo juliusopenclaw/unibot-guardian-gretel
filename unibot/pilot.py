@@ -12,6 +12,49 @@ from .source_cards import get_source_card
 
 
 PILOT_PROTOCOL_SCHEMA_VERSION = "unibot-pilot-protocol-v1"
+PILOT_EVIDENCE_ALIGNMENT_SCHEMA_VERSION = "unibot-pilot-evidence-alignment-v1"
+
+PILOT_ALIGNMENT_SECTIONS = [
+    {
+        "section_id": "consent_boundary",
+        "protocol_keys": ["consent_items", "participant_information", "participant_scope"],
+        "source_card_ids": ["dfg-gwp", "unesco-genai-2023", "uoc-ki-lehre"],
+        "readiness_check_ids": ["pilot_protocol", "evaluation_packet", "review_board_packet"],
+        "human_gates": ["ethics_or_supervisor_review_required_before_real_pilot", "human_review_required"],
+    },
+    {
+        "section_id": "ethics_review_trigger",
+        "protocol_keys": ["ethics_review_triggers", "stop_rules"],
+        "source_card_ids": ["dfg-gwp", "eu-ai-act-2024", "uoc-ki-lehre"],
+        "readiness_check_ids": ["pilot_protocol", "compliance_matrix", "review_board_packet"],
+        "human_gates": ["ethics_or_supervisor_review_required_before_real_pilot", "human_submission_review_required"],
+    },
+    {
+        "section_id": "data_management",
+        "protocol_keys": ["data_management_plan", "participant_scope"],
+        "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024", "chrome-limited-use"],
+        "readiness_check_ids": ["pilot_protocol", "data_protection_screening", "public_safety"],
+        "human_gates": ["datenschutz_review_required_before_real_pilot", "public_safety_required"],
+    },
+    {
+        "section_id": "session_flow_and_measures",
+        "protocol_keys": ["session_flow", "readiness_gates"],
+        "source_card_ids": ["vanlehn-2011", "kulik-fletcher-2016", "cs50-ai-2024"],
+        "readiness_check_ids": ["pilot_protocol", "evaluation_packet", "redteam"],
+        "human_gates": ["human_review_required", "human_submission_review_required"],
+    },
+    {
+        "section_id": "real_pilot_release_boundary",
+        "protocol_keys": ["readiness_gates", "exam_deployment_status", "policy"],
+        "source_card_ids": ["uoc-ki-lehre", "uoc-hilfsmittel", "eu-ai-act-2024"],
+        "readiness_check_ids": ["pilot_protocol", "compliance_matrix", "release_runbook"],
+        "human_gates": [
+            "written_university_clearance_required_before_exam_use",
+            "ethics_or_supervisor_review_required_before_real_pilot",
+            "datenschutz_review_required_before_real_pilot",
+        ],
+    },
+]
 
 
 def build_pilot_protocol() -> dict[str, Any]:
@@ -176,12 +219,77 @@ def build_pilot_protocol() -> dict[str, Any]:
         "source_cards": source_cards,
         "policy": "Pilot protocol is a public-safe planning draft only, not ethics clearance, not data-protection approval, and not exam clearance.",
     }
+    protocol["pilot_evidence_alignment"] = build_pilot_evidence_alignment(protocol)
     scan = scan_text(json.dumps(protocol, ensure_ascii=False), "pilot-protocol")
     protocol["public_safety_status"] = scan["status"]
     if scan["status"] != "pass":
         protocol["status"] = "blocked_public_safety"
         protocol["public_safety_findings"] = scan["findings"]
     return protocol
+
+
+def build_pilot_evidence_alignment(protocol: dict[str, Any] | None = None) -> dict[str, Any]:
+    pilot = protocol or build_pilot_protocol()
+    alignment_rows = []
+    for section in PILOT_ALIGNMENT_SECTIONS:
+        missing_protocol_keys = sorted(key for key in section["protocol_keys"] if key not in pilot)
+        missing_source_card_ids = sorted(
+            source_id for source_id in section["source_card_ids"] if get_source_card(source_id) is None
+        )
+        alignment_rows.append(
+            {
+                "section_id": section["section_id"],
+                "protocol_keys": list(section["protocol_keys"]),
+                "missing_protocol_keys": missing_protocol_keys,
+                "source_card_ids": list(section["source_card_ids"]),
+                "missing_source_card_ids": missing_source_card_ids,
+                "readiness_check_ids": list(section["readiness_check_ids"]),
+                "human_gates": list(section["human_gates"]),
+            }
+        )
+    alignment = {
+        "schema_version": PILOT_EVIDENCE_ALIGNMENT_SCHEMA_VERSION,
+        "status": "ready",
+        "section_count": len(alignment_rows),
+        "sections": alignment_rows,
+        "missing_protocol_keys": sorted(
+            {key for row in alignment_rows for key in row["missing_protocol_keys"]}
+        ),
+        "missing_source_card_ids": sorted(
+            {source_id for row in alignment_rows for source_id in row["missing_source_card_ids"]}
+        ),
+        "required_readiness_check_ids": sorted(
+            {check_id for row in alignment_rows for check_id in row["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for row in alignment_rows for gate in row["human_gates"]}),
+        "source_card_drift_contract": {
+            "expected_check_id": "source_card_drift_guard",
+            "required_status": "pass",
+        },
+        "data_protection_contract": {
+            "expected_check_id": "data_protection_screening",
+            "required_review_gate": "datenschutz_review_required_before_real_pilot",
+        },
+        "review_board_contract": {
+            "expected_check_id": "review_board_packet",
+            "required_status": "draft_for_institutional_review",
+        },
+        "release_boundary_contract": {
+            "expected_check_id": "release_runbook",
+            "real_pilot_release_status": "blocked_until_ethics_datenschutz_and_authority_review",
+        },
+        "policy": (
+            "Pilot evidence alignment is a review aid only; it is not ethics clearance, "
+            "data-protection approval, participant recruitment approval, or exam clearance."
+        ),
+    }
+    if alignment["missing_protocol_keys"] or alignment["missing_source_card_ids"]:
+        alignment["status"] = "blocked"
+    scan = scan_text(json.dumps(alignment, ensure_ascii=False), "pilot-evidence-alignment")
+    alignment["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        alignment["status"] = "blocked_public_safety"
+    return alignment
 
 
 def build_pilot_protocol_markdown() -> str:
@@ -199,6 +307,7 @@ def build_pilot_protocol_markdown() -> str:
     source_lines = "\n".join(
         f"- `{card['source_id']}`: {card['product_rule']}" for card in protocol["source_cards"]
     )
+    alignment = protocol["pilot_evidence_alignment"]
     return (
         "# UniBot Pilot Protocol\n\n"
         f"Status: {protocol['status_label_de']}\n\n"
@@ -222,6 +331,10 @@ def build_pilot_protocol_markdown() -> str:
         f"- Red-Team: {protocol['readiness_gates']['redteam_status']}\n"
         f"- Evaluation: {protocol['readiness_gates']['evaluation_status']}\n"
         f"- Compliance: {protocol['readiness_gates']['compliance_status']}\n\n"
+        "## Evidence Alignment\n\n"
+        f"- Alignment: {alignment['status']}\n"
+        f"- Sections: {alignment['section_count']}\n"
+        f"- Human gates: {', '.join(alignment['required_human_gates'])}\n\n"
         "## Source Cards\n\n"
         f"{source_lines}\n\n"
         f"Policy: {protocol['policy']}\n"

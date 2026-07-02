@@ -58,6 +58,16 @@ participation, publication of free text beyond public-safe summaries, cloud
 storage of non-public pilot records, or claims about official assessment, exam
 security, or misconduct detection.
 
+## Evidence Alignment
+
+The generated protocol includes `pilot_evidence_alignment`. It maps consent
+boundary, ethics triggers, data management, session flow, and real-pilot
+release boundary to source cards, readiness checks, and human gates.
+
+The alignment must remain `ready` before public draft review. It is still only
+a review aid: it is not ethics clearance, Datenschutz approval, participant
+recruitment approval, or exam clearance.
+
 ## Release Rule
 
 The protocol is ready for public draft review only when the public-safety scan

@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.pilot import build_pilot_protocol, build_pilot_protocol_markdown  # noqa: E402
+from unibot.pilot import build_pilot_evidence_alignment, build_pilot_protocol, build_pilot_protocol_markdown  # noqa: E402
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
 
@@ -27,6 +27,8 @@ class UniBotPilotProtocolTests(unittest.TestCase):
         self.assertIn("session_flow", protocol)
         self.assertEqual(protocol["readiness_gates"]["redteam_status"], "pass")
         self.assertEqual(protocol["readiness_gates"]["compliance_status"], "draft_ready_for_authority_review")
+        self.assertEqual(protocol["pilot_evidence_alignment"]["status"], "ready")
+        self.assertEqual(protocol["pilot_evidence_alignment"]["public_safety_status"], "pass")
 
     def test_pilot_protocol_boundaries_exclude_high_stakes_and_private_data(self) -> None:
         protocol = build_pilot_protocol()
@@ -52,12 +54,32 @@ class UniBotPilotProtocolTests(unittest.TestCase):
         self.assertNotIn("student@example", lowered)
         self.assertNotIn("sk-test", lowered)
 
+    def test_pilot_evidence_alignment_maps_protocol_to_review_gates(self) -> None:
+        protocol = build_pilot_protocol()
+        alignment = build_pilot_evidence_alignment(protocol)
+        by_section = {section["section_id"]: section for section in alignment["sections"]}
+
+        self.assertEqual(alignment["schema_version"], "unibot-pilot-evidence-alignment-v1")
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["missing_protocol_keys"], [])
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertIn("data_protection_screening", alignment["required_readiness_check_ids"])
+        self.assertIn("release_runbook", alignment["required_readiness_check_ids"])
+        self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertIn("ethics_or_supervisor_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertEqual(alignment["source_card_drift_contract"]["expected_check_id"], "source_card_drift_guard")
+        self.assertEqual(alignment["data_protection_contract"]["expected_check_id"], "data_protection_screening")
+        self.assertIn("gdpr-2016-679", by_section["data_management"]["source_card_ids"])
+        self.assertIn("consent_items", by_section["consent_boundary"]["protocol_keys"])
+
     def test_pilot_markdown_and_api_routes(self) -> None:
         markdown = build_pilot_protocol_markdown()
 
         self.assertIn("# UniBot Pilot Protocol", markdown)
         self.assertIn("Consent Checklist", markdown)
         self.assertIn("Ethics Review Triggers", markdown)
+        self.assertIn("Evidence Alignment", markdown)
         self.assertIn("Exam deployment: not_cleared", markdown)
 
         status, protocol = route_request("/api/unibot/pilot-protocol", {})
