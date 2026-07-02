@@ -395,7 +395,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "adaptive_task_source_boundary_alignment",
             "priority": 18,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align adaptive practice plans with public material summaries, source boundaries, learner-agency evidence, and readiness gates.",
             "allowed_files": [
                 "unibot/adaptive_tasks.py",
@@ -405,6 +405,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_adaptive_tasks.py tests/test_unibot_readiness.py -q"],
             "review_gate": "adaptive_tasks_public_material_source_boundary_traceability",
+            "closure_evidence": {
+                "commit": "00bc10e",
+                "summary": "Adaptive task source-boundary alignment added with public-summary source contracts, learner-agency checks, readiness gates, and public-summary excerpt hardening.",
+            },
+        },
+        {
+            "work_id": "evaluation_learner_agency_boundary_alignment",
+            "priority": 19,
+            "status": "ready",
+            "goal": "Align evaluation packets with adaptive learner-agency evidence, source boundaries, source cards, and readiness gates.",
+            "allowed_files": [
+                "unibot/evaluation.py",
+                "tests/test_unibot_evaluation.py",
+                "docs/unibot/UNIBOT_DEMO_TEST_PLAN.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_evaluation.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "evaluation_learner_agency_source_boundary_traceability",
         },
     ]
 

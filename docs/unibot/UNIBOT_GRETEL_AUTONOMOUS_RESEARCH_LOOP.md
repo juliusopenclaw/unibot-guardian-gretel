@@ -57,8 +57,8 @@ contract change.
 
 ## Current Work Queue
 
-1. `adaptive_task_source_boundary_alignment`: align adaptive practice plans with
-   public material summaries, source boundaries, learner-agency evidence, and
+1. `evaluation_learner_agency_boundary_alignment`: align evaluation packets with
+   adaptive learner-agency evidence, source boundaries, source cards, and
    readiness gates.
 
 ## Closed Harnessed Work
@@ -110,6 +110,9 @@ contract change.
 - `course_material_public_boundary_alignment`: closed in `ca9c426` with
   public/private material contracts, source cards, readiness gates, and human
   gates for course-material publication boundaries.
+- `adaptive_task_source_boundary_alignment`: closed in `00bc10e` with
+  public-summary source contracts, learner-agency checks, readiness gates, and
+  public-summary excerpt hardening.
 
 ## Automation Rule
 
