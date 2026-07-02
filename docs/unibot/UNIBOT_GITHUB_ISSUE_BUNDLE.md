@@ -21,6 +21,20 @@ manually before publication. It never includes screenshots, copied free text,
 emails, local paths, health or accommodation details, real exam work, or raw
 private course text.
 
+## Manual Review Contract
+
+Every issue draft carries:
+
+- review checklist,
+- evidence requirements,
+- publication gate `human_review_before_github_create`,
+- `manual_publish_only = true`.
+
+Reviewers must confirm that the draft uses sanitized metadata only, names a
+focused test or readiness gate, can be closed by code, docs, tests, or a
+documented blocked reason, and does not claim exam clearance, grading authority,
+proctoring reliability, or AI-detection evidence.
+
 ## Public Contribution Rule
 
 Contributors should work from synthetic tasks, source cards, public-safe tests,

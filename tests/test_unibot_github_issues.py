@@ -9,7 +9,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.github_issues import build_github_issue_bundle, build_github_issue_bundle_markdown  # noqa: E402
+from unibot.github_issues import (  # noqa: E402
+    build_github_issue_bundle,
+    build_github_issue_bundle_markdown,
+    build_issue_review_contract,
+)
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
 
@@ -37,13 +41,29 @@ class UniBotGithubIssueBundleTests(unittest.TestCase):
         self.assertEqual(bundle["status"], "ready")
         self.assertEqual(bundle["public_safety_status"], "pass")
         self.assertEqual(bundle["issue_count"], 1)
+        self.assertIn("review_contract", bundle)
         self.assertIn("title", issue)
         self.assertIn("labels", issue)
         self.assertIn("body", issue)
+        self.assertIn("review_checklist", issue)
+        self.assertIn("evidence_requirements", issue)
+        self.assertEqual(issue["publication_gate"], "human_review_before_github_create")
+        self.assertTrue(issue["manual_publish_only"])
         self.assertIn("guardian_prompt_cards", issue["labels"])
         self.assertIn("manual", bundle["publishing_note"].lower())
         self.assertNotIn("Promptkarte erzeugen", payload)
         self.assertEqual(scan_text(payload, "github-issue-bundle")["status"], "pass")
+
+    def test_issue_review_contract_blocks_auto_publish_and_high_stakes_claims(self) -> None:
+        contract = build_issue_review_contract()
+        payload = json.dumps(contract, ensure_ascii=False)
+
+        self.assertEqual(contract["schema_version"], "unibot-github-issue-review-contract-v1")
+        self.assertTrue(contract["manual_publish_only"])
+        self.assertEqual(contract["publication_gate"], "human_review_before_github_create")
+        self.assertIn("suggested focused test", " ".join(contract["evidence_requirements"]))
+        self.assertIn("does not claim exam clearance", " ".join(contract["review_checklist"]))
+        self.assertEqual(scan_text(payload, "github-issue-review-contract")["status"], "pass")
 
     def test_issue_bundle_empty_when_triage_empty(self) -> None:
         bundle = build_github_issue_bundle(
@@ -68,6 +88,9 @@ class UniBotGithubIssueBundleTests(unittest.TestCase):
         self.assertIn("# UniBot GitHub Issue Bundle", markdown)
         self.assertIn("demo_prompt_card", markdown)
         self.assertIn("guardian_prompt_cards", markdown)
+        self.assertIn("Review checklist", markdown)
+        self.assertIn("Evidence requirements", markdown)
+        self.assertIn("Manual publish only: True", markdown)
         self.assertNotIn("Promptkarte erzeugen", markdown)
 
         status, bundle = route_request("/api/unibot/github-issue-bundle", {"records": [feedback_record()]})
