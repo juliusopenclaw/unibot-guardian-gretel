@@ -42,3 +42,13 @@ The matrix is considered ready only when all referenced source cards exist, the
 public-safety scan passes, and `exam_deployment_status` remains `not_cleared`.
 That means public draft review is possible, but exam use still needs written
 university review and approval.
+
+## Compliance Drift Alignment
+
+The generated matrix contains `compliance_drift_alignment`. It maps each
+requirement to readiness check IDs, source-card IDs, human gates, the
+source-card drift contract, the readiness evidence snapshot contract, and the
+review-board evidence-alignment contract.
+
+The alignment is a review aid only. It is not legal advice, exam clearance,
+provider approval, or thesis submission approval.

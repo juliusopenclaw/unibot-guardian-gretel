@@ -466,7 +466,11 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             "passed": compliance_matrix["status"] == "draft_ready_for_authority_review"
             and compliance_matrix["public_safety_status"] == "pass"
             and compliance_matrix["missing_source_card_ids"] == []
-            and compliance_matrix["exam_deployment_status"] == "not_cleared",
+            and compliance_matrix["exam_deployment_status"] == "not_cleared"
+            and compliance_matrix["compliance_drift_alignment"]["status"] == "ready"
+            and compliance_matrix["compliance_drift_alignment"]["public_safety_status"] == "pass"
+            and compliance_matrix["compliance_drift_alignment"]["unmapped_requirement_ids"] == []
+            and compliance_matrix["compliance_drift_alignment"]["requirements_without_human_gates"] == [],
             "evidence": {
                 "status": compliance_matrix["status"],
                 "requirement_count": compliance_matrix["requirement_count"],
@@ -474,6 +478,11 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "public_safety_status": compliance_matrix["public_safety_status"],
                 "missing_source_card_ids": compliance_matrix["missing_source_card_ids"],
                 "exam_deployment_status": compliance_matrix["exam_deployment_status"],
+                "compliance_drift_alignment_status": compliance_matrix["compliance_drift_alignment"]["status"],
+                "compliance_alignment_readiness_check_count": len(
+                    compliance_matrix["compliance_drift_alignment"]["unique_readiness_check_ids"]
+                ),
+                "compliance_alignment_human_gates": compliance_matrix["compliance_drift_alignment"]["required_human_gates"],
             },
         },
         {

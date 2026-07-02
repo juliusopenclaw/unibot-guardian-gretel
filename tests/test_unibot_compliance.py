@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.compliance import build_compliance_matrix, build_compliance_matrix_markdown  # noqa: E402
+from unibot.compliance import build_compliance_drift_alignment, build_compliance_matrix, build_compliance_matrix_markdown  # noqa: E402
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.source_cards import get_source_card  # noqa: E402
 from unibot.server import route_request  # noqa: E402
@@ -25,6 +25,10 @@ class UniBotComplianceTests(unittest.TestCase):
         self.assertEqual(matrix["exam_deployment_status"], "not_cleared")
         self.assertEqual(matrix["missing_source_card_ids"], [])
         self.assertGreaterEqual(matrix["requirement_count"], 9)
+        self.assertEqual(matrix["compliance_drift_alignment"]["status"], "ready")
+        self.assertEqual(matrix["compliance_drift_alignment"]["public_safety_status"], "pass")
+        self.assertEqual(matrix["compliance_drift_alignment"]["unmapped_requirement_ids"], [])
+        self.assertEqual(matrix["compliance_drift_alignment"]["requirements_without_human_gates"], [])
         self.assertIn("exam-clearance-boundary", requirement_ids)
         self.assertIn("accessibility-neutrality", requirement_ids)
         self.assertIn("data-minimisation-and-public-safety", requirement_ids)
@@ -34,6 +38,25 @@ class UniBotComplianceTests(unittest.TestCase):
             self.assertTrue(requirement["implemented_controls"], requirement["requirement_id"])
             self.assertTrue(requirement["verification_evidence"], requirement["requirement_id"])
             self.assertTrue(requirement["blocked_use"], requirement["requirement_id"])
+
+    def test_compliance_drift_alignment_maps_requirements_to_gates(self) -> None:
+        matrix = build_compliance_matrix()
+        alignment = build_compliance_drift_alignment(matrix["requirements"])
+        by_id = {item["requirement_id"]: item for item in alignment["requirements"]}
+
+        self.assertEqual(alignment["schema_version"], "unibot-compliance-drift-alignment-v1")
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["requirement_count"], matrix["requirement_count"])
+        self.assertEqual(alignment["unmapped_requirement_ids"], [])
+        self.assertEqual(alignment["requirements_without_human_gates"], [])
+        self.assertEqual(alignment["source_card_drift_contract"]["expected_check_id"], "source_card_drift_guard")
+        self.assertIn("unibot-readiness-evidence-snapshot-v1", alignment["readiness_snapshot_contract"]["expected_schema_version"])
+        self.assertIn("unibot-review-board-evidence-alignment-v1", alignment["review_board_contract"]["expected_schema_version"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertIn("exam_boundary", by_id["exam-clearance-boundary"]["readiness_check_ids"])
+        self.assertIn("data_protection_screening", by_id["data-minimisation-and-public-safety"]["readiness_check_ids"])
+        self.assertIn("source_card_drift_guard", by_id["research-integrity-and-reproducibility"]["readiness_check_ids"])
 
     def test_all_referenced_source_cards_exist(self) -> None:
         matrix = build_compliance_matrix()
@@ -61,6 +84,7 @@ class UniBotComplianceTests(unittest.TestCase):
         self.assertIn("exam-clearance-boundary", markdown)
         self.assertIn("accessibility-neutrality", markdown)
         self.assertIn("Missing source cards: none", markdown)
+        self.assertIn("Compliance drift alignment: ready", markdown)
 
         status, matrix = route_request("/api/unibot/compliance-matrix", {})
         self.assertEqual(status, 200)

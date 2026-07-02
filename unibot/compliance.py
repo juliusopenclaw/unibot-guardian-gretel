@@ -11,6 +11,45 @@ from .source_cards import get_source_card
 
 COMPLIANCE_MATRIX_SCHEMA_VERSION = "unibot-compliance-matrix-v1"
 
+DOMAIN_ALIGNMENT = {
+    "exam_authority": {
+        "readiness_check_ids": ["exam_boundary", "review_board_packet", "release_runbook"],
+        "human_gates": ["written_university_clearance_required_before_exam_use"],
+    },
+    "inclusion": {
+        "readiness_check_ids": ["authority_handoff", "review_board_packet"],
+        "human_gates": ["human_submission_review_required"],
+    },
+    "privacy": {
+        "readiness_check_ids": ["public_safety", "data_protection_screening"],
+        "human_gates": ["public_safety_required"],
+    },
+    "ai_governance": {
+        "readiness_check_ids": ["exam_boundary", "gretel_bachelor_thesis_package"],
+        "human_gates": ["written_university_clearance_required_before_exam_use"],
+    },
+    "research_integrity": {
+        "readiness_check_ids": ["source_card_drift_guard", "evaluation_packet", "gretel_bachelor_thesis_package"],
+        "human_gates": ["human_submission_review_required"],
+    },
+    "pedagogy": {
+        "readiness_check_ids": ["evaluation_packet", "redteam", "adaptive_task_plan"],
+        "human_gates": ["human_submission_review_required"],
+    },
+    "external_tool_use": {
+        "readiness_check_ids": ["public_safety", "notebook_template"],
+        "human_gates": ["provider_call_requires_explicit_go_and_redaction_receipt"],
+    },
+    "technical_boundary": {
+        "readiness_check_ids": ["public_safety", "review_board_packet", "release_runbook"],
+        "human_gates": ["human_review_required"],
+    },
+    "future_exam_architecture": {
+        "readiness_check_ids": ["exam_boundary", "authority_handoff", "review_board_packet"],
+        "human_gates": ["written_university_clearance_required_before_exam_use"],
+    },
+}
+
 
 @dataclass(frozen=True)
 class ComplianceRequirement:
@@ -212,6 +251,7 @@ def build_compliance_matrix() -> dict[str, Any]:
         "source_card_count": len(all_source_ids),
         "missing_source_card_ids": missing_source_card_ids,
         "requirements": requirements,
+        "compliance_drift_alignment": build_compliance_drift_alignment(requirements),
         "reviewer_groups": sorted({reviewer for item in requirements for reviewer in item["authority_reviewers"]}),
         "policy": "Authority review matrix only; not legal advice, not exam clearance, and not a substitute for written university approval.",
     }
@@ -223,6 +263,57 @@ def build_compliance_matrix() -> dict[str, Any]:
         matrix["status"] = "blocked_public_safety"
         matrix["public_safety_findings"] = scan["findings"]
     return matrix
+
+
+def build_compliance_drift_alignment(requirements: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    requirement_rows = list(requirements) if requirements is not None else [item.to_dict() for item in compliance_requirements()]
+    alignment_rows = []
+    for requirement in requirement_rows:
+        mapping = DOMAIN_ALIGNMENT.get(requirement["domain"], {"readiness_check_ids": [], "human_gates": []})
+        alignment_rows.append(
+            {
+                "requirement_id": requirement["requirement_id"],
+                "domain": requirement["domain"],
+                "risk_level": requirement["risk_level"],
+                "source_card_ids": list(requirement["source_card_ids"]),
+                "readiness_check_ids": list(mapping["readiness_check_ids"]),
+                "human_gates": list(mapping["human_gates"]),
+                "verification_evidence_count": len(requirement["verification_evidence"]),
+                "blocked_use_count": len(requirement["blocked_use"]),
+            }
+        )
+    alignment = {
+        "schema_version": "unibot-compliance-drift-alignment-v1",
+        "status": "ready",
+        "requirement_count": len(alignment_rows),
+        "high_risk_requirement_count": len([row for row in alignment_rows if row["risk_level"] == "high"]),
+        "requirements": alignment_rows,
+        "source_card_drift_contract": {
+            "expected_check_id": "source_card_drift_guard",
+            "required_status": "pass",
+        },
+        "readiness_snapshot_contract": {
+            "expected_schema_version": "unibot-readiness-evidence-snapshot-v1",
+            "required_status": "ready",
+        },
+        "review_board_contract": {
+            "expected_schema_version": "unibot-review-board-evidence-alignment-v1",
+            "required_status": "ready",
+        },
+        "unmapped_requirement_ids": sorted(row["requirement_id"] for row in alignment_rows if not row["readiness_check_ids"]),
+        "requirements_without_human_gates": sorted(row["requirement_id"] for row in alignment_rows if not row["human_gates"]),
+        "unique_readiness_check_ids": sorted({check_id for row in alignment_rows for check_id in row["readiness_check_ids"]}),
+        "unique_source_card_ids": sorted({source_id for row in alignment_rows for source_id in row["source_card_ids"]}),
+        "required_human_gates": sorted({gate for row in alignment_rows for gate in row["human_gates"]}),
+        "human_gate_reminder": "Compliance alignment is review preparation only; it is not legal advice, exam clearance, provider approval, or thesis submission approval.",
+    }
+    if alignment["unmapped_requirement_ids"] or alignment["requirements_without_human_gates"]:
+        alignment["status"] = "blocked"
+    scan = scan_text(json.dumps(alignment, ensure_ascii=False), "compliance-drift-alignment")
+    alignment["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        alignment["status"] = "blocked_public_safety"
+    return alignment
 
 
 def build_compliance_matrix_markdown() -> str:
@@ -254,6 +345,8 @@ def build_compliance_matrix_markdown() -> str:
         f"Requirements: {matrix['requirement_count']}\n\n"
         f"High-risk requirements: {matrix['high_risk_requirement_count']}\n\n"
         f"Missing source cards: {', '.join(matrix['missing_source_card_ids']) or 'none'}\n\n"
+        f"Compliance drift alignment: {matrix['compliance_drift_alignment']['status']}\n\n"
+        f"Alignment readiness checks: {', '.join(matrix['compliance_drift_alignment']['unique_readiness_check_ids'])}\n\n"
         "Boundary: authority review matrix only, not legal advice or exam clearance.\n\n"
         + "\n".join(requirement_lines)
     ).rstrip() + "\n"

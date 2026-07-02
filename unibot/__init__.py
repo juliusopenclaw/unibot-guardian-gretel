@@ -6,7 +6,12 @@ Jupyter, and browser-based coding helpers.
 """
 
 from .adaptive_tasks import generate_adaptive_practice_plan
-from .compliance import build_compliance_matrix, build_compliance_matrix_markdown, compliance_requirements
+from .compliance import (
+    build_compliance_drift_alignment,
+    build_compliance_matrix,
+    build_compliance_matrix_markdown,
+    compliance_requirements,
+)
 from .course_tutor import (
     build_course_material_compiler_plan,
     build_course_exam_scope,
@@ -182,6 +187,7 @@ __all__ = [
     "course_tutor_response",
     "next_course_task",
     "run_course_tutor_eval",
+    "build_compliance_drift_alignment",
     "build_compliance_matrix",
     "build_compliance_matrix_markdown",
     "compliance_requirements",
