@@ -60,6 +60,23 @@ Official source cards:
 - Gretel/GLM proposal lane.
 - Bachelor-thesis-level research package.
 
+## Evidence Index
+
+The generated package contains a machine-readable evidence index. Each
+thesis-level claim must name:
+
+- the public artifact files that carry the claim,
+- the readiness check IDs that verify it,
+- focused acceptance tests,
+- source-card IDs where the claim depends on external authority, and
+- the human gate that still controls real submission, provider calls, or exam
+  use.
+
+Current evidence claims cover Gretel authorship, GLM-5.2 basis, source-bound
+public science, public safety and privacy, the exam-boundary/no-clearance line,
+and reproducible synthetic evaluation. The index also carries the source-card
+drift status so the thesis package cannot silently outgrow its public sources.
+
 ## Boundaries
 
 Ready for:

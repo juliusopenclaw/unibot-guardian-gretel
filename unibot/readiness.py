@@ -511,7 +511,12 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and bachelor_thesis_package["glm_technology_basis"]["primary_model_hint"] == "zai/glm-5.2"
             and bachelor_thesis_package["review_gates"]["human_submission_review_required"] is True
             and bachelor_thesis_package["review_gates"]["no_autonomous_github_publish"] is True
-            and bachelor_thesis_package["review_gates"]["no_final_go_by_gretel_or_glm"] is True,
+            and bachelor_thesis_package["review_gates"]["no_final_go_by_gretel_or_glm"] is True
+            and bachelor_thesis_package["evidence_index"]["status"] == "ready"
+            and bachelor_thesis_package["evidence_index"]["public_safety_status"] == "pass"
+            and "source_card_drift_guard" in bachelor_thesis_package["evidence_index"]["required_readiness_check_ids"]
+            and "written_university_clearance_required_before_exam_use"
+            in bachelor_thesis_package["evidence_index"]["required_human_gates"],
             "evidence": {
                 "status": bachelor_thesis_package["status"],
                 "public_safety_status": bachelor_thesis_package["public_safety_status"],
@@ -520,6 +525,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "documentation_author": bachelor_thesis_package["authorship_statement"]["documentation_author"],
                 "model_hint": bachelor_thesis_package["glm_technology_basis"]["primary_model_hint"],
                 "institutional_status": bachelor_thesis_package["authorship_statement"]["institutional_status"],
+                "evidence_index_status": bachelor_thesis_package["evidence_index"]["status"],
+                "evidence_claim_count": bachelor_thesis_package["evidence_index"]["claim_count"],
+                "required_human_gates": bachelor_thesis_package["evidence_index"]["required_human_gates"],
             },
         },
         {
