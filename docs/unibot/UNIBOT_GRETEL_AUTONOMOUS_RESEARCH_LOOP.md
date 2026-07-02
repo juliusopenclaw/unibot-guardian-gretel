@@ -57,9 +57,8 @@ contract change.
 
 ## Current Work Queue
 
-1. `pilot_protocol_evidence_alignment`: align pilot protocol consent, ethics,
-   data, and readiness evidence with source cards and human review
-   gates.
+1. `data_protection_evidence_alignment`: align data-protection screening with
+   pilot records, retention, access, source cards, and human review gates.
 
 ## Closed Harnessed Work
 
@@ -95,6 +94,9 @@ contract change.
 - `compliance_drift_evidence_alignment`: closed in `92cb2f1` with
   requirement-to-readiness, source-card, human-gate, and readiness-protection
   mapping.
+- `pilot_protocol_evidence_alignment`: closed in `30a81a8` with consent,
+  ethics, data, session-flow, release-boundary, source-card, readiness, and
+  human-gate mapping.
 
 ## Automation Rule
 

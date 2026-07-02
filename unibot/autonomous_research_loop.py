@@ -303,7 +303,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "pilot_protocol_evidence_alignment",
             "priority": 13,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align pilot protocol consent, ethics, data, and readiness evidence with source cards and human review gates.",
             "allowed_files": [
                 "unibot/pilot.py",
@@ -313,6 +313,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_pilot.py tests/test_unibot_readiness.py -q"],
             "review_gate": "pilot_ethics_data_human_review_traceability",
+            "closure_evidence": {
+                "commit": "30a81a8",
+                "summary": "Pilot evidence alignment added with consent, ethics, data, session-flow, release-boundary, source-card, readiness, and human-gate mapping.",
+            },
+        },
+        {
+            "work_id": "data_protection_evidence_alignment",
+            "priority": 14,
+            "status": "ready",
+            "goal": "Align data-protection screening with pilot records, retention, access, source cards, and human review gates.",
+            "allowed_files": [
+                "unibot/privacy.py",
+                "tests/test_unibot_privacy.py",
+                "docs/unibot/UNIBOT_DATA_PROTECTION_SCREENING.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_privacy.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "datenschutz_pilot_records_human_review_traceability",
         },
     ]
 
