@@ -51,9 +51,50 @@ def default_public_paths(include_tests: bool = True) -> list[Path]:
     return paths
 
 
+def build_readiness_runtime_guard(public_file_count: int | None = None) -> dict[str, Any]:
+    guard = {
+        "schema_version": "unibot-readiness-runtime-guard-v1",
+        "status": "budget_guard_ready",
+        "purpose": (
+            "Keep recurring Gretel readiness runs focused, public-safe, and low-budget; "
+            "broader suites remain explicit escalation work."
+        ),
+        "routine_budget": {
+            "default_execution_mode": "focused_readiness",
+            "default_reasoning_effort": "low",
+            "max_active_work_items_per_run": 1,
+            "full_suite_required_by_default": False,
+            "provider_calls_allowed_by_default": False,
+            "external_actions_allowed_by_default": False,
+        },
+        "routine_commands": [
+            "python3 -m pytest tests/test_unibot_readiness.py -q",
+            "python3 -m pytest tests/test_unibot_autonomous_research_loop.py -q",
+            "python3 scripts/unibot_pipeline_smoke.py --json",
+        ],
+        "expensive_or_escalated_by_default": [
+            "full pytest suite",
+            "browser/e2e automation",
+            "provider-backed GLM/Z.AI/OpenAI calls",
+            "large generated artifact rebuilds",
+            "public push or release",
+        ],
+        "escalate_only_when": [
+            "a focused gate fails and a bounded local fix is identified",
+            "an API, publication, release, or university-submission contract changes",
+            "a human explicitly requests a broader verification run",
+        ],
+        "current_public_file_scan_count": public_file_count,
+    }
+    scan = scan_text(json.dumps(guard, ensure_ascii=False), "unibot-readiness-runtime-guard")
+    guard["public_safety_status"] = scan["status"]
+    return guard
+
+
 def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, Any]:
     public_paths = list(paths) if paths is not None else default_public_paths()
     public_scan = scan_public_files(public_paths)
+    runtime_guard = build_readiness_runtime_guard(public_file_count=len(public_paths))
     redteam = run_redteam_smoke()
     publication = build_publication_package()
     publication_scan = scan_text(json.dumps(publication, ensure_ascii=False), "unibot-publication-package")
@@ -161,6 +202,26 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "status": public_scan["status"],
                 "scanned_count": public_scan["scanned_count"],
                 "finding_count": public_scan["finding_count"],
+            },
+        },
+        {
+            "check_id": "readiness_runtime_guard",
+            "passed": runtime_guard["status"] == "budget_guard_ready"
+            and runtime_guard["public_safety_status"] == "pass"
+            and runtime_guard["routine_budget"]["default_execution_mode"] == "focused_readiness"
+            and runtime_guard["routine_budget"]["default_reasoning_effort"] == "low"
+            and runtime_guard["routine_budget"]["max_active_work_items_per_run"] == 1
+            and runtime_guard["routine_budget"]["full_suite_required_by_default"] is False
+            and runtime_guard["routine_budget"]["provider_calls_allowed_by_default"] is False
+            and runtime_guard["routine_budget"]["external_actions_allowed_by_default"] is False,
+            "evidence": {
+                "status": runtime_guard["status"],
+                "public_safety_status": runtime_guard["public_safety_status"],
+                "default_execution_mode": runtime_guard["routine_budget"]["default_execution_mode"],
+                "default_reasoning_effort": runtime_guard["routine_budget"]["default_reasoning_effort"],
+                "full_suite_required_by_default": runtime_guard["routine_budget"]["full_suite_required_by_default"],
+                "provider_calls_allowed_by_default": runtime_guard["routine_budget"]["provider_calls_allowed_by_default"],
+                "current_public_file_scan_count": runtime_guard["current_public_file_scan_count"],
             },
         },
         {
@@ -500,6 +561,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
         "passed_count": len(checks) - len(failed),
         "failed_count": len(failed),
         "checks": checks,
+        "runtime_guard": runtime_guard,
         "policy": "Readiness means public-safe draft only, not exam clearance or legal approval.",
     }
 
@@ -514,6 +576,9 @@ def build_readiness_markdown(paths: Iterable[str | Path] | None = None) -> str:
         f"Status: {report['status']}\n\n"
         f"Exam deployment: {report['exam_deployment_status']}\n\n"
         f"Passed: {report['passed_count']}/{report['check_count']}\n\n"
+        f"Runtime guard: {report['runtime_guard']['status']} "
+        f"({report['runtime_guard']['routine_budget']['default_execution_mode']}, "
+        f"full suite default: {report['runtime_guard']['routine_budget']['full_suite_required_by_default']})\n\n"
         "## Checks\n\n"
         f"{check_lines}\n\n"
         f"Policy: {report['policy']}\n"

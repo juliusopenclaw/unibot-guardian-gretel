@@ -10,7 +10,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.readiness import build_readiness_markdown, default_public_paths, run_readiness_check  # noqa: E402
+from unibot.readiness import (  # noqa: E402
+    build_readiness_markdown,
+    build_readiness_runtime_guard,
+    default_public_paths,
+    run_readiness_check,
+)
 from unibot.server import route_request  # noqa: E402
 
 
@@ -36,6 +41,7 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertEqual(report["failed_count"], 0)
         self.assertEqual(report["passed_count"], report["check_count"])
         self.assertIn("public_safety", check_ids)
+        self.assertIn("readiness_runtime_guard", check_ids)
         self.assertIn("redteam", check_ids)
         self.assertIn("publication_package", check_ids)
         self.assertIn("evaluation_packet", check_ids)
@@ -57,6 +63,25 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertIn("exam_boundary", check_ids)
         self.assertIn("public draft review", report["ready_for"])
         self.assertIn("exam deployment", report["not_ready_for"])
+        self.assertEqual(report["runtime_guard"]["status"], "budget_guard_ready")
+        self.assertEqual(report["runtime_guard"]["routine_budget"]["default_execution_mode"], "focused_readiness")
+        self.assertIs(report["runtime_guard"]["routine_budget"]["full_suite_required_by_default"], False)
+        self.assertIs(report["runtime_guard"]["routine_budget"]["provider_calls_allowed_by_default"], False)
+        self.assertIs(report["runtime_guard"]["routine_budget"]["external_actions_allowed_by_default"], False)
+
+    def test_readiness_runtime_guard_keeps_recurring_runs_lightweight(self) -> None:
+        guard = build_readiness_runtime_guard(public_file_count=123)
+
+        self.assertEqual(guard["status"], "budget_guard_ready")
+        self.assertEqual(guard["public_safety_status"], "pass")
+        self.assertEqual(guard["routine_budget"]["default_reasoning_effort"], "low")
+        self.assertEqual(guard["routine_budget"]["max_active_work_items_per_run"], 1)
+        self.assertIs(guard["routine_budget"]["full_suite_required_by_default"], False)
+        self.assertIs(guard["routine_budget"]["provider_calls_allowed_by_default"], False)
+        self.assertIs(guard["routine_budget"]["external_actions_allowed_by_default"], False)
+        self.assertIn("python3 -m pytest tests/test_unibot_readiness.py -q", guard["routine_commands"])
+        self.assertIn("full pytest suite", guard["expensive_or_escalated_by_default"])
+        self.assertEqual(guard["current_public_file_scan_count"], 123)
 
     def test_readiness_check_blocks_when_public_scan_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -74,6 +99,8 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertIn("# UniBot Readiness Check", markdown)
         self.assertIn("public_draft_ready", markdown)
         self.assertIn("Exam deployment: not_cleared", markdown)
+        self.assertIn("Runtime guard: budget_guard_ready", markdown)
+        self.assertIn("`readiness_runtime_guard`: pass", markdown)
 
         status, report = route_request("/api/unibot/readiness-check", {})
         self.assertEqual(status, 200)
