@@ -57,9 +57,9 @@ contract change.
 
 ## Current Work Queue
 
-1. `course_material_public_boundary_alignment`: align course-material public
-   summaries, private-source exclusions, adaptive task demos, and readiness
-   gates.
+1. `adaptive_task_source_boundary_alignment`: align adaptive practice plans with
+   public material summaries, source boundaries, learner-agency evidence, and
+   readiness gates.
 
 ## Closed Harnessed Work
 
@@ -107,6 +107,9 @@ contract change.
 - `open_science_reproducibility_release_alignment`: closed in `ecfa4f8` with
   public reproduction, manual release, authority/compliance, Gretel/GLM thesis,
   autonomy, release-gate, source-card, and human-gate mapping.
+- `course_material_public_boundary_alignment`: closed in `ca9c426` with
+  public/private material contracts, source cards, readiness gates, and human
+  gates for course-material publication boundaries.
 
 ## Automation Rule
 

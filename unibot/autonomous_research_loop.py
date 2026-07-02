@@ -377,7 +377,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "course_material_public_boundary_alignment",
             "priority": 17,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align course-material public summaries, private-source exclusions, adaptive task demos, and readiness gates.",
             "allowed_files": [
                 "unibot/materials.py",
@@ -387,6 +387,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_materials.py tests/test_unibot_readiness.py -q"],
             "review_gate": "course_material_public_private_boundary_traceability",
+            "closure_evidence": {
+                "commit": "ca9c426",
+                "summary": "Course-material public boundary alignment added with public/private material contracts, source cards, readiness gates, and human gates.",
+            },
+        },
+        {
+            "work_id": "adaptive_task_source_boundary_alignment",
+            "priority": 18,
+            "status": "ready",
+            "goal": "Align adaptive practice plans with public material summaries, source boundaries, learner-agency evidence, and readiness gates.",
+            "allowed_files": [
+                "unibot/adaptive_tasks.py",
+                "tests/test_unibot_adaptive_tasks.py",
+                "docs/unibot/UNIBOT_ADAPTIVE_TASKS.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_adaptive_tasks.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "adaptive_tasks_public_material_source_boundary_traceability",
         },
     ]
 
