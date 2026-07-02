@@ -57,10 +57,8 @@ contract change.
 
 ## Current Work Queue
 
-1. `autonomy_progress_memory`: keep the loop from repeating completed work by
-   recording closed items, next candidates, and evidence.
-2. `readiness_perf_guard`: keep recurring low-budget runs from accidentally
-   choosing expensive full-suite paths.
+1. `source_card_drift_guard`: keep source-card coverage and readiness evidence
+   aligned so scientific claims stay source-bound as the project grows.
 
 ## Closed Harnessed Work
 
@@ -72,6 +70,11 @@ contract change.
 - `github_review_packet_hardening`: closed in `9a28675` with manual review
   contract, evidence requirements, publication gate, and manual-publish
   invariant.
+- `autonomy_progress_memory`: closed in `5d16846` with completed queue items,
+  explicit progress evidence, and next recommended work.
+- `readiness_perf_guard`: closed in `c6581a3` with a focused runtime guard for
+  recurring readiness checks, low reasoning effort, and escalated
+  full-suite/provider work.
 
 ## Automation Rule
 

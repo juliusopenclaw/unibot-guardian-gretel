@@ -146,7 +146,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "autonomy_progress_memory",
             "priority": 4,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Keep the autonomous loop from repeating completed work by recording closed items, next candidates, and evidence.",
             "allowed_files": [
                 "unibot/autonomous_research_loop.py",
@@ -155,15 +155,37 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_autonomous_research_loop.py -q"],
             "review_gate": "progress_memory_public_safe",
+            "closure_evidence": {
+                "commit": "5d16846",
+                "summary": "Closed completed queue items, added explicit progress evidence, and exposed next recommended work.",
+            },
         },
         {
             "work_id": "readiness_perf_guard",
             "priority": 5,
-            "status": "candidate",
+            "status": "closed_harnessed",
             "goal": "Add a lightweight readiness performance note or guard so recurring low-budget runs avoid accidentally expensive full-suite paths.",
             "allowed_files": ["unibot/readiness.py", "tests/test_unibot_readiness.py", "docs/unibot/UNIBOT_READINESS_CHECK.md"],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_readiness.py -q"],
             "review_gate": "reasonable_token_and_runtime_budget",
+            "closure_evidence": {
+                "commit": "c6581a3",
+                "summary": "Readiness runtime guard added for focused recurring checks, low reasoning effort, and escalated full-suite/provider work.",
+            },
+        },
+        {
+            "work_id": "source_card_drift_guard",
+            "priority": 6,
+            "status": "ready",
+            "goal": "Keep source-card coverage and readiness evidence aligned so scientific claims stay source-bound as the project grows.",
+            "allowed_files": [
+                "unibot/source_cards.py",
+                "unibot/readiness.py",
+                "tests/test_unibot_readiness.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_readiness.py -q"],
+            "review_gate": "source_bound_public_science",
         },
     ]
 
