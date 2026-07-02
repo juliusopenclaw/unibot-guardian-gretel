@@ -10,6 +10,87 @@ from .public_safety import scan_text
 RELEASE_RUNBOOK_SCHEMA_VERSION = "unibot-release-runbook-v1"
 
 
+def build_release_runbook_evidence_alignment(release_gates: list[dict[str, Any]]) -> dict[str, Any]:
+    gate_ids = [str(gate["gate_id"]) for gate in release_gates]
+    gate_map = {
+        "public_safety_scan": {
+            "readiness_check_ids": ["public_safety"],
+            "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024"],
+            "human_gates": ["public_safety_required"],
+        },
+        "redteam_smoke": {
+            "readiness_check_ids": ["redteam", "evaluation_packet"],
+            "source_card_ids": ["openai-evals", "dfg-gwp"],
+            "human_gates": ["human_review_required"],
+        },
+        "publication_package": {
+            "readiness_check_ids": ["publication_package", "gretel_bachelor_thesis_package"],
+            "source_card_ids": ["dfg-gwp", "zai-glm-52"],
+            "human_gates": ["human_submission_review_required"],
+        },
+        "readiness_check": {
+            "readiness_check_ids": ["readiness_runtime_guard", "source_card_drift_guard", "gretel_autonomous_research_loop"],
+            "source_card_ids": ["dfg-gwp", "eu-ai-act-2024"],
+            "human_gates": ["human_review_required"],
+        },
+        "github_issue_manual_review": {
+            "readiness_check_ids": ["github_issue_bundle", "demo_feedback_triage"],
+            "source_card_ids": ["dfg-gwp", "vanlehn-2011"],
+            "human_gates": ["human_review_before_github_create", "public_safety_required"],
+        },
+        "exam_authority_clearance": {
+            "readiness_check_ids": ["exam_boundary", "review_board_packet", "compliance_matrix"],
+            "source_card_ids": ["hg-nrw-64", "uoc-hilfsmittel", "uoc-ki-faq", "eu-ai-act-2024"],
+            "human_gates": ["written_university_clearance_required_before_exam_use"],
+        },
+    }
+    gate_rows = [
+        {
+            "gate_id": gate_id,
+            "required": bool(next(gate for gate in release_gates if gate["gate_id"] == gate_id)["required"]),
+            "readiness_check_ids": gate_map.get(gate_id, {}).get("readiness_check_ids", []),
+            "source_card_ids": gate_map.get(gate_id, {}).get("source_card_ids", []),
+            "human_gates": gate_map.get(gate_id, {}).get("human_gates", []),
+            "manual_review_required": True,
+        }
+        for gate_id in gate_ids
+    ]
+    alignment = {
+        "schema_version": "unibot-release-runbook-evidence-alignment-v1",
+        "status": "ready",
+        "release_gate_count": len(gate_rows),
+        "required_release_gate_count": len([row for row in gate_rows if row["required"]]),
+        "readiness_snapshot_contract": {
+            "expected_schema_version": "unibot-readiness-evidence-snapshot-v1",
+            "required_status": "ready",
+            "use": "Confirm release-facing work remains public-safe, source-bound, and not exam clearance.",
+        },
+        "review_board_contract": {
+            "expected_schema_version": "unibot-review-board-evidence-alignment-v1",
+            "required_status": "ready",
+            "use": "Human review board alignment must stay ready before authority-facing release language.",
+        },
+        "github_issue_contract": {
+            "expected_schema_version": "unibot-github-issue-evidence-traceability-v1",
+            "required_status": "ready",
+            "manual_publish_only": True,
+        },
+        "release_gates": gate_rows,
+        "unique_readiness_check_ids": sorted({check_id for row in gate_rows for check_id in row["readiness_check_ids"]}),
+        "unique_source_card_ids": sorted({source_id for row in gate_rows for source_id in row["source_card_ids"]}),
+        "required_human_gates": sorted({gate for row in gate_rows for gate in row["human_gates"]}),
+        "unmapped_gate_ids": sorted(gate_id for gate_id in gate_ids if gate_id not in gate_map),
+        "human_gate_reminder": "Release runbook alignment is not exam clearance, legal approval, provider approval, GitHub publication, or thesis submission approval.",
+    }
+    if alignment["unmapped_gate_ids"] or not all(row["manual_review_required"] for row in gate_rows):
+        alignment["status"] = "blocked"
+    scan = scan_text(json.dumps(alignment, ensure_ascii=False), "release-runbook-evidence-alignment")
+    alignment["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        alignment["status"] = "blocked"
+    return alignment
+
+
 def build_release_runbook() -> dict[str, Any]:
     runbook = {
         "schema_version": RELEASE_RUNBOOK_SCHEMA_VERSION,
@@ -870,6 +951,7 @@ def build_release_runbook() -> dict[str, Any]:
             "Do not say approved, granted, certified, or exam-secure unless written clearance exists.",
         ],
     }
+    runbook["release_evidence_alignment"] = build_release_runbook_evidence_alignment(runbook["release_gates"])
     scan = scan_text(json.dumps(runbook, ensure_ascii=False), "release-runbook")
     runbook["public_safety_status"] = scan["status"]
     if scan["status"] != "pass":
@@ -890,6 +972,11 @@ def build_release_runbook_markdown() -> str:
         f"- `{gate['gate_id']}`: required={gate['required']}; evidence: {gate['evidence']}"
         for gate in runbook["release_gates"]
     )
+    alignment = runbook["release_evidence_alignment"]
+    alignment_lines = "\n".join(
+        f"- `{gate['gate_id']}`: checks {', '.join(gate['readiness_check_ids'])}; human gates {', '.join(gate['human_gates'])}"
+        for gate in alignment["release_gates"]
+    )
     endpoints = "\n".join(f"- `{endpoint}`" for endpoint in runbook["api_endpoints"])
     troubleshooting = "\n".join(
         f"- {item['symptom']} Try: {item['try']}" for item in runbook["troubleshooting"]
@@ -908,6 +995,12 @@ def build_release_runbook_markdown() -> str:
         f"{contributor_rules}\n\n"
         "## Release Gates\n\n"
         f"{release_gates}\n\n"
+        "## Release Evidence Alignment\n\n"
+        f"- Status: {alignment['status']}\n"
+        f"- Snapshot schema: {alignment['readiness_snapshot_contract']['expected_schema_version']}\n"
+        f"- Review-board schema: {alignment['review_board_contract']['expected_schema_version']}\n"
+        f"- GitHub issue schema: {alignment['github_issue_contract']['expected_schema_version']}\n"
+        f"{alignment_lines}\n\n"
         "## API Endpoints\n\n"
         f"{endpoints}\n\n"
         "## Troubleshooting\n\n"

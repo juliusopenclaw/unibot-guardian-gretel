@@ -10,7 +10,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from unibot.public_safety import scan_text  # noqa: E402
-from unibot.release_runbook import build_release_runbook, build_release_runbook_markdown  # noqa: E402
+from unibot.release_runbook import (  # noqa: E402
+    build_release_runbook,
+    build_release_runbook_evidence_alignment,
+    build_release_runbook_markdown,
+)
 from unibot.server import route_request  # noqa: E402
 
 
@@ -24,6 +28,28 @@ class UniBotReleaseRunbookTests(unittest.TestCase):
         self.assertEqual(runbook["exam_deployment_status"], "not_cleared")
         self.assertIn("exam deployment", runbook["not_ready_for"])
         self.assertIn("public draft review", runbook["ready_for"])
+        self.assertEqual(runbook["release_evidence_alignment"]["status"], "ready")
+        self.assertEqual(runbook["release_evidence_alignment"]["public_safety_status"], "pass")
+        self.assertEqual(runbook["release_evidence_alignment"]["unmapped_gate_ids"], [])
+
+    def test_release_runbook_evidence_alignment_maps_gates_to_review_contracts(self) -> None:
+        runbook = build_release_runbook()
+        alignment = build_release_runbook_evidence_alignment(runbook["release_gates"])
+        by_gate = {item["gate_id"]: item for item in alignment["release_gates"]}
+
+        self.assertEqual(alignment["schema_version"], "unibot-release-runbook-evidence-alignment-v1")
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["release_gate_count"], len(runbook["release_gates"]))
+        self.assertEqual(alignment["unmapped_gate_ids"], [])
+        self.assertIn("unibot-readiness-evidence-snapshot-v1", alignment["readiness_snapshot_contract"]["expected_schema_version"])
+        self.assertIn("unibot-review-board-evidence-alignment-v1", alignment["review_board_contract"]["expected_schema_version"])
+        self.assertIn("unibot-github-issue-evidence-traceability-v1", alignment["github_issue_contract"]["expected_schema_version"])
+        self.assertTrue(alignment["github_issue_contract"]["manual_publish_only"])
+        self.assertIn("public_safety", by_gate["public_safety_scan"]["readiness_check_ids"])
+        self.assertIn("review_board_packet", by_gate["exam_authority_clearance"]["readiness_check_ids"])
+        self.assertIn("github_issue_bundle", by_gate["github_issue_manual_review"]["readiness_check_ids"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
 
     def test_quickstart_and_contributor_rules_cover_public_workflow(self) -> None:
         runbook = build_release_runbook()
@@ -155,6 +181,8 @@ class UniBotReleaseRunbookTests(unittest.TestCase):
         self.assertIn("Exam deployment: not_cleared", markdown)
         self.assertIn("Contributor Rules", markdown)
         self.assertIn("Release Gates", markdown)
+        self.assertIn("Release Evidence Alignment", markdown)
+        self.assertIn("Snapshot schema", markdown)
 
         status, runbook = route_request("/api/unibot/release-runbook", {})
         self.assertEqual(status, 200)

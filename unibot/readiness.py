@@ -447,12 +447,18 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             "passed": release_runbook["status"] == "public_draft_runbook_not_exam_release"
             and release_runbook["public_safety_status"] == "pass"
             and release_runbook["manual_review_required"] is True
-            and release_runbook["exam_deployment_status"] == "not_cleared",
+            and release_runbook["exam_deployment_status"] == "not_cleared"
+            and release_runbook["release_evidence_alignment"]["status"] == "ready"
+            and release_runbook["release_evidence_alignment"]["public_safety_status"] == "pass"
+            and release_runbook["release_evidence_alignment"]["unmapped_gate_ids"] == [],
             "evidence": {
                 "status": release_runbook["status"],
                 "public_safety_status": release_runbook["public_safety_status"],
                 "manual_review_required": release_runbook["manual_review_required"],
                 "exam_deployment_status": release_runbook["exam_deployment_status"],
+                "release_evidence_alignment_status": release_runbook["release_evidence_alignment"]["status"],
+                "release_gate_count": release_runbook["release_evidence_alignment"]["release_gate_count"],
+                "release_alignment_human_gates": release_runbook["release_evidence_alignment"]["required_human_gates"],
             },
         },
         {

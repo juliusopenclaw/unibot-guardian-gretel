@@ -153,7 +153,7 @@ from .python_exam_drill_session_review_loop import build_python_exam_drill_sessi
 from .python_exam_source_grounded_tutor_drill_pack import build_python_exam_source_grounded_tutor_drill_pack
 from .readiness import build_readiness_markdown, default_public_paths, run_readiness_check
 from .completion_audit import build_completion_audit
-from .release_runbook import build_release_runbook, build_release_runbook_markdown
+from .release_runbook import build_release_runbook, build_release_runbook_evidence_alignment, build_release_runbook_markdown
 from .redteam import run_redteam_smoke
 from .routed_action_executor import build_routed_action_executor
 from .skill_to_workspace_session_carryover import build_skill_to_workspace_session_carryover
@@ -291,6 +291,7 @@ __all__ = [
     "build_readiness_markdown",
     "build_completion_audit",
     "build_release_runbook",
+    "build_release_runbook_evidence_alignment",
     "build_release_runbook_markdown",
     "build_course_study_session_plan",
     "build_study_session_review_report",

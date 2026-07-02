@@ -256,6 +256,22 @@ check public-draft readiness.
 - Any future exam variant needs written review by the responsible university
   authorities before use.
 
+## Release Evidence Alignment
+
+The generated runbook contains `release_evidence_alignment`. It maps every
+release gate to:
+
+- readiness check IDs,
+- source-card IDs,
+- human gates,
+- the readiness evidence snapshot contract,
+- the review-board evidence-alignment contract, and
+- the GitHub issue evidence-traceability contract.
+
+This alignment is a release-review aid only. It does not create a GitHub
+publication, approve a provider call, clear exam use, or approve a real thesis
+submission.
+
 ## Troubleshooting
 
 - If the local API is offline, start the local service and retry the health
