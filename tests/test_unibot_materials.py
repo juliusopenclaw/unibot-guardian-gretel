@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT))
 from unibot.materials import (  # noqa: E402
     build_demo_material_manifest,
     build_material_manifest,
+    build_material_public_boundary_alignment,
     build_public_material_summary,
     normalize_material_record,
     sha256_text,
@@ -34,6 +35,36 @@ class UniBotMaterialsTests(unittest.TestCase):
         self.assertTrue(records["python-lists-demo"]["public_release_allowed"])
         self.assertFalse(records["course-slides-staged"]["public_release_allowed"])
         self.assertFalse(records["course-slides-staged"]["tutor_usable"])
+        self.assertEqual(manifest["material_public_boundary_alignment"]["status"], "ready")
+        self.assertEqual(manifest["material_public_boundary_alignment"]["public_safety_status"], "pass")
+        self.assertEqual(manifest["material_public_boundary_alignment"]["missing_material_ids"], [])
+        self.assertEqual(manifest["material_public_boundary_alignment"]["failed_contract_ids"], [])
+
+    def test_material_public_boundary_alignment_maps_public_and_private_boundaries(self) -> None:
+        manifest = build_demo_material_manifest()
+        summary = build_public_material_summary(manifest["records"])
+        alignment = build_material_public_boundary_alignment(manifest, summary)
+
+        self.assertEqual(
+            alignment["schema_version"],
+            "unibot-course-material-public-boundary-alignment-v1",
+        )
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["missing_material_ids"], [])
+        self.assertEqual(alignment["missing_summary_material_ids"], [])
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertTrue(all(alignment["contracts"].values()))
+        self.assertIn("adaptive_task_plan", alignment["required_readiness_check_ids"])
+        self.assertIn("course_material_policy", alignment["required_readiness_check_ids"])
+        self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+
+        sections = {section["section_id"]: section for section in alignment["sections"]}
+        self.assertIn("python-lists-demo", sections["synthetic_public_demo"]["material_ids"])
+        self.assertIn("course-slides-staged", sections["private_course_placeholder"]["material_ids"])
+        self.assertEqual(alignment["release_boundary"], "public_metadata_and_authorized_synthetic_excerpt_only")
 
     def test_material_validation_blocks_unknown_permission_and_unsafe_excerpt(self) -> None:
         record = normalize_material_record(

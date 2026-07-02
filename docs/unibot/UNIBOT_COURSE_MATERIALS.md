@@ -62,6 +62,22 @@ The readiness gate includes a course-material policy check. The demo manifest
 must show that synthetic material can be public, while private course material
 remains staged or private-only until it has explicit permission and review.
 
+## Public Boundary Alignment
+
+`build_demo_material_manifest()` includes a
+`material_public_boundary_alignment` block. It maps four review sections:
+
+- synthetic public demo material
+- private course placeholder material
+- public summary exclusions
+- adaptive task public input
+
+Each section names material IDs, public source-card IDs, readiness checks, and
+human gates. The alignment is a review aid only. It does not permit publishing
+private course files, local paths, raw course text, exam material, or student
+data. Public release remains limited to metadata, hashes, source-card IDs, and
+authorized public-safe synthetic excerpts.
+
 ## Course Tutor V1
 
 The course tutor adds a source-card exam-scope map on top of the staging layer.

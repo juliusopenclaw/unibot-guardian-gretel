@@ -178,6 +178,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     material_manifest = build_demo_material_manifest()
     material_summary = build_public_material_summary(material_manifest["records"])
     material_summary_scan = scan_text(json.dumps(material_summary, ensure_ascii=False), "unibot-material-summary")
+    material_public_boundary_alignment = material_manifest["material_public_boundary_alignment"]
     adaptive_plan = generate_adaptive_practice_plan(
         skill_state={"python_lists": {"signals": 3, "high_help_events": 1}},
         material_records=material_manifest["records"],
@@ -386,12 +387,21 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             "check_id": "course_material_policy",
             "passed": material_manifest["record_count"] >= 2
             and material_manifest["public_release_allowed_count"] == 1
-            and material_summary_scan["status"] == "pass",
+            and material_summary_scan["status"] == "pass"
+            and material_public_boundary_alignment["status"] == "ready"
+            and material_public_boundary_alignment["public_safety_status"] == "pass"
+            and material_public_boundary_alignment["missing_material_ids"] == []
+            and material_public_boundary_alignment["missing_summary_material_ids"] == []
+            and material_public_boundary_alignment["missing_source_card_ids"] == []
+            and material_public_boundary_alignment["failed_contract_ids"] == [],
             "evidence": {
                 "record_count": material_manifest["record_count"],
                 "tutor_usable_count": material_manifest["tutor_usable_count"],
                 "public_release_allowed_count": material_manifest["public_release_allowed_count"],
                 "public_summary_scan": material_summary_scan["status"],
+                "material_public_boundary_alignment_status": material_public_boundary_alignment["status"],
+                "material_public_boundary_alignment_section_count": material_public_boundary_alignment["section_count"],
+                "material_public_boundary_alignment_human_gates": material_public_boundary_alignment["required_human_gates"],
             },
         },
         {

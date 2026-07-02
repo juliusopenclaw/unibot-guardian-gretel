@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
 from .public_safety import scan_text
+from .source_cards import get_source_card
 
 
 MATERIAL_MANIFEST_SCHEMA_VERSION = "unibot-course-material-manifest-v1"
+MATERIAL_PUBLIC_BOUNDARY_ALIGNMENT_SCHEMA_VERSION = "unibot-course-material-public-boundary-alignment-v1"
 PRIVATE_MATERIAL_ROOT = Path("knowledge") / ("private_course" + "_materials")
 
 ALLOWED_SOURCE_KINDS = {
@@ -262,6 +265,118 @@ def build_public_material_summary(records: Iterable[dict[str, Any] | CourseMater
     }
 
 
+def build_material_public_boundary_alignment(
+    manifest: dict[str, Any] | None = None,
+    summary: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if manifest is None:
+        manifest = build_material_manifest(demo_material_records())
+    if summary is None:
+        summary = build_public_material_summary(manifest.get("records", []))
+
+    manifest_records = {str(record.get("material_id", "")): record for record in manifest.get("records", [])}
+    summary_records = {str(record.get("material_id", "")): record for record in summary.get("records", [])}
+    sections = [
+        {
+            "section_id": "synthetic_public_demo",
+            "material_ids": ["python-lists-demo"],
+            "source_card_ids": ["vanlehn-2011"],
+            "readiness_check_ids": ["adaptive_task_plan", "course_material_policy", "publication_package"],
+            "human_gates": ["human_submission_review_required"],
+            "public_boundary": "synthetic excerpt can appear publicly after public-safety review",
+        },
+        {
+            "section_id": "private_course_placeholder",
+            "material_ids": ["course-slides-staged"],
+            "source_card_ids": ["dfg-gwp"],
+            "readiness_check_ids": ["course_material_policy", "public_safety"],
+            "human_gates": ["human_review_required", "public_safety_required"],
+            "public_boundary": "private course placeholder stays private-only and staged",
+        },
+        {
+            "section_id": "public_summary_exclusion",
+            "material_ids": sorted(material_id for material_id in manifest_records if material_id),
+            "source_card_ids": ["dfg-gwp", "gdpr-2016-679"],
+            "readiness_check_ids": ["course_material_policy", "data_protection_screening"],
+            "human_gates": ["datenschutz_review_required_before_real_pilot", "human_review_required"],
+            "public_boundary": "public summaries contain metadata, hashes, source-card IDs, and allowed excerpts only",
+        },
+        {
+            "section_id": "adaptive_task_public_input",
+            "material_ids": ["python-lists-demo"],
+            "source_card_ids": ["unesco-genai-2023", "vanlehn-2011"],
+            "readiness_check_ids": ["adaptive_task_plan", "course_material_policy"],
+            "human_gates": ["human_submission_review_required"],
+            "public_boundary": "adaptive demos may consume public-safe synthetic material but not raw private course text",
+        },
+    ]
+
+    required_material_ids = sorted({material_id for section in sections for material_id in section["material_ids"]})
+    required_summary_ids = required_material_ids
+    required_source_card_ids = sorted({card_id for section in sections for card_id in section["source_card_ids"]})
+    missing_material_ids = sorted(material_id for material_id in required_material_ids if material_id not in manifest_records)
+    missing_summary_material_ids = sorted(material_id for material_id in required_summary_ids if material_id not in summary_records)
+    missing_source_card_ids = sorted(card_id for card_id in required_source_card_ids if get_source_card(card_id) is None)
+    summary_payload = jsonable_public_material_summary(summary)
+    summary_scan = scan_text(summary_payload, "material-public-boundary-alignment-summary")
+    private_record = manifest_records.get("course-slides-staged", {})
+    private_summary = summary_records.get("course-slides-staged", {})
+
+    contracts = {
+        "single_public_demo_only": manifest.get("public_release_allowed_count") == 1
+        and summary.get("public_release_allowed_count") == 1,
+        "private_material_not_public": private_record.get("public_release_allowed") is False
+        and private_summary.get("public_release_allowed") is False,
+        "public_summary_excludes_raw_private_text": "raw private course text" in summary.get("excluded", [])
+        and PRIVATE_MATERIAL_ROOT.as_posix() not in summary_payload
+        and "/" + "Users/" not in summary_payload,
+        "public_records_have_public_safe_excerpt_only": all(
+            "public_excerpt" not in record or record.get("public_release_allowed") is True
+            for record in summary.get("records", [])
+        )
+        and summary_scan["status"] == "pass",
+        "manifest_storage_policy_private": "never publish" in str(manifest.get("private_storage_policy", "")).lower(),
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    public_safety_status = "pass" if summary_scan["status"] == "pass" else "fail"
+    status = (
+        "ready"
+        if not missing_material_ids
+        and not missing_summary_material_ids
+        and not missing_source_card_ids
+        and not failed_contract_ids
+        and public_safety_status == "pass"
+        else "needs_review"
+    )
+
+    return {
+        "schema_version": MATERIAL_PUBLIC_BOUNDARY_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "missing_material_ids": missing_material_ids,
+        "missing_summary_material_ids": missing_summary_material_ids,
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "contracts": contracts,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "public_summary_scan_status": summary_scan["status"],
+        "release_boundary": "public_metadata_and_authorized_synthetic_excerpt_only",
+        "policy": (
+            "Course-material public boundary alignment is a review aid only; it is not permission "
+            "to publish private course files, local paths, raw course text, exam material, or student data."
+        ),
+        "public_safety_status": public_safety_status,
+    }
+
+
+def jsonable_public_material_summary(summary: dict[str, Any]) -> str:
+    return json.dumps(summary, ensure_ascii=False, sort_keys=True)
+
+
 def demo_material_records() -> list[dict[str, Any]]:
     return [
         {
@@ -295,4 +410,7 @@ def demo_material_records() -> list[dict[str, Any]]:
 
 
 def build_demo_material_manifest() -> dict[str, Any]:
-    return build_material_manifest(demo_material_records())
+    manifest = build_material_manifest(demo_material_records())
+    summary = build_public_material_summary(manifest["records"])
+    manifest["material_public_boundary_alignment"] = build_material_public_boundary_alignment(manifest, summary)
+    return manifest

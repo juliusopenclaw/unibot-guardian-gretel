@@ -112,6 +112,7 @@ from .exam_workspace_session_console import build_exam_workspace_session_console
 from .materials import (
     build_demo_material_manifest,
     build_material_manifest,
+    build_material_public_boundary_alignment,
     build_public_material_summary,
     demo_material_records,
     normalize_material_record,
@@ -246,6 +247,7 @@ __all__ = [
     "run_loop_lab",
     "build_demo_material_manifest",
     "build_material_manifest",
+    "build_material_public_boundary_alignment",
     "build_public_material_summary",
     "demo_material_records",
     "normalize_material_record",
