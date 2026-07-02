@@ -9,8 +9,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.adaptive_tasks import generate_adaptive_practice_plan  # noqa: E402
-from unibot.materials import sha256_text  # noqa: E402
+from unibot.adaptive_tasks import (  # noqa: E402
+    build_adaptive_task_source_boundary_alignment,
+    generate_adaptive_practice_plan,
+)
+from unibot.materials import build_public_material_summary, sha256_text  # noqa: E402
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
 
@@ -34,6 +37,31 @@ class UniBotAdaptiveTasksTests(unittest.TestCase):
         self.assertEqual(plan["tasks"][0]["source_reference"]["material_id"], "python-lists-demo")
         self.assertIn("socratic_checks", plan["tasks"][0])
         self.assertIn("practice-only", json.dumps(plan, ensure_ascii=False))
+        self.assertEqual(plan["source_boundary_alignment"]["status"], "ready")
+        self.assertEqual(plan["source_boundary_alignment"]["public_safety_status"], "pass")
+        self.assertEqual(plan["source_boundary_alignment"]["non_public_source_material_ids"], [])
+        self.assertEqual(plan["source_boundary_alignment"]["failed_contract_ids"], [])
+
+    def test_source_boundary_alignment_preserves_sources_and_learner_agency(self) -> None:
+        plan = generate_adaptive_practice_plan(max_tasks=3, public_safe=True)
+        alignment = build_adaptive_task_source_boundary_alignment(plan)
+
+        self.assertEqual(alignment["schema_version"], "unibot-adaptive-practice-source-boundary-alignment-v1")
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertIn("python-lists-demo", alignment["public_material_ids"])
+        self.assertEqual(alignment["non_public_source_material_ids"], [])
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertTrue(all(alignment["contracts"].values()))
+        self.assertIn("adaptive_task_plan", alignment["required_readiness_check_ids"])
+        self.assertIn("course_material_policy", alignment["required_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("public_safety_required", alignment["required_human_gates"])
+
+        sections = {section["section_id"]: section for section in alignment["sections"]}
+        self.assertIn("python-lists-demo", sections["public_material_input"]["material_ids"])
+        self.assertIn("raw private course text", sections["private_material_exclusion"]["excluded"])
 
     def test_public_plan_excludes_private_tutor_material(self) -> None:
         records = [
@@ -68,10 +96,37 @@ class UniBotAdaptiveTasksTests(unittest.TestCase):
         self.assertEqual(public_plan["eligible_material_count"], 0)
         self.assertIn("synthetic-fallback", public_payload)
         self.assertNotIn("private-pandas-week", public_payload)
+        self.assertEqual(public_plan["source_boundary_alignment"]["status"], "ready")
+        self.assertEqual(public_plan["source_boundary_alignment"]["non_public_source_material_ids"], [])
         self.assertEqual(local_plan["eligible_material_count"], 1)
         self.assertIn("private-pandas-week", local_payload)
         self.assertNotIn("/" + "Users/student", local_payload)
         self.assertNotIn("private pandas staged text", local_payload)
+
+    def test_source_boundary_alignment_blocks_private_public_plan_reference(self) -> None:
+        plan = generate_adaptive_practice_plan(max_tasks=3, public_safe=True)
+        plan["tasks"][0]["source_reference"]["material_id"] = "private-pandas-week"
+        material_summary = build_public_material_summary(
+            [
+                {
+                    "material_id": "private-pandas-week",
+                    "title": "Private pandas week",
+                    "source_kind": "slide_pdf",
+                    "permission_status": "private_course_use_only",
+                    "publish_policy": "private_only",
+                    "extraction_status": "text_extracted",
+                    "review_status": "reviewed_for_private_tutor",
+                    "skill_tags": ["pandas"],
+                    "source_card_ids": ["dfg-gwp"],
+                    "sha256": sha256_text("private pandas staged text"),
+                }
+            ]
+        )
+        alignment = build_adaptive_task_source_boundary_alignment(plan, material_summary)
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertIn("private-pandas-week", alignment["non_public_source_material_ids"])
+        self.assertIn("sources_are_public_summary_or_synthetic", alignment["failed_contract_ids"])
 
     def test_public_plan_blocks_if_generated_payload_is_not_public_safe(self) -> None:
         records = [

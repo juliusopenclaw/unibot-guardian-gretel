@@ -103,6 +103,12 @@ class UniBotReadinessTests(unittest.TestCase):
             "human_submission_review_required",
             course_material["evidence"]["material_public_boundary_alignment_human_gates"],
         )
+        adaptive = next(check for check in report["checks"] if check["check_id"] == "adaptive_task_plan")
+        self.assertEqual(adaptive["evidence"]["source_boundary_alignment_status"], "ready")
+        self.assertIn(
+            "human_submission_review_required",
+            adaptive["evidence"]["source_boundary_alignment_human_gates"],
+        )
         glm = next(check for check in report["checks"] if check["check_id"] == "gretel_glm_evolve_lane")
         self.assertEqual(glm["evidence"]["provider_redaction_alignment_status"], "ready")
         self.assertIn(

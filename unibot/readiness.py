@@ -185,6 +185,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
         max_tasks=3,
         public_safe=True,
     )
+    adaptive_source_boundary_alignment = adaptive_plan["source_boundary_alignment"]
     demo_run = build_local_demo_run()
     feedback_template = demo_feedback_template()
     feedback_template_scan = scan_text(json.dumps(feedback_template, ensure_ascii=False), "unibot-feedback-template")
@@ -409,12 +410,20 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             "passed": adaptive_plan["status"] == "ok"
             and adaptive_plan["public_safety_status"] == "pass"
             and adaptive_plan["task_count"] >= 3
-            and all(task["public_safe"] for task in adaptive_plan["tasks"]),
+            and all(task["public_safe"] for task in adaptive_plan["tasks"])
+            and adaptive_source_boundary_alignment["status"] == "ready"
+            and adaptive_source_boundary_alignment["public_safety_status"] == "pass"
+            and adaptive_source_boundary_alignment["non_public_source_material_ids"] == []
+            and adaptive_source_boundary_alignment["missing_source_card_ids"] == []
+            and adaptive_source_boundary_alignment["failed_contract_ids"] == [],
             "evidence": {
                 "status": adaptive_plan["status"],
                 "task_count": adaptive_plan["task_count"],
                 "public_safety_status": adaptive_plan["public_safety_status"],
                 "eligible_material_count": adaptive_plan["eligible_material_count"],
+                "source_boundary_alignment_status": adaptive_source_boundary_alignment["status"],
+                "source_boundary_alignment_section_count": adaptive_source_boundary_alignment["section_count"],
+                "source_boundary_alignment_human_gates": adaptive_source_boundary_alignment["required_human_gates"],
             },
         },
         {

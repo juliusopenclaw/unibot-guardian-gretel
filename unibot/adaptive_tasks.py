@@ -1,19 +1,24 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from datetime import datetime, timezone
 from typing import Any, Iterable
 
 from .materials import (
     CourseMaterialRecord,
+    build_demo_material_manifest,
+    build_public_material_summary,
     demo_material_records,
     normalize_material_record,
     validate_material_record,
 )
 from .public_safety import scan_text
+from .source_cards import get_source_card
 
 
 ADAPTIVE_TASK_PLAN_SCHEMA_VERSION = "unibot-adaptive-task-plan-v1"
+ADAPTIVE_TASK_SOURCE_BOUNDARY_ALIGNMENT_SCHEMA_VERSION = "unibot-adaptive-practice-source-boundary-alignment-v1"
 
 DEFAULT_SKILL_ORDER = ["python_lists", "debugging", "pandas", "boxplots", "loops"]
 
@@ -117,7 +122,8 @@ def generate_adaptive_practice_plan(
     max_tasks: int = 3,
     public_safe: bool = True,
 ) -> dict[str, Any]:
-    records = _eligible_materials(material_records if material_records is not None else demo_material_records(), public_safe=public_safe)
+    source_records = list(material_records if material_records is not None else demo_material_records())
+    records = _eligible_materials(source_records, public_safe=public_safe)
     materials_by_skill = _materials_by_skill(records)
     skill_order = _rank_skills(skill_state)
     tasks = []
@@ -144,7 +150,157 @@ def generate_adaptive_practice_plan(
     if public_safe and scan["status"] != "pass":
         plan["status"] = "blocked"
         plan["public_safety_findings"] = scan["findings"]
+    if public_safe:
+        plan["source_boundary_alignment"] = build_adaptive_task_source_boundary_alignment(
+            plan=plan,
+            material_summary=build_public_material_summary(source_records),
+        )
+        if plan["source_boundary_alignment"]["status"] != "ready":
+            plan["status"] = "needs_review"
     return plan
+
+
+def build_adaptive_task_source_boundary_alignment(
+    plan: dict[str, Any] | None = None,
+    material_summary: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if plan is None:
+        plan = generate_adaptive_practice_plan(public_safe=True)
+    if material_summary is None:
+        manifest = build_demo_material_manifest()
+        material_summary = build_public_material_summary(manifest["records"])
+    material_summary = _alignment_safe_material_summary(material_summary)
+
+    plan_without_alignment = {key: value for key, value in plan.items() if key != "source_boundary_alignment"}
+    summary_records = {
+        str(record.get("material_id", "")): record
+        for record in material_summary.get("records", [])
+        if str(record.get("material_id", ""))
+    }
+    public_material_ids = sorted(
+        material_id for material_id, record in summary_records.items() if record.get("public_release_allowed") is True
+    )
+    task_source_ids = sorted(
+        {
+            str(task.get("source_reference", {}).get("material_id", ""))
+            for task in plan.get("tasks", [])
+            if str(task.get("source_reference", {}).get("material_id", ""))
+        }
+    )
+    non_public_source_ids = sorted(
+        material_id
+        for material_id in task_source_ids
+        if material_id != "synthetic-fallback" and material_id not in public_material_ids
+    )
+    source_card_ids = sorted(
+        {
+            str(card_id)
+            for task in plan.get("tasks", [])
+            for card_id in task.get("source_reference", {}).get("source_card_ids", [])
+            if str(card_id)
+        }
+        | {"unesco-genai-2023", "vanlehn-2011", "dfg-gwp"}
+    )
+    sections = [
+        {
+            "section_id": "public_material_input",
+            "material_ids": public_material_ids,
+            "source_card_ids": ["vanlehn-2011"],
+            "readiness_check_ids": ["adaptive_task_plan", "course_material_policy"],
+            "human_gates": ["human_submission_review_required"],
+            "boundary": "adaptive public plans may cite public-safe material summaries and authorized synthetic excerpts only",
+        },
+        {
+            "section_id": "learner_agency_contract",
+            "task_ids": [str(task.get("task_id", "")) for task in plan.get("tasks", [])],
+            "source_card_ids": ["unesco-genai-2023", "vanlehn-2011"],
+            "readiness_check_ids": ["adaptive_task_plan", "evaluation_packet"],
+            "human_gates": ["human_submission_review_required"],
+            "boundary": "tasks must ask for predictions, smallest attempts, reflections, and logged help levels before more help",
+        },
+        {
+            "section_id": "private_material_exclusion",
+            "excluded": material_summary.get("excluded", []),
+            "source_card_ids": ["dfg-gwp"],
+            "readiness_check_ids": ["course_material_policy", "public_safety"],
+            "human_gates": ["human_review_required", "public_safety_required"],
+            "boundary": "private course files, raw course text, local paths, student data, and exam data stay out of public tasks",
+        },
+        {
+            "section_id": "readiness_trace",
+            "source_card_ids": source_card_ids,
+            "readiness_check_ids": ["adaptive_task_plan", "course_material_policy", "public_safety"],
+            "human_gates": ["human_submission_review_required"],
+            "boundary": "readiness must fail if public tasks depend on private material or lose learner-agency safeguards",
+        },
+    ]
+    payload = json.dumps(
+        {"plan": plan_without_alignment, "material_summary": material_summary, "sections": sections},
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    payload_scan = scan_text(payload, "adaptive-practice-source-boundary-alignment")
+    contracts = {
+        "plan_is_public_safe": plan.get("public_safe") is True
+        and plan.get("status") == "ok"
+        and plan.get("public_safety_status") == "pass",
+        "enough_public_tasks": int(plan.get("task_count", 0) or 0) >= 3,
+        "sources_are_public_summary_or_synthetic": non_public_source_ids == [],
+        "learner_agency_preserved": all(_task_preserves_learner_agency(task) for task in plan.get("tasks", [])),
+        "public_summary_excludes_private_inputs": "raw private course text" in material_summary.get("excluded", [])
+        and "/" + "Users/" not in payload
+        and "local_path" not in payload,
+        "payload_public_safe": payload_scan["status"] == "pass",
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    missing_source_card_ids = sorted(card_id for card_id in source_card_ids if get_source_card(card_id) is None)
+    status = "ready" if not non_public_source_ids and not failed_contract_ids and not missing_source_card_ids else "needs_review"
+
+    return {
+        "schema_version": ADAPTIVE_TASK_SOURCE_BOUNDARY_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "task_source_material_ids": task_source_ids,
+        "public_material_ids": public_material_ids,
+        "non_public_source_material_ids": non_public_source_ids,
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "contracts": contracts,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "public_safety_status": payload_scan["status"],
+        "policy": (
+            "Adaptive task source-boundary alignment is a public review aid only; it does not authorize "
+            "private course text, local paths, exam material, student data, grading, or exam deployment."
+        ),
+    }
+
+
+def _task_preserves_learner_agency(task: dict[str, Any]) -> bool:
+    artifacts = set(task.get("expected_student_artifacts", []))
+    return (
+        "own prediction before code" in artifacts
+        and "smallest attempted step" in artifacts
+        and "one reflection sentence" in artifacts
+        and "help level logged if external AI was used" in artifacts
+        and "A0-A2" in str(task.get("help_policy", ""))
+        and "no grade" in str(task.get("assessment_policy", "")).lower()
+    )
+
+
+def _alignment_safe_material_summary(material_summary: dict[str, Any]) -> dict[str, Any]:
+    safe_summary = dict(material_summary)
+    safe_records = []
+    for record in material_summary.get("records", []):
+        safe_record = dict(record)
+        if safe_record.get("public_release_allowed") is not True:
+            safe_record.pop("public_excerpt", None)
+        safe_records.append(safe_record)
+    safe_summary["records"] = safe_records
+    return safe_summary
 
 
 def _rank_skills(skill_state: dict[str, Any] | None) -> list[str]:

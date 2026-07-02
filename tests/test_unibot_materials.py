@@ -87,6 +87,27 @@ class UniBotMaterialsTests(unittest.TestCase):
         self.assertIn("unknown_permission_cannot_be_reviewed_for_use", validation["issues"])
         self.assertIn("public_policy_requires_public_or_authorized_permission", validation["issues"])
 
+    def test_public_summary_removes_public_excerpt_when_validation_blocks_record(self) -> None:
+        record = {
+            "material_id": "unsafe-demo",
+            "title": "Unsafe demo",
+            "source_kind": "synthetic_demo",
+            "permission_status": "synthetic",
+            "publish_policy": "synthetic_public",
+            "extraction_status": "text_extracted",
+            "review_status": "reviewed_public_safe",
+            "skill_tags": ["debugging"],
+            "source_card_ids": ["vanlehn-2011"],
+            "sha256": sha256_text("unsafe"),
+            "public_excerpt": f"Contact: {'student'}@example.invalid",
+        }
+        summary = build_public_material_summary([record])
+        payload = json.dumps(summary, ensure_ascii=False)
+
+        self.assertEqual(summary["public_release_allowed_count"], 0)
+        self.assertNotIn("public_excerpt", summary["records"][0])
+        self.assertNotIn("student" + "@example.invalid", payload)
+
     def test_public_summary_redacts_local_paths_and_private_text(self) -> None:
         record = {
             "material_id": "local-course-file",

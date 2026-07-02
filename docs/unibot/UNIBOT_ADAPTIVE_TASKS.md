@@ -43,3 +43,15 @@ The plan is practice-only. It does not create grades, exam judgments, AI
 detection evidence, or accommodation decisions. Public plans use only public-safe
 material summaries and synthetic task text. Private course content remains local
 and is referenced only by metadata and hashes.
+
+## Source Boundary Alignment
+
+Public adaptive plans include a `source_boundary_alignment` block. It checks
+that task source references are either public-summary material IDs or synthetic
+fallbacks, that private course material remains excluded, and that each task
+preserves learner agency through predictions, smallest own attempts, reflection,
+and help-level logging.
+
+The alignment names readiness checks, source-card IDs, and human gates. It is a
+review aid only. It does not authorize private course text, local paths, exam
+material, student data, grading, or exam deployment.

@@ -253,6 +253,7 @@ def build_public_material_summary(records: Iterable[dict[str, Any] | CourseMater
         summary["validation_status"] = validation["status"]
         if validation["status"] != "ok":
             summary["public_release_allowed"] = False
+            summary.pop("public_excerpt", None)
         summaries.append(summary)
 
     return {
