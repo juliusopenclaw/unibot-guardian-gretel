@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from typing import Any
 
+from .adaptive_tasks import generate_adaptive_practice_plan
 from .handoff import build_authority_handoff_packet
+from .public_safety import scan_text
 from .redteam import run_redteam_smoke
 from .source_cards import get_source_card
 
 
 EVALUATION_SCHEMA_VERSION = "unibot-evaluation-packet-v1"
+EVALUATION_LEARNER_AGENCY_BOUNDARY_ALIGNMENT_SCHEMA_VERSION = "unibot-evaluation-learner-agency-boundary-alignment-v1"
 
 
 def synthetic_tasks() -> list[dict[str, Any]]:
@@ -202,12 +206,124 @@ def build_consent_boundary() -> dict[str, Any]:
     }
 
 
+def build_evaluation_learner_agency_boundary_alignment(
+    packet: dict[str, Any] | None = None,
+    adaptive_plan: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if packet is None:
+        packet = build_evaluation_packet()
+    if adaptive_plan is None:
+        adaptive_plan = generate_adaptive_practice_plan(max_tasks=3, public_safe=True)
+
+    source_boundary = adaptive_plan.get("source_boundary_alignment", {})
+    dimension_ids = {
+        str(dimension.get("dimension_id", ""))
+        for dimension in packet.get("scientific_quality_rubric", {}).get("dimensions", [])
+        if str(dimension.get("dimension_id", ""))
+    }
+    codebook_rules = {str(rule.get("code", "")): rule for rule in packet.get("codebook", {}).get("coding_rules", [])}
+    source_card_ids = sorted(
+        {
+            str(card.get("source_id", ""))
+            for card in packet.get("source_cards", [])
+            if str(card.get("source_id", ""))
+        }
+        | {"dfg-gwp", "gdpr-2016-679", "uoc-ki-lehre", "unesco-genai-2023", "vanlehn-2011"}
+    )
+    sections = [
+        {
+            "section_id": "synthetic_task_set",
+            "task_ids": [str(task.get("task_id", "")) for task in packet.get("synthetic_tasks", [])],
+            "dimension_ids": ["socratic_help_quality", "source_grounding", "learner_agency_and_fairness"],
+            "source_card_ids": ["unesco-genai-2023", "vanlehn-2011"],
+            "readiness_check_ids": ["evaluation_packet", "adaptive_task_plan"],
+            "human_gates": ["human_submission_review_required"],
+            "boundary": "evaluation tasks stay synthetic, source-aware, and learner-next-step oriented",
+        },
+        {
+            "section_id": "adaptive_practice_trace",
+            "adaptive_task_ids": [str(task.get("task_id", "")) for task in adaptive_plan.get("tasks", [])],
+            "adaptive_alignment_status": source_boundary.get("status", ""),
+            "readiness_check_ids": ["adaptive_task_plan", "course_material_policy", "evaluation_packet"],
+            "source_card_ids": source_boundary.get("sections", [{}])[0].get("source_card_ids", ["vanlehn-2011"]),
+            "human_gates": ["human_submission_review_required", "public_safety_required"],
+            "boundary": "evaluation claims must agree with adaptive public-source and learner-agency safeguards",
+        },
+        {
+            "section_id": "high_stakes_exclusion",
+            "boundaries": packet.get("boundaries", []),
+            "excluded_measures": packet.get("measurement_plan", {}).get("excluded_measures", []),
+            "readiness_check_ids": ["evaluation_packet", "data_protection_screening", "public_safety"],
+            "source_card_ids": ["dfg-gwp", "gdpr-2016-679", "uoc-ki-lehre"],
+            "human_gates": ["datenschutz_review_required_before_real_pilot", "human_review_required"],
+            "boundary": "evaluation remains formative and cannot become grades, exam clearance, proctoring, or detection evidence",
+        },
+        {
+            "section_id": "measurement_no_grade_contract",
+            "primary_measures": packet.get("measurement_plan", {}).get("primary_measures", []),
+            "codebook_codes": sorted(codebook_rules),
+            "readiness_check_ids": ["evaluation_packet", "review_board_packet"],
+            "source_card_ids": ["kulik-fletcher-2016", "vanlehn-2011"],
+            "human_gates": ["human_submission_review_required"],
+            "boundary": "measures are descriptive and formative, not collapsed into official assessment",
+        },
+    ]
+    payload = json.dumps(
+        {"packet": {key: value for key, value in packet.items() if key != "learner_agency_boundary_alignment"}, "sections": sections},
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    payload_scan = scan_text(payload, "evaluation-learner-agency-boundary-alignment")
+    missing_source_card_ids = sorted(source_id for source_id in source_card_ids if get_source_card(source_id) is None)
+    contracts = {
+        "evaluation_packet_draft_only": packet.get("status") == "draft_not_ethics_or_authority_cleared",
+        "synthetic_tasks_public_safe": len(packet.get("synthetic_tasks", [])) >= 4
+        and scan_text(json.dumps(packet.get("synthetic_tasks", []), ensure_ascii=False), "evaluation-synthetic-tasks")["status"] == "pass",
+        "adaptive_plan_boundary_ready": adaptive_plan.get("status") == "ok"
+        and source_boundary.get("status") == "ready"
+        and source_boundary.get("non_public_source_material_ids", []) == [],
+        "learner_agency_rubric_present": {"socratic_help_quality", "learner_agency_and_fairness"}.issubset(dimension_ids)
+        and "student_next_step" in codebook_rules
+        and codebook_rules.get("solution_leakage", {}).get("target") == "none",
+        "high_stakes_measures_excluded": {
+            "official grades",
+            "real exam performance",
+            "disciplinary KI detection",
+        }.issubset(set(packet.get("measurement_plan", {}).get("excluded_measures", [])))
+        and {"no grades", "no real exam performance", "no proctoring", "no KI detection as evidence"}.issubset(
+            set(packet.get("boundaries", []))
+        ),
+        "payload_public_safe": payload_scan["status"] == "pass",
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    status = "ready" if not missing_source_card_ids and not failed_contract_ids else "needs_review"
+    return {
+        "schema_version": EVALUATION_LEARNER_AGENCY_BOUNDARY_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "contracts": contracts,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "public_safety_status": payload_scan["status"],
+        "policy": (
+            "Evaluation learner-agency boundary alignment is a public review aid only; it does not "
+            "authorize grading, exam clearance, proctoring, KI-detection evidence, accommodation decisions, "
+            "private course text, local paths, or student data."
+        ),
+    }
+
+
 def build_evaluation_packet() -> dict[str, Any]:
     source_ids = ["dfg-gwp", "vanlehn-2011", "kulik-fletcher-2016", "unesco-genai-2023", "uoc-ki-lehre", "gdpr-2016-679"]
     source_cards = [card for source_id in source_ids if (card := get_source_card(source_id))]
     redteam = run_redteam_smoke()
     handoff = build_authority_handoff_packet()
-    return {
+    packet = {
         "schema_version": EVALUATION_SCHEMA_VERSION,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "status": "draft_not_ethics_or_authority_cleared",
@@ -250,6 +366,8 @@ def build_evaluation_packet() -> dict[str, Any]:
         },
         "source_cards": source_cards,
     }
+    packet["learner_agency_boundary_alignment"] = build_evaluation_learner_agency_boundary_alignment(packet)
+    return packet
 
 
 def build_evaluation_markdown() -> str:
@@ -265,6 +383,10 @@ def build_evaluation_markdown() -> str:
     boundary_lines = "\n".join(f"- {boundary}" for boundary in packet["boundaries"])
     stop_lines = "\n".join(f"- {rule}" for rule in packet["consent_boundary"]["stop_rules"])
     source_lines = "\n".join(f"- `{card['source_id']}`: {card['product_rule']}" for card in packet["source_cards"])
+    alignment = packet["learner_agency_boundary_alignment"]
+    alignment_lines = "\n".join(
+        f"- `{section['section_id']}`: {section['boundary']}" for section in alignment["sections"]
+    )
     return (
         "# UniBot Evaluation Packet\n\n"
         f"Status: {packet['status_label_de']}\n\n"
@@ -278,6 +400,9 @@ def build_evaluation_markdown() -> str:
         f"{measure_lines}\n\n"
         "## Scientific Quality Rubric\n\n"
         f"{rubric_lines}\n\n"
+        "## Learner-Agency Boundary Alignment\n\n"
+        f"Status: {alignment['status']}\n\n"
+        f"{alignment_lines}\n\n"
         "## Stop Rules\n\n"
         f"{stop_lines}\n\n"
         "## Quality Gates\n\n"

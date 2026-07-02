@@ -76,6 +76,12 @@ class UniBotReadinessTests(unittest.TestCase):
         publication = next(check for check in report["checks"] if check["check_id"] == "publication_package")
         self.assertEqual(publication["evidence"]["reproducibility_alignment_status"], "ready")
         self.assertIn("human_submission_review_required", publication["evidence"]["reproducibility_alignment_human_gates"])
+        evaluation = next(check for check in report["checks"] if check["check_id"] == "evaluation_packet")
+        self.assertEqual(evaluation["evidence"]["learner_agency_alignment_status"], "ready")
+        self.assertIn(
+            "human_submission_review_required",
+            evaluation["evidence"]["learner_agency_alignment_human_gates"],
+        )
         review_board = next(check for check in report["checks"] if check["check_id"] == "review_board_packet")
         self.assertEqual(review_board["evidence"]["evidence_alignment_status"], "ready")
         self.assertGreaterEqual(review_board["evidence"]["readiness_snapshot_gate_count"], 10)

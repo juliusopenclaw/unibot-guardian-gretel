@@ -49,6 +49,17 @@ These dimensions are formative research observations. They must not be collapsed
 into grades, exam readiness, disciplinary conclusions, or accommodation
 decisions.
 
+## Evaluation Learner-Agency Boundary Alignment
+
+The evaluation packet includes a `learner_agency_boundary_alignment` block. It
+maps synthetic evaluation tasks, adaptive practice traces, the quality rubric,
+measurement exclusions, source-card IDs, readiness checks, and human gates.
+
+The alignment must stay `ready` before a public demo report can claim that
+UniBot is preserving learner agency. It is a review aid only: it does not
+authorize grading, exam clearance, proctoring, KI-detection evidence,
+accommodation decisions, private course text, local paths, or student data.
+
 ## Bug Reports
 
 Bug reports should remove private data and include:

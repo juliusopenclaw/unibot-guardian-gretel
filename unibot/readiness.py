@@ -171,6 +171,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     publication = build_publication_package()
     publication_scan = scan_text(json.dumps(publication, ensure_ascii=False), "unibot-publication-package")
     evaluation = build_evaluation_packet()
+    evaluation_learner_agency_alignment = evaluation["learner_agency_boundary_alignment"]
     handoff = build_authority_handoff_packet()
     notebook = generate_practice_notebook("UniBot readiness notebook smoke")
     source_cards = list_source_cards()
@@ -335,11 +336,18 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             "check_id": "evaluation_packet",
             "passed": evaluation["status"] == "draft_not_ethics_or_authority_cleared"
             and len(evaluation["synthetic_tasks"]) >= 4
-            and bool(evaluation["codebook"]["coding_rules"]),
+            and bool(evaluation["codebook"]["coding_rules"])
+            and evaluation_learner_agency_alignment["status"] == "ready"
+            and evaluation_learner_agency_alignment["public_safety_status"] == "pass"
+            and evaluation_learner_agency_alignment["missing_source_card_ids"] == []
+            and evaluation_learner_agency_alignment["failed_contract_ids"] == [],
             "evidence": {
                 "status": evaluation["status"],
                 "task_count": len(evaluation["synthetic_tasks"]),
                 "coding_rule_count": len(evaluation["codebook"]["coding_rules"]),
+                "learner_agency_alignment_status": evaluation_learner_agency_alignment["status"],
+                "learner_agency_alignment_section_count": evaluation_learner_agency_alignment["section_count"],
+                "learner_agency_alignment_human_gates": evaluation_learner_agency_alignment["required_human_gates"],
             },
         },
         {

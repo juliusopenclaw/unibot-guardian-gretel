@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT))
 
 from unibot.evaluation import (  # noqa: E402
     build_evaluation_markdown,
+    build_evaluation_learner_agency_boundary_alignment,
     build_evaluation_packet,
     build_scientific_quality_rubric,
     synthetic_tasks,
@@ -30,8 +31,50 @@ class UniBotEvaluationTests(unittest.TestCase):
         self.assertIn("scientific_quality_rubric", packet)
         self.assertIn("measurement_plan", packet)
         self.assertIn("consent_boundary", packet)
+        self.assertEqual(packet["learner_agency_boundary_alignment"]["status"], "ready")
+        self.assertEqual(packet["learner_agency_boundary_alignment"]["public_safety_status"], "pass")
         self.assertEqual(packet["quality_gates"]["redteam_status"], "pass")
         self.assertEqual(packet["quality_gates"]["authority_packet_status"], "draft_not_officially_cleared")
+
+    def test_learner_agency_boundary_alignment_connects_evaluation_to_adaptive_tasks(self) -> None:
+        packet = build_evaluation_packet()
+        alignment = build_evaluation_learner_agency_boundary_alignment(packet)
+
+        self.assertEqual(
+            alignment["schema_version"],
+            "unibot-evaluation-learner-agency-boundary-alignment-v1",
+        )
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertTrue(all(alignment["contracts"].values()))
+        self.assertIn("adaptive_task_plan", alignment["required_readiness_check_ids"])
+        self.assertIn("evaluation_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+
+        sections = {section["section_id"]: section for section in alignment["sections"]}
+        self.assertIn("synthetic_lists_debugging", sections["synthetic_task_set"]["task_ids"])
+        self.assertEqual(sections["adaptive_practice_trace"]["adaptive_alignment_status"], "ready")
+        self.assertIn("official grades", sections["high_stakes_exclusion"]["excluded_measures"])
+
+    def test_learner_agency_boundary_alignment_blocks_unready_adaptive_trace(self) -> None:
+        packet = build_evaluation_packet()
+        adaptive_plan = {
+            "status": "ok",
+            "public_safe": True,
+            "task_count": 3,
+            "tasks": [],
+            "source_boundary_alignment": {
+                "status": "needs_review",
+                "non_public_source_material_ids": ["private-week"],
+            },
+        }
+        alignment = build_evaluation_learner_agency_boundary_alignment(packet, adaptive_plan)
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertIn("adaptive_plan_boundary_ready", alignment["failed_contract_ids"])
 
     def test_scientific_quality_rubric_covers_socratic_sources_refusal_and_privacy(self) -> None:
         rubric = build_scientific_quality_rubric()
@@ -76,6 +119,7 @@ class UniBotEvaluationTests(unittest.TestCase):
         self.assertIn("# UniBot Evaluation Packet", markdown)
         self.assertIn("Synthetic Tasks", markdown)
         self.assertIn("Scientific Quality Rubric", markdown)
+        self.assertIn("Learner-Agency Boundary Alignment", markdown)
         self.assertIn("refusal_clarity", markdown)
         self.assertIn("Red-Team: pass", markdown)
 
