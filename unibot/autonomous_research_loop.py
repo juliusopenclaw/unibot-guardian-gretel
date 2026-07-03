@@ -449,7 +449,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "review_board_thesis_evaluation_claim_alignment",
             "priority": 21,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align review-board packets with bachelor-thesis evaluation claims, learner-agency evidence, source cards, and human gates.",
             "allowed_files": [
                 "unibot/review_board.py",
@@ -459,6 +459,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_review_board.py tests/test_unibot_readiness.py -q"],
             "review_gate": "review_board_thesis_evaluation_claim_traceability",
+            "closure_evidence": {
+                "commit": "20a66a0",
+                "summary": "Review-board thesis evaluation claim alignment added with learner-agency reviewer mapping, high-stakes red lines, source-card, readiness, and human-gate contracts.",
+            },
+        },
+        {
+            "work_id": "release_runbook_review_board_claim_alignment",
+            "priority": 22,
+            "status": "ready",
+            "goal": "Align release runbook review steps with review-board thesis evaluation claims, public language controls, source cards, and human gates.",
+            "allowed_files": [
+                "unibot/release_runbook.py",
+                "tests/test_unibot_release_runbook.py",
+                "docs/unibot/UNIBOT_RELEASE_RUNBOOK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_release_runbook.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "release_runbook_review_board_thesis_claim_traceability",
         },
     ]
 

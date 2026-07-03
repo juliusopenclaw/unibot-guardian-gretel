@@ -57,9 +57,9 @@ contract change.
 
 ## Current Work Queue
 
-1. `review_board_thesis_evaluation_claim_alignment`: align review-board packets
-   with bachelor-thesis evaluation claims, learner-agency evidence, source
-   cards, and human gates.
+1. `release_runbook_review_board_claim_alignment`: align release runbook review
+   steps with review-board thesis evaluation claims, public language controls,
+   source cards, and human gates.
 
 ## Closed Harnessed Work
 
@@ -119,6 +119,9 @@ contract change.
 - `bachelor_thesis_evaluation_claim_alignment`: closed in `5fcdbfe` with
   learner-agency, adaptive boundary, source-card, high-stakes exclusion,
   readiness, and human-gate traceability.
+- `review_board_thesis_evaluation_claim_alignment`: closed in `20a66a0` with
+  learner-agency reviewer mapping, high-stakes red lines, source-card,
+  readiness, and human-gate contracts.
 
 ## Automation Rule
 
