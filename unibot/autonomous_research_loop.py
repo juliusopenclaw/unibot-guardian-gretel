@@ -629,7 +629,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "browser_extension_release_review_board_claim_alignment",
             "priority": 31,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align the browser extension and sidepanel demo handoff with local demo, feedback, triage, GitHub issue, publication, release-review-board thesis/evaluation claims, public language controls, and human gates.",
             "allowed_files": [
                 "unibot/browser_extension/sidepanel.js",
@@ -639,6 +639,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_browser_extension.py tests/test_unibot_readiness.py -q"],
             "review_gate": "browser_extension_release_review_board_thesis_claim_traceability",
+            "closure_evidence": {
+                "commit": "3db6902",
+                "summary": "Browser sidepanel release-review-board claim alignment added with local demo, demo feedback, triage, GitHub issue, readiness, and human-gate links.",
+            },
+        },
+        {
+            "work_id": "browser_manifest_content_boundary_claim_alignment",
+            "priority": 32,
+            "status": "ready",
+            "goal": "Align the browser extension manifest and content-script boundary with sidepanel handoff, local demo, publication, release-review-board claims, public language controls, and human gates.",
+            "allowed_files": [
+                "unibot/browser_extension/manifest.json",
+                "unibot/browser_extension/content.js",
+                "tests/test_unibot_browser_extension.py",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_browser_extension.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "browser_manifest_content_boundary_claim_traceability",
         },
     ]
 
