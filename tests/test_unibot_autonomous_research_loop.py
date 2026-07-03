@@ -56,7 +56,7 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         queue = loop["work_queue"]
         by_id = {item["work_id"]: item for item in queue}
 
-        self.assertGreaterEqual(len(queue), 25)
+        self.assertGreaterEqual(len(queue), 26)
         self.assertEqual(by_id["intent_contract_regression_pack"]["status"], "closed_harnessed")
         self.assertEqual(by_id["intent_contract_regression_pack"]["closure_evidence"]["commit"], "fa942b0")
         self.assertEqual(by_id["scientific_evaluation_depth"]["status"], "closed_harnessed")
@@ -147,13 +147,22 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             by_id["pilot_release_review_board_claim_alignment"]["review_gate"],
             "pilot_release_review_board_thesis_claim_traceability",
         )
-        self.assertEqual(by_id["data_protection_release_review_board_claim_alignment"]["status"], "ready")
+        self.assertEqual(by_id["data_protection_release_review_board_claim_alignment"]["status"], "closed_harnessed")
+        self.assertEqual(
+            by_id["data_protection_release_review_board_claim_alignment"]["closure_evidence"]["commit"],
+            "447a37e",
+        )
         self.assertEqual(
             by_id["data_protection_release_review_board_claim_alignment"]["review_gate"],
             "data_protection_release_review_board_thesis_claim_traceability",
         )
-        self.assertEqual(loop["next_recommended_work_id"], "data_protection_release_review_board_claim_alignment")
-        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 24)
+        self.assertEqual(by_id["publication_release_review_board_claim_alignment"]["status"], "ready")
+        self.assertEqual(
+            by_id["publication_release_review_board_claim_alignment"]["review_gate"],
+            "publication_release_review_board_thesis_claim_traceability",
+        )
+        self.assertEqual(loop["next_recommended_work_id"], "publication_release_review_board_claim_alignment")
+        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 25)
         self.assertLessEqual(loop["budget_policy"]["cadence"]["max_active_work_item_per_run"], 1)
         for item in queue:
             self.assertIn("acceptance_tests", item)
@@ -168,8 +177,8 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("Public safety: pass", markdown)
         self.assertIn("Default reasoning effort: low", markdown)
         self.assertIn("Autonomous GitHub push: False", markdown)
-        self.assertIn("Closed harnessed items: 24", markdown)
-        self.assertIn("Next recommended work: data_protection_release_review_board_claim_alignment", markdown)
+        self.assertIn("Closed harnessed items: 25", markdown)
+        self.assertIn("Next recommended work: publication_release_review_board_claim_alignment", markdown)
 
         status, loop = route_request("/api/unibot/autonomous-research-loop", {})
         self.assertEqual(status, 200)

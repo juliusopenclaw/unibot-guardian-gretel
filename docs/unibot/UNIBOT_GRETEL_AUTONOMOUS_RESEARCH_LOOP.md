@@ -57,9 +57,9 @@ contract change.
 
 ## Current Work Queue
 
-1. `data_protection_release_review_board_claim_alignment`: align
-   data-protection screening with pilot release-review-board thesis/evaluation
-   claims, processing boundaries, public language controls, and human gates.
+1. `publication_release_review_board_claim_alignment`: align publication
+   package evidence with pilot, data-protection, release-runbook, and
+   review-board thesis/evaluation claims before public release review.
 
 ## Closed Harnessed Work
 
@@ -131,6 +131,9 @@ contract change.
 - `pilot_release_review_board_claim_alignment`: closed in `582c574` with
   synthetic learner-agency boundaries, adaptive evidence, readiness links, and
   human gates.
+- `data_protection_release_review_board_claim_alignment`: closed in `447a37e`
+  with pilot/release/review-board thesis/evaluation readiness links, processing
+  boundaries, and human gates.
 
 ## Automation Rule
 
