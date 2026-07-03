@@ -53,6 +53,34 @@ class UniBotTriageTests(unittest.TestCase):
         self.assertEqual(triage["items"][0]["priority"], "P0")
         self.assertEqual(triage["items"][0]["component"], "postfilter")
         self.assertIn("issue_draft", triage["items"][0])
+        self.assertIn("publication_package", triage["items"][0]["readiness_check_ids"])
+        self.assertIn("release_runbook", triage["items"][0]["readiness_check_ids"])
+        self.assertIn("review_board_packet", triage["items"][0]["readiness_check_ids"])
+        self.assertIn("human_review_before_github_create", triage["items"][0]["human_gates"])
+        self.assertIn("human_submission_review_required", triage["items"][0]["human_gates"])
+        self.assertTrue(triage["items"][0]["manual_publish_only"])
+        claim_alignment = triage["claim_alignment"]
+        self.assertEqual(claim_alignment["status"], "ready")
+        self.assertEqual(claim_alignment["public_safety_status"], "pass")
+        self.assertEqual(
+            claim_alignment["manual_publication_claim_contract"]["expected_schema_version"],
+            "unibot-feedback-triage-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(
+            claim_alignment["manual_publication_claim_contract"]["required_github_issue_claim_schema_version"],
+            "unibot-github-issue-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(
+            claim_alignment["manual_publication_claim_contract"][
+                "required_publication_release_review_board_schema_version"
+            ],
+            "unibot-publication-release-review-board-claim-alignment-v1",
+        )
+        self.assertTrue(claim_alignment["manual_publication_claim_contract"]["manual_publish_only"])
+        self.assertIn("github_issue_bundle", claim_alignment["unique_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", claim_alignment["required_human_gates"])
+        self.assertEqual(claim_alignment["missing_release_review_board_claim_check_ids"], [])
+        self.assertEqual(claim_alignment["missing_release_review_board_claim_human_gates"], [])
         self.assertNotIn("Promptkarte erzeugen", payload)
         self.assertEqual(scan_text(payload, "triage")["status"], "pass")
 

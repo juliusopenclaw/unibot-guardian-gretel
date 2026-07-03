@@ -467,11 +467,24 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
         },
         {
             "check_id": "demo_feedback_triage",
-            "passed": feedback_triage["status"] == "ready" and feedback_triage["public_safety_status"] == "pass",
+            "passed": feedback_triage["status"] == "ready"
+            and feedback_triage["public_safety_status"] == "pass"
+            and feedback_triage["claim_alignment"]["status"] == "ready"
+            and feedback_triage["claim_alignment"]["public_safety_status"] == "pass"
+            and feedback_triage["claim_alignment"]["manual_publish_only"] is True
+            and feedback_triage["claim_alignment"]["missing_release_review_board_claim_check_ids"] == []
+            and feedback_triage["claim_alignment"]["missing_release_review_board_claim_human_gates"] == [],
             "evidence": {
                 "triage_status": feedback_triage["status"],
                 "triage_count": feedback_triage["triage_count"],
                 "public_safety_status": feedback_triage["public_safety_status"],
+                "claim_alignment_status": feedback_triage["claim_alignment"]["status"],
+                "claim_alignment_public_safety_status": feedback_triage["claim_alignment"]["public_safety_status"],
+                "manual_publish_only": feedback_triage["claim_alignment"]["manual_publish_only"],
+                "manual_publication_claim_contract_status": feedback_triage["claim_alignment"][
+                    "manual_publication_claim_contract"
+                ]["expected_schema_version"],
+                "claim_alignment_readiness_check_count": len(feedback_triage["claim_alignment"]["unique_readiness_check_ids"]),
             },
         },
         {

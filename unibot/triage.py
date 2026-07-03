@@ -11,6 +11,27 @@ from .public_safety import scan_text
 
 
 FEEDBACK_TRIAGE_SCHEMA_VERSION = "unibot-feedback-triage-v1"
+FEEDBACK_TRIAGE_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-feedback-triage-release-review-board-claim-alignment-v1"
+)
+
+TRIAGE_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS = [
+    "demo_feedback_triage",
+    "demo_feedback_contract",
+    "github_issue_bundle",
+    "publication_package",
+    "release_runbook",
+    "review_board_packet",
+    "gretel_bachelor_thesis_package",
+    "public_safety",
+]
+
+TRIAGE_RELEASE_REVIEW_BOARD_HUMAN_GATES = [
+    "human_review_before_github_create",
+    "human_submission_review_required",
+    "public_safety_required",
+]
+
 
 SCENARIO_COMPONENTS = {
     "demo_setup": "browser_extension",
@@ -43,6 +64,7 @@ def build_feedback_triage(
     for item in items:
         item.pop("priority_rank", None)
 
+    claim_alignment = build_feedback_triage_claim_alignment(items)
     report = {
         "schema_version": FEEDBACK_TRIAGE_SCHEMA_VERSION,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -50,6 +72,7 @@ def build_feedback_triage(
         "feedback_count": len(public_records),
         "triage_count": len(items),
         "items": items,
+        "claim_alignment": claim_alignment,
         "public_policy": "Triage uses sanitized feedback metadata only; no screenshots, copied free text, local paths, emails, health/accommodation details, or real exam data.",
     }
     scan = scan_text(json.dumps(report, ensure_ascii=False), "feedback-triage")
@@ -57,7 +80,68 @@ def build_feedback_triage(
     if scan["status"] != "pass":
         report["status"] = "blocked"
         report["public_safety_findings"] = scan["findings"]
+    if claim_alignment["status"] == "blocked" and items:
+        report["status"] = "blocked"
     return report
+
+def build_feedback_triage_claim_alignment(items: Iterable[dict[str, Any]]) -> dict[str, Any]:
+    triage_rows = [
+        {
+            "triage_id": item["triage_id"],
+            "scenario_id": item["scenario_id"],
+            "component": item["component"],
+            "priority": item["priority"],
+            "readiness_check_ids": item["readiness_check_ids"],
+            "human_gates": item["human_gates"],
+            "manual_publish_only": item["manual_publish_only"],
+        }
+        for item in items
+    ]
+    alignment = {
+        "schema_version": "unibot-feedback-triage-claim-alignment-v1",
+        "status": "ready" if triage_rows else "empty",
+        "triage_count": len(triage_rows),
+        "manual_publish_only": all(row["manual_publish_only"] for row in triage_rows),
+        "manual_publication_claim_contract": {
+            "expected_schema_version": FEEDBACK_TRIAGE_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+            "required_github_issue_claim_schema_version": (
+                "unibot-github-issue-release-review-board-claim-alignment-v1"
+            ),
+            "required_publication_release_review_board_schema_version": (
+                "unibot-publication-release-review-board-claim-alignment-v1"
+            ),
+            "required_review_board_thesis_evaluation_schema_version": (
+                "unibot-review-board-thesis-evaluation-claim-alignment-v1"
+            ),
+            "required_readiness_check_ids": TRIAGE_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS,
+            "required_human_gates": TRIAGE_RELEASE_REVIEW_BOARD_HUMAN_GATES,
+            "manual_publish_only": True,
+            "use": "Feedback triage must stay sanitized and align with downstream issue, publication, and review-board gates before any public action.",
+        },
+        "triage_rows": triage_rows,
+        "unique_readiness_check_ids": sorted(
+            {check_id for row in triage_rows for check_id in row["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for row in triage_rows for gate in row["human_gates"]}),
+        "policy": "Triage converts sanitized feedback metadata into manual maintenance work only; it does not publish, approve release, or clear exam use.",
+    }
+    required_check_ids = set(alignment["manual_publication_claim_contract"]["required_readiness_check_ids"])
+    present_check_ids = set(alignment["unique_readiness_check_ids"])
+    alignment["missing_release_review_board_claim_check_ids"] = sorted(required_check_ids - present_check_ids)
+    required_human_gates = set(alignment["manual_publication_claim_contract"]["required_human_gates"])
+    present_human_gates = set(alignment["required_human_gates"])
+    alignment["missing_release_review_board_claim_human_gates"] = sorted(required_human_gates - present_human_gates)
+    if (
+        alignment["missing_release_review_board_claim_check_ids"]
+        or alignment["missing_release_review_board_claim_human_gates"]
+    ) and triage_rows:
+        alignment["status"] = "blocked"
+    scan = scan_text(json.dumps(alignment, ensure_ascii=False), "feedback-triage-claim-alignment")
+    alignment["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        alignment["status"] = "blocked"
+        alignment["public_safety_findings"] = scan["findings"]
+    return alignment
 
 
 def build_feedback_triage_markdown(
@@ -158,6 +242,9 @@ def _triage_item(record: dict[str, Any]) -> dict[str, Any]:
         "outcome": record["outcome"],
         "severity": record["severity"],
         "suggested_test": SCENARIO_TEST_HINTS.get(scenario_id, "Run UniBot targeted tests and readiness."),
+        "readiness_check_ids": TRIAGE_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS,
+        "human_gates": TRIAGE_RELEASE_REVIEW_BOARD_HUMAN_GATES,
+        "manual_publish_only": True,
         "issue_draft": {
             "title": title,
             "labels": ["unibot", "demo-feedback", priority.lower(), component],

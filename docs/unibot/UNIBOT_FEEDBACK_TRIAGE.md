@@ -19,6 +19,18 @@ Triage uses sanitized feedback metadata only. It does not include screenshots,
 copied free text, emails, local paths, health or accommodation details, real exam
 work, or raw private course text.
 
+## Review-Board Claim Alignment
+
+The generated triage report includes `claim_alignment` with the contract
+`unibot-feedback-triage-release-review-board-claim-alignment-v1`. This keeps
+sanitized feedback follow-up aligned with the GitHub issue bundle, publication
+package, release runbook, review-board thesis/evaluation boundary, and public
+safety gates.
+
+The contract does not create issues, approve publication, recruit participants,
+call providers, clear exam use, or approve a thesis submission. It only gives a
+human reviewer traceable readiness and human-gate evidence.
+
 ## Priority Rules
 
 - `P0`: blocked outcome or critical severity
