@@ -29,6 +29,8 @@ class UniBotComplianceTests(unittest.TestCase):
         self.assertEqual(matrix["compliance_drift_alignment"]["public_safety_status"], "pass")
         self.assertEqual(matrix["compliance_drift_alignment"]["unmapped_requirement_ids"], [])
         self.assertEqual(matrix["compliance_drift_alignment"]["requirements_without_human_gates"], [])
+        self.assertEqual(matrix["compliance_drift_alignment"]["missing_release_review_board_claim_check_ids"], [])
+        self.assertEqual(matrix["compliance_drift_alignment"]["missing_release_review_board_claim_human_gates"], [])
         self.assertIn("exam-clearance-boundary", requirement_ids)
         self.assertIn("accessibility-neutrality", requirement_ids)
         self.assertIn("data-minimisation-and-public-safety", requirement_ids)
@@ -53,6 +55,26 @@ class UniBotComplianceTests(unittest.TestCase):
         self.assertEqual(alignment["source_card_drift_contract"]["expected_check_id"], "source_card_drift_guard")
         self.assertIn("unibot-readiness-evidence-snapshot-v1", alignment["readiness_snapshot_contract"]["expected_schema_version"])
         self.assertIn("unibot-review-board-evidence-alignment-v1", alignment["review_board_contract"]["expected_schema_version"])
+        release_claim_contract = alignment["release_runbook_review_board_claim_contract"]
+        self.assertEqual(
+            release_claim_contract["expected_schema_version"],
+            "unibot-compliance-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(
+            release_claim_contract["required_release_runbook_schema_version"],
+            "unibot-release-runbook-evidence-alignment-v1",
+        )
+        self.assertEqual(
+            release_claim_contract["required_review_board_thesis_evaluation_schema_version"],
+            "unibot-review-board-thesis-evaluation-claim-alignment-v1",
+        )
+        self.assertEqual(alignment["missing_release_review_board_claim_check_ids"], [])
+        self.assertEqual(alignment["missing_release_review_board_claim_human_gates"], [])
+        self.assertIn("release_runbook", release_claim_contract["required_readiness_check_ids"])
+        self.assertIn("review_board_packet", release_claim_contract["required_readiness_check_ids"])
+        self.assertIn("gretel_bachelor_thesis_package", release_claim_contract["required_readiness_check_ids"])
+        self.assertIn("evaluation_packet", release_claim_contract["required_readiness_check_ids"])
+        self.assertIn("adaptive_task_plan", release_claim_contract["required_readiness_check_ids"])
         self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
         self.assertIn("exam_boundary", by_id["exam-clearance-boundary"]["readiness_check_ids"])
         self.assertIn("data_protection_screening", by_id["data-minimisation-and-public-safety"]["readiness_check_ids"])
@@ -85,6 +107,7 @@ class UniBotComplianceTests(unittest.TestCase):
         self.assertIn("accessibility-neutrality", markdown)
         self.assertIn("Missing source cards: none", markdown)
         self.assertIn("Compliance drift alignment: ready", markdown)
+        self.assertIn("Release review-board claim alignment: unibot-compliance-release-review-board-claim-alignment-v1", markdown)
 
         status, matrix = route_request("/api/unibot/compliance-matrix", {})
         self.assertEqual(status, 200)

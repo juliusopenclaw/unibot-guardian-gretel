@@ -50,5 +50,12 @@ requirement to readiness check IDs, source-card IDs, human gates, the
 source-card drift contract, the readiness evidence snapshot contract, and the
 review-board evidence-alignment contract.
 
+It also carries a release review-board claim contract:
+`unibot-compliance-release-review-board-claim-alignment-v1`. That contract keeps
+the compliance matrix aligned with the release runbook and review-board
+thesis/evaluation claim boundary, including learner-agency evidence, adaptive
+task evidence, public-language controls, and the written university clearance
+gate.
+
 The alignment is a review aid only. It is not legal advice, exam clearance,
 provider approval, or thesis submission approval.

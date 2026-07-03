@@ -10,6 +10,9 @@ from .source_cards import get_source_card
 
 
 COMPLIANCE_MATRIX_SCHEMA_VERSION = "unibot-compliance-matrix-v1"
+COMPLIANCE_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-compliance-release-review-board-claim-alignment-v1"
+)
 
 DOMAIN_ALIGNMENT = {
     "exam_authority": {
@@ -300,6 +303,28 @@ def build_compliance_drift_alignment(requirements: list[dict[str, Any]] | None =
             "expected_schema_version": "unibot-review-board-evidence-alignment-v1",
             "required_status": "ready",
         },
+        "release_runbook_review_board_claim_contract": {
+            "expected_schema_version": COMPLIANCE_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+            "required_release_runbook_schema_version": "unibot-release-runbook-evidence-alignment-v1",
+            "required_review_board_thesis_evaluation_schema_version": (
+                "unibot-review-board-thesis-evaluation-claim-alignment-v1"
+            ),
+            "required_readiness_check_ids": [
+                "release_runbook",
+                "review_board_packet",
+                "gretel_bachelor_thesis_package",
+                "evaluation_packet",
+                "adaptive_task_plan",
+                "exam_boundary",
+                "data_protection_screening",
+            ],
+            "required_human_gates": [
+                "human_submission_review_required",
+                "public_safety_required",
+                "written_university_clearance_required_before_exam_use",
+            ],
+            "use": "Compliance requirements must carry release-runbook review-board thesis/evaluation boundaries without turning draft review into clearance.",
+        },
         "unmapped_requirement_ids": sorted(row["requirement_id"] for row in alignment_rows if not row["readiness_check_ids"]),
         "requirements_without_human_gates": sorted(row["requirement_id"] for row in alignment_rows if not row["human_gates"]),
         "unique_readiness_check_ids": sorted({check_id for row in alignment_rows for check_id in row["readiness_check_ids"]}),
@@ -308,6 +333,17 @@ def build_compliance_drift_alignment(requirements: list[dict[str, Any]] | None =
         "human_gate_reminder": "Compliance alignment is review preparation only; it is not legal advice, exam clearance, provider approval, or thesis submission approval.",
     }
     if alignment["unmapped_requirement_ids"] or alignment["requirements_without_human_gates"]:
+        alignment["status"] = "blocked"
+    required_check_ids = set(alignment["release_runbook_review_board_claim_contract"]["required_readiness_check_ids"])
+    present_check_ids = set(alignment["unique_readiness_check_ids"])
+    alignment["missing_release_review_board_claim_check_ids"] = sorted(required_check_ids - present_check_ids)
+    required_human_gates = set(alignment["release_runbook_review_board_claim_contract"]["required_human_gates"])
+    present_human_gates = set(alignment["required_human_gates"])
+    alignment["missing_release_review_board_claim_human_gates"] = sorted(required_human_gates - present_human_gates)
+    if (
+        alignment["missing_release_review_board_claim_check_ids"]
+        or alignment["missing_release_review_board_claim_human_gates"]
+    ):
         alignment["status"] = "blocked"
     scan = scan_text(json.dumps(alignment, ensure_ascii=False), "compliance-drift-alignment")
     alignment["public_safety_status"] = scan["status"]
@@ -346,6 +382,7 @@ def build_compliance_matrix_markdown() -> str:
         f"High-risk requirements: {matrix['high_risk_requirement_count']}\n\n"
         f"Missing source cards: {', '.join(matrix['missing_source_card_ids']) or 'none'}\n\n"
         f"Compliance drift alignment: {matrix['compliance_drift_alignment']['status']}\n\n"
+        f"Release review-board claim alignment: {matrix['compliance_drift_alignment']['release_runbook_review_board_claim_contract']['expected_schema_version']}\n\n"
         f"Alignment readiness checks: {', '.join(matrix['compliance_drift_alignment']['unique_readiness_check_ids'])}\n\n"
         "Boundary: authority review matrix only, not legal advice or exam clearance.\n\n"
         + "\n".join(requirement_lines)

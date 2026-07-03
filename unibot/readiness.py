@@ -517,7 +517,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and compliance_matrix["compliance_drift_alignment"]["status"] == "ready"
             and compliance_matrix["compliance_drift_alignment"]["public_safety_status"] == "pass"
             and compliance_matrix["compliance_drift_alignment"]["unmapped_requirement_ids"] == []
-            and compliance_matrix["compliance_drift_alignment"]["requirements_without_human_gates"] == [],
+            and compliance_matrix["compliance_drift_alignment"]["requirements_without_human_gates"] == []
+            and compliance_matrix["compliance_drift_alignment"]["missing_release_review_board_claim_check_ids"] == []
+            and compliance_matrix["compliance_drift_alignment"]["missing_release_review_board_claim_human_gates"] == [],
             "evidence": {
                 "status": compliance_matrix["status"],
                 "requirement_count": compliance_matrix["requirement_count"],
@@ -526,6 +528,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "missing_source_card_ids": compliance_matrix["missing_source_card_ids"],
                 "exam_deployment_status": compliance_matrix["exam_deployment_status"],
                 "compliance_drift_alignment_status": compliance_matrix["compliance_drift_alignment"]["status"],
+                "release_review_board_claim_contract_status": compliance_matrix["compliance_drift_alignment"][
+                    "release_runbook_review_board_claim_contract"
+                ]["expected_schema_version"],
                 "compliance_alignment_readiness_check_count": len(
                     compliance_matrix["compliance_drift_alignment"]["unique_readiness_check_ids"]
                 ),
