@@ -557,7 +557,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "github_issue_release_review_board_claim_alignment",
             "priority": 27,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align GitHub issue bundle drafts with publication release-review-board thesis/evaluation claims, manual publication controls, public language, and human gates.",
             "allowed_files": [
                 "unibot/github_issues.py",
@@ -567,6 +567,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_github_issues.py tests/test_unibot_readiness.py -q"],
             "review_gate": "github_issue_release_review_board_thesis_claim_traceability",
+            "closure_evidence": {
+                "commit": "16dcbb3",
+                "summary": "GitHub issue bundle claim contract added with publication/release/review-board thesis/evaluation links, manual issue publication controls, public language boundaries, and human gates.",
+            },
+        },
+        {
+            "work_id": "feedback_triage_release_review_board_claim_alignment",
+            "priority": 28,
+            "status": "ready",
+            "goal": "Align feedback triage records with GitHub issue, publication, release-review-board thesis/evaluation claims, public language controls, and human gates.",
+            "allowed_files": [
+                "unibot/triage.py",
+                "tests/test_unibot_triage.py",
+                "docs/unibot/UNIBOT_FEEDBACK_TRIAGE.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_triage.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "feedback_triage_release_review_board_thesis_claim_traceability",
         },
     ]
 

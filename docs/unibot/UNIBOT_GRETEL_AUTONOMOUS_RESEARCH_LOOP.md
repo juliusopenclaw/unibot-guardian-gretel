@@ -57,9 +57,9 @@ contract change.
 
 ## Current Work Queue
 
-1. `github_issue_release_review_board_claim_alignment`: align GitHub issue
-   bundle drafts with publication release-review-board thesis/evaluation
-   claims, manual publication controls, public language, and human gates.
+1. `feedback_triage_release_review_board_claim_alignment`: align feedback
+   triage records with GitHub issue, publication, release-review-board
+   thesis/evaluation claims, public language controls, and human gates.
 
 ## Closed Harnessed Work
 
@@ -137,6 +137,10 @@ contract change.
 - `publication_release_review_board_claim_alignment`: closed in `d794a40` with
   pilot/data-protection/release/review-board thesis/evaluation trace links, public
   release boundaries, and human gates.
+- `github_issue_release_review_board_claim_alignment`: closed in `16dcbb3`
+  with publication/release/review-board thesis/evaluation claim contracts,
+  manual issue publication controls, public language boundaries, and human
+  gates.
 
 ## Automation Rule
 
