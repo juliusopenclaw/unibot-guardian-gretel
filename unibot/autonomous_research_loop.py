@@ -431,7 +431,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "bachelor_thesis_evaluation_claim_alignment",
             "priority": 20,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align the Gretel-authored bachelor-thesis package with evaluation learner-agency evidence, adaptive task boundaries, source cards, and readiness gates.",
             "allowed_files": [
                 "unibot/bachelor_thesis.py",
@@ -441,6 +441,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_bachelor_thesis.py tests/test_unibot_readiness.py -q"],
             "review_gate": "bachelor_thesis_evaluation_claim_traceability",
+            "closure_evidence": {
+                "commit": "5fcdbfe",
+                "summary": "Bachelor-thesis evaluation claim alignment added with learner-agency, adaptive boundary, source-card, high-stakes exclusion, readiness, and human-gate traceability.",
+            },
+        },
+        {
+            "work_id": "review_board_thesis_evaluation_claim_alignment",
+            "priority": 21,
+            "status": "ready",
+            "goal": "Align review-board packets with bachelor-thesis evaluation claims, learner-agency evidence, source cards, and human gates.",
+            "allowed_files": [
+                "unibot/review_board.py",
+                "tests/test_unibot_review_board.py",
+                "docs/unibot/UNIBOT_REVIEW_BOARD_PACKET.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_review_board.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "review_board_thesis_evaluation_claim_traceability",
         },
     ]
 
