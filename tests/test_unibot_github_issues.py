@@ -56,8 +56,12 @@ class UniBotGithubIssueBundleTests(unittest.TestCase):
         self.assertTrue(issue["manual_publish_only"])
         self.assertIn("evaluation_packet", issue["readiness_check_ids"])
         self.assertIn("source_card_drift_guard", issue["readiness_check_ids"])
+        self.assertIn("publication_package", issue["readiness_check_ids"])
+        self.assertIn("release_runbook", issue["readiness_check_ids"])
+        self.assertIn("review_board_packet", issue["readiness_check_ids"])
         self.assertIn("vanlehn-2011", issue["source_card_ids"])
         self.assertIn("human_review_before_github_create", issue["human_gates"])
+        self.assertIn("human_submission_review_required", issue["human_gates"])
         self.assertIn("guardian_prompt_cards", issue["labels"])
         self.assertIn("manual", bundle["publishing_note"].lower())
         self.assertNotIn("Promptkarte erzeugen", payload)
@@ -76,8 +80,28 @@ class UniBotGithubIssueBundleTests(unittest.TestCase):
         self.assertIn("unibot-readiness-evidence-snapshot-v1", traceability["readiness_snapshot_contract"]["expected_schema_version"])
         self.assertIn("evaluation_packet", traceability["unique_readiness_check_ids"])
         self.assertIn("source_card_drift_guard", traceability["unique_readiness_check_ids"])
+        self.assertIn("publication_package", traceability["unique_readiness_check_ids"])
+        self.assertIn("release_runbook", traceability["unique_readiness_check_ids"])
+        self.assertIn("review_board_packet", traceability["unique_readiness_check_ids"])
         self.assertIn("vanlehn-2011", traceability["unique_source_card_ids"])
         self.assertIn("public_safety_required", traceability["required_human_gates"])
+        self.assertIn("human_submission_review_required", traceability["required_human_gates"])
+        claim_contract = traceability["manual_publication_claim_contract"]
+        self.assertEqual(
+            claim_contract["expected_schema_version"],
+            "unibot-github-issue-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(
+            claim_contract["required_publication_release_review_board_schema_version"],
+            "unibot-publication-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(
+            claim_contract["required_review_board_thesis_evaluation_schema_version"],
+            "unibot-review-board-thesis-evaluation-claim-alignment-v1",
+        )
+        self.assertTrue(claim_contract["manual_publish_only"])
+        self.assertEqual(traceability["missing_release_review_board_claim_check_ids"], [])
+        self.assertEqual(traceability["missing_release_review_board_claim_human_gates"], [])
 
     def test_issue_review_contract_blocks_auto_publish_and_high_stakes_claims(self) -> None:
         contract = build_issue_review_contract()

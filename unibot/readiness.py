@@ -481,7 +481,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and github_issue_bundle["issue_count"] >= 1
             and github_issue_bundle["evidence_traceability"]["status"] == "ready"
             and github_issue_bundle["evidence_traceability"]["public_safety_status"] == "pass"
-            and github_issue_bundle["evidence_traceability"]["manual_publish_only"] is True,
+            and github_issue_bundle["evidence_traceability"]["manual_publish_only"] is True
+            and github_issue_bundle["evidence_traceability"]["missing_release_review_board_claim_check_ids"] == []
+            and github_issue_bundle["evidence_traceability"]["missing_release_review_board_claim_human_gates"] == [],
             "evidence": {
                 "status": github_issue_bundle["status"],
                 "issue_count": github_issue_bundle["issue_count"],
@@ -489,6 +491,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "evidence_traceability_status": github_issue_bundle["evidence_traceability"]["status"],
                 "evidence_traceability_public_safety_status": github_issue_bundle["evidence_traceability"]["public_safety_status"],
                 "manual_publish_only": github_issue_bundle["evidence_traceability"]["manual_publish_only"],
+                "manual_publication_claim_contract_status": github_issue_bundle["evidence_traceability"][
+                    "manual_publication_claim_contract"
+                ]["expected_schema_version"],
                 "readiness_check_count": len(github_issue_bundle["evidence_traceability"]["unique_readiness_check_ids"]),
             },
         },

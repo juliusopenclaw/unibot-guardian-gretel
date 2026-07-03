@@ -10,6 +10,25 @@ from .triage import build_feedback_triage
 
 
 GITHUB_ISSUE_BUNDLE_SCHEMA_VERSION = "unibot-github-issue-bundle-v1"
+GITHUB_ISSUE_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-github-issue-release-review-board-claim-alignment-v1"
+)
+
+GLOBAL_MANUAL_PUBLICATION_READINESS_CHECK_IDS = [
+    "github_issue_bundle",
+    "publication_package",
+    "release_runbook",
+    "review_board_packet",
+    "gretel_bachelor_thesis_package",
+    "evaluation_packet",
+    "public_safety",
+]
+
+GLOBAL_MANUAL_PUBLICATION_HUMAN_GATES = [
+    "human_review_before_github_create",
+    "human_submission_review_required",
+    "public_safety_required",
+]
 
 SCENARIO_EVIDENCE_MAP = {
     "demo_setup": {
@@ -126,12 +145,44 @@ def build_issue_evidence_traceability(issues: Iterable[dict[str, Any]]) -> dict[
             "required_status": "ready",
             "use": "Use the latest readiness evidence snapshot to confirm issue follow-up remains public-safe and science-gated.",
         },
+        "manual_publication_claim_contract": {
+            "expected_schema_version": GITHUB_ISSUE_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+            "required_publication_release_review_board_schema_version": (
+                "unibot-publication-release-review-board-claim-alignment-v1"
+            ),
+            "required_review_board_thesis_evaluation_schema_version": (
+                "unibot-review-board-thesis-evaluation-claim-alignment-v1"
+            ),
+            "required_readiness_check_ids": [
+                "github_issue_bundle",
+                "publication_package",
+                "release_runbook",
+                "review_board_packet",
+                "gretel_bachelor_thesis_package",
+                "evaluation_packet",
+                "public_safety",
+            ],
+            "required_human_gates": GLOBAL_MANUAL_PUBLICATION_HUMAN_GATES,
+            "manual_publish_only": True,
+            "use": "GitHub issue drafts must carry publication/review-board thesis-evaluation boundaries without creating issues or implying release approval.",
+        },
         "issues": issue_rows,
         "unique_readiness_check_ids": sorted({check_id for row in issue_rows for check_id in row["readiness_check_ids"]}),
         "unique_source_card_ids": sorted({source_id for row in issue_rows for source_id in row["source_card_ids"]}),
         "required_human_gates": sorted({gate for row in issue_rows for gate in row["human_gates"]}),
         "policy": "Feedback-derived issue drafts stay sanitized, source-bound, readiness-gated, and manually published only.",
     }
+    required_check_ids = set(traceability["manual_publication_claim_contract"]["required_readiness_check_ids"])
+    present_check_ids = set(traceability["unique_readiness_check_ids"])
+    traceability["missing_release_review_board_claim_check_ids"] = sorted(required_check_ids - present_check_ids)
+    required_human_gates = set(traceability["manual_publication_claim_contract"]["required_human_gates"])
+    present_human_gates = set(traceability["required_human_gates"])
+    traceability["missing_release_review_board_claim_human_gates"] = sorted(required_human_gates - present_human_gates)
+    if (
+        traceability["missing_release_review_board_claim_check_ids"]
+        or traceability["missing_release_review_board_claim_human_gates"]
+    ) and issue_rows:
+        traceability["status"] = "blocked"
     scan = scan_text(json.dumps(traceability, ensure_ascii=False), "github-issue-evidence-traceability")
     traceability["public_safety_status"] = scan["status"]
     if scan["status"] != "pass":
@@ -185,6 +236,8 @@ def _issue_from_triage_item(item: dict[str, Any]) -> dict[str, Any]:
     labels = sorted(set(str(label) for label in draft.get("labels", [])))
     filename = f"{item['priority'].lower()}-{item['scenario_id']}-{item['triage_id']}.md"
     evidence = SCENARIO_EVIDENCE_MAP.get(item["scenario_id"], FALLBACK_EVIDENCE)
+    readiness_check_ids = sorted(set(evidence["readiness_check_ids"]) | set(GLOBAL_MANUAL_PUBLICATION_READINESS_CHECK_IDS))
+    human_gates = sorted(set(GLOBAL_MANUAL_PUBLICATION_HUMAN_GATES))
     return {
         "issue_id": item["triage_id"],
         "feedback_id": item["feedback_id"],
@@ -196,9 +249,9 @@ def _issue_from_triage_item(item: dict[str, Any]) -> dict[str, Any]:
         "component": item["component"],
         "scenario_id": item["scenario_id"],
         "suggested_test": item["suggested_test"],
-        "readiness_check_ids": list(evidence["readiness_check_ids"]),
+        "readiness_check_ids": readiness_check_ids,
         "source_card_ids": list(evidence["source_card_ids"]),
-        "human_gates": ["human_review_before_github_create", "public_safety_required"],
+        "human_gates": human_gates,
         "review_checklist": contract["review_checklist"],
         "evidence_requirements": contract["evidence_requirements"],
         "publication_gate": contract["publication_gate"],

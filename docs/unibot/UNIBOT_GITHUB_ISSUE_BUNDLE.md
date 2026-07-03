@@ -52,6 +52,13 @@ This traceability layer does not publish anything to GitHub. It only prepares a
 manual reviewer to confirm that public follow-up remains source-bound,
 readiness-gated, and free of private feedback text.
 
+It also carries a manual publication review-board claim contract:
+`unibot-github-issue-release-review-board-claim-alignment-v1`. That contract
+keeps issue drafts aligned with the publication package, release runbook,
+review-board thesis/evaluation boundary, and public-safety gates. It does not
+create GitHub issues, approve publication, authorize provider calls, or imply
+exam clearance.
+
 ## Public Contribution Rule
 
 Contributors should work from synthetic tasks, source cards, public-safe tests,
