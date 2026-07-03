@@ -5,11 +5,13 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
+from .evaluation import build_evaluation_packet
 from .public_safety import scan_text
 from .source_cards import build_source_card_drift_report, get_source_card
 
 
 BACHELOR_THESIS_SCHEMA_VERSION = "unibot-gretel-bachelor-thesis-package-v1"
+BACHELOR_THESIS_EVALUATION_CLAIM_ALIGNMENT_SCHEMA_VERSION = "unibot-gretel-thesis-evaluation-claim-alignment-v1"
 
 
 def build_bachelor_thesis_evidence_index() -> dict[str, Any]:
@@ -83,6 +85,26 @@ def build_bachelor_thesis_evidence_index() -> dict[str, Any]:
             "source_card_ids": ["openai-evals", "dfg-gwp", "vanlehn-2011", "kulik-fletcher-2016"],
             "human_gate": "human_submission_review_required",
         },
+        {
+            "claim_id": "evaluation_learner_agency_boundary",
+            "claim": (
+                "Bachelor-thesis claims about learner agency are backed by evaluation and adaptive-task boundary "
+                "alignment, not by broad performance, grading, or exam-readiness claims."
+            ),
+            "evidence_type": "evaluation_and_adaptive_boundary_alignment",
+            "artifact_refs": [
+                "unibot/evaluation.py",
+                "unibot/adaptive_tasks.py",
+                "docs/unibot/UNIBOT_DEMO_TEST_PLAN.md",
+                "docs/unibot/UNIBOT_ADAPTIVE_TASKS.md",
+            ],
+            "readiness_check_ids": ["evaluation_packet", "adaptive_task_plan", "gretel_bachelor_thesis_package"],
+            "acceptance_tests": [
+                "python3 -m pytest tests/test_unibot_evaluation.py tests/test_unibot_adaptive_tasks.py tests/test_unibot_bachelor_thesis.py -q"
+            ],
+            "source_card_ids": ["dfg-gwp", "unesco-genai-2023", "vanlehn-2011"],
+            "human_gate": "human_submission_review_required",
+        },
     ]
     index = {
         "schema_version": "unibot-gretel-bachelor-thesis-evidence-index-v1",
@@ -107,6 +129,106 @@ def build_bachelor_thesis_evidence_index() -> dict[str, Any]:
     if scan["status"] != "pass" or source_drift["status"] != "pass":
         index["status"] = "blocked"
     return index
+
+
+def build_bachelor_thesis_evaluation_claim_alignment(
+    evidence_index: dict[str, Any] | None = None,
+    evaluation_packet: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if evidence_index is None:
+        evidence_index = build_bachelor_thesis_evidence_index()
+    if evaluation_packet is None:
+        evaluation_packet = build_evaluation_packet()
+
+    evidence_items = {item["claim_id"]: item for item in evidence_index.get("evidence_items", [])}
+    evaluation_alignment = evaluation_packet.get("learner_agency_boundary_alignment", {})
+    required_source_card_ids = sorted(
+        {
+            source_id
+            for item in evidence_index.get("evidence_items", [])
+            for source_id in item.get("source_card_ids", [])
+        }
+        | {"dfg-gwp", "unesco-genai-2023", "vanlehn-2011", "kulik-fletcher-2016"}
+    )
+    sections = [
+        {
+            "section_id": "learner_agency_claim_trace",
+            "claim_ids": ["evaluation_learner_agency_boundary", "reproducible_evaluation_package"],
+            "evaluation_alignment_status": evaluation_alignment.get("status", ""),
+            "readiness_check_ids": ["evaluation_packet", "adaptive_task_plan", "gretel_bachelor_thesis_package"],
+            "source_card_ids": ["unesco-genai-2023", "vanlehn-2011"],
+            "human_gates": ["human_submission_review_required"],
+            "boundary": "thesis learner-agency claims must trace to synthetic evaluation and adaptive practice safeguards",
+        },
+        {
+            "section_id": "no_high_stakes_claim",
+            "claim_ids": ["exam_boundary_not_clearance", "evaluation_learner_agency_boundary"],
+            "evaluation_boundaries": evaluation_packet.get("boundaries", []),
+            "excluded_measures": evaluation_packet.get("measurement_plan", {}).get("excluded_measures", []),
+            "readiness_check_ids": ["exam_boundary", "evaluation_packet", "compliance_matrix"],
+            "source_card_ids": ["dfg-gwp", "gdpr-2016-679", "uoc-ki-faq"],
+            "human_gates": ["written_university_clearance_required_before_exam_use", "human_submission_review_required"],
+            "boundary": "learner-agency evidence cannot be promoted into grades, exam clearance, proctoring, or AI-detection evidence",
+        },
+        {
+            "section_id": "source_card_claim_trace",
+            "claim_ids": ["source_bound_public_science", "evaluation_learner_agency_boundary"],
+            "source_card_ids": required_source_card_ids,
+            "readiness_check_ids": ["source_cards", "source_card_drift_guard", "gretel_bachelor_thesis_package"],
+            "human_gates": ["human_submission_review_required"],
+            "boundary": "external claims remain anchored to public source cards and drift checks",
+        },
+        {
+            "section_id": "submission_review_trace",
+            "claim_ids": ["gretel_authorship_label", "evaluation_learner_agency_boundary"],
+            "readiness_check_ids": ["gretel_bachelor_thesis_package", "review_board_packet"],
+            "source_card_ids": [],
+            "human_gates": sorted(evidence_index.get("required_human_gates", [])),
+            "boundary": "Gretel authorship and thesis-level rigor remain human-reviewed draft claims, not real submission authority",
+        },
+    ]
+    payload = json.dumps(
+        {"evidence_index": evidence_index, "evaluation_alignment": evaluation_alignment, "sections": sections},
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    payload_scan = scan_text(payload, "gretel-thesis-evaluation-claim-alignment")
+    missing_source_card_ids = sorted(source_id for source_id in required_source_card_ids if get_source_card(source_id) is None)
+    contracts = {
+        "evaluation_claim_exists": "evaluation_learner_agency_boundary" in evidence_items,
+        "evaluation_alignment_ready": evaluation_alignment.get("status") == "ready"
+        and evaluation_alignment.get("public_safety_status") == "pass",
+        "adaptive_trace_in_evaluation_ready": evaluation_alignment.get("contracts", {}).get("adaptive_plan_boundary_ready") is True,
+        "high_stakes_claims_excluded": {
+            "official grades",
+            "real exam performance",
+            "disciplinary KI detection",
+        }.issubset(set(evaluation_packet.get("measurement_plan", {}).get("excluded_measures", []))),
+        "thesis_human_gated": "human_submission_review_required" in evidence_index.get("required_human_gates", [])
+        and "written_university_clearance_required_before_exam_use" in evidence_index.get("required_human_gates", []),
+        "payload_public_safe": payload_scan["status"] == "pass",
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    status = "ready" if not missing_source_card_ids and not failed_contract_ids else "needs_review"
+    return {
+        "schema_version": BACHELOR_THESIS_EVALUATION_CLAIM_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "contracts": contracts,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "public_safety_status": payload_scan["status"],
+        "policy": (
+            "Bachelor-thesis evaluation claim alignment is a public review aid only; it does not authorize "
+            "real submission, grading, exam clearance, proctoring, KI-detection evidence, provider calls, "
+            "private course text, local paths, or student data."
+        ),
+    }
 
 
 def build_bachelor_thesis_package() -> dict[str, Any]:
@@ -198,6 +320,7 @@ def build_bachelor_thesis_package() -> dict[str, Any]:
         },
     }
     package["evidence_index"] = build_bachelor_thesis_evidence_index()
+    package["evaluation_claim_alignment"] = build_bachelor_thesis_evaluation_claim_alignment(package["evidence_index"])
     package["source_cards"] = [
         card for card in (get_source_card(source_id) for source_id in package["glm_technology_basis"]["official_source_card_ids"]) if card
     ]
@@ -235,6 +358,10 @@ def build_bachelor_thesis_markdown() -> str:
         f"- `{item['claim_id']}`: {item['evidence_type']} via {', '.join(item['readiness_check_ids'])}"
         for item in package["evidence_index"]["evidence_items"]
     )
+    evaluation_alignment_lines = "\n".join(
+        f"- `{section['section_id']}`: {section['boundary']}"
+        for section in package["evaluation_claim_alignment"]["sections"]
+    )
     return (
         "# UniBot Gretel Bachelor-Thesis-Level Package\n\n"
         f"Status: {package['status']}\n\n"
@@ -263,6 +390,10 @@ def build_bachelor_thesis_markdown() -> str:
         f"- Claims: {package['evidence_index']['claim_count']}\n"
         f"- Source-card drift: {package['evidence_index']['source_card_drift_status']}\n\n"
         f"{evidence_lines}\n\n"
+        "## Evaluation Claim Alignment\n\n"
+        f"- Status: {package['evaluation_claim_alignment']['status']}\n"
+        f"- Public safety: {package['evaluation_claim_alignment']['public_safety_status']}\n\n"
+        f"{evaluation_alignment_lines}\n\n"
         "## Ready For\n\n"
         f"{ready_lines}\n\n"
         "## Not Ready For\n\n"

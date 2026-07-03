@@ -680,6 +680,10 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and bachelor_thesis_package["review_gates"]["no_final_go_by_gretel_or_glm"] is True
             and bachelor_thesis_package["evidence_index"]["status"] == "ready"
             and bachelor_thesis_package["evidence_index"]["public_safety_status"] == "pass"
+            and bachelor_thesis_package["evaluation_claim_alignment"]["status"] == "ready"
+            and bachelor_thesis_package["evaluation_claim_alignment"]["public_safety_status"] == "pass"
+            and bachelor_thesis_package["evaluation_claim_alignment"]["missing_source_card_ids"] == []
+            and bachelor_thesis_package["evaluation_claim_alignment"]["failed_contract_ids"] == []
             and "source_card_drift_guard" in bachelor_thesis_package["evidence_index"]["required_readiness_check_ids"]
             and "written_university_clearance_required_before_exam_use"
             in bachelor_thesis_package["evidence_index"]["required_human_gates"],
@@ -693,6 +697,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "institutional_status": bachelor_thesis_package["authorship_statement"]["institutional_status"],
                 "evidence_index_status": bachelor_thesis_package["evidence_index"]["status"],
                 "evidence_claim_count": bachelor_thesis_package["evidence_index"]["claim_count"],
+                "evaluation_claim_alignment_status": bachelor_thesis_package["evaluation_claim_alignment"]["status"],
+                "evaluation_claim_alignment_section_count": bachelor_thesis_package["evaluation_claim_alignment"]["section_count"],
+                "evaluation_claim_alignment_human_gates": bachelor_thesis_package["evaluation_claim_alignment"]["required_human_gates"],
                 "required_human_gates": bachelor_thesis_package["evidence_index"]["required_human_gates"],
             },
         },

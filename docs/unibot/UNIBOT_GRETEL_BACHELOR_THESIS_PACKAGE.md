@@ -74,8 +74,19 @@ thesis-level claim must name:
 
 Current evidence claims cover Gretel authorship, GLM-5.2 basis, source-bound
 public science, public safety and privacy, the exam-boundary/no-clearance line,
-and reproducible synthetic evaluation. The index also carries the source-card
-drift status so the thesis package cannot silently outgrow its public sources.
+reproducible synthetic evaluation, and learner-agency boundary alignment. The
+index also carries the source-card drift status so the thesis package cannot
+silently outgrow its public sources.
+
+## Evaluation Claim Alignment
+
+The generated package includes an `evaluation_claim_alignment` block. It links
+the thesis learner-agency claim to the evaluation packet, adaptive practice
+source-boundary evidence, source-card drift, readiness checks, and human gates.
+
+This alignment is a review aid only. It does not authorize real submission,
+grading, exam clearance, proctoring, KI-detection evidence, provider calls,
+private course text, local paths, or student data.
 
 ## Boundaries
 
