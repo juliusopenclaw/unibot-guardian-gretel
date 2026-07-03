@@ -31,6 +31,8 @@ class UniBotReleaseRunbookTests(unittest.TestCase):
         self.assertEqual(runbook["release_evidence_alignment"]["status"], "ready")
         self.assertEqual(runbook["release_evidence_alignment"]["public_safety_status"], "pass")
         self.assertEqual(runbook["release_evidence_alignment"]["unmapped_gate_ids"], [])
+        self.assertEqual(runbook["release_evidence_alignment"]["missing_review_board_thesis_evaluation_check_ids"], [])
+        self.assertEqual(runbook["release_evidence_alignment"]["missing_review_board_thesis_evaluation_human_gates"], [])
 
     def test_release_runbook_evidence_alignment_maps_gates_to_review_contracts(self) -> None:
         runbook = build_release_runbook()
@@ -44,11 +46,21 @@ class UniBotReleaseRunbookTests(unittest.TestCase):
         self.assertEqual(alignment["unmapped_gate_ids"], [])
         self.assertIn("unibot-readiness-evidence-snapshot-v1", alignment["readiness_snapshot_contract"]["expected_schema_version"])
         self.assertIn("unibot-review-board-evidence-alignment-v1", alignment["review_board_contract"]["expected_schema_version"])
+        self.assertEqual(
+            alignment["review_board_thesis_evaluation_claim_contract"]["expected_schema_version"],
+            "unibot-review-board-thesis-evaluation-claim-alignment-v1",
+        )
+        self.assertEqual(alignment["review_board_thesis_evaluation_claim_contract"]["required_status"], "ready")
         self.assertIn("unibot-github-issue-evidence-traceability-v1", alignment["github_issue_contract"]["expected_schema_version"])
         self.assertTrue(alignment["github_issue_contract"]["manual_publish_only"])
         self.assertIn("public_safety", by_gate["public_safety_scan"]["readiness_check_ids"])
         self.assertIn("review_board_packet", by_gate["exam_authority_clearance"]["readiness_check_ids"])
+        self.assertIn("gretel_bachelor_thesis_package", by_gate["exam_authority_clearance"]["readiness_check_ids"])
+        self.assertIn("evaluation_packet", alignment["review_board_thesis_evaluation_claim_contract"]["required_readiness_check_ids"])
+        self.assertIn("adaptive_task_plan", alignment["review_board_thesis_evaluation_claim_contract"]["required_readiness_check_ids"])
         self.assertIn("github_issue_bundle", by_gate["github_issue_manual_review"]["readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("public_safety_required", alignment["required_human_gates"])
         self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
 
     def test_quickstart_and_contributor_rules_cover_public_workflow(self) -> None:
@@ -183,6 +195,7 @@ class UniBotReleaseRunbookTests(unittest.TestCase):
         self.assertIn("Release Gates", markdown)
         self.assertIn("Release Evidence Alignment", markdown)
         self.assertIn("Snapshot schema", markdown)
+        self.assertIn("Review-board thesis/evaluation schema", markdown)
 
         status, runbook = route_request("/api/unibot/release-runbook", {})
         self.assertEqual(status, 200)

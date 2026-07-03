@@ -90,6 +90,7 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertTrue(github_bundle["evidence"]["manual_publish_only"])
         release_runbook = next(check for check in report["checks"] if check["check_id"] == "release_runbook")
         self.assertEqual(release_runbook["evidence"]["release_evidence_alignment_status"], "ready")
+        self.assertEqual(release_runbook["evidence"]["review_board_thesis_evaluation_claim_contract_status"], "ready")
         self.assertIn("written_university_clearance_required_before_exam_use", release_runbook["evidence"]["release_alignment_human_gates"])
         compliance = next(check for check in report["checks"] if check["check_id"] == "compliance_matrix")
         self.assertEqual(compliance["evidence"]["compliance_drift_alignment_status"], "ready")

@@ -26,6 +26,18 @@ check public-draft readiness.
   health details, real exam notebooks, grades, or copied private classroom
   artifacts to public files.
 
+## Review-Board Claim Contract
+
+The generated release evidence alignment includes a
+`review_board_thesis_evaluation_claim_contract`. It requires the review-board
+thesis/evaluation claim alignment to stay ready before release language can
+present learner-agency or bachelor-thesis evidence.
+
+This contract keeps the release path tied to `review_board_packet`,
+`gretel_bachelor_thesis_package`, `evaluation_packet`, and
+`adaptive_task_plan`, with human gates for submission review, public safety,
+and written university clearance before any exam use.
+
 ## Public Quickstart
 
 1. Start the local UniBot service with `python3 -m unibot.server`.

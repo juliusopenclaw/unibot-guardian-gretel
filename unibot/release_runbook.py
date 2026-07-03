@@ -19,14 +19,14 @@ def build_release_runbook_evidence_alignment(release_gates: list[dict[str, Any]]
             "human_gates": ["public_safety_required"],
         },
         "redteam_smoke": {
-            "readiness_check_ids": ["redteam", "evaluation_packet"],
+            "readiness_check_ids": ["redteam", "evaluation_packet", "adaptive_task_plan"],
             "source_card_ids": ["openai-evals", "dfg-gwp"],
             "human_gates": ["human_review_required"],
         },
         "publication_package": {
-            "readiness_check_ids": ["publication_package", "gretel_bachelor_thesis_package"],
+            "readiness_check_ids": ["publication_package", "gretel_bachelor_thesis_package", "review_board_packet"],
             "source_card_ids": ["dfg-gwp", "zai-glm-52"],
-            "human_gates": ["human_submission_review_required"],
+            "human_gates": ["human_submission_review_required", "public_safety_required"],
         },
         "readiness_check": {
             "readiness_check_ids": ["readiness_runtime_guard", "source_card_drift_guard", "gretel_autonomous_research_loop"],
@@ -39,9 +39,9 @@ def build_release_runbook_evidence_alignment(release_gates: list[dict[str, Any]]
             "human_gates": ["human_review_before_github_create", "public_safety_required"],
         },
         "exam_authority_clearance": {
-            "readiness_check_ids": ["exam_boundary", "review_board_packet", "compliance_matrix"],
+            "readiness_check_ids": ["exam_boundary", "review_board_packet", "compliance_matrix", "gretel_bachelor_thesis_package"],
             "source_card_ids": ["hg-nrw-64", "uoc-hilfsmittel", "uoc-ki-faq", "eu-ai-act-2024"],
-            "human_gates": ["written_university_clearance_required_before_exam_use"],
+            "human_gates": ["written_university_clearance_required_before_exam_use", "human_submission_review_required"],
         },
     }
     gate_rows = [
@@ -70,6 +70,22 @@ def build_release_runbook_evidence_alignment(release_gates: list[dict[str, Any]]
             "required_status": "ready",
             "use": "Human review board alignment must stay ready before authority-facing release language.",
         },
+        "review_board_thesis_evaluation_claim_contract": {
+            "expected_schema_version": "unibot-review-board-thesis-evaluation-claim-alignment-v1",
+            "required_status": "ready",
+            "required_readiness_check_ids": [
+                "review_board_packet",
+                "gretel_bachelor_thesis_package",
+                "evaluation_packet",
+                "adaptive_task_plan",
+            ],
+            "required_human_gates": [
+                "human_submission_review_required",
+                "public_safety_required",
+                "written_university_clearance_required_before_exam_use",
+            ],
+            "use": "Release language must keep review-board thesis/evaluation learner-agency claims human-gated and not exam clearance.",
+        },
         "github_issue_contract": {
             "expected_schema_version": "unibot-github-issue-evidence-traceability-v1",
             "required_status": "ready",
@@ -84,6 +100,26 @@ def build_release_runbook_evidence_alignment(release_gates: list[dict[str, Any]]
     }
     if alignment["unmapped_gate_ids"] or not all(row["manual_review_required"] for row in gate_rows):
         alignment["status"] = "blocked"
+    if not set(alignment["review_board_thesis_evaluation_claim_contract"]["required_readiness_check_ids"]).issubset(
+        set(alignment["unique_readiness_check_ids"])
+    ):
+        alignment["status"] = "blocked"
+        alignment["missing_review_board_thesis_evaluation_check_ids"] = sorted(
+            set(alignment["review_board_thesis_evaluation_claim_contract"]["required_readiness_check_ids"])
+            - set(alignment["unique_readiness_check_ids"])
+        )
+    else:
+        alignment["missing_review_board_thesis_evaluation_check_ids"] = []
+    if not set(alignment["review_board_thesis_evaluation_claim_contract"]["required_human_gates"]).issubset(
+        set(alignment["required_human_gates"])
+    ):
+        alignment["status"] = "blocked"
+        alignment["missing_review_board_thesis_evaluation_human_gates"] = sorted(
+            set(alignment["review_board_thesis_evaluation_claim_contract"]["required_human_gates"])
+            - set(alignment["required_human_gates"])
+        )
+    else:
+        alignment["missing_review_board_thesis_evaluation_human_gates"] = []
     scan = scan_text(json.dumps(alignment, ensure_ascii=False), "release-runbook-evidence-alignment")
     alignment["public_safety_status"] = scan["status"]
     if scan["status"] != "pass":
@@ -977,6 +1013,7 @@ def build_release_runbook_markdown() -> str:
         f"- `{gate['gate_id']}`: checks {', '.join(gate['readiness_check_ids'])}; human gates {', '.join(gate['human_gates'])}"
         for gate in alignment["release_gates"]
     )
+    review_board_thesis_contract = alignment["review_board_thesis_evaluation_claim_contract"]
     endpoints = "\n".join(f"- `{endpoint}`" for endpoint in runbook["api_endpoints"])
     troubleshooting = "\n".join(
         f"- {item['symptom']} Try: {item['try']}" for item in runbook["troubleshooting"]
@@ -999,6 +1036,8 @@ def build_release_runbook_markdown() -> str:
         f"- Status: {alignment['status']}\n"
         f"- Snapshot schema: {alignment['readiness_snapshot_contract']['expected_schema_version']}\n"
         f"- Review-board schema: {alignment['review_board_contract']['expected_schema_version']}\n"
+        f"- Review-board thesis/evaluation schema: {review_board_thesis_contract['expected_schema_version']}\n"
+        f"- Review-board thesis/evaluation status: {review_board_thesis_contract['required_status']}\n"
         f"- GitHub issue schema: {alignment['github_issue_contract']['expected_schema_version']}\n"
         f"{alignment_lines}\n\n"
         "## API Endpoints\n\n"

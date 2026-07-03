@@ -492,7 +492,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and release_runbook["exam_deployment_status"] == "not_cleared"
             and release_runbook["release_evidence_alignment"]["status"] == "ready"
             and release_runbook["release_evidence_alignment"]["public_safety_status"] == "pass"
-            and release_runbook["release_evidence_alignment"]["unmapped_gate_ids"] == [],
+            and release_runbook["release_evidence_alignment"]["unmapped_gate_ids"] == []
+            and release_runbook["release_evidence_alignment"]["missing_review_board_thesis_evaluation_check_ids"] == []
+            and release_runbook["release_evidence_alignment"]["missing_review_board_thesis_evaluation_human_gates"] == [],
             "evidence": {
                 "status": release_runbook["status"],
                 "public_safety_status": release_runbook["public_safety_status"],
@@ -500,6 +502,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "exam_deployment_status": release_runbook["exam_deployment_status"],
                 "release_evidence_alignment_status": release_runbook["release_evidence_alignment"]["status"],
                 "release_gate_count": release_runbook["release_evidence_alignment"]["release_gate_count"],
+                "review_board_thesis_evaluation_claim_contract_status": release_runbook["release_evidence_alignment"][
+                    "review_board_thesis_evaluation_claim_contract"
+                ]["required_status"],
                 "release_alignment_human_gates": release_runbook["release_evidence_alignment"]["required_human_gates"],
             },
         },
