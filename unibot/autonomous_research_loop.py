@@ -539,7 +539,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "publication_release_review_board_claim_alignment",
             "priority": 26,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align publication package evidence with pilot, data-protection, release-runbook, and review-board thesis/evaluation claims before public release review.",
             "allowed_files": [
                 "unibot/publication.py",
@@ -549,6 +549,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_publication.py tests/test_unibot_readiness.py -q"],
             "review_gate": "publication_release_review_board_thesis_claim_traceability",
+            "closure_evidence": {
+                "commit": "d794a40",
+                "summary": "Publication release-review-board claim contract and trace added with pilot/data-protection/release/review-board thesis/evaluation links, public release boundaries, and human gates.",
+            },
+        },
+        {
+            "work_id": "github_issue_release_review_board_claim_alignment",
+            "priority": 27,
+            "status": "ready",
+            "goal": "Align GitHub issue bundle drafts with publication release-review-board thesis/evaluation claims, manual publication controls, public language, and human gates.",
+            "allowed_files": [
+                "unibot/github_issues.py",
+                "tests/test_unibot_github_issues.py",
+                "docs/unibot/UNIBOT_GITHUB_ISSUE_BUNDLE.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_github_issues.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "github_issue_release_review_board_thesis_claim_traceability",
         },
     ]
 

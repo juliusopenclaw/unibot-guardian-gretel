@@ -57,9 +57,9 @@ contract change.
 
 ## Current Work Queue
 
-1. `publication_release_review_board_claim_alignment`: align publication
-   package evidence with pilot, data-protection, release-runbook, and
-   review-board thesis/evaluation claims before public release review.
+1. `github_issue_release_review_board_claim_alignment`: align GitHub issue
+   bundle drafts with publication release-review-board thesis/evaluation
+   claims, manual publication controls, public language, and human gates.
 
 ## Closed Harnessed Work
 
@@ -134,6 +134,9 @@ contract change.
 - `data_protection_release_review_board_claim_alignment`: closed in `447a37e`
   with pilot/release/review-board thesis/evaluation readiness links, processing
   boundaries, and human gates.
+- `publication_release_review_board_claim_alignment`: closed in `d794a40` with
+  pilot/data-protection/release/review-board thesis/evaluation trace links, public
+  release boundaries, and human gates.
 
 ## Automation Rule
 
