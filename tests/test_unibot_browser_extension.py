@@ -43,6 +43,27 @@ class UniBotBrowserExtensionTests(unittest.TestCase):
         self.assertIn("exam clearance", script)
         self.assertIn("practice-only", script)
 
+    def test_manifest_and_content_script_carry_boundary_claim_alignment(self) -> None:
+        manifest = json.loads((EXTENSION_ROOT / "manifest.json").read_text(encoding="utf-8"))
+        content = (EXTENSION_ROOT / "content.js").read_text(encoding="utf-8")
+
+        self.assertEqual(["activeTab", "storage", "sidePanel"], manifest["permissions"])
+        self.assertIn("https://colab.research.google.com/*", manifest["host_permissions"])
+        self.assertIn("http://localhost/*", manifest["host_permissions"])
+        self.assertIn("http://127.0.0.1/*", manifest["host_permissions"])
+        self.assertNotIn("<all_urls>", json.dumps(manifest))
+        self.assertIn("contentScriptBoundaryClaimAlignment", content)
+        self.assertIn("unibot-browser-manifest-content-boundary-claim-alignment-v1", content)
+        self.assertIn("unibot-browser-extension-release-review-board-claim-alignment-v1", content)
+        self.assertIn("unibot-local-demo-release-review-board-claim-alignment-v1", content)
+        self.assertIn("browser_manifest_content_boundary", content)
+        self.assertIn("browser_extension_demo_handoff", content)
+        self.assertIn("human_submission_review_required", content)
+        self.assertIn("required_manifest_permissions", content)
+        self.assertIn("Colab, localhost, and loopback practice surfaces only", content)
+        self.assertIn("exam clearance", content)
+        self.assertIn("never claims exam security", content)
+
     def test_browser_extension_does_not_depend_on_paperclip(self) -> None:
         manifest = json.loads((EXTENSION_ROOT / "manifest.json").read_text(encoding="utf-8"))
         html = (EXTENSION_ROOT / "sidepanel.html").read_text(encoding="utf-8")

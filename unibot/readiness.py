@@ -190,6 +190,8 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     demo_run = build_local_demo_run()
     feedback_template = demo_feedback_template()
     browser_sidepanel_text = (ROOT / "unibot" / "browser_extension" / "sidepanel.js").read_text(encoding="utf-8")
+    browser_manifest = json.loads((ROOT / "unibot" / "browser_extension" / "manifest.json").read_text(encoding="utf-8"))
+    browser_content_text = (ROOT / "unibot" / "browser_extension" / "content.js").read_text(encoding="utf-8")
     feedback_template_scan = scan_text(json.dumps(feedback_template, ensure_ascii=False), "unibot-feedback-template")
     demo_feedback_validation = validate_demo_feedback(
         {
@@ -489,6 +491,35 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "github_issue_claim_linked": "unibot-github-issue-release-review-board-claim-alignment-v1" in browser_sidepanel_text,
                 "human_submission_gate_linked": "human_submission_review_required" in browser_sidepanel_text,
                 "exam_clearance_blocked": "exam clearance" in browser_sidepanel_text,
+            },
+        },
+        {
+            "check_id": "browser_manifest_content_boundary",
+            "passed": browser_manifest["permissions"] == ["activeTab", "storage", "sidePanel"]
+            and "<all_urls>" not in json.dumps(browser_manifest, ensure_ascii=False)
+            and "https://colab.research.google.com/*" in browser_manifest["host_permissions"]
+            and "http://localhost/*" in browser_manifest["host_permissions"]
+            and "http://127.0.0.1/*" in browser_manifest["host_permissions"]
+            and "contentScriptBoundaryClaimAlignment" in browser_content_text
+            and "unibot-browser-manifest-content-boundary-claim-alignment-v1" in browser_content_text
+            and "unibot-browser-extension-release-review-board-claim-alignment-v1" in browser_content_text
+            and "unibot-local-demo-release-review-board-claim-alignment-v1" in browser_content_text
+            and "browser_manifest_content_boundary" in browser_content_text
+            and "browser_extension_demo_handoff" in browser_content_text
+            and "human_submission_review_required" in browser_content_text
+            and "exam clearance" in browser_content_text
+            and "never claims exam security" in browser_content_text,
+            "evidence": {
+                "status": "ready",
+                "contract_status": "unibot-browser-manifest-content-boundary-claim-alignment-v1",
+                "permission_count": len(browser_manifest["permissions"]),
+                "host_permission_count": len(browser_manifest["host_permissions"]),
+                "all_urls_requested": "<all_urls>" in json.dumps(browser_manifest, ensure_ascii=False),
+                "content_boundary_claim_present": "contentScriptBoundaryClaimAlignment" in browser_content_text,
+                "sidepanel_claim_linked": "unibot-browser-extension-release-review-board-claim-alignment-v1" in browser_content_text,
+                "local_demo_claim_linked": "unibot-local-demo-release-review-board-claim-alignment-v1" in browser_content_text,
+                "human_submission_gate_linked": "human_submission_review_required" in browser_content_text,
+                "exam_security_claim_blocked": "never claims exam security" in browser_content_text,
             },
         },
         {
