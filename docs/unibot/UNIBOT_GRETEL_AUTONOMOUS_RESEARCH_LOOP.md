@@ -57,9 +57,9 @@ contract change.
 
 ## Current Work Queue
 
-1. `release_runbook_review_board_claim_alignment`: align release runbook review
-   steps with review-board thesis evaluation claims, public language controls,
-   source cards, and human gates.
+1. `compliance_release_review_board_claim_alignment`: align compliance
+   requirements with release-runbook review-board thesis/evaluation claims,
+   public language controls, source cards, and human gates.
 
 ## Closed Harnessed Work
 
@@ -122,6 +122,9 @@ contract change.
 - `review_board_thesis_evaluation_claim_alignment`: closed in `20a66a0` with
   learner-agency reviewer mapping, high-stakes red lines, source-card,
   readiness, and human-gate contracts.
+- `release_runbook_review_board_claim_alignment`: closed in `77f5b61` with
+  review-board thesis/evaluation claim contract, adaptive/evaluation/readiness
+  links, public-language controls, and human gates.
 
 ## Automation Rule
 

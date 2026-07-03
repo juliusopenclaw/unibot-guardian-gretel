@@ -467,7 +467,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "release_runbook_review_board_claim_alignment",
             "priority": 22,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align release runbook review steps with review-board thesis evaluation claims, public language controls, source cards, and human gates.",
             "allowed_files": [
                 "unibot/release_runbook.py",
@@ -477,6 +477,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_release_runbook.py tests/test_unibot_readiness.py -q"],
             "review_gate": "release_runbook_review_board_thesis_claim_traceability",
+            "closure_evidence": {
+                "commit": "77f5b61",
+                "summary": "Release runbook review-board thesis/evaluation claim contract added with adaptive/evaluation/readiness links, public-language controls, and human gates.",
+            },
+        },
+        {
+            "work_id": "compliance_release_review_board_claim_alignment",
+            "priority": 23,
+            "status": "ready",
+            "goal": "Align compliance requirements with release-runbook review-board thesis/evaluation claims, public language controls, source cards, and human gates.",
+            "allowed_files": [
+                "unibot/compliance.py",
+                "tests/test_unibot_compliance.py",
+                "docs/unibot/UNIBOT_COMPLIANCE_MATRIX.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_compliance.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "compliance_release_review_board_thesis_claim_traceability",
         },
     ]
 
