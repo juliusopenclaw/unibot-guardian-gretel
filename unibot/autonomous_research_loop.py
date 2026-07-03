@@ -683,7 +683,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "redteam_release_review_board_claim_alignment",
             "priority": 34,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align red-team smoke evidence with notebook, browser, local demo, publication, release-review-board claims, public language controls, and human gates.",
             "allowed_files": [
                 "unibot/redteam.py",
@@ -693,6 +693,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_redteam.py tests/test_unibot_readiness.py -q"],
             "review_gate": "redteam_release_review_board_claim_traceability",
+            "closure_evidence": {
+                "commit": "639a2cb",
+                "summary": "Red-team smoke claim alignment added with hash/category evidence, notebook, browser, local-demo, publication, review-board, readiness, and human-gate links.",
+            },
+        },
+        {
+            "work_id": "source_card_release_review_board_claim_alignment",
+            "priority": 35,
+            "status": "ready",
+            "goal": "Align source-card evidence with red-team, notebook, publication, release-review-board claims, public language controls, and human gates.",
+            "allowed_files": [
+                "unibot/source_cards.py",
+                "tests/test_unibot_source_cards.py",
+                "docs/unibot/UNIBOT_SOURCE_CARDS.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_source_cards.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "source_card_release_review_board_claim_traceability",
         },
     ]
 

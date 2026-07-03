@@ -57,8 +57,8 @@ contract change.
 
 ## Current Work Queue
 
-1. `redteam_release_review_board_claim_alignment`: align red-team smoke evidence
-   with notebook, browser, local demo, publication, release-review-board claims,
+1. `source_card_release_review_board_claim_alignment`: align source-card
+   evidence with red-team, notebook, publication, release-review-board claims,
    public language controls, and human gates.
 
 ## Closed Harnessed Work
@@ -166,6 +166,10 @@ contract change.
   with browser, manifest/content-boundary, local-demo, feedback, publication,
   review-board, readiness, and human-gate links for the practice notebook
   handoff.
+
+- `redteam_release_review_board_claim_alignment`: closed in `639a2cb` with
+  hash/category-only red-team evidence, notebook, browser, local-demo,
+  publication, review-board, readiness, and human-gate links.
 
 ## Automation Rule
 
