@@ -1,3 +1,36 @@
+const browserExtensionReleaseReviewBoardClaimAlignment = Object.freeze({
+  schema_version: "unibot-browser-extension-release-review-board-claim-alignment-v1",
+  status: "ready",
+  practice_only: true,
+  local_only: true,
+  public_summary_only: true,
+  manual_publication_claim_contract: {
+    expected_schema_version: "unibot-browser-extension-release-review-board-claim-alignment-v1",
+    required_local_demo_claim_schema_version: "unibot-local-demo-release-review-board-claim-alignment-v1",
+    required_demo_feedback_claim_schema_version: "unibot-demo-feedback-release-review-board-claim-alignment-v1",
+    required_feedback_triage_claim_schema_version: "unibot-feedback-triage-release-review-board-claim-alignment-v1",
+    required_github_issue_claim_schema_version: "unibot-github-issue-release-review-board-claim-alignment-v1",
+    required_readiness_check_ids: [
+      "browser_extension_demo_handoff",
+      "local_demo_run",
+      "demo_feedback_contract",
+      "demo_feedback_triage",
+      "github_issue_bundle",
+      "publication_package",
+      "release_runbook",
+      "review_board_packet",
+      "public_safety"
+    ],
+    required_human_gates: [
+      "human_review_before_github_create",
+      "human_submission_review_required",
+      "public_safety_required"
+    ],
+    use: "Browser sidepanel handoff remains practice-only and traceable before demo, feedback, issue, publication, or review-board work."
+  },
+  blocked_claims: ["exam clearance", "official grading", "proctoring", "KI-detection evidence"]
+});
+
 const task = document.querySelector("#task");
 const help = document.querySelector("#help");
 const external = document.querySelector("#external");

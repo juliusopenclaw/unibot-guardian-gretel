@@ -189,6 +189,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     adaptive_source_boundary_alignment = adaptive_plan["source_boundary_alignment"]
     demo_run = build_local_demo_run()
     feedback_template = demo_feedback_template()
+    browser_sidepanel_text = (ROOT / "unibot" / "browser_extension" / "sidepanel.js").read_text(encoding="utf-8")
     feedback_template_scan = scan_text(json.dumps(feedback_template, ensure_ascii=False), "unibot-feedback-template")
     demo_feedback_validation = validate_demo_feedback(
         {
@@ -462,6 +463,32 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "local_only": demo_run["claim_alignment"]["local_only"],
                 "manual_publication_claim_contract_status": demo_run["claim_alignment"]["manual_publication_claim_contract"]["expected_schema_version"],
                 "public_safety_status": demo_run["public_safety_status"],
+            },
+        },
+        {
+            "check_id": "browser_extension_demo_handoff",
+            "passed": "browserExtensionReleaseReviewBoardClaimAlignment" in browser_sidepanel_text
+            and "unibot-browser-extension-release-review-board-claim-alignment-v1" in browser_sidepanel_text
+            and "unibot-local-demo-release-review-board-claim-alignment-v1" in browser_sidepanel_text
+            and "unibot-demo-feedback-release-review-board-claim-alignment-v1" in browser_sidepanel_text
+            and "unibot-feedback-triage-release-review-board-claim-alignment-v1" in browser_sidepanel_text
+            and "unibot-github-issue-release-review-board-claim-alignment-v1" in browser_sidepanel_text
+            and "browser_extension_demo_handoff" in browser_sidepanel_text
+            and "local_demo_run" in browser_sidepanel_text
+            and "demo_feedback_contract" in browser_sidepanel_text
+            and "github_issue_bundle" in browser_sidepanel_text
+            and "human_submission_review_required" in browser_sidepanel_text
+            and "exam clearance" in browser_sidepanel_text
+            and "practice-only" in browser_sidepanel_text,
+            "evidence": {
+                "status": "ready",
+                "contract_status": "unibot-browser-extension-release-review-board-claim-alignment-v1",
+                "local_demo_claim_linked": "unibot-local-demo-release-review-board-claim-alignment-v1" in browser_sidepanel_text,
+                "demo_feedback_claim_linked": "unibot-demo-feedback-release-review-board-claim-alignment-v1" in browser_sidepanel_text,
+                "triage_claim_linked": "unibot-feedback-triage-release-review-board-claim-alignment-v1" in browser_sidepanel_text,
+                "github_issue_claim_linked": "unibot-github-issue-release-review-board-claim-alignment-v1" in browser_sidepanel_text,
+                "human_submission_gate_linked": "human_submission_review_required" in browser_sidepanel_text,
+                "exam_clearance_blocked": "exam clearance" in browser_sidepanel_text,
             },
         },
         {

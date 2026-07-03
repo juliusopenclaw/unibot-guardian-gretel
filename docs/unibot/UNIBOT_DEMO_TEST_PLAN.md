@@ -46,6 +46,18 @@ support grading/proctoring/KI-detection claims, or approve a thesis submission.
 
 ## Scientific Observation Rubric
 
+## Browser Extension Handoff
+
+The side panel carries `browserExtensionReleaseReviewBoardClaimAlignment` with
+the contract `unibot-browser-extension-release-review-board-claim-alignment-v1`.
+It links the browser UI handoff to the local demo, validated demo feedback,
+feedback triage, GitHub issue bundle, publication package, release runbook, and
+review-board evidence chain.
+
+This handoff remains practice-only. It does not create public issues, approve
+publication, call providers, clear exam use, or support grading/proctoring/KI-
+detection claims.
+
 During public-safe demos, reviewers should look for five descriptive dimensions:
 
 - Socratic help quality: the learner keeps the next cognitive step.

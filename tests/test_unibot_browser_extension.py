@@ -29,6 +29,20 @@ class UniBotBrowserExtensionTests(unittest.TestCase):
         self.assertIn("renderAdaptivePlan", script)
         self.assertIn("practice-only, no grade", script)
 
+    def test_sidepanel_carries_release_review_board_claim_alignment(self) -> None:
+        script = (EXTENSION_ROOT / "sidepanel.js").read_text(encoding="utf-8")
+
+        self.assertIn("browserExtensionReleaseReviewBoardClaimAlignment", script)
+        self.assertIn("unibot-browser-extension-release-review-board-claim-alignment-v1", script)
+        self.assertIn("unibot-local-demo-release-review-board-claim-alignment-v1", script)
+        self.assertIn("unibot-demo-feedback-release-review-board-claim-alignment-v1", script)
+        self.assertIn("browser_extension_demo_handoff", script)
+        self.assertIn("local_demo_run", script)
+        self.assertIn("demo_feedback_contract", script)
+        self.assertIn("human_submission_review_required", script)
+        self.assertIn("exam clearance", script)
+        self.assertIn("practice-only", script)
+
     def test_browser_extension_does_not_depend_on_paperclip(self) -> None:
         manifest = json.loads((EXTENSION_ROOT / "manifest.json").read_text(encoding="utf-8"))
         html = (EXTENSION_ROOT / "sidepanel.html").read_text(encoding="utf-8")
