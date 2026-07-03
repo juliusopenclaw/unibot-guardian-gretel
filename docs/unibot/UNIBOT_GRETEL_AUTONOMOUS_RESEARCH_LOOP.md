@@ -57,9 +57,9 @@ contract change.
 
 ## Current Work Queue
 
-1. `source_card_release_review_board_claim_alignment`: align source-card
-   evidence with red-team, notebook, publication, release-review-board claims,
-   public language controls, and human gates.
+1. `threat_model_release_review_board_claim_alignment`: align the threat model
+   with source cards, red-team evidence, publication, release-review-board
+   claims, public language controls, and human gates.
 
 ## Closed Harnessed Work
 
@@ -169,6 +169,10 @@ contract change.
 
 - `redteam_release_review_board_claim_alignment`: closed in `639a2cb` with
   hash/category-only red-team evidence, notebook, browser, local-demo,
+  publication, review-board, readiness, and human-gate links.
+
+- `source_card_release_review_board_claim_alignment`: closed in `bda02d3`
+  with drift checks, public-link-only source rules, red-team, notebook,
   publication, review-board, readiness, and human-gate links.
 
 ## Automation Rule

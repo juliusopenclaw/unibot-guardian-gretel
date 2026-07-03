@@ -701,7 +701,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "source_card_release_review_board_claim_alignment",
             "priority": 35,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align source-card evidence with red-team, notebook, publication, release-review-board claims, public language controls, and human gates.",
             "allowed_files": [
                 "unibot/source_cards.py",
@@ -711,6 +711,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_source_cards.py tests/test_unibot_readiness.py -q"],
             "review_gate": "source_card_release_review_board_claim_traceability",
+            "closure_evidence": {
+                "commit": "bda02d3",
+                "summary": "Source-card claim alignment added with drift checks, public-link-only source rules, red-team, notebook, publication, review-board, readiness, and human-gate links.",
+            },
+        },
+        {
+            "work_id": "threat_model_release_review_board_claim_alignment",
+            "priority": 36,
+            "status": "ready",
+            "goal": "Align the threat model with source cards, red-team evidence, publication, release-review-board claims, public language controls, and human gates.",
+            "allowed_files": [
+                "docs/unibot/UNIBOT_THREAT_MODEL.md",
+                "unibot/redteam.py",
+                "tests/test_unibot_redteam.py",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_redteam.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "threat_model_release_review_board_claim_traceability",
         },
     ]
 

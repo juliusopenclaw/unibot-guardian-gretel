@@ -56,7 +56,7 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         queue = loop["work_queue"]
         by_id = {item["work_id"]: item for item in queue}
 
-        self.assertGreaterEqual(len(queue), 35)
+        self.assertGreaterEqual(len(queue), 36)
         self.assertEqual(by_id["intent_contract_regression_pack"]["status"], "closed_harnessed")
         self.assertEqual(by_id["intent_contract_regression_pack"]["closure_evidence"]["commit"], "fa942b0")
         self.assertEqual(by_id["scientific_evaluation_depth"]["status"], "closed_harnessed")
@@ -244,14 +244,24 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             "redteam_release_review_board_claim_traceability",
         )
         self.assertIn("unibot/redteam.py", by_id["redteam_release_review_board_claim_alignment"]["allowed_files"])
-        self.assertEqual(by_id["source_card_release_review_board_claim_alignment"]["status"], "ready")
+        self.assertEqual(by_id["source_card_release_review_board_claim_alignment"]["status"], "closed_harnessed")
+        self.assertEqual(
+            by_id["source_card_release_review_board_claim_alignment"]["closure_evidence"]["commit"],
+            "bda02d3",
+        )
         self.assertEqual(
             by_id["source_card_release_review_board_claim_alignment"]["review_gate"],
             "source_card_release_review_board_claim_traceability",
         )
         self.assertIn("unibot/source_cards.py", by_id["source_card_release_review_board_claim_alignment"]["allowed_files"])
-        self.assertEqual(loop["next_recommended_work_id"], "source_card_release_review_board_claim_alignment")
-        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 34)
+        self.assertEqual(by_id["threat_model_release_review_board_claim_alignment"]["status"], "ready")
+        self.assertEqual(
+            by_id["threat_model_release_review_board_claim_alignment"]["review_gate"],
+            "threat_model_release_review_board_claim_traceability",
+        )
+        self.assertIn("docs/unibot/UNIBOT_THREAT_MODEL.md", by_id["threat_model_release_review_board_claim_alignment"]["allowed_files"])
+        self.assertEqual(loop["next_recommended_work_id"], "threat_model_release_review_board_claim_alignment")
+        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 35)
         self.assertLessEqual(loop["budget_policy"]["cadence"]["max_active_work_item_per_run"], 1)
         for item in queue:
             self.assertIn("acceptance_tests", item)
@@ -266,8 +276,8 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("Public safety: pass", markdown)
         self.assertIn("Default reasoning effort: low", markdown)
         self.assertIn("Autonomous GitHub push: False", markdown)
-        self.assertIn("Closed harnessed items: 34", markdown)
-        self.assertIn("Next recommended work: source_card_release_review_board_claim_alignment", markdown)
+        self.assertIn("Closed harnessed items: 35", markdown)
+        self.assertIn("Next recommended work: threat_model_release_review_board_claim_alignment", markdown)
 
         status, loop = route_request("/api/unibot/autonomous-research-loop", {})
         self.assertEqual(status, 200)
