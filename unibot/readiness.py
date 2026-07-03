@@ -30,7 +30,11 @@ from .publication import build_publication_package
 from .public_safety import scan_public_files, scan_text
 from .redteam import run_redteam_smoke
 from .release_runbook import build_release_runbook
-from .source_cards import build_source_card_drift_report, list_source_cards
+from .source_cards import (
+    build_source_card_drift_report,
+    build_source_card_release_review_board_claim_alignment,
+    list_source_cards,
+)
 from .triage import build_feedback_triage
 from .review_board import build_review_board_packet
 
@@ -176,6 +180,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     notebook = generate_practice_notebook("UniBot readiness notebook smoke")
     source_cards = list_source_cards()
     source_card_drift = build_source_card_drift_report()
+    source_card_claim_alignment = build_source_card_release_review_board_claim_alignment(source_card_drift)
     material_manifest = build_demo_material_manifest()
     material_summary = build_public_material_summary(material_manifest["records"])
     material_summary_scan = scan_text(json.dumps(material_summary, ensure_ascii=False), "unibot-material-summary")
@@ -444,10 +449,21 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
         },
         {
             "check_id": "source_cards",
-            "passed": len(source_cards) >= 10,
+            "passed": len(source_cards) >= 10
+            and source_card_claim_alignment["status"] == "ready"
+            and source_card_claim_alignment["public_safety_status"] == "pass"
+            and source_card_claim_alignment["public_link_only"] is True
+            and source_card_claim_alignment["all_cards_have_product_rules"] is True,
             "evidence": {
                 "source_card_count": len(source_cards),
                 "high_risk_count": len([card for card in source_cards if card["risk_level"] == "high"]),
+                "claim_alignment_status": source_card_claim_alignment["status"],
+                "claim_alignment_public_safety_status": source_card_claim_alignment["public_safety_status"],
+                "manual_publication_claim_contract_status": source_card_claim_alignment[
+                    "manual_publication_claim_contract"
+                ]["expected_schema_version"],
+                "public_link_only": source_card_claim_alignment["public_link_only"],
+                "all_cards_have_product_rules": source_card_claim_alignment["all_cards_have_product_rules"],
             },
         },
         {
@@ -457,7 +473,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and source_card_drift["missing_required_source_card_ids"] == []
             and source_card_drift["unlisted_high_risk_source_card_ids"] == []
             and source_card_drift["duplicate_source_ids"] == []
-            and source_card_drift["stale_source_card_ids"] == [],
+            and source_card_drift["stale_source_card_ids"] == []
+            and source_card_claim_alignment["missing_release_review_board_claim_check_ids"] == []
+            and source_card_claim_alignment["missing_release_review_board_claim_human_gates"] == [],
             "evidence": {
                 "status": source_card_drift["status"],
                 "public_safety_status": source_card_drift["public_safety_status"],
@@ -467,6 +485,17 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "source_kind_count": source_card_drift["source_kind_count"],
                 "authority_type_count": source_card_drift["authority_type_count"],
                 "stale_source_card_count": len(source_card_drift["stale_source_card_ids"]),
+                "source_card_claim_alignment_status": source_card_claim_alignment["status"],
+                "redteam_claim_linked": "redteam" in source_card_claim_alignment["unique_readiness_check_ids"],
+                "notebook_handoff_claim_linked": (
+                    "notebook_template" in source_card_claim_alignment["unique_readiness_check_ids"]
+                ),
+                "publication_claim_linked": "publication_package" in source_card_claim_alignment["unique_readiness_check_ids"],
+                "review_board_claim_linked": "review_board_packet" in source_card_claim_alignment["unique_readiness_check_ids"],
+                "human_submission_gate_linked": (
+                    "human_submission_review_required" in source_card_claim_alignment["required_human_gates"]
+                ),
+                "exam_clearance_blocked": "exam clearance" in source_card_claim_alignment["blocked_claims"],
             },
         },
         {

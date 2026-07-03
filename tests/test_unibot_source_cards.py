@@ -1,0 +1,82 @@
+from __future__ import annotations
+
+import json
+import sys
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from unibot.source_cards import (  # noqa: E402
+    SOURCE_CARD_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+    build_source_card_drift_report,
+    build_source_card_release_review_board_claim_alignment,
+    get_source_card,
+    list_source_cards,
+    required_source_card_ids,
+)
+from unibot.public_safety import scan_text  # noqa: E402
+
+
+class UniBotSourceCardTests(unittest.TestCase):
+    def test_source_card_drift_report_passes_public_required_cards(self) -> None:
+        report = build_source_card_drift_report(as_of="2026-07-03")
+
+        self.assertEqual(report["status"], "pass")
+        self.assertEqual(report["public_safety_status"], "pass")
+        self.assertGreaterEqual(report["card_count"], report["required_source_card_count"])
+        self.assertEqual(report["missing_required_source_card_ids"], [])
+        self.assertEqual(report["unlisted_high_risk_source_card_ids"], [])
+        self.assertEqual(report["duplicate_source_ids"], [])
+        self.assertEqual(report["stale_source_card_ids"], [])
+        self.assertIsNotNone(get_source_card("dfg-gwp"))
+        self.assertIn("zai-glm-52", required_source_card_ids())
+
+    def test_source_card_claim_alignment_links_release_review_board_chain(self) -> None:
+        drift = build_source_card_drift_report(as_of="2026-07-03")
+        alignment = build_source_card_release_review_board_claim_alignment(drift)
+
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertTrue(alignment["public_link_only"])
+        self.assertTrue(alignment["all_cards_have_product_rules"])
+        self.assertGreaterEqual(alignment["source_card_count"], alignment["required_source_card_count"])
+        self.assertEqual(
+            alignment["manual_publication_claim_contract"]["expected_schema_version"],
+            SOURCE_CARD_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+        )
+        self.assertIn("source_cards", alignment["unique_readiness_check_ids"])
+        self.assertIn("source_card_drift_guard", alignment["unique_readiness_check_ids"])
+        self.assertIn("redteam", alignment["unique_readiness_check_ids"])
+        self.assertIn("notebook_template", alignment["unique_readiness_check_ids"])
+        self.assertIn("publication_package", alignment["unique_readiness_check_ids"])
+        self.assertIn("review_board_packet", alignment["unique_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertEqual(alignment["missing_release_review_board_claim_check_ids"], [])
+        self.assertEqual(alignment["missing_release_review_board_claim_human_gates"], [])
+        self.assertIn("exam clearance", alignment["blocked_claims"])
+        self.assertEqual(scan_text(json.dumps(alignment, ensure_ascii=False), "source-card-alignment")["status"], "pass")
+
+    def test_source_card_claim_alignment_blocks_failed_drift_report(self) -> None:
+        drift = build_source_card_drift_report(as_of="2026-07-03")
+        drift["status"] = "blocked"
+        drift["missing_required_source_card_ids"] = ["dfg-gwp"]
+        alignment = build_source_card_release_review_board_claim_alignment(drift)
+
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["drift_status"], "blocked")
+
+    def test_source_cards_do_not_contain_private_material(self) -> None:
+        payload = json.dumps(list_source_cards(), ensure_ascii=False)
+
+        self.assertEqual(scan_text(payload, "source-cards")["status"], "pass")
+        self.assertNotIn("private_course", payload)
+        self.assertNotIn("/" + "Users/", payload)
+
+
+if __name__ == "__main__":
+    unittest.main()

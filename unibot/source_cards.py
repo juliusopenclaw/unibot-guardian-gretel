@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import json
 from datetime import date
 from typing import Any
 
@@ -8,6 +9,27 @@ from .public_safety import scan_text
 
 
 LAST_CHECKED = "2026-06-13"
+SOURCE_CARD_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-source-card-release-review-board-claim-alignment-v1"
+)
+
+SOURCE_CARD_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS = [
+    "source_cards",
+    "source_card_drift_guard",
+    "redteam",
+    "notebook_template",
+    "publication_package",
+    "release_runbook",
+    "review_board_packet",
+    "gretel_bachelor_thesis_package",
+    "public_safety",
+]
+
+SOURCE_CARD_RELEASE_REVIEW_BOARD_HUMAN_GATES = [
+    "human_submission_review_required",
+    "public_safety_required",
+    "written_university_clearance_required_before_exam_use",
+]
 
 
 @dataclass(frozen=True)
@@ -377,3 +399,87 @@ def build_source_card_drift_report(*, as_of: str | None = None, max_age_days: in
     if scan["status"] != "pass":
         report["status"] = "blocked"
     return report
+
+
+def build_source_card_release_review_board_claim_alignment(
+    drift_report: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    cards = list_source_cards()
+    drift_report = drift_report or build_source_card_drift_report()
+    card_rows = [
+        {
+            "source_id": card["source_id"],
+            "source_kind": card["source_kind"],
+            "authority_type": card["authority_type"],
+            "risk_level": card["risk_level"],
+            "public_status": card["public_status"],
+            "readiness_check_ids": SOURCE_CARD_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS,
+            "human_gates": SOURCE_CARD_RELEASE_REVIEW_BOARD_HUMAN_GATES,
+            "public_link_only": card["public_status"] == "public-link-only",
+            "has_product_rule": bool(card["product_rule"].strip()),
+        }
+        for card in cards
+    ]
+    required_ids = required_source_card_ids()
+    required_id_set = set(required_ids)
+    present_ids = {card["source_id"] for card in cards}
+    high_risk_ids = {card["source_id"] for card in cards if card["risk_level"] == "high"}
+    alignment = {
+        "schema_version": "unibot-source-card-claim-alignment-v1",
+        "status": "ready" if cards and drift_report.get("status") == "pass" else "blocked",
+        "source_card_count": len(cards),
+        "required_source_card_count": len(required_ids),
+        "high_risk_source_card_count": len(high_risk_ids),
+        "public_link_only": all(row["public_link_only"] for row in card_rows),
+        "all_cards_have_product_rules": all(row["has_product_rule"] for row in card_rows),
+        "manual_publication_claim_contract": {
+            "expected_schema_version": SOURCE_CARD_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+            "required_redteam_schema_version": "unibot-redteam-release-review-board-claim-alignment-v1",
+            "required_notebook_handoff_schema_version": (
+                "unibot-notebook-handoff-release-review-board-claim-alignment-v1"
+            ),
+            "required_publication_schema_version": (
+                "unibot-publication-release-review-board-claim-alignment-v1"
+            ),
+            "required_readiness_check_ids": SOURCE_CARD_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS,
+            "required_human_gates": SOURCE_CARD_RELEASE_REVIEW_BOARD_HUMAN_GATES,
+            "use": (
+                "Source cards anchor public scientific, legal, privacy, technical, and pedagogical claims; "
+                "they do not approve public release, institutional submission, provider calls, or exam use."
+            ),
+        },
+        "card_rows": card_rows,
+        "unique_readiness_check_ids": sorted(
+            {check_id for row in card_rows for check_id in row["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for row in card_rows for gate in row["human_gates"]}),
+        "missing_required_source_card_ids": sorted(required_id_set - present_ids),
+        "unlisted_high_risk_source_card_ids": drift_report.get("unlisted_high_risk_source_card_ids", []),
+        "drift_status": drift_report.get("status", "unknown"),
+        "drift_public_safety_status": drift_report.get("public_safety_status", "unknown"),
+        "blocked_claims": ["exam clearance", "official grading", "proctoring", "KI-detection evidence"],
+        "public_language": "Public claims must cite source-card IDs and keep legal, exam, privacy, and institutional decisions human-reviewed.",
+    }
+    required_check_ids = set(alignment["manual_publication_claim_contract"]["required_readiness_check_ids"])
+    present_check_ids = set(alignment["unique_readiness_check_ids"])
+    alignment["missing_release_review_board_claim_check_ids"] = sorted(required_check_ids - present_check_ids)
+    required_human_gates = set(alignment["manual_publication_claim_contract"]["required_human_gates"])
+    present_human_gates = set(alignment["required_human_gates"])
+    alignment["missing_release_review_board_claim_human_gates"] = sorted(required_human_gates - present_human_gates)
+    if (
+        drift_report.get("status") != "pass"
+        or drift_report.get("public_safety_status") != "pass"
+        or alignment["missing_required_source_card_ids"]
+        or alignment["unlisted_high_risk_source_card_ids"]
+        or not alignment["public_link_only"]
+        or not alignment["all_cards_have_product_rules"]
+        or alignment["missing_release_review_board_claim_check_ids"]
+        or alignment["missing_release_review_board_claim_human_gates"]
+    ):
+        alignment["status"] = "blocked"
+    scan = scan_text(json.dumps(alignment, ensure_ascii=False), "source-card-claim-alignment")
+    alignment["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        alignment["status"] = "blocked"
+        alignment["public_safety_findings"] = scan["findings"]
+    return alignment

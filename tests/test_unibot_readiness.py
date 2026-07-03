@@ -154,6 +154,23 @@ class UniBotReadinessTests(unittest.TestCase):
             "datenschutz_review_required_before_real_pilot",
             data_protection["evidence"]["data_protection_alignment_human_gates"],
         )
+        source_cards = next(check for check in report["checks"] if check["check_id"] == "source_cards")
+        self.assertEqual(
+            source_cards["evidence"]["manual_publication_claim_contract_status"],
+            "unibot-source-card-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(source_cards["evidence"]["claim_alignment_status"], "ready")
+        self.assertEqual(source_cards["evidence"]["claim_alignment_public_safety_status"], "pass")
+        self.assertTrue(source_cards["evidence"]["public_link_only"])
+        self.assertTrue(source_cards["evidence"]["all_cards_have_product_rules"])
+        source_drift = next(check for check in report["checks"] if check["check_id"] == "source_card_drift_guard")
+        self.assertEqual(source_drift["evidence"]["source_card_claim_alignment_status"], "ready")
+        self.assertTrue(source_drift["evidence"]["redteam_claim_linked"])
+        self.assertTrue(source_drift["evidence"]["notebook_handoff_claim_linked"])
+        self.assertTrue(source_drift["evidence"]["publication_claim_linked"])
+        self.assertTrue(source_drift["evidence"]["review_board_claim_linked"])
+        self.assertTrue(source_drift["evidence"]["human_submission_gate_linked"])
+        self.assertTrue(source_drift["evidence"]["exam_clearance_blocked"])
         course_material = next(check for check in report["checks"] if check["check_id"] == "course_material_policy")
         self.assertEqual(course_material["evidence"]["material_public_boundary_alignment_status"], "ready")
         self.assertIn(

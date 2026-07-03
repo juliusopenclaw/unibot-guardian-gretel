@@ -6,6 +6,19 @@ Each card gives a product rule for UniBot. Public documents may be cited in the
 GitHub project; private course material, emails, health data, and local paths may
 not.
 
+## Release Review-Board Claim Alignment
+
+The source-card layer carries `source_card_release_review_board_claim_alignment`
+with the contract `unibot-source-card-release-review-board-claim-alignment-v1`.
+It keeps public scientific, legal, privacy, technical, and pedagogical claims
+anchored to public-link-only source IDs, product rules, drift checks, red-team
+evidence, notebook handoff, publication package, release runbook, review-board
+packet, bachelor thesis package, public-safety gate, and human submission gates.
+
+Source cards do not approve publication, institutional submission, provider
+calls, exam use, official grading, proctoring, or KI-detection claims. They are
+a review substrate for human decisions.
+
 ## Legal And University Sources
 
 | ID | Checked on | Relevanz | Risiko | Source | Product rule |
