@@ -485,7 +485,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "compliance_release_review_board_claim_alignment",
             "priority": 23,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align compliance requirements with release-runbook review-board thesis/evaluation claims, public language controls, source cards, and human gates.",
             "allowed_files": [
                 "unibot/compliance.py",
@@ -495,6 +495,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_compliance.py tests/test_unibot_readiness.py -q"],
             "review_gate": "compliance_release_review_board_thesis_claim_traceability",
+            "closure_evidence": {
+                "commit": "6170a9a",
+                "summary": "Compliance release-review-board claim contract added with release-runbook, review-board thesis/evaluation, readiness, and human-gate checks.",
+            },
+        },
+        {
+            "work_id": "pilot_release_review_board_claim_alignment",
+            "priority": 24,
+            "status": "ready",
+            "goal": "Align pilot protocol evidence with release-runbook review-board thesis/evaluation claims, participant safety, public language controls, and human gates.",
+            "allowed_files": [
+                "unibot/pilot.py",
+                "tests/test_unibot_pilot.py",
+                "docs/unibot/UNIBOT_PILOT_PROTOCOL.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_pilot.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "pilot_release_review_board_thesis_claim_traceability",
         },
     ]
 
