@@ -719,7 +719,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "threat_model_release_review_board_claim_alignment",
             "priority": 36,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align the threat model with source cards, red-team evidence, publication, release-review-board claims, public language controls, and human gates.",
             "allowed_files": [
                 "docs/unibot/UNIBOT_THREAT_MODEL.md",
@@ -729,6 +729,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_redteam.py tests/test_unibot_readiness.py -q"],
             "review_gate": "threat_model_release_review_board_claim_traceability",
+            "closure_evidence": {
+                "commit": "fb2c4e9",
+                "summary": "Threat-model claim alignment added with source-card, red-team, publication, release-runbook, review-board, readiness, and human-gate links.",
+            },
+        },
+        {
+            "work_id": "review_board_packet_release_claim_summary_alignment",
+            "priority": 37,
+            "status": "ready",
+            "goal": "Align review-board packet summaries with source cards, threat model, red-team, publication, public language controls, and human gates.",
+            "allowed_files": [
+                "unibot/review_board.py",
+                "tests/test_unibot_review_board.py",
+                "docs/unibot/UNIBOT_REVIEW_BOARD_PACKET.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_review_board.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "review_board_packet_release_claim_summary_traceability",
         },
     ]
 
