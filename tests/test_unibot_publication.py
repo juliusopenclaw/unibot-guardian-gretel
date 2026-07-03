@@ -48,6 +48,8 @@ class UniBotPublicationTests(unittest.TestCase):
         self.assertIn("budgeted local autonomous research loop", package["gretel_autonomy_policy"])
         self.assertEqual(package["publication_reproducibility_alignment"]["status"], "ready")
         self.assertEqual(package["publication_reproducibility_alignment"]["public_safety_status"], "pass")
+        self.assertEqual(package["publication_reproducibility_alignment"]["missing_release_review_board_claim_check_ids"], [])
+        self.assertEqual(package["publication_reproducibility_alignment"]["missing_release_review_board_claim_human_gates"], [])
         self.assertIn("public draft", package["release_runbook_policy"])
         self.assertIn("not legal advice", package["compliance_matrix_policy"])
         self.assertIn("planning draft", package["pilot_protocol_policy"])
@@ -82,13 +84,47 @@ class UniBotPublicationTests(unittest.TestCase):
         self.assertEqual(alignment["missing_source_card_ids"], [])
         self.assertEqual(alignment["failed_contract_ids"], [])
         self.assertIn("publication_package", alignment["required_readiness_check_ids"])
+        self.assertIn("release_runbook", alignment["required_readiness_check_ids"])
+        self.assertIn("review_board_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("pilot_protocol", alignment["required_readiness_check_ids"])
+        self.assertIn("data_protection_screening", alignment["required_readiness_check_ids"])
+        self.assertIn("gretel_bachelor_thesis_package", alignment["required_readiness_check_ids"])
+        self.assertIn("evaluation_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("adaptive_task_plan", alignment["required_readiness_check_ids"])
         self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertIn("public_safety_required", alignment["required_human_gates"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
         self.assertIn("provider_call_requires_explicit_go_and_redaction_receipt", alignment["required_human_gates"])
+        release_claim_contract = alignment["publication_release_review_board_claim_contract"]
+        self.assertEqual(
+            release_claim_contract["expected_schema_version"],
+            "unibot-publication-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(
+            release_claim_contract["required_pilot_release_review_board_schema_version"],
+            "unibot-pilot-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(
+            release_claim_contract["required_data_protection_release_review_board_schema_version"],
+            "unibot-data-protection-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(
+            release_claim_contract["required_review_board_thesis_evaluation_schema_version"],
+            "unibot-review-board-thesis-evaluation-claim-alignment-v1",
+        )
+        self.assertEqual(alignment["missing_release_review_board_claim_check_ids"], [])
+        self.assertEqual(alignment["missing_release_review_board_claim_human_gates"], [])
         self.assertEqual(alignment["release_boundary"], "public_draft_only_not_exam_deployment_not_university_submission")
         self.assertTrue(alignment["contracts"]["release_ready_public_draft_only"])
         self.assertTrue(alignment["contracts"]["private_groups_excluded"])
         self.assertTrue(alignment["contracts"]["gretel_thesis_claim_source_bound"])
+        self.assertTrue(alignment["contracts"]["pilot_claim_contract_ready"])
+        self.assertTrue(alignment["contracts"]["data_protection_claim_contract_ready"])
+        self.assertTrue(alignment["contracts"]["review_board_thesis_evaluation_claim_ready"])
         self.assertTrue(alignment["contracts"]["glm_provider_locked"])
+        self.assertIn("pilot_protocol", by_section["release_review_board_claim_bundle"]["artifact_ids"])
+        self.assertIn("data_protection_screening_ready", by_section["release_review_board_claim_bundle"]["release_gate_ids"])
         self.assertIn("gretel_bachelor_thesis_package", by_section["gretel_glm_thesis_bundle"]["artifact_ids"])
         self.assertIn("release_runbook_ready", by_section["manual_release_boundary"]["release_gate_ids"])
 
@@ -109,6 +145,10 @@ class UniBotPublicationTests(unittest.TestCase):
         self.assertIn("Data Card", markdown)
         self.assertIn("Release Gates", markdown)
         self.assertIn("Reproducibility Alignment", markdown)
+        self.assertIn(
+            "Release review-board claim alignment: unibot-publication-release-review-board-claim-alignment-v1",
+            markdown,
+        )
         self.assertIn("Course-material policy", markdown)
         self.assertIn("Adaptive task plan", markdown)
         self.assertIn("Local demo run", markdown)

@@ -321,13 +321,21 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and publication["publication_reproducibility_alignment"]["missing_release_gate_ids"] == []
             and publication["publication_reproducibility_alignment"]["missing_policy_keys"] == []
             and publication["publication_reproducibility_alignment"]["missing_source_card_ids"] == []
-            and publication["publication_reproducibility_alignment"]["failed_contract_ids"] == [],
+            and publication["publication_reproducibility_alignment"]["failed_contract_ids"] == []
+            and publication["publication_reproducibility_alignment"]["missing_release_review_board_claim_check_ids"] == []
+            and publication["publication_reproducibility_alignment"][
+                "missing_release_review_board_claim_human_gates"
+            ]
+            == [],
             "evidence": {
                 "status": publication["status"],
                 "release_ready": publication["release_gates"]["release_ready"],
                 "release_ready_note": publication["release_gates"]["release_ready_note"],
                 "public_safety_status": publication_scan["status"],
                 "reproducibility_alignment_status": publication["publication_reproducibility_alignment"]["status"],
+                "publication_release_review_board_claim_contract_status": publication[
+                    "publication_reproducibility_alignment"
+                ]["publication_release_review_board_claim_contract"]["expected_schema_version"],
                 "reproducibility_alignment_section_count": publication["publication_reproducibility_alignment"]["section_count"],
                 "reproducibility_alignment_human_gates": publication["publication_reproducibility_alignment"]["required_human_gates"],
             },

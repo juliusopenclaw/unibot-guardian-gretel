@@ -28,6 +28,9 @@ from .triage import build_feedback_triage
 
 PUBLICATION_SCHEMA_VERSION = "unibot-publication-package-v1"
 PUBLICATION_REPRODUCIBILITY_ALIGNMENT_SCHEMA_VERSION = "unibot-publication-reproducibility-alignment-v1"
+PUBLICATION_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-publication-release-review-board-claim-alignment-v1"
+)
 
 PUBLICATION_ALIGNMENT_SECTIONS = [
     {
@@ -63,6 +66,56 @@ PUBLICATION_ALIGNMENT_SECTIONS = [
         "human_gates": [
             "datenschutz_review_required_before_real_pilot",
             "ethics_or_supervisor_review_required_before_real_pilot",
+            "written_university_clearance_required_before_exam_use",
+        ],
+    },
+    {
+        "section_id": "release_review_board_claim_bundle",
+        "artifact_ids": [
+            "release_runbook",
+            "review_board_packet",
+            "pilot_protocol",
+            "data_protection_screening",
+            "compliance_matrix",
+            "gretel_bachelor_thesis_package",
+            "adaptive_task_plan_demo",
+        ],
+        "release_gate_ids": [
+            "release_runbook_ready",
+            "review_board_packet_ready",
+            "pilot_protocol_ready",
+            "data_protection_screening_ready",
+            "compliance_matrix_ready",
+            "gretel_bachelor_thesis_package_ready",
+            "adaptive_task_plan_ready",
+            "public_safety_required",
+        ],
+        "policy_keys": [
+            "release_runbook_policy",
+            "review_board_policy",
+            "pilot_protocol_policy",
+            "data_protection_policy",
+            "compliance_matrix_policy",
+            "gretel_bachelor_thesis_policy",
+        ],
+        "source_card_ids": ["dfg-gwp", "gdpr-2016-679", "dsk-ai-privacy-2024", "unesco-genai-2023"],
+        "readiness_check_ids": [
+            "publication_package",
+            "release_runbook",
+            "review_board_packet",
+            "pilot_protocol",
+            "data_protection_screening",
+            "compliance_matrix",
+            "gretel_bachelor_thesis_package",
+            "evaluation_packet",
+            "adaptive_task_plan",
+            "public_safety",
+        ],
+        "human_gates": [
+            "datenschutz_review_required_before_real_pilot",
+            "ethics_or_supervisor_review_required_before_real_pilot",
+            "human_submission_review_required",
+            "public_safety_required",
             "written_university_clearance_required_before_exam_use",
         ],
     },
@@ -250,6 +303,47 @@ def build_publication_reproducibility_alignment(package: dict[str, Any] | None =
             "autonomous_github_push"
         )
         is False,
+        "pilot_claim_contract_ready": (
+            publication.get("pilot_protocol", {})
+            .get("pilot_evidence_alignment", {})
+            .get("pilot_release_review_board_claim_contract", {})
+            .get("expected_schema_version")
+            == "unibot-pilot-release-review-board-claim-alignment-v1"
+            and publication.get("pilot_protocol", {})
+            .get("pilot_evidence_alignment", {})
+            .get("missing_release_review_board_claim_check_ids")
+            == []
+            and publication.get("pilot_protocol", {})
+            .get("pilot_evidence_alignment", {})
+            .get("missing_release_review_board_claim_human_gates")
+            == []
+        ),
+        "data_protection_claim_contract_ready": (
+            publication.get("data_protection_screening", {})
+            .get("data_protection_evidence_alignment", {})
+            .get("data_protection_release_review_board_claim_contract", {})
+            .get("expected_schema_version")
+            == "unibot-data-protection-release-review-board-claim-alignment-v1"
+            and publication.get("data_protection_screening", {})
+            .get("data_protection_evidence_alignment", {})
+            .get("missing_release_review_board_claim_check_ids")
+            == []
+            and publication.get("data_protection_screening", {})
+            .get("data_protection_evidence_alignment", {})
+            .get("missing_release_review_board_claim_human_gates")
+            == []
+        ),
+        "review_board_thesis_evaluation_claim_ready": (
+            publication.get("review_board_packet", {})
+            .get("thesis_evaluation_claim_alignment", {})
+            .get("status")
+            == "ready"
+            and publication.get("release_runbook", {})
+            .get("release_evidence_alignment", {})
+            .get("review_board_thesis_evaluation_claim_contract", {})
+            .get("required_status")
+            == "ready"
+        ),
     }
     alignment = {
         "schema_version": PUBLICATION_REPRODUCIBILITY_ALIGNMENT_SCHEMA_VERSION,
@@ -262,6 +356,38 @@ def build_publication_reproducibility_alignment(package: dict[str, Any] | None =
         "missing_source_card_ids": sorted({item for row in alignment_rows for item in row["missing_source_card_ids"]}),
         "failed_contract_ids": sorted(contract_id for contract_id, passed in contracts.items() if not passed),
         "contracts": contracts,
+        "publication_release_review_board_claim_contract": {
+            "expected_schema_version": PUBLICATION_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+            "required_pilot_release_review_board_schema_version": (
+                "unibot-pilot-release-review-board-claim-alignment-v1"
+            ),
+            "required_data_protection_release_review_board_schema_version": (
+                "unibot-data-protection-release-review-board-claim-alignment-v1"
+            ),
+            "required_review_board_thesis_evaluation_schema_version": (
+                "unibot-review-board-thesis-evaluation-claim-alignment-v1"
+            ),
+            "required_readiness_check_ids": [
+                "publication_package",
+                "release_runbook",
+                "review_board_packet",
+                "pilot_protocol",
+                "data_protection_screening",
+                "compliance_matrix",
+                "gretel_bachelor_thesis_package",
+                "evaluation_packet",
+                "adaptive_task_plan",
+                "public_safety",
+            ],
+            "required_human_gates": [
+                "datenschutz_review_required_before_real_pilot",
+                "ethics_or_supervisor_review_required_before_real_pilot",
+                "human_submission_review_required",
+                "public_safety_required",
+                "written_university_clearance_required_before_exam_use",
+            ],
+            "use": "Publication package language must carry pilot/data-protection/review-board thesis-evaluation boundaries without implying GitHub publication approval, university submission, real pilot recruitment, or exam clearance.",
+        },
         "required_readiness_check_ids": sorted(
             {check_id for row in alignment_rows for check_id in row["readiness_check_ids"]}
         ),
@@ -278,6 +404,21 @@ def build_publication_reproducibility_alignment(package: dict[str, Any] | None =
         or alignment["missing_policy_keys"]
         or alignment["missing_source_card_ids"]
         or alignment["failed_contract_ids"]
+    ):
+        alignment["status"] = "blocked"
+    required_check_ids = set(
+        alignment["publication_release_review_board_claim_contract"]["required_readiness_check_ids"]
+    )
+    present_check_ids = set(alignment["required_readiness_check_ids"])
+    alignment["missing_release_review_board_claim_check_ids"] = sorted(required_check_ids - present_check_ids)
+    required_human_gates = set(
+        alignment["publication_release_review_board_claim_contract"]["required_human_gates"]
+    )
+    present_human_gates = set(alignment["required_human_gates"])
+    alignment["missing_release_review_board_claim_human_gates"] = sorted(required_human_gates - present_human_gates)
+    if (
+        alignment["missing_release_review_board_claim_check_ids"]
+        or alignment["missing_release_review_board_claim_human_gates"]
     ):
         alignment["status"] = "blocked"
     scan = scan_text(json.dumps(alignment, ensure_ascii=False), "publication-reproducibility-alignment")
@@ -593,6 +734,7 @@ def build_publication_markdown() -> str:
         "## Reproducibility Alignment\n\n"
         f"- Alignment: {alignment['status']}\n"
         f"- Sections: {alignment['section_count']}\n"
+        f"- Release review-board claim alignment: {alignment['publication_release_review_board_claim_contract']['expected_schema_version']}\n"
         f"- Release boundary: {alignment['release_boundary']}\n"
         f"- Human gates: {', '.join(alignment['required_human_gates'])}\n\n"
         "## Release Gates\n\n"

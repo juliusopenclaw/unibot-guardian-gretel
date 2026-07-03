@@ -47,6 +47,15 @@ public-safe reproduction draft. It is still only a review aid: it is not exam
 clearance, legal advice, Datenschutz approval, provider-call approval, or real
 university thesis submission approval.
 
+It also carries a publication release review-board claim contract:
+`unibot-publication-release-review-board-claim-alignment-v1`. That contract
+keeps public package language aligned with the pilot protocol, data-protection
+screening, release runbook, review-board thesis/evaluation claim boundary,
+Gretel bachelor-thesis package, evaluation packet, adaptive task evidence, and
+public-safety gates. The package may be reviewed publicly only as a draft; it
+does not approve GitHub publication, participant recruitment, provider calls,
+university submission, or exam deployment by itself.
+
 The GitHub issue bundle is a manual-review draft. It prepares labels, titles,
 and public-safe bodies, but it does not publish issues automatically.
 
