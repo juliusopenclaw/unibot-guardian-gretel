@@ -2,6 +2,18 @@
 
 Status: separate UniBot track.
 
+## Release Review-Board Claim Alignment
+
+The threat model carries `threat_model_release_review_board_claim_alignment` with
+the contract `unibot-threat-model-release-review-board-claim-alignment-v1`. It
+links source cards, source-card drift checks, red-team smoke evidence,
+publication package, release runbook, review-board packet, public-safety gate,
+and human submission gates.
+
+Threat-model claims are risk-control language only. They do not approve
+publication, institutional submission, provider calls, exam use, official
+grading, proctoring, or KI-detection evidence.
+
 ## Assets
 
 - Student independence and exam integrity.

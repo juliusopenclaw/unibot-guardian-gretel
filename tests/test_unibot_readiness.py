@@ -92,6 +92,14 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertTrue(redteam["evidence"]["review_board_claim_linked"])
         self.assertTrue(redteam["evidence"]["human_submission_gate_linked"])
         self.assertTrue(redteam["evidence"]["exam_clearance_blocked"])
+        self.assertEqual(redteam["evidence"]["threat_model_claim_alignment_status"], "ready")
+        self.assertEqual(
+            redteam["evidence"]["threat_model_claim_contract_status"],
+            "unibot-threat-model-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(redteam["evidence"]["threat_model_missing_required_phrase_count"], 0)
+        self.assertTrue(redteam["evidence"]["threat_model_source_cards_linked"])
+        self.assertTrue(redteam["evidence"]["threat_model_release_runbook_linked"])
         publication = next(check for check in report["checks"] if check["check_id"] == "publication_package")
         self.assertEqual(publication["evidence"]["reproducibility_alignment_status"], "ready")
         self.assertIn("human_submission_review_required", publication["evidence"]["reproducibility_alignment_human_gates"])

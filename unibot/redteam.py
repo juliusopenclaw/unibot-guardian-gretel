@@ -38,6 +38,26 @@ REDTEAM_RELEASE_REVIEW_BOARD_HUMAN_GATES = [
     "public_safety_required",
 ]
 
+THREAT_MODEL_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-threat-model-release-review-board-claim-alignment-v1"
+)
+
+THREAT_MODEL_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS = [
+    "redteam",
+    "source_cards",
+    "source_card_drift_guard",
+    "publication_package",
+    "release_runbook",
+    "review_board_packet",
+    "public_safety",
+]
+
+THREAT_MODEL_RELEASE_REVIEW_BOARD_HUMAN_GATES = [
+    "human_submission_review_required",
+    "public_safety_required",
+    "written_university_clearance_required_before_exam_use",
+]
+
 
 @dataclass(frozen=True)
 class RedTeamScenario:
@@ -141,6 +161,66 @@ def build_redteam_claim_alignment(report: dict[str, Any]) -> dict[str, Any]:
     ):
         alignment["status"] = "blocked"
     scan = scan_text(json.dumps(alignment, ensure_ascii=False), "redteam-claim-alignment")
+    alignment["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        alignment["status"] = "blocked"
+        alignment["public_safety_findings"] = scan["findings"]
+    return alignment
+
+
+def build_threat_model_release_review_board_claim_alignment(threat_model_text: str) -> dict[str, Any]:
+    required_phrases = [
+        "Postfilter blocks final solutions",
+        "Privacy detector flags",
+        "practice overlay only",
+        "does not claim full capture",
+        "Source-risk category",
+        "score-neutral",
+        "private, formative, local-only",
+        "Public build excludes",
+        "exam_controlled",
+        "controlled model gateway",
+        "run_redteam_smoke()",
+    ]
+    lower_text = threat_model_text.lower()
+    alignment = {
+        "schema_version": "unibot-threat-model-claim-alignment-v1",
+        "status": "ready",
+        "threat_model_present": bool(threat_model_text.strip()),
+        "manual_publication_claim_contract": {
+            "expected_schema_version": THREAT_MODEL_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+            "required_redteam_schema_version": REDTEAM_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+            "required_source_card_schema_version": (
+                "unibot-source-card-release-review-board-claim-alignment-v1"
+            ),
+            "required_publication_schema_version": (
+                "unibot-publication-release-review-board-claim-alignment-v1"
+            ),
+            "required_readiness_check_ids": THREAT_MODEL_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS,
+            "required_human_gates": THREAT_MODEL_RELEASE_REVIEW_BOARD_HUMAN_GATES,
+            "use": "Threat model language supports public risk review only; it cannot approve publication, institutional submission, provider calls, or exam use.",
+        },
+        "required_phrases": required_phrases,
+        "missing_required_phrases": [phrase for phrase in required_phrases if phrase.lower() not in lower_text],
+        "unique_readiness_check_ids": THREAT_MODEL_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS,
+        "required_human_gates": THREAT_MODEL_RELEASE_REVIEW_BOARD_HUMAN_GATES,
+        "blocked_claims": ["exam clearance", "official grading", "proctoring", "KI-detection evidence"],
+        "public_language": "Threat model claims must remain risk-control language, source-bound, red-team-backed, and human-reviewed.",
+    }
+    required_check_ids = set(alignment["manual_publication_claim_contract"]["required_readiness_check_ids"])
+    present_check_ids = set(alignment["unique_readiness_check_ids"])
+    alignment["missing_release_review_board_claim_check_ids"] = sorted(required_check_ids - present_check_ids)
+    required_human_gates = set(alignment["manual_publication_claim_contract"]["required_human_gates"])
+    present_human_gates = set(alignment["required_human_gates"])
+    alignment["missing_release_review_board_claim_human_gates"] = sorted(required_human_gates - present_human_gates)
+    if (
+        not alignment["threat_model_present"]
+        or alignment["missing_required_phrases"]
+        or alignment["missing_release_review_board_claim_check_ids"]
+        or alignment["missing_release_review_board_claim_human_gates"]
+    ):
+        alignment["status"] = "blocked"
+    scan = scan_text(json.dumps(alignment, ensure_ascii=False), "threat-model-claim-alignment")
     alignment["public_safety_status"] = scan["status"]
     if scan["status"] != "pass":
         alignment["status"] = "blocked"

@@ -28,7 +28,7 @@ from .pilot import build_pilot_protocol
 from .privacy import build_data_protection_screening
 from .publication import build_publication_package
 from .public_safety import scan_public_files, scan_text
-from .redteam import run_redteam_smoke
+from .redteam import build_threat_model_release_review_board_claim_alignment, run_redteam_smoke
 from .release_runbook import build_release_runbook
 from .source_cards import (
     build_source_card_drift_report,
@@ -172,6 +172,8 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     public_scan = scan_public_files(public_paths)
     runtime_guard = build_readiness_runtime_guard(public_file_count=len(public_paths))
     redteam = run_redteam_smoke()
+    threat_model_text = (ROOT / "docs" / "unibot" / "UNIBOT_THREAT_MODEL.md").read_text(encoding="utf-8")
+    threat_model_alignment = build_threat_model_release_review_board_claim_alignment(threat_model_text)
     publication = build_publication_package()
     publication_scan = scan_text(json.dumps(publication, ensure_ascii=False), "unibot-publication-package")
     evaluation = build_evaluation_packet()
@@ -317,7 +319,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and redteam["claim_alignment"]["public_safety_status"] == "pass"
             and redteam["claim_alignment"]["hash_or_category_evidence_only"] is True
             and redteam["claim_alignment"]["missing_release_review_board_claim_check_ids"] == []
-            and redteam["claim_alignment"]["missing_release_review_board_claim_human_gates"] == [],
+            and redteam["claim_alignment"]["missing_release_review_board_claim_human_gates"] == []
+            and threat_model_alignment["status"] == "ready"
+            and threat_model_alignment["public_safety_status"] == "pass",
             "evidence": {
                 "status": redteam["status"],
                 "passed_count": redteam["passed_count"],
@@ -327,6 +331,11 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "manual_publication_claim_contract_status": redteam["claim_alignment"][
                     "manual_publication_claim_contract"
                 ]["expected_schema_version"],
+                "threat_model_claim_alignment_status": threat_model_alignment["status"],
+                "threat_model_claim_contract_status": threat_model_alignment["manual_publication_claim_contract"][
+                    "expected_schema_version"
+                ],
+                "threat_model_missing_required_phrase_count": len(threat_model_alignment["missing_required_phrases"]),
                 "hash_or_category_evidence_only": redteam["claim_alignment"]["hash_or_category_evidence_only"],
                 "notebook_handoff_claim_linked": (
                     "notebook_template" in redteam["claim_alignment"]["unique_readiness_check_ids"]
@@ -340,10 +349,14 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "local_demo_claim_linked": "local_demo_run" in redteam["claim_alignment"]["unique_readiness_check_ids"],
                 "publication_claim_linked": "publication_package" in redteam["claim_alignment"]["unique_readiness_check_ids"],
                 "review_board_claim_linked": "review_board_packet" in redteam["claim_alignment"]["unique_readiness_check_ids"],
+                "threat_model_source_cards_linked": "source_cards" in threat_model_alignment["unique_readiness_check_ids"],
+                "threat_model_release_runbook_linked": "release_runbook" in threat_model_alignment["unique_readiness_check_ids"],
                 "human_submission_gate_linked": (
                     "human_submission_review_required" in redteam["claim_alignment"]["required_human_gates"]
+                    and "human_submission_review_required" in threat_model_alignment["required_human_gates"]
                 ),
-                "exam_clearance_blocked": "exam clearance" in redteam["claim_alignment"]["blocked_claims"],
+                "exam_clearance_blocked": "exam clearance" in redteam["claim_alignment"]["blocked_claims"]
+                and "exam clearance" in threat_model_alignment["blocked_claims"],
             },
         },
         {

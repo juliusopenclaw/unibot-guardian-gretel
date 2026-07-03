@@ -11,7 +11,9 @@ sys.path.insert(0, str(ROOT))
 
 from unibot.redteam import (  # noqa: E402
     REDTEAM_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+    THREAT_MODEL_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
     build_redteam_claim_alignment,
+    build_threat_model_release_review_board_claim_alignment,
     run_redteam_smoke,
 )
 from unibot.server import route_request  # noqa: E402
@@ -78,6 +80,35 @@ class UniBotRedTeamTests(unittest.TestCase):
 
         self.assertEqual(alignment["status"], "blocked")
         self.assertEqual(alignment["public_safety_status"], "pass")
+
+    def test_threat_model_claim_alignment_links_review_board_chain(self) -> None:
+        threat_model = (ROOT / "docs" / "unibot" / "UNIBOT_THREAT_MODEL.md").read_text(encoding="utf-8")
+        alignment = build_threat_model_release_review_board_claim_alignment(threat_model)
+
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(
+            alignment["manual_publication_claim_contract"]["expected_schema_version"],
+            THREAT_MODEL_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+        )
+        self.assertEqual(alignment["missing_required_phrases"], [])
+        self.assertIn("source_cards", alignment["unique_readiness_check_ids"])
+        self.assertIn("source_card_drift_guard", alignment["unique_readiness_check_ids"])
+        self.assertIn("redteam", alignment["unique_readiness_check_ids"])
+        self.assertIn("publication_package", alignment["unique_readiness_check_ids"])
+        self.assertIn("review_board_packet", alignment["unique_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertEqual(alignment["missing_release_review_board_claim_check_ids"], [])
+        self.assertEqual(alignment["missing_release_review_board_claim_human_gates"], [])
+        self.assertIn("exam clearance", alignment["blocked_claims"])
+
+    def test_threat_model_claim_alignment_blocks_missing_control_language(self) -> None:
+        alignment = build_threat_model_release_review_board_claim_alignment("# thin threat model\n")
+
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertIn("Postfilter blocks final solutions", alignment["missing_required_phrases"])
 
     def test_redteam_api_route(self) -> None:
         status, report = route_request("/api/unibot/redteam/run", {})
