@@ -83,6 +83,7 @@ class UniBotPublicationTests(unittest.TestCase):
         self.assertEqual(alignment["missing_policy_keys"], [])
         self.assertEqual(alignment["missing_source_card_ids"], [])
         self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertEqual(alignment["failed_release_review_board_claim_trace_ids"], [])
         self.assertIn("publication_package", alignment["required_readiness_check_ids"])
         self.assertIn("release_runbook", alignment["required_readiness_check_ids"])
         self.assertIn("review_board_packet", alignment["required_readiness_check_ids"])
@@ -112,6 +113,37 @@ class UniBotPublicationTests(unittest.TestCase):
         self.assertEqual(
             release_claim_contract["required_review_board_thesis_evaluation_schema_version"],
             "unibot-review-board-thesis-evaluation-claim-alignment-v1",
+        )
+        self.assertEqual(
+            release_claim_contract["required_trace_ids"],
+            [
+                "data_protection_release_review_board_claim",
+                "pilot_release_review_board_claim",
+                "publication_public_safety_claim",
+                "release_runbook_review_board_claim",
+                "review_board_thesis_evaluation_claim",
+            ],
+        )
+        trace_by_id = {row["trace_id"]: row for row in alignment["release_review_board_claim_trace"]}
+        self.assertEqual(
+            trace_by_id["pilot_release_review_board_claim"]["alignment_schema_version"],
+            "unibot-pilot-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(
+            trace_by_id["data_protection_release_review_board_claim"]["alignment_schema_version"],
+            "unibot-data-protection-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(
+            trace_by_id["review_board_thesis_evaluation_claim"]["alignment_status"],
+            "ready",
+        )
+        self.assertIn(
+            "human_submission_review_required",
+            trace_by_id["release_runbook_review_board_claim"]["human_gates"],
+        )
+        self.assertEqual(
+            trace_by_id["publication_public_safety_claim"]["claim_boundary"],
+            "public_safe_draft_only_not_exam_deployment_or_university_submission",
         )
         self.assertEqual(alignment["missing_release_review_board_claim_check_ids"], [])
         self.assertEqual(alignment["missing_release_review_board_claim_human_gates"], [])

@@ -56,6 +56,12 @@ public-safety gates. The package may be reviewed publicly only as a draft; it
 does not approve GitHub publication, participant recruitment, provider calls,
 university submission, or exam deployment by itself.
 
+The same alignment exposes `release_review_board_claim_trace`, a compact
+machine-readable trace over the pilot, data-protection, release-runbook,
+review-board thesis/evaluation, and publication public-safety claims. Each row
+must name the upstream schema/status, readiness checks, human gates, and an
+explicit negative boundary before the package remains `ready`.
+
 The GitHub issue bundle is a manual-review draft. It prepares labels, titles,
 and public-safe bodies, but it does not publish issues automatically.
 

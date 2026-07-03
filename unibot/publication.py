@@ -345,6 +345,86 @@ def build_publication_reproducibility_alignment(package: dict[str, Any] | None =
             == "ready"
         ),
     }
+    release_review_board_claim_trace = [
+        {
+            "trace_id": "pilot_release_review_board_claim",
+            "artifact_id": "pilot_protocol",
+            "alignment_schema_version": publication.get("pilot_protocol", {})
+            .get("pilot_evidence_alignment", {})
+            .get("pilot_release_review_board_claim_contract", {})
+            .get("expected_schema_version"),
+            "alignment_status": publication.get("pilot_protocol", {}).get("pilot_evidence_alignment", {}).get("status"),
+            "readiness_check_ids": ["pilot_protocol", "release_runbook", "review_board_packet"],
+            "human_gates": [
+                "ethics_or_supervisor_review_required_before_real_pilot",
+                "human_submission_review_required",
+                "public_safety_required",
+            ],
+            "claim_boundary": "synthetic_public_draft_only_not_real_participant_recruitment",
+        },
+        {
+            "trace_id": "data_protection_release_review_board_claim",
+            "artifact_id": "data_protection_screening",
+            "alignment_schema_version": publication.get("data_protection_screening", {})
+            .get("data_protection_evidence_alignment", {})
+            .get("data_protection_release_review_board_claim_contract", {})
+            .get("expected_schema_version"),
+            "alignment_status": publication.get("data_protection_screening", {})
+            .get("data_protection_evidence_alignment", {})
+            .get("status"),
+            "readiness_check_ids": ["data_protection_screening", "pilot_protocol", "release_runbook"],
+            "human_gates": [
+                "datenschutz_review_required_before_real_pilot",
+                "human_submission_review_required",
+                "written_university_clearance_required_before_exam_use",
+            ],
+            "claim_boundary": "planning_draft_only_not_datenschutz_approval",
+        },
+        {
+            "trace_id": "release_runbook_review_board_claim",
+            "artifact_id": "release_runbook",
+            "alignment_schema_version": publication.get("release_runbook", {})
+            .get("release_evidence_alignment", {})
+            .get("review_board_thesis_evaluation_claim_contract", {})
+            .get("expected_schema_version"),
+            "alignment_status": publication.get("release_runbook", {}).get("release_evidence_alignment", {}).get("status"),
+            "readiness_check_ids": ["release_runbook", "review_board_packet", "publication_package"],
+            "human_gates": ["human_review_required", "human_submission_review_required", "public_safety_required"],
+            "claim_boundary": "manual_release_review_only_not_publication_approval",
+        },
+        {
+            "trace_id": "review_board_thesis_evaluation_claim",
+            "artifact_id": "review_board_packet",
+            "alignment_schema_version": publication.get("review_board_packet", {})
+            .get("thesis_evaluation_claim_alignment", {})
+            .get("schema_version"),
+            "alignment_status": publication.get("review_board_packet", {})
+            .get("thesis_evaluation_claim_alignment", {})
+            .get("status"),
+            "readiness_check_ids": ["review_board_packet", "evaluation_packet", "adaptive_task_plan"],
+            "human_gates": ["human_submission_review_required", "written_university_clearance_required_before_exam_use"],
+            "claim_boundary": "review_packet_only_not_institutional_approval",
+        },
+        {
+            "trace_id": "publication_public_safety_claim",
+            "artifact_id": "publication_package",
+            "alignment_schema_version": PUBLICATION_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+            "alignment_status": "ready" if contracts["release_ready_public_draft_only"] else "blocked",
+            "readiness_check_ids": ["publication_package", "public_safety", "source_card_drift_guard"],
+            "human_gates": ["human_review_required", "public_safety_required"],
+            "claim_boundary": "public_safe_draft_only_not_exam_deployment_or_university_submission",
+        },
+    ]
+    trace_contracts = {
+        row["trace_id"]: (
+            row["alignment_status"] == "ready"
+            and bool(row["alignment_schema_version"])
+            and bool(row["readiness_check_ids"])
+            and bool(row["human_gates"])
+            and "not_" in row["claim_boundary"]
+        )
+        for row in release_review_board_claim_trace
+    }
     alignment = {
         "schema_version": PUBLICATION_REPRODUCIBILITY_ALIGNMENT_SCHEMA_VERSION,
         "status": "ready",
@@ -355,7 +435,11 @@ def build_publication_reproducibility_alignment(package: dict[str, Any] | None =
         "missing_policy_keys": sorted({item for row in alignment_rows for item in row["missing_policy_keys"]}),
         "missing_source_card_ids": sorted({item for row in alignment_rows for item in row["missing_source_card_ids"]}),
         "failed_contract_ids": sorted(contract_id for contract_id, passed in contracts.items() if not passed),
+        "failed_release_review_board_claim_trace_ids": sorted(
+            trace_id for trace_id, passed in trace_contracts.items() if not passed
+        ),
         "contracts": contracts,
+        "release_review_board_claim_trace": release_review_board_claim_trace,
         "publication_release_review_board_claim_contract": {
             "expected_schema_version": PUBLICATION_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
             "required_pilot_release_review_board_schema_version": (
@@ -386,6 +470,7 @@ def build_publication_reproducibility_alignment(package: dict[str, Any] | None =
                 "public_safety_required",
                 "written_university_clearance_required_before_exam_use",
             ],
+            "required_trace_ids": sorted(trace_contracts),
             "use": "Publication package language must carry pilot/data-protection/review-board thesis-evaluation boundaries without implying GitHub publication approval, university submission, real pilot recruitment, or exam clearance.",
         },
         "required_readiness_check_ids": sorted(
@@ -404,6 +489,7 @@ def build_publication_reproducibility_alignment(package: dict[str, Any] | None =
         or alignment["missing_policy_keys"]
         or alignment["missing_source_card_ids"]
         or alignment["failed_contract_ids"]
+        or alignment["failed_release_review_board_claim_trace_ids"]
     ):
         alignment["status"] = "blocked"
     required_check_ids = set(
