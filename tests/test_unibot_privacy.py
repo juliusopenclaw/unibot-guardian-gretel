@@ -37,6 +37,8 @@ class UniBotDataProtectionTests(unittest.TestCase):
         self.assertGreaterEqual(len(screening["open_decisions_for_datenschutz"]), 6)
         self.assertEqual(screening["data_protection_evidence_alignment"]["status"], "ready")
         self.assertEqual(screening["data_protection_evidence_alignment"]["public_safety_status"], "pass")
+        self.assertEqual(screening["data_protection_evidence_alignment"]["missing_release_review_board_claim_check_ids"], [])
+        self.assertEqual(screening["data_protection_evidence_alignment"]["missing_release_review_board_claim_human_gates"], [])
 
     def test_screening_requires_review_before_real_pilot(self) -> None:
         screening = build_data_protection_screening()
@@ -65,12 +67,37 @@ class UniBotDataProtectionTests(unittest.TestCase):
         self.assertEqual(alignment["missing_risk_ids"], [])
         self.assertEqual(alignment["missing_source_card_ids"], [])
         self.assertIn("pilot_protocol", alignment["required_readiness_check_ids"])
+        self.assertIn("release_runbook", alignment["required_readiness_check_ids"])
         self.assertIn("review_board_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("gretel_bachelor_thesis_package", alignment["required_readiness_check_ids"])
+        self.assertIn("evaluation_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("adaptive_task_plan", alignment["required_readiness_check_ids"])
         self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("public_safety_required", alignment["required_human_gates"])
+        release_claim_contract = alignment["data_protection_release_review_board_claim_contract"]
+        self.assertEqual(
+            release_claim_contract["expected_schema_version"],
+            "unibot-data-protection-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(
+            release_claim_contract["required_pilot_release_review_board_schema_version"],
+            "unibot-pilot-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(
+            release_claim_contract["required_review_board_thesis_evaluation_schema_version"],
+            "unibot-review-board-thesis-evaluation-claim-alignment-v1",
+        )
+        self.assertEqual(alignment["missing_release_review_board_claim_check_ids"], [])
+        self.assertEqual(alignment["missing_release_review_board_claim_human_gates"], [])
         self.assertEqual(alignment["pilot_contract"]["expected_alignment_status"], "ready")
         self.assertEqual(alignment["source_card_drift_contract"]["expected_check_id"], "source_card_drift_guard")
         self.assertIn("synthetic_pilot_records", by_section["pilot_records"]["processing_activity_ids"])
         self.assertIn("public_repository_leak", by_section["public_repository_boundary"]["risk_ids"])
+        self.assertIn(
+            "adaptive_task_plan",
+            by_section["pilot_release_review_board_data_boundary"]["readiness_check_ids"],
+        )
 
     def test_screening_public_safe_and_no_approval_language(self) -> None:
         payload = json.dumps(build_data_protection_screening(), ensure_ascii=False)
@@ -92,6 +119,10 @@ class UniBotDataProtectionTests(unittest.TestCase):
         self.assertIn("Risk Register", markdown)
         self.assertIn("Open Decisions For Datenschutz", markdown)
         self.assertIn("Evidence Alignment", markdown)
+        self.assertIn(
+            "Release review-board claim alignment: unibot-data-protection-release-review-board-claim-alignment-v1",
+            markdown,
+        )
 
         status, screening = route_request("/api/unibot/data-protection-screening", {})
         self.assertEqual(status, 200)

@@ -12,6 +12,9 @@ from .source_cards import get_source_card
 
 DATA_PROTECTION_SCHEMA_VERSION = "unibot-data-protection-screening-v1"
 DATA_PROTECTION_EVIDENCE_ALIGNMENT_SCHEMA_VERSION = "unibot-data-protection-evidence-alignment-v1"
+DATA_PROTECTION_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-data-protection-release-review-board-claim-alignment-v1"
+)
 
 DATA_PROTECTION_ALIGNMENT_SECTIONS = [
     {
@@ -65,6 +68,30 @@ DATA_PROTECTION_ALIGNMENT_SECTIONS = [
             "written_university_clearance_required_before_exam_use",
         ],
     },
+    {
+        "section_id": "pilot_release_review_board_data_boundary",
+        "screening_keys": ["pilot_alignment", "processing_activities", "risk_register", "review_gates", "policy"],
+        "processing_activity_ids": ["synthetic_pilot_records", "help_ledger", "external_ai_postfilter"],
+        "risk_ids": ["private_data_entry", "external_tool_transfer", "score_misuse"],
+        "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024", "dfg-gwp", "unesco-genai-2023"],
+        "readiness_check_ids": [
+            "data_protection_screening",
+            "pilot_protocol",
+            "release_runbook",
+            "review_board_packet",
+            "gretel_bachelor_thesis_package",
+            "evaluation_packet",
+            "adaptive_task_plan",
+            "public_safety",
+        ],
+        "human_gates": [
+            "datenschutz_review_required_before_real_pilot",
+            "ethics_or_supervisor_review_required_before_real_pilot",
+            "human_submission_review_required",
+            "public_safety_required",
+            "written_university_clearance_required_before_exam_use",
+        ],
+    },
 ]
 
 
@@ -74,6 +101,8 @@ def build_data_protection_screening() -> dict[str, Any]:
         "dsk-ai-privacy-2024",
         "eu-ai-act-2024",
         "chrome-limited-use",
+        "dfg-gwp",
+        "unesco-genai-2023",
         "uoc-ki-lehre",
         "uoc-nachteilsausgleich",
     ]
@@ -312,6 +341,32 @@ def build_data_protection_evidence_alignment(screening: dict[str, Any] | None = 
             "exam_deployment_status": "not_cleared",
             "real_pilot_status": "blocked_until_datenschutz_ethics_and_authority_review",
         },
+        "data_protection_release_review_board_claim_contract": {
+            "expected_schema_version": DATA_PROTECTION_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+            "required_pilot_release_review_board_schema_version": (
+                "unibot-pilot-release-review-board-claim-alignment-v1"
+            ),
+            "required_review_board_thesis_evaluation_schema_version": (
+                "unibot-review-board-thesis-evaluation-claim-alignment-v1"
+            ),
+            "required_readiness_check_ids": [
+                "pilot_protocol",
+                "release_runbook",
+                "review_board_packet",
+                "gretel_bachelor_thesis_package",
+                "evaluation_packet",
+                "adaptive_task_plan",
+                "public_safety",
+            ],
+            "required_human_gates": [
+                "datenschutz_review_required_before_real_pilot",
+                "ethics_or_supervisor_review_required_before_real_pilot",
+                "human_submission_review_required",
+                "public_safety_required",
+                "written_university_clearance_required_before_exam_use",
+            ],
+            "use": "Data-protection language must keep pilot learner-agency evidence synthetic, minimised, review-gated, and not Datenschutz, participant recruitment, cloud-storage, or exam clearance.",
+        },
         "policy": (
             "Data-protection evidence alignment is a review aid only; it is not legal advice, "
             "Datenschutz approval, participant recruitment approval, cloud-storage approval, or exam clearance."
@@ -322,6 +377,21 @@ def build_data_protection_evidence_alignment(screening: dict[str, Any] | None = 
         or alignment["missing_processing_activity_ids"]
         or alignment["missing_risk_ids"]
         or alignment["missing_source_card_ids"]
+    ):
+        alignment["status"] = "blocked"
+    required_check_ids = set(
+        alignment["data_protection_release_review_board_claim_contract"]["required_readiness_check_ids"]
+    )
+    present_check_ids = set(alignment["required_readiness_check_ids"])
+    alignment["missing_release_review_board_claim_check_ids"] = sorted(required_check_ids - present_check_ids)
+    required_human_gates = set(
+        alignment["data_protection_release_review_board_claim_contract"]["required_human_gates"]
+    )
+    present_human_gates = set(alignment["required_human_gates"])
+    alignment["missing_release_review_board_claim_human_gates"] = sorted(required_human_gates - present_human_gates)
+    if (
+        alignment["missing_release_review_board_claim_check_ids"]
+        or alignment["missing_release_review_board_claim_human_gates"]
     ):
         alignment["status"] = "blocked"
     scan = scan_text(json.dumps(alignment, ensure_ascii=False), "data-protection-evidence-alignment")
@@ -367,6 +437,7 @@ def build_data_protection_screening_markdown() -> str:
         "## Evidence Alignment\n\n"
         f"- Alignment: {alignment['status']}\n"
         f"- Sections: {alignment['section_count']}\n"
+        f"- Release review-board claim alignment: {alignment['data_protection_release_review_board_claim_contract']['expected_schema_version']}\n"
         f"- Human gates: {', '.join(alignment['required_human_gates'])}\n\n"
         "## Source Cards\n\n"
         f"{source_lines}\n\n"

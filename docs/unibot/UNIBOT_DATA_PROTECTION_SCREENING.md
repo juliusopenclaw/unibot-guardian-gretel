@@ -48,6 +48,15 @@ processing principles, synthetic pilot records, access/retention/withdrawal,
 public-repository boundaries, and exam/accommodation boundaries to source
 cards, readiness checks, processing activities, risks, and human gates.
 
+It also carries a release review-board claim contract:
+`unibot-data-protection-release-review-board-claim-alignment-v1`. That contract
+keeps Datenschutz language aligned with the pilot release-review-board
+thesis/evaluation claim boundary: learner-agency evidence remains synthetic and
+minimised, adaptive task evidence stays source-bound, and real participant data
+collection remains blocked until Datenschutz, ethics/supervisor,
+public-safety, human submission, and written university review gates are
+satisfied.
+
 The alignment must remain `ready` before public draft review. It is still only
 a review aid: it is not legal advice, Datenschutz approval, participant
 recruitment approval, cloud-storage approval, or exam clearance.

@@ -574,7 +574,12 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and data_protection["data_protection_evidence_alignment"]["missing_screening_keys"] == []
             and data_protection["data_protection_evidence_alignment"]["missing_processing_activity_ids"] == []
             and data_protection["data_protection_evidence_alignment"]["missing_risk_ids"] == []
-            and data_protection["data_protection_evidence_alignment"]["missing_source_card_ids"] == [],
+            and data_protection["data_protection_evidence_alignment"]["missing_source_card_ids"] == []
+            and data_protection["data_protection_evidence_alignment"]["missing_release_review_board_claim_check_ids"] == []
+            and data_protection["data_protection_evidence_alignment"][
+                "missing_release_review_board_claim_human_gates"
+            ]
+            == [],
             "evidence": {
                 "status": data_protection["status"],
                 "public_safety_status": data_protection["public_safety_status"],
@@ -583,6 +588,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "datenschutz_review_required": data_protection["review_gates"]["datenschutz_review_required_before_real_pilot"],
                 "exam_deployment_status": data_protection["exam_deployment_status"],
                 "data_protection_evidence_alignment_status": data_protection["data_protection_evidence_alignment"]["status"],
+                "data_protection_release_review_board_claim_contract_status": data_protection[
+                    "data_protection_evidence_alignment"
+                ]["data_protection_release_review_board_claim_contract"]["expected_schema_version"],
                 "data_protection_alignment_section_count": data_protection["data_protection_evidence_alignment"]["section_count"],
                 "data_protection_alignment_human_gates": data_protection["data_protection_evidence_alignment"]["required_human_gates"],
             },
