@@ -665,7 +665,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "notebook_handoff_release_review_board_claim_alignment",
             "priority": 33,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align the notebook handoff with browser demo, local demo, feedback, publication, release-review-board claims, public language controls, and human gates.",
             "allowed_files": [
                 "unibot/notebooks.py",
@@ -675,6 +675,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_notebooks.py tests/test_unibot_readiness.py -q"],
             "review_gate": "notebook_handoff_release_review_board_claim_traceability",
+            "closure_evidence": {
+                "commit": "74c074a",
+                "summary": "Notebook handoff claim alignment added with browser, manifest, local-demo, feedback, publication, review-board, readiness, and human-gate links.",
+            },
+        },
+        {
+            "work_id": "redteam_release_review_board_claim_alignment",
+            "priority": 34,
+            "status": "ready",
+            "goal": "Align red-team smoke evidence with notebook, browser, local demo, publication, release-review-board claims, public language controls, and human gates.",
+            "allowed_files": [
+                "unibot/redteam.py",
+                "tests/test_unibot_redteam.py",
+                "docs/unibot/UNIBOT_DEMO_TEST_PLAN.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_redteam.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "redteam_release_review_board_claim_traceability",
         },
     ]
 
