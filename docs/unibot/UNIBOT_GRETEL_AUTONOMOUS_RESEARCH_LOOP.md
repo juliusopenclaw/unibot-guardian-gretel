@@ -57,8 +57,8 @@ contract change.
 
 ## Current Work Queue
 
-1. `demo_feedback_release_review_board_claim_alignment`: align validated demo
-   feedback records with feedback triage, GitHub issue, publication,
+1. `local_demo_release_review_board_claim_alignment`: align local demo run
+   scenarios with demo feedback, triage, GitHub issue, publication,
    release-review-board thesis/evaluation claims, public language controls, and human gates.
 
 ## Closed Harnessed Work
@@ -145,6 +145,10 @@ contract change.
   with downstream GitHub issue, publication, release-runbook, review-board,
   readiness, and human-gate links for sanitized feedback triage.
 
+
+- `demo_feedback_release_review_board_claim_alignment`: closed in `9940ac7`
+  with local-only/public-summary-only boundaries, downstream triage/issue,
+  publication/review-board readiness links, and human gates.
 
 ## Automation Rule
 

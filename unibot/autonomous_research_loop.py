@@ -593,7 +593,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "demo_feedback_release_review_board_claim_alignment",
             "priority": 29,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align validated demo feedback records with feedback triage, GitHub issue, publication, release-review-board thesis/evaluation claims, public language controls, and human gates.",
             "allowed_files": [
                 "unibot/feedback.py",
@@ -603,9 +603,26 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_feedback.py tests/test_unibot_readiness.py -q"],
             "review_gate": "demo_feedback_release_review_board_thesis_claim_traceability",
+            "closure_evidence": {
+                "commit": "9940ac7",
+                "summary": "Demo feedback claim alignment added with local-only/public-summary-only boundaries, downstream triage/issue/publication/review-board readiness links, and human gates.",
+            },
+        },
+        {
+            "work_id": "local_demo_release_review_board_claim_alignment",
+            "priority": 30,
+            "status": "ready",
+            "goal": "Align local demo run scenarios with demo feedback, triage, GitHub issue, publication, release-review-board thesis/evaluation claims, public language controls, and human gates.",
+            "allowed_files": [
+                "unibot/demo.py",
+                "tests/test_unibot_demo.py",
+                "docs/unibot/UNIBOT_DEMO_TEST_PLAN.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_demo.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "local_demo_release_review_board_thesis_claim_traceability",
         },
     ]
-
 
 def build_autonomous_research_loop() -> dict[str, Any]:
     intent = build_unibot_intent_contract()
