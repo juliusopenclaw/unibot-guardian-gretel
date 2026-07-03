@@ -611,7 +611,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "local_demo_release_review_board_claim_alignment",
             "priority": 30,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align local demo run scenarios with demo feedback, triage, GitHub issue, publication, release-review-board thesis/evaluation claims, public language controls, and human gates.",
             "allowed_files": [
                 "unibot/demo.py",
@@ -621,6 +621,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_demo.py tests/test_unibot_readiness.py -q"],
             "review_gate": "local_demo_release_review_board_thesis_claim_traceability",
+            "closure_evidence": {
+                "commit": "4cd091d",
+                "summary": "Local demo run claim alignment added with practice-only/local-only/public-summary boundaries, downstream demo-feedback/triage/issue/publication/review-board readiness links, and human gates.",
+            },
+        },
+        {
+            "work_id": "browser_extension_release_review_board_claim_alignment",
+            "priority": 31,
+            "status": "ready",
+            "goal": "Align the browser extension and sidepanel demo handoff with local demo, feedback, triage, GitHub issue, publication, release-review-board thesis/evaluation claims, public language controls, and human gates.",
+            "allowed_files": [
+                "unibot/browser_extension/sidepanel.js",
+                "tests/test_unibot_browser_extension.py",
+                "docs/unibot/UNIBOT_DEMO_TEST_PLAN.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_browser_extension.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "browser_extension_release_review_board_thesis_claim_traceability",
         },
     ]
 

@@ -57,9 +57,9 @@ contract change.
 
 ## Current Work Queue
 
-1. `local_demo_release_review_board_claim_alignment`: align local demo run
-   scenarios with demo feedback, triage, GitHub issue, publication,
-   release-review-board thesis/evaluation claims, public language controls, and human gates.
+1. `browser_extension_release_review_board_claim_alignment`: align the browser
+   extension and sidepanel demo handoff with local demo, feedback, triage,
+   GitHub issue, publication, release-review-board claims, public language controls, and human gates.
 
 ## Closed Harnessed Work
 
@@ -151,6 +151,10 @@ contract change.
   publication/review-board readiness links, and human gates.
 
 ## Automation Rule
+- `local_demo_release_review_board_claim_alignment`: closed in `4cd091d` with
+  practice-only/local-only/public-summary boundaries, downstream demo-feedback,
+  triage/issue/publication/review-board readiness links, and human gates.
+
 
 Automation may keep the local iCloud/Git worktree warm and produce local commits
 or review notes after green checks. Public GitHub pushes, provider calls, real
