@@ -31,6 +31,30 @@ class UniBotDemoTests(unittest.TestCase):
         self.assertIn("demo_notebook_template", scenario_ids)
         self.assertIn("demo_redteam_smoke", scenario_ids)
         self.assertIn("exam deployment", demo["not_ready_for"])
+        claim_alignment = demo["claim_alignment"]
+        self.assertEqual(claim_alignment["status"], "ready")
+        self.assertEqual(claim_alignment["public_safety_status"], "pass")
+        self.assertTrue(claim_alignment["practice_only"])
+        self.assertTrue(claim_alignment["local_only"])
+        self.assertTrue(claim_alignment["public_summary_only"])
+        self.assertEqual(
+            claim_alignment["manual_publication_claim_contract"]["expected_schema_version"],
+            "unibot-local-demo-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(
+            claim_alignment["manual_publication_claim_contract"]["required_demo_feedback_claim_schema_version"],
+            "unibot-demo-feedback-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(
+            claim_alignment["manual_publication_claim_contract"]["required_feedback_triage_claim_schema_version"],
+            "unibot-feedback-triage-release-review-board-claim-alignment-v1",
+        )
+        self.assertIn("demo_feedback_contract", claim_alignment["unique_readiness_check_ids"])
+        self.assertIn("publication_package", claim_alignment["unique_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", claim_alignment["required_human_gates"])
+        self.assertIn("exam clearance", claim_alignment["blocked_claims"])
+        self.assertEqual(claim_alignment["missing_release_review_board_claim_check_ids"], [])
+        self.assertEqual(claim_alignment["missing_release_review_board_claim_human_gates"], [])
 
     def test_demo_run_is_public_safe_and_has_bug_report_template(self) -> None:
         demo = build_local_demo_run()

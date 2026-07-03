@@ -31,6 +31,19 @@ The generated plan includes:
 - notebook handoff
 - red-team/readiness smoke
 
+## Review-Board Claim Alignment
+
+The generated demo run includes `claim_alignment` with the contract
+`unibot-local-demo-release-review-board-claim-alignment-v1`. This keeps local
+practice scenarios aligned with validated demo feedback, feedback triage,
+GitHub issue drafts, the publication package, release runbook, review-board
+thesis/evaluation boundary, and public-safety gates.
+
+The contract is practice-only, local-only, and public-summary-only. It does not
+approve publication, recruit participants, call providers, clear exam use,
+support grading/proctoring/KI-detection claims, or approve a thesis submission.
+
+
 ## Scientific Observation Rubric
 
 During public-safe demos, reviewers should look for five descriptive dimensions:

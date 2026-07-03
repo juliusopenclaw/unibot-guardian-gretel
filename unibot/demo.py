@@ -8,6 +8,28 @@ from .adaptive_tasks import generate_adaptive_practice_plan
 from .guardian import classify_external_ai_output, generate_socratic_prompt_card, guardian_practice_flow
 from .notebooks import generate_practice_notebook
 from .public_safety import scan_text
+
+LOCAL_DEMO_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-local-demo-release-review-board-claim-alignment-v1"
+)
+
+LOCAL_DEMO_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS = [
+    "local_demo_run",
+    "demo_feedback_contract",
+    "demo_feedback_triage",
+    "github_issue_bundle",
+    "publication_package",
+    "release_runbook",
+    "review_board_packet",
+    "gretel_bachelor_thesis_package",
+    "public_safety",
+]
+
+LOCAL_DEMO_RELEASE_REVIEW_BOARD_HUMAN_GATES = [
+    "human_review_before_github_create",
+    "human_submission_review_required",
+    "public_safety_required",
+]
 from .redteam import run_redteam_smoke
 
 
@@ -108,6 +130,7 @@ def build_local_demo_run() -> dict[str, Any]:
         "screenshot_or_copied_public_safe_text": "",
         "private_data_removed": True,
     }
+    claim_alignment = build_local_demo_claim_alignment(scenarios)
     report = {
         "schema_version": DEMO_RUN_SCHEMA_VERSION,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -123,6 +146,7 @@ def build_local_demo_run() -> dict[str, Any]:
         "scenario_count": len(scenarios),
         "scenarios": scenarios,
         "bug_report_template": bug_report_template,
+        "claim_alignment": claim_alignment,
         "public_safety_policy": "Do not paste private data, real exam work, emails, health/accommodation details, local paths, or raw private course text into public reports.",
     }
     scan = scan_text(json.dumps(report, ensure_ascii=False), "unibot-demo-run")
@@ -133,6 +157,70 @@ def build_local_demo_run() -> dict[str, Any]:
     return report
 
 
+def build_local_demo_claim_alignment(scenarios: list[dict[str, Any]]) -> dict[str, Any]:
+    scenario_rows = [
+        {
+            "scenario_id": scenario["scenario_id"],
+            "title": scenario["title"],
+            "readiness_check_ids": LOCAL_DEMO_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS,
+            "human_gates": LOCAL_DEMO_RELEASE_REVIEW_BOARD_HUMAN_GATES,
+            "practice_only": True,
+            "local_only": True,
+            "public_summary_only": True,
+        }
+        for scenario in scenarios
+    ]
+    alignment = {
+        "schema_version": "unibot-local-demo-claim-alignment-v1",
+        "status": "ready" if scenario_rows else "empty",
+        "scenario_count": len(scenario_rows),
+        "practice_only": all(row["practice_only"] for row in scenario_rows),
+        "local_only": all(row["local_only"] for row in scenario_rows),
+        "public_summary_only": all(row["public_summary_only"] for row in scenario_rows),
+        "manual_publication_claim_contract": {
+            "expected_schema_version": LOCAL_DEMO_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+            "required_demo_feedback_claim_schema_version": (
+                "unibot-demo-feedback-release-review-board-claim-alignment-v1"
+            ),
+            "required_feedback_triage_claim_schema_version": (
+                "unibot-feedback-triage-release-review-board-claim-alignment-v1"
+            ),
+            "required_github_issue_claim_schema_version": (
+                "unibot-github-issue-release-review-board-claim-alignment-v1"
+            ),
+            "required_publication_release_review_board_schema_version": (
+                "unibot-publication-release-review-board-claim-alignment-v1"
+            ),
+            "required_readiness_check_ids": LOCAL_DEMO_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS,
+            "required_human_gates": LOCAL_DEMO_RELEASE_REVIEW_BOARD_HUMAN_GATES,
+            "practice_only": True,
+            "local_only": True,
+            "public_summary_only": True,
+            "use": "Local demo scenarios must remain practice-only and traceable before feedback, triage, issue, publication, or review-board work.",
+        },
+        "scenario_rows": scenario_rows,
+        "unique_readiness_check_ids": sorted(
+            {check_id for row in scenario_rows for check_id in row["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for row in scenario_rows for gate in row["human_gates"]}),
+        "blocked_claims": ["exam clearance", "official grading", "proctoring", "KI-detection evidence"],
+        "policy": "Local demo scenarios are public-safe practice walkthroughs and do not authorize exam, grading, proctoring, provider, or publication decisions.",
+    }
+    required_check_ids = set(alignment["manual_publication_claim_contract"]["required_readiness_check_ids"])
+    present_check_ids = set(alignment["unique_readiness_check_ids"])
+    alignment["missing_release_review_board_claim_check_ids"] = sorted(required_check_ids - present_check_ids)
+    required_human_gates = set(alignment["manual_publication_claim_contract"]["required_human_gates"])
+    present_human_gates = set(alignment["required_human_gates"])
+    alignment["missing_release_review_board_claim_human_gates"] = sorted(required_human_gates - present_human_gates)
+    if (alignment["missing_release_review_board_claim_check_ids"] or alignment["missing_release_review_board_claim_human_gates"]) and scenario_rows:
+        alignment["status"] = "blocked"
+    scan = scan_text(json.dumps(alignment, ensure_ascii=False), "local-demo-claim-alignment")
+    alignment["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+
+        alignment["status"] = "blocked"
+        alignment["public_safety_findings"] = scan["findings"]
+    return alignment
 def build_local_demo_markdown() -> str:
     report = build_local_demo_run()
     scenario_lines = []

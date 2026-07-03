@@ -446,10 +446,21 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             "check_id": "local_demo_run",
             "passed": demo_run["status"] == "practice_demo_ready_not_exam"
             and demo_run["public_safety_status"] == "pass"
-            and demo_run["scenario_count"] >= 7,
+            and demo_run["scenario_count"] >= 7
+            and demo_run["claim_alignment"]["status"] == "ready"
+            and demo_run["claim_alignment"]["public_safety_status"] == "pass"
+            and demo_run["claim_alignment"]["practice_only"] is True
+            and demo_run["claim_alignment"]["local_only"] is True
+            and demo_run["claim_alignment"]["missing_release_review_board_claim_check_ids"] == []
+            and demo_run["claim_alignment"]["missing_release_review_board_claim_human_gates"] == [],
             "evidence": {
                 "status": demo_run["status"],
                 "scenario_count": demo_run["scenario_count"],
+                "claim_alignment_status": demo_run["claim_alignment"]["status"],
+                "claim_alignment_public_safety_status": demo_run["claim_alignment"]["public_safety_status"],
+                "practice_only": demo_run["claim_alignment"]["practice_only"],
+                "local_only": demo_run["claim_alignment"]["local_only"],
+                "manual_publication_claim_contract_status": demo_run["claim_alignment"]["manual_publication_claim_contract"]["expected_schema_version"],
                 "public_safety_status": demo_run["public_safety_status"],
             },
         },
