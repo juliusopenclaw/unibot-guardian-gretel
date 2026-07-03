@@ -47,6 +47,7 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertIn("publication_package", check_ids)
         self.assertIn("evaluation_packet", check_ids)
         self.assertIn("authority_handoff", check_ids)
+        self.assertIn("notebook_template", check_ids)
         self.assertIn("source_card_drift_guard", check_ids)
         self.assertIn("course_material_policy", check_ids)
         self.assertIn("adaptive_task_plan", check_ids)
@@ -84,6 +85,24 @@ class UniBotReadinessTests(unittest.TestCase):
             "human_submission_review_required",
             evaluation["evidence"]["learner_agency_alignment_human_gates"],
         )
+        notebook = next(check for check in report["checks"] if check["check_id"] == "notebook_template")
+        self.assertEqual(
+            notebook["evidence"]["manual_publication_claim_contract_status"],
+            "unibot-notebook-handoff-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(notebook["evidence"]["handoff_claim_alignment_status"], "ready")
+        self.assertEqual(notebook["evidence"]["handoff_claim_alignment_public_safety_status"], "pass")
+        self.assertTrue(notebook["evidence"]["practice_only"])
+        self.assertTrue(notebook["evidence"]["local_only"])
+        self.assertTrue(notebook["evidence"]["public_summary_only"])
+        self.assertTrue(notebook["evidence"]["browser_handoff_claim_linked"])
+        self.assertTrue(notebook["evidence"]["browser_manifest_boundary_linked"])
+        self.assertTrue(notebook["evidence"]["local_demo_claim_linked"])
+        self.assertTrue(notebook["evidence"]["demo_feedback_claim_linked"])
+        self.assertTrue(notebook["evidence"]["publication_claim_linked"])
+        self.assertTrue(notebook["evidence"]["review_board_claim_linked"])
+        self.assertTrue(notebook["evidence"]["human_submission_gate_linked"])
+        self.assertTrue(notebook["evidence"]["exam_clearance_blocked"])
         review_board = next(check for check in report["checks"] if check["check_id"] == "review_board_packet")
         self.assertEqual(review_board["evidence"]["evidence_alignment_status"], "ready")
         self.assertGreaterEqual(review_board["evidence"]["readiness_snapshot_gate_count"], 10)

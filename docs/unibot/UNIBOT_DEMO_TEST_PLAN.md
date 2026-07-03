@@ -58,6 +58,19 @@ This handoff remains practice-only. It does not create public issues, approve
 publication, call providers, clear exam use, or support grading/proctoring/KI-
 detection claims.
 
+## Notebook Handoff Claim Alignment
+
+The notebook template carries `notebook_handoff_claim_alignment` with the
+contract `unibot-notebook-handoff-release-review-board-claim-alignment-v1`. It
+links the notebook handoff to the browser sidepanel, browser manifest/content
+boundary, local demo, validated demo feedback, feedback triage, GitHub issue
+bundle, publication package, release runbook, review-board packet, bachelor
+thesis package, public-safety gate, and human submission gates.
+
+This notebook handoff remains a local practice artifact. It does not approve
+publication, institutional submission, provider calls, exam use, official
+grading, proctoring, or KI-detection claims.
+
 During public-safe demos, reviewers should look for five descriptive dimensions:
 
 - Socratic help quality: the learner keeps the next cognitive step.

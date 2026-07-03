@@ -9,7 +9,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.notebooks import REQUIRED_NOTEBOOK_SECTIONS, audit_practice_notebook, generate_practice_notebook  # noqa: E402
+from unibot.notebooks import (  # noqa: E402
+    NOTEBOOK_HANDOFF_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+    REQUIRED_NOTEBOOK_SECTIONS,
+    audit_practice_notebook,
+    build_notebook_handoff_claim_alignment,
+    generate_practice_notebook,
+)
 from unibot.server import route_request  # noqa: E402
 
 
@@ -42,6 +48,45 @@ class UniBotNotebookTests(unittest.TestCase):
             self.assertEqual(cell["outputs"], [])
             self.assertIsNone(cell["execution_count"])
             self.assertEqual(cell["metadata"]["unibot_guardian"]["outputs_policy"], "strip_outputs")
+
+    def test_notebook_handoff_claim_alignment_links_release_review_board_chain(self) -> None:
+        artifact = generate_practice_notebook("Python Listen und Colab Practice")
+        alignment = artifact["handoff_claim_alignment"]
+        metadata_alignment = artifact["notebook"]["metadata"]["unibot_guardian"]["notebook_handoff_claim_alignment"]
+
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertTrue(alignment["practice_only"])
+        self.assertTrue(alignment["local_only"])
+        self.assertTrue(alignment["public_summary_only"])
+        self.assertFalse(alignment["raw_ai_output_storage"])
+        self.assertEqual(
+            alignment["manual_publication_claim_contract"]["expected_schema_version"],
+            NOTEBOOK_HANDOFF_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+        )
+        self.assertEqual(metadata_alignment["schema_version"], NOTEBOOK_HANDOFF_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION)
+        self.assertIn("browser_extension_demo_handoff", alignment["unique_readiness_check_ids"])
+        self.assertIn("browser_manifest_content_boundary", alignment["unique_readiness_check_ids"])
+        self.assertIn("local_demo_run", alignment["unique_readiness_check_ids"])
+        self.assertIn("demo_feedback_contract", alignment["unique_readiness_check_ids"])
+        self.assertIn("publication_package", alignment["unique_readiness_check_ids"])
+        self.assertIn("review_board_packet", alignment["unique_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertEqual(alignment["missing_release_review_board_claim_check_ids"], [])
+        self.assertEqual(alignment["missing_release_review_board_claim_human_gates"], [])
+        self.assertIn("exam clearance", alignment["blocked_claims"])
+
+    def test_notebook_handoff_claim_alignment_blocks_failed_audit(self) -> None:
+        artifact = generate_practice_notebook("Listen")
+        notebook = artifact["notebook"]
+        notebook["cells"][3]["outputs"] = [{"output_type": "stream", "text": ["bad"]}]
+        audit = audit_practice_notebook(notebook)
+        alignment = build_notebook_handoff_claim_alignment(notebook, audit)
+
+        self.assertEqual(audit["status"], "blocked")
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertIn(3, alignment["code_cells_with_outputs"])
 
     def test_exam_controlled_notebook_is_clearly_not_approved(self) -> None:
         artifact = generate_practice_notebook("Notebook pruefen", mode="exam_controlled")

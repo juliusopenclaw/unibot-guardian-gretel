@@ -373,8 +373,46 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
         },
         {
             "check_id": "notebook_template",
-            "passed": notebook["audit"]["status"] == "pass",
-            "evidence": notebook["audit"],
+            "passed": notebook["audit"]["status"] == "pass"
+            and notebook["handoff_claim_alignment"]["status"] == "ready"
+            and notebook["handoff_claim_alignment"]["public_safety_status"] == "pass"
+            and notebook["handoff_claim_alignment"]["practice_only"] is True
+            and notebook["handoff_claim_alignment"]["local_only"] is True
+            and notebook["handoff_claim_alignment"]["public_summary_only"] is True
+            and notebook["handoff_claim_alignment"]["missing_release_review_board_claim_check_ids"] == []
+            and notebook["handoff_claim_alignment"]["missing_release_review_board_claim_human_gates"] == [],
+            "evidence": {
+                **notebook["audit"],
+                "handoff_claim_alignment_status": notebook["handoff_claim_alignment"]["status"],
+                "handoff_claim_alignment_public_safety_status": notebook["handoff_claim_alignment"]["public_safety_status"],
+                "manual_publication_claim_contract_status": notebook["handoff_claim_alignment"][
+                    "manual_publication_claim_contract"
+                ]["expected_schema_version"],
+                "practice_only": notebook["handoff_claim_alignment"]["practice_only"],
+                "local_only": notebook["handoff_claim_alignment"]["local_only"],
+                "public_summary_only": notebook["handoff_claim_alignment"]["public_summary_only"],
+                "browser_handoff_claim_linked": (
+                    "browser_extension_demo_handoff" in notebook["handoff_claim_alignment"]["unique_readiness_check_ids"]
+                ),
+                "browser_manifest_boundary_linked": (
+                    "browser_manifest_content_boundary"
+                    in notebook["handoff_claim_alignment"]["unique_readiness_check_ids"]
+                ),
+                "local_demo_claim_linked": "local_demo_run" in notebook["handoff_claim_alignment"]["unique_readiness_check_ids"],
+                "demo_feedback_claim_linked": (
+                    "demo_feedback_contract" in notebook["handoff_claim_alignment"]["unique_readiness_check_ids"]
+                ),
+                "publication_claim_linked": (
+                    "publication_package" in notebook["handoff_claim_alignment"]["unique_readiness_check_ids"]
+                ),
+                "review_board_claim_linked": (
+                    "review_board_packet" in notebook["handoff_claim_alignment"]["unique_readiness_check_ids"]
+                ),
+                "human_submission_gate_linked": (
+                    "human_submission_review_required" in notebook["handoff_claim_alignment"]["required_human_gates"]
+                ),
+                "exam_clearance_blocked": "exam clearance" in notebook["handoff_claim_alignment"]["blocked_claims"],
+            },
         },
         {
             "check_id": "source_cards",

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from typing import Any
 
 from .guardian import ALLOWED_MODES, EXAM_CONTROLLED, PRACTICE_OVERLAY, generate_socratic_prompt_card
+from .public_safety import scan_text
 from .source_cards import get_source_card
 
 
@@ -17,6 +19,30 @@ REQUIRED_NOTEBOOK_SECTIONS = [
     "UniBot Postfilter",
     "Reflexion",
     "Help-Ledger",
+]
+NOTEBOOK_HANDOFF_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-notebook-handoff-release-review-board-claim-alignment-v1"
+)
+
+NOTEBOOK_HANDOFF_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS = [
+    "notebook_template",
+    "browser_extension_demo_handoff",
+    "browser_manifest_content_boundary",
+    "local_demo_run",
+    "demo_feedback_contract",
+    "demo_feedback_triage",
+    "github_issue_bundle",
+    "publication_package",
+    "release_runbook",
+    "review_board_packet",
+    "gretel_bachelor_thesis_package",
+    "public_safety",
+]
+
+NOTEBOOK_HANDOFF_RELEASE_REVIEW_BOARD_HUMAN_GATES = [
+    "human_review_before_github_create",
+    "human_submission_review_required",
+    "public_safety_required",
 ]
 
 
@@ -47,6 +73,83 @@ def code_cell(source: str, section: str) -> dict[str, Any]:
         "outputs": [],
         "source": source.splitlines(keepends=True),
     }
+
+
+def build_notebook_handoff_claim_alignment(notebook: dict[str, Any], audit: dict[str, Any]) -> dict[str, Any]:
+    section_rows = [
+        {
+            "section": section,
+            "present": section in audit.get("sections_present", []),
+            "readiness_check_ids": NOTEBOOK_HANDOFF_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS,
+            "human_gates": NOTEBOOK_HANDOFF_RELEASE_REVIEW_BOARD_HUMAN_GATES,
+            "practice_only": True,
+            "public_summary_only": True,
+        }
+        for section in REQUIRED_NOTEBOOK_SECTIONS
+    ]
+    alignment = {
+        "schema_version": "unibot-notebook-handoff-claim-alignment-v1",
+        "status": "ready" if audit.get("status") == "pass" else "blocked",
+        "practice_only": True,
+        "local_only": True,
+        "public_summary_only": True,
+        "raw_ai_output_storage": False,
+        "manual_publication_claim_contract": {
+            "expected_schema_version": NOTEBOOK_HANDOFF_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+            "required_browser_extension_schema_version": (
+                "unibot-browser-extension-release-review-board-claim-alignment-v1"
+            ),
+            "required_browser_manifest_schema_version": (
+                "unibot-browser-manifest-content-boundary-claim-alignment-v1"
+            ),
+            "required_local_demo_schema_version": (
+                "unibot-local-demo-release-review-board-claim-alignment-v1"
+            ),
+            "required_demo_feedback_schema_version": (
+                "unibot-demo-feedback-release-review-board-claim-alignment-v1"
+            ),
+            "required_publication_schema_version": (
+                "unibot-publication-release-review-board-claim-alignment-v1"
+            ),
+            "required_readiness_check_ids": NOTEBOOK_HANDOFF_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS,
+            "required_human_gates": NOTEBOOK_HANDOFF_RELEASE_REVIEW_BOARD_HUMAN_GATES,
+            "use": (
+                "Notebook handoff remains a practice-only local artifact until human review approves "
+                "any public or institutional claim."
+            ),
+        },
+        "section_rows": section_rows,
+        "unique_readiness_check_ids": sorted(
+            {check_id for row in section_rows for check_id in row["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for row in section_rows for gate in row["human_gates"]}),
+        "missing_sections": audit.get("missing_sections", []),
+        "code_cells_with_outputs": audit.get("code_cells_with_outputs", []),
+        "forbidden_markers": audit.get("forbidden_markers", []),
+        "blocked_claims": ["exam clearance", "official grading", "proctoring", "KI-detection evidence"],
+        "public_language": (
+            "Practice notebook handoff only; review-board and human submission gates are required "
+            "before public or institutional claims."
+        ),
+    }
+    required_check_ids = set(alignment["manual_publication_claim_contract"]["required_readiness_check_ids"])
+    present_check_ids = set(alignment["unique_readiness_check_ids"])
+    alignment["missing_release_review_board_claim_check_ids"] = sorted(required_check_ids - present_check_ids)
+    required_human_gates = set(alignment["manual_publication_claim_contract"]["required_human_gates"])
+    present_human_gates = set(alignment["required_human_gates"])
+    alignment["missing_release_review_board_claim_human_gates"] = sorted(required_human_gates - present_human_gates)
+    if (
+        audit.get("status") != "pass"
+        or alignment["missing_release_review_board_claim_check_ids"]
+        or alignment["missing_release_review_board_claim_human_gates"]
+    ):
+        alignment["status"] = "blocked"
+    scan = scan_text(json.dumps(alignment, ensure_ascii=False), "notebook-handoff-claim-alignment")
+    alignment["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        alignment["status"] = "blocked"
+        alignment["public_safety_findings"] = scan["findings"]
+    return alignment
 
 
 def generate_practice_notebook(
@@ -170,6 +273,13 @@ def generate_practice_notebook(
         "nbformat_minor": 5,
     }
     audit = audit_practice_notebook(notebook)
+    handoff_claim_alignment = build_notebook_handoff_claim_alignment(notebook, audit)
+    notebook["metadata"]["unibot_guardian"]["notebook_handoff_claim_alignment"] = {
+        "schema_version": NOTEBOOK_HANDOFF_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": handoff_claim_alignment["status"],
+        "required_readiness_check_ids": NOTEBOOK_HANDOFF_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS,
+        "required_human_gates": NOTEBOOK_HANDOFF_RELEASE_REVIEW_BOARD_HUMAN_GATES,
+    }
     return {
         "artifact_type": "unibot_practice_notebook",
         "title": title,
@@ -178,6 +288,7 @@ def generate_practice_notebook(
         "prompt_card": prompt_card,
         "source_cards": resolved_source_cards,
         "audit": audit,
+        "handoff_claim_alignment": handoff_claim_alignment,
     }
 
 
