@@ -17,6 +17,9 @@ What it does:
   layers.
 - Align each reviewer role with thesis evidence claims, readiness check IDs,
   source-card IDs, human gates, and the readiness evidence snapshot contract.
+- Surface the bachelor-thesis evaluation claim alignment so teaching and thesis
+  reviewers see learner-agency evidence without turning it into exam or grading
+  claims.
 - Keep language non-committal (`beantragt / nicht offiziell freigegeben`) until
   written approvals exist.
 
@@ -47,6 +50,16 @@ Evidence alignment content:
 - `required_human_gates`: gates that still control real submission, provider
   calls, public release, or exam use
 
+Thesis evaluation claim alignment content:
+
+- `reviewer_alignment`: confirms that teaching and thesis supervision reviewers
+  receive the `evaluation_learner_agency_boundary` claim
+- `sections`: maps teaching review, thesis supervision, high-stakes exclusions,
+  and public language controls to source cards, readiness checks, and human
+  gates
+- `failed_reviewer_ids` and `failed_contract_ids`: block review readiness when
+  the learner-agency claim is missing or high-stakes red lines are weakened
+
 Readiness for publication is a separate check:
 
 - `reviewer_packets` count >= 6
@@ -55,6 +68,8 @@ Readiness for publication is a separate check:
 - `exam_deployment_status` not_cleared
 - `evidence_alignment` ready, public-safe, and without unmapped reviewers or
   missing thesis claims
+- `thesis_evaluation_claim_alignment` ready, public-safe, and without missing
+  source cards, reviewer mappings, or failed contracts
 
 The packet is intentionally not an approval and does not replace formal
 authority decisions. It prepares the right questions in a structured, reproducible,

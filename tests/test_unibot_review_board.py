@@ -13,6 +13,7 @@ from unibot.review_board import (  # noqa: E402
     build_review_board_evidence_alignment,
     build_review_board_packet,
     build_review_board_packet_markdown,
+    build_review_board_thesis_evaluation_claim_alignment,
 )
 from unibot.server import route_request  # noqa: E402
 from unibot.python_exam_local_cycle_operator_workspace_card import build_python_exam_local_cycle_operator_workspace_card  # noqa: E402
@@ -49,6 +50,9 @@ class UniBotReviewBoardTests(unittest.TestCase):
         self.assertEqual(packet["evidence_alignment"]["unmapped_reviewer_count"], 0)
         self.assertEqual(packet["evidence_alignment"]["missing_claim_ids"], [])
         self.assertGreaterEqual(packet["evidence_alignment"]["thesis_claim_count"], 6)
+        self.assertEqual(packet["thesis_evaluation_claim_alignment"]["status"], "ready")
+        self.assertEqual(packet["thesis_evaluation_claim_alignment"]["public_safety_status"], "pass")
+        self.assertEqual(packet["thesis_evaluation_claim_alignment"]["failed_reviewer_ids"], [])
 
     def test_review_board_evidence_alignment_maps_reviewers_to_readiness_gates(self) -> None:
         packet = build_review_board_packet()
@@ -68,13 +72,50 @@ class UniBotReviewBoardTests(unittest.TestCase):
         self.assertIn("public_safety_and_privacy", by_reviewer["Datenschutz"]["claim_ids"])
         self.assertIn("public_safety", by_reviewer["Datenschutz"]["readiness_check_ids"])
         self.assertIn("reproducible_evaluation_package", by_reviewer["Thesis supervision"]["claim_ids"])
+        self.assertIn("evaluation_learner_agency_boundary", by_reviewer["Thesis supervision"]["claim_ids"])
+        self.assertIn("evaluation_learner_agency_boundary", by_reviewer["Lehreinheit / Modulverantwortliche"]["claim_ids"])
         self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+
+    def test_review_board_thesis_evaluation_alignment_surfaces_learner_agency_claims(self) -> None:
+        packet = build_review_board_packet()
+        alignment = build_review_board_thesis_evaluation_claim_alignment(packet)
+
+        self.assertEqual(alignment["schema_version"], "unibot-review-board-thesis-evaluation-claim-alignment-v1")
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_reviewer_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertTrue(all(alignment["contracts"].values()))
+        self.assertIn("evaluation_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("adaptive_task_plan", alignment["required_readiness_check_ids"])
+        self.assertIn("review_board_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+
+        rows = {row["reviewer"]: row for row in alignment["reviewer_alignment"]}
+        self.assertTrue(rows["Lehreinheit / Modulverantwortliche"]["has_evaluation_claim"])
+        self.assertTrue(rows["Thesis supervision"]["has_evaluation_claim"])
+        sections = {section["section_id"]: section for section in alignment["sections"]}
+        self.assertIn("evaluation_learner_agency_boundary", sections["teaching_review_trace"]["claim_ids"])
+        self.assertIn("No automatic grading", packet["cross_cutting_red_lines"])
+
+    def test_review_board_thesis_evaluation_alignment_blocks_missing_reviewer_claim(self) -> None:
+        packet = build_review_board_packet()
+        for row in packet["evidence_alignment"]["reviewer_alignment"]:
+            if row["reviewer"] == "Thesis supervision":
+                row["claim_ids"] = [claim_id for claim_id in row["claim_ids"] if claim_id != "evaluation_learner_agency_boundary"]
+        alignment = build_review_board_thesis_evaluation_claim_alignment(packet)
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertIn("Thesis supervision", alignment["failed_reviewer_ids"])
+        self.assertIn("required_reviewers_have_evaluation_claim", alignment["failed_contract_ids"])
 
     def test_review_board_markdown_and_api_routes(self) -> None:
         markdown = build_review_board_packet_markdown()
         self.assertIn("# UniBot Review Board Packet", markdown)
         self.assertIn("Cross-cutting Red Lines", markdown)
         self.assertIn("Evidence Alignment", markdown)
+        self.assertIn("Thesis Evaluation Claim Alignment", markdown)
         self.assertIn("Snapshot gate count", markdown)
         self.assertIn("Open Decisions", markdown)
 

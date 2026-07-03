@@ -582,7 +582,12 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and review_board_packet["evidence_alignment"]["status"] == "ready"
             and review_board_packet["evidence_alignment"]["public_safety_status"] == "pass"
             and review_board_packet["evidence_alignment"]["unmapped_reviewer_count"] == 0
-            and review_board_packet["evidence_alignment"]["missing_claim_ids"] == [],
+            and review_board_packet["evidence_alignment"]["missing_claim_ids"] == []
+            and review_board_packet["thesis_evaluation_claim_alignment"]["status"] == "ready"
+            and review_board_packet["thesis_evaluation_claim_alignment"]["public_safety_status"] == "pass"
+            and review_board_packet["thesis_evaluation_claim_alignment"]["missing_source_card_ids"] == []
+            and review_board_packet["thesis_evaluation_claim_alignment"]["failed_reviewer_ids"] == []
+            and review_board_packet["thesis_evaluation_claim_alignment"]["failed_contract_ids"] == [],
             "evidence": {
                 "status": review_board_packet["status"],
                 "public_safety_status": review_board_packet["public_safety_status"],
@@ -594,6 +599,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "readiness_snapshot_gate_count": len(
                     review_board_packet["evidence_alignment"]["readiness_snapshot_contract"]["required_gate_ids"]
                 ),
+                "thesis_evaluation_claim_alignment_status": review_board_packet["thesis_evaluation_claim_alignment"]["status"],
+                "thesis_evaluation_claim_alignment_section_count": review_board_packet["thesis_evaluation_claim_alignment"]["section_count"],
+                "thesis_evaluation_claim_alignment_human_gates": review_board_packet["thesis_evaluation_claim_alignment"]["required_human_gates"],
             },
         },
         {

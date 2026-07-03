@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .compliance import build_compliance_matrix
-from .bachelor_thesis import build_bachelor_thesis_evidence_index
+from .bachelor_thesis import build_bachelor_thesis_evidence_index, build_bachelor_thesis_evaluation_claim_alignment
 from .handoff import build_authority_handoff_packet
 from .pilot import build_pilot_protocol
 from .privacy import build_data_protection_screening
@@ -15,6 +15,7 @@ from .python_exam_local_cycle_chain_snapshot import build_python_exam_local_cycl
 
 
 REVIEW_BOARD_SCHEMA_VERSION = "unibot-review-board-packet-v1"
+REVIEW_BOARD_THESIS_EVALUATION_ALIGNMENT_SCHEMA_VERSION = "unibot-review-board-thesis-evaluation-claim-alignment-v1"
 
 
 def build_review_board_evidence_alignment(reviewers: list[dict[str, Any]]) -> dict[str, Any]:
@@ -25,8 +26,17 @@ def build_review_board_evidence_alignment(reviewers: list[dict[str, Any]]) -> di
         "Inklusionsbuero / Nachteilsausgleich": ["exam_boundary_not_clearance", "public_safety_and_privacy"],
         "Datenschutz": ["public_safety_and_privacy", "source_bound_public_science"],
         "IT / SZI": ["glm_52_basis", "public_safety_and_privacy"],
-        "Lehreinheit / Modulverantwortliche": ["reproducible_evaluation_package", "source_bound_public_science"],
-        "Thesis supervision": ["gretel_authorship_label", "glm_52_basis", "reproducible_evaluation_package"],
+        "Lehreinheit / Modulverantwortliche": [
+            "reproducible_evaluation_package",
+            "evaluation_learner_agency_boundary",
+            "source_bound_public_science",
+        ],
+        "Thesis supervision": [
+            "gretel_authorship_label",
+            "glm_52_basis",
+            "reproducible_evaluation_package",
+            "evaluation_learner_agency_boundary",
+        ],
     }
     reviewer_rows = []
     for reviewer in reviewers:
@@ -88,6 +98,114 @@ def build_review_board_evidence_alignment(reviewers: list[dict[str, Any]]) -> di
     if scan["status"] != "pass":
         alignment["status"] = "blocked"
     return alignment
+
+
+def build_review_board_thesis_evaluation_claim_alignment(review_board: dict[str, Any] | None = None) -> dict[str, Any]:
+    if review_board is None:
+        review_board = build_review_board_packet()
+    thesis_evidence = build_bachelor_thesis_evidence_index()
+    thesis_evaluation_alignment = build_bachelor_thesis_evaluation_claim_alignment(thesis_evidence)
+    reviewer_alignment = review_board.get("evidence_alignment", {}).get("reviewer_alignment", [])
+    reviewer_by_name = {row.get("reviewer", ""): row for row in reviewer_alignment}
+    required_reviewers = ["Lehreinheit / Modulverantwortliche", "Thesis supervision"]
+    reviewer_rows = []
+    for reviewer in required_reviewers:
+        row = reviewer_by_name.get(reviewer, {})
+        reviewer_rows.append(
+            {
+                "reviewer": reviewer,
+                "has_evaluation_claim": "evaluation_learner_agency_boundary" in row.get("claim_ids", []),
+                "claim_ids": row.get("claim_ids", []),
+                "readiness_check_ids": row.get("readiness_check_ids", []),
+                "source_card_ids": row.get("source_card_ids", []),
+                "human_gates": row.get("human_gates", []),
+            }
+        )
+    sections = [
+        {
+            "section_id": "teaching_review_trace",
+            "reviewers": ["Lehreinheit / Modulverantwortliche"],
+            "claim_ids": ["evaluation_learner_agency_boundary", "reproducible_evaluation_package"],
+            "readiness_check_ids": ["evaluation_packet", "adaptive_task_plan", "review_board_packet"],
+            "source_card_ids": ["vanlehn-2011", "unesco-genai-2023"],
+            "human_gates": ["human_submission_review_required"],
+            "boundary": "teaching review sees learner-agency evidence as synthetic formative practice, not answer replacement",
+        },
+        {
+            "section_id": "thesis_supervision_trace",
+            "reviewers": ["Thesis supervision"],
+            "claim_ids": ["gretel_authorship_label", "evaluation_learner_agency_boundary"],
+            "readiness_check_ids": ["gretel_bachelor_thesis_package", "evaluation_packet", "review_board_packet"],
+            "source_card_ids": ["dfg-gwp", "unesco-genai-2023", "vanlehn-2011"],
+            "human_gates": ["human_submission_review_required"],
+            "boundary": "thesis supervision sees Gretel-authored claims tied to evaluation evidence and human review gates",
+        },
+        {
+            "section_id": "high_stakes_review_trace",
+            "reviewers": ["Pruefungsamt", "Datenschutz"],
+            "claim_ids": ["exam_boundary_not_clearance", "evaluation_learner_agency_boundary"],
+            "readiness_check_ids": ["exam_boundary", "data_protection_screening", "compliance_matrix"],
+            "source_card_ids": ["dfg-gwp", "gdpr-2016-679", "uoc-ki-faq"],
+            "human_gates": ["written_university_clearance_required_before_exam_use", "datenschutz_review_required_before_real_pilot"],
+            "boundary": "review board keeps learner-agency evidence out of grading, proctoring, KI detection, and exam clearance",
+        },
+        {
+            "section_id": "public_language_trace",
+            "reviewers": required_reviewers,
+            "claim_ids": ["evaluation_learner_agency_boundary"],
+            "readiness_check_ids": ["review_board_packet", "public_safety"],
+            "source_card_ids": [],
+            "human_gates": ["human_submission_review_required", "public_safety_required"],
+            "boundary": "public language remains draft/review wording until human reviewers approve real submission language",
+        },
+    ]
+    payload = json.dumps(
+        {
+            "reviewer_rows": reviewer_rows,
+            "thesis_evaluation_alignment": thesis_evaluation_alignment,
+            "sections": sections,
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    payload_scan = scan_text(payload, "review-board-thesis-evaluation-claim-alignment")
+    required_source_card_ids = sorted({source_id for section in sections for source_id in section["source_card_ids"]})
+    missing_source_card_ids = sorted(source_id for source_id in required_source_card_ids if get_source_card(source_id) is None)
+    failed_reviewer_ids = sorted(row["reviewer"] for row in reviewer_rows if row["has_evaluation_claim"] is not True)
+    contracts = {
+        "thesis_evaluation_alignment_ready": thesis_evaluation_alignment["status"] == "ready"
+        and thesis_evaluation_alignment["public_safety_status"] == "pass",
+        "required_reviewers_have_evaluation_claim": failed_reviewer_ids == [],
+        "review_board_evidence_alignment_ready": review_board.get("evidence_alignment", {}).get("status") == "ready"
+        and review_board.get("evidence_alignment", {}).get("public_safety_status") == "pass",
+        "high_stakes_red_lines_present": "No automatic grading" in review_board.get("cross_cutting_red_lines", [])
+        and "No disciplinary KI-detection output" in review_board.get("cross_cutting_red_lines", []),
+        "exam_deployment_not_cleared": review_board.get("exam_deployment_status") == "not_cleared",
+        "payload_public_safe": payload_scan["status"] == "pass",
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    status = "ready" if not missing_source_card_ids and not failed_reviewer_ids and not failed_contract_ids else "needs_review"
+    return {
+        "schema_version": REVIEW_BOARD_THESIS_EVALUATION_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "reviewer_alignment": reviewer_rows,
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_reviewer_ids": failed_reviewer_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "contracts": contracts,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "public_safety_status": payload_scan["status"],
+        "policy": (
+            "Review-board thesis-evaluation alignment is a public review aid only; it does not authorize "
+            "real submission, grading, exam clearance, proctoring, KI-detection evidence, provider calls, "
+            "private course text, local paths, or student data."
+        ),
+    }
 
 
 def _build_reviewer_packet(
@@ -371,6 +489,13 @@ def build_review_board_packet(
         "ready_for": ["public draft review", "local practice demo"],
         "not_ready_for": ["exam deployment", "official grading", "automatic support claims", "exam_controlled"],
     }
+    review_board["thesis_evaluation_claim_alignment"] = build_review_board_thesis_evaluation_claim_alignment(review_board)
+    review_board["evidence_summary"]["thesis_evaluation_claim_alignment_status"] = review_board[
+        "thesis_evaluation_claim_alignment"
+    ]["status"]
+    review_board["evidence_summary"]["thesis_evaluation_claim_alignment_public_safety_status"] = review_board[
+        "thesis_evaluation_claim_alignment"
+    ]["public_safety_status"]
     scan = scan_text(json.dumps(review_board, ensure_ascii=False), "unibot-review-board-packet")
     review_board["public_safety_status"] = scan["status"]
     if scan["status"] != "pass":
@@ -401,9 +526,13 @@ def build_review_board_packet_markdown() -> str:
     )
     evidence = packet["evidence_summary"]
     alignment = packet["evidence_alignment"]
+    thesis_evaluation_alignment = packet["thesis_evaluation_claim_alignment"]
     alignment_lines = "\n".join(
         f"- {item['reviewer']}: claims {', '.join(item['claim_ids'])}; checks {', '.join(item['readiness_check_ids'])}"
         for item in alignment["reviewer_alignment"]
+    )
+    thesis_evaluation_lines = "\n".join(
+        f"- {section['section_id']}: {section['boundary']}" for section in thesis_evaluation_alignment["sections"]
     )
     chain = packet.get("local_cycle_chain_snapshot", {})
     chain_summary = chain.get("chain_snapshot_summary", {}) if isinstance(chain.get("chain_snapshot_summary"), dict) else {}
@@ -436,6 +565,10 @@ def build_review_board_packet_markdown() -> str:
         f"- Snapshot schema: {alignment['readiness_snapshot_contract']['expected_schema_version']}\n"
         f"- Snapshot gate count: {len(alignment['readiness_snapshot_contract']['required_gate_ids'])}\n"
         f"{alignment_lines}\n\n"
+        "## Thesis Evaluation Claim Alignment\n\n"
+        f"- Status: {thesis_evaluation_alignment['status']}\n"
+        f"- Public safety: {thesis_evaluation_alignment['public_safety_status']}\n"
+        f"{thesis_evaluation_lines}\n\n"
         "## Local Cycle Chain\n\n"
         f"- Status: {chain.get('status', 'missing')}\n"
         f"- Snapshot hash: {chain_summary.get('snapshot_hash', '')}\n"
