@@ -64,6 +64,14 @@ The generated protocol includes `pilot_evidence_alignment`. It maps consent
 boundary, ethics triggers, data management, session flow, and real-pilot
 release boundary to source cards, readiness checks, and human gates.
 
+It also carries a release review-board claim contract:
+`unibot-pilot-release-review-board-claim-alignment-v1`. That contract keeps
+pilot language aligned with the release runbook and review-board
+thesis/evaluation claim boundary: learner-agency evidence stays synthetic and
+formative, adaptive task evidence stays source-bound, and real participant work
+remains blocked until ethics/supervisor, Datenschutz, public-safety, and
+written university review gates are satisfied.
+
 The alignment must remain `ready` before public draft review. It is still only
 a review aid: it is not ethics clearance, Datenschutz approval, participant
 recruitment approval, or exam clearance.

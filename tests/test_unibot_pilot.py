@@ -29,6 +29,8 @@ class UniBotPilotProtocolTests(unittest.TestCase):
         self.assertEqual(protocol["readiness_gates"]["compliance_status"], "draft_ready_for_authority_review")
         self.assertEqual(protocol["pilot_evidence_alignment"]["status"], "ready")
         self.assertEqual(protocol["pilot_evidence_alignment"]["public_safety_status"], "pass")
+        self.assertEqual(protocol["pilot_evidence_alignment"]["missing_release_review_board_claim_check_ids"], [])
+        self.assertEqual(protocol["pilot_evidence_alignment"]["missing_release_review_board_claim_human_gates"], [])
 
     def test_pilot_protocol_boundaries_exclude_high_stakes_and_private_data(self) -> None:
         protocol = build_pilot_protocol()
@@ -66,12 +68,35 @@ class UniBotPilotProtocolTests(unittest.TestCase):
         self.assertEqual(alignment["missing_source_card_ids"], [])
         self.assertIn("data_protection_screening", alignment["required_readiness_check_ids"])
         self.assertIn("release_runbook", alignment["required_readiness_check_ids"])
+        self.assertIn("review_board_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("gretel_bachelor_thesis_package", alignment["required_readiness_check_ids"])
+        self.assertIn("adaptive_task_plan", alignment["required_readiness_check_ids"])
         self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
         self.assertIn("ethics_or_supervisor_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        release_claim_contract = alignment["pilot_release_review_board_claim_contract"]
+        self.assertEqual(
+            release_claim_contract["expected_schema_version"],
+            "unibot-pilot-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(
+            release_claim_contract["required_release_runbook_schema_version"],
+            "unibot-release-runbook-evidence-alignment-v1",
+        )
+        self.assertEqual(
+            release_claim_contract["required_review_board_thesis_evaluation_schema_version"],
+            "unibot-review-board-thesis-evaluation-claim-alignment-v1",
+        )
+        self.assertEqual(alignment["missing_release_review_board_claim_check_ids"], [])
+        self.assertEqual(alignment["missing_release_review_board_claim_human_gates"], [])
         self.assertEqual(alignment["source_card_drift_contract"]["expected_check_id"], "source_card_drift_guard")
         self.assertEqual(alignment["data_protection_contract"]["expected_check_id"], "data_protection_screening")
         self.assertIn("gdpr-2016-679", by_section["data_management"]["source_card_ids"])
         self.assertIn("consent_items", by_section["consent_boundary"]["protocol_keys"])
+        self.assertIn(
+            "adaptive_task_plan",
+            by_section["review_board_thesis_evaluation_pilot_boundary"]["readiness_check_ids"],
+        )
 
     def test_pilot_markdown_and_api_routes(self) -> None:
         markdown = build_pilot_protocol_markdown()
@@ -80,6 +105,7 @@ class UniBotPilotProtocolTests(unittest.TestCase):
         self.assertIn("Consent Checklist", markdown)
         self.assertIn("Ethics Review Triggers", markdown)
         self.assertIn("Evidence Alignment", markdown)
+        self.assertIn("Release review-board claim alignment: unibot-pilot-release-review-board-claim-alignment-v1", markdown)
         self.assertIn("Exam deployment: not_cleared", markdown)
 
         status, protocol = route_request("/api/unibot/pilot-protocol", {})

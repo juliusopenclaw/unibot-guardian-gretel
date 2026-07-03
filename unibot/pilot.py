@@ -13,6 +13,9 @@ from .source_cards import get_source_card
 
 PILOT_PROTOCOL_SCHEMA_VERSION = "unibot-pilot-protocol-v1"
 PILOT_EVIDENCE_ALIGNMENT_SCHEMA_VERSION = "unibot-pilot-evidence-alignment-v1"
+PILOT_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-pilot-release-review-board-claim-alignment-v1"
+)
 
 PILOT_ALIGNMENT_SECTIONS = [
     {
@@ -52,6 +55,26 @@ PILOT_ALIGNMENT_SECTIONS = [
             "written_university_clearance_required_before_exam_use",
             "ethics_or_supervisor_review_required_before_real_pilot",
             "datenschutz_review_required_before_real_pilot",
+        ],
+    },
+    {
+        "section_id": "review_board_thesis_evaluation_pilot_boundary",
+        "protocol_keys": ["purpose", "participant_information", "readiness_gates", "policy"],
+        "source_card_ids": ["dfg-gwp", "unesco-genai-2023", "vanlehn-2011"],
+        "readiness_check_ids": [
+            "pilot_protocol",
+            "release_runbook",
+            "review_board_packet",
+            "gretel_bachelor_thesis_package",
+            "evaluation_packet",
+            "adaptive_task_plan",
+            "public_safety",
+        ],
+        "human_gates": [
+            "ethics_or_supervisor_review_required_before_real_pilot",
+            "human_submission_review_required",
+            "public_safety_required",
+            "written_university_clearance_required_before_exam_use",
         ],
     },
 ]
@@ -278,12 +301,47 @@ def build_pilot_evidence_alignment(protocol: dict[str, Any] | None = None) -> di
             "expected_check_id": "release_runbook",
             "real_pilot_release_status": "blocked_until_ethics_datenschutz_and_authority_review",
         },
+        "pilot_release_review_board_claim_contract": {
+            "expected_schema_version": PILOT_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+            "required_release_runbook_schema_version": "unibot-release-runbook-evidence-alignment-v1",
+            "required_review_board_thesis_evaluation_schema_version": (
+                "unibot-review-board-thesis-evaluation-claim-alignment-v1"
+            ),
+            "required_readiness_check_ids": [
+                "release_runbook",
+                "review_board_packet",
+                "gretel_bachelor_thesis_package",
+                "evaluation_packet",
+                "adaptive_task_plan",
+                "data_protection_screening",
+                "public_safety",
+            ],
+            "required_human_gates": [
+                "ethics_or_supervisor_review_required_before_real_pilot",
+                "datenschutz_review_required_before_real_pilot",
+                "human_submission_review_required",
+                "public_safety_required",
+                "written_university_clearance_required_before_exam_use",
+            ],
+            "use": "Pilot language must keep learner-agency evidence synthetic, formative, human-gated, and not participant recruitment, ethics, Datenschutz, or exam clearance.",
+        },
         "policy": (
             "Pilot evidence alignment is a review aid only; it is not ethics clearance, "
             "data-protection approval, participant recruitment approval, or exam clearance."
         ),
     }
     if alignment["missing_protocol_keys"] or alignment["missing_source_card_ids"]:
+        alignment["status"] = "blocked"
+    required_check_ids = set(alignment["pilot_release_review_board_claim_contract"]["required_readiness_check_ids"])
+    present_check_ids = set(alignment["required_readiness_check_ids"])
+    alignment["missing_release_review_board_claim_check_ids"] = sorted(required_check_ids - present_check_ids)
+    required_human_gates = set(alignment["pilot_release_review_board_claim_contract"]["required_human_gates"])
+    present_human_gates = set(alignment["required_human_gates"])
+    alignment["missing_release_review_board_claim_human_gates"] = sorted(required_human_gates - present_human_gates)
+    if (
+        alignment["missing_release_review_board_claim_check_ids"]
+        or alignment["missing_release_review_board_claim_human_gates"]
+    ):
         alignment["status"] = "blocked"
     scan = scan_text(json.dumps(alignment, ensure_ascii=False), "pilot-evidence-alignment")
     alignment["public_safety_status"] = scan["status"]
@@ -334,6 +392,7 @@ def build_pilot_protocol_markdown() -> str:
         "## Evidence Alignment\n\n"
         f"- Alignment: {alignment['status']}\n"
         f"- Sections: {alignment['section_count']}\n"
+        f"- Release review-board claim alignment: {alignment['pilot_release_review_board_claim_contract']['expected_schema_version']}\n"
         f"- Human gates: {', '.join(alignment['required_human_gates'])}\n\n"
         "## Source Cards\n\n"
         f"{source_lines}\n\n"
