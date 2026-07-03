@@ -57,9 +57,9 @@ contract change.
 
 ## Current Work Queue
 
-1. `browser_manifest_content_boundary_claim_alignment`: align the browser
-   extension manifest and content-script boundary with sidepanel handoff, local
-   demo, publication, release-review-board claims, public language controls, and human gates.
+1. `notebook_handoff_release_review_board_claim_alignment`: align the notebook
+   handoff with browser demo, local demo, feedback, publication,
+   release-review-board claims, public language controls, and human gates.
 
 ## Closed Harnessed Work
 
@@ -150,15 +150,19 @@ contract change.
   with local-only/public-summary-only boundaries, downstream triage/issue,
   publication/review-board readiness links, and human gates.
 
-## Automation Rule
 - `local_demo_release_review_board_claim_alignment`: closed in `4cd091d` with
   practice-only/local-only/public-summary boundaries, downstream demo-feedback,
   triage/issue/publication/review-board readiness links, and human gates.
 
-
 - `browser_extension_release_review_board_claim_alignment`: closed in `3db6902`
   with sidepanel release-review-board claim links to local demo, demo feedback,
   triage, GitHub issue, readiness, and human gates.
+
+- `browser_manifest_content_boundary_claim_alignment`: closed in `1032d84` with
+  bounded manifest permissions, content-script boundary, sidepanel/local-demo
+  links, human gates, and no exam-security claims.
+
+## Automation Rule
 
 Automation may keep the local iCloud/Git worktree warm and produce local commits
 or review notes after green checks. Public GitHub pushes, provider calls, real

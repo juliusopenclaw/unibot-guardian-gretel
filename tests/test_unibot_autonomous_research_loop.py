@@ -56,7 +56,7 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         queue = loop["work_queue"]
         by_id = {item["work_id"]: item for item in queue}
 
-        self.assertGreaterEqual(len(queue), 32)
+        self.assertGreaterEqual(len(queue), 33)
         self.assertEqual(by_id["intent_contract_regression_pack"]["status"], "closed_harnessed")
         self.assertEqual(by_id["intent_contract_regression_pack"]["closure_evidence"]["commit"], "fa942b0")
         self.assertEqual(by_id["scientific_evaluation_depth"]["status"], "closed_harnessed")
@@ -214,14 +214,24 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             "browser_extension_release_review_board_thesis_claim_traceability",
         )
         self.assertIn("unibot/browser_extension/sidepanel.js", by_id["browser_extension_release_review_board_claim_alignment"]["allowed_files"])
-        self.assertEqual(by_id["browser_manifest_content_boundary_claim_alignment"]["status"], "ready")
+        self.assertEqual(by_id["browser_manifest_content_boundary_claim_alignment"]["status"], "closed_harnessed")
+        self.assertEqual(
+            by_id["browser_manifest_content_boundary_claim_alignment"]["closure_evidence"]["commit"],
+            "1032d84",
+        )
         self.assertEqual(
             by_id["browser_manifest_content_boundary_claim_alignment"]["review_gate"],
             "browser_manifest_content_boundary_claim_traceability",
         )
         self.assertIn("unibot/browser_extension/manifest.json", by_id["browser_manifest_content_boundary_claim_alignment"]["allowed_files"])
-        self.assertEqual(loop["next_recommended_work_id"], "browser_manifest_content_boundary_claim_alignment")
-        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 31)
+        self.assertEqual(by_id["notebook_handoff_release_review_board_claim_alignment"]["status"], "ready")
+        self.assertEqual(
+            by_id["notebook_handoff_release_review_board_claim_alignment"]["review_gate"],
+            "notebook_handoff_release_review_board_claim_traceability",
+        )
+        self.assertIn("unibot/notebooks.py", by_id["notebook_handoff_release_review_board_claim_alignment"]["allowed_files"])
+        self.assertEqual(loop["next_recommended_work_id"], "notebook_handoff_release_review_board_claim_alignment")
+        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 32)
         self.assertLessEqual(loop["budget_policy"]["cadence"]["max_active_work_item_per_run"], 1)
         for item in queue:
             self.assertIn("acceptance_tests", item)
@@ -236,8 +246,8 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("Public safety: pass", markdown)
         self.assertIn("Default reasoning effort: low", markdown)
         self.assertIn("Autonomous GitHub push: False", markdown)
-        self.assertIn("Closed harnessed items: 31", markdown)
-        self.assertIn("Next recommended work: browser_manifest_content_boundary_claim_alignment", markdown)
+        self.assertIn("Closed harnessed items: 32", markdown)
+        self.assertIn("Next recommended work: notebook_handoff_release_review_board_claim_alignment", markdown)
 
         status, loop = route_request("/api/unibot/autonomous-research-loop", {})
         self.assertEqual(status, 200)
