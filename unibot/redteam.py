@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import json
 from datetime import datetime, timezone
 from typing import Any
 
@@ -11,6 +12,31 @@ from .public_safety import scan_text
 
 
 REDTEAM_SCHEMA_VERSION = "unibot-redteam-smoke-v1"
+REDTEAM_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-redteam-release-review-board-claim-alignment-v1"
+)
+
+REDTEAM_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS = [
+    "redteam",
+    "notebook_template",
+    "browser_extension_demo_handoff",
+    "browser_manifest_content_boundary",
+    "local_demo_run",
+    "demo_feedback_contract",
+    "demo_feedback_triage",
+    "github_issue_bundle",
+    "publication_package",
+    "release_runbook",
+    "review_board_packet",
+    "gretel_bachelor_thesis_package",
+    "public_safety",
+]
+
+REDTEAM_RELEASE_REVIEW_BOARD_HUMAN_GATES = [
+    "human_review_before_github_create",
+    "human_submission_review_required",
+    "public_safety_required",
+]
 
 
 @dataclass(frozen=True)
@@ -39,7 +65,7 @@ def run_redteam_smoke() -> dict[str, Any]:
     ]
     passed = [scenario for scenario in scenarios if scenario.passed]
     failed = [scenario for scenario in scenarios if not scenario.passed]
-    return {
+    report = {
         "schema_version": REDTEAM_SCHEMA_VERSION,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "status": "pass" if not failed else "fail",
@@ -49,6 +75,77 @@ def run_redteam_smoke() -> dict[str, Any]:
         "scenarios": [scenario.to_dict() for scenario in scenarios],
         "raw_output_policy": "red-team report stores hashes, categories, and control evidence only",
     }
+    report["claim_alignment"] = build_redteam_claim_alignment(report)
+    return report
+
+
+def build_redteam_claim_alignment(report: dict[str, Any]) -> dict[str, Any]:
+    scenario_rows = [
+        {
+            "scenario_id": scenario["scenario_id"],
+            "target": scenario["target"],
+            "passed": scenario["passed"],
+            "readiness_check_ids": REDTEAM_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS,
+            "human_gates": REDTEAM_RELEASE_REVIEW_BOARD_HUMAN_GATES,
+            "hash_or_category_evidence_only": True,
+            "practice_only": True,
+        }
+        for scenario in report.get("scenarios", [])
+    ]
+    alignment = {
+        "schema_version": "unibot-redteam-claim-alignment-v1",
+        "status": "ready" if report.get("status") == "pass" and scenario_rows else "blocked",
+        "practice_only": True,
+        "public_summary_only": True,
+        "hash_or_category_evidence_only": True,
+        "manual_publication_claim_contract": {
+            "expected_schema_version": REDTEAM_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+            "required_notebook_handoff_schema_version": (
+                "unibot-notebook-handoff-release-review-board-claim-alignment-v1"
+            ),
+            "required_browser_extension_schema_version": (
+                "unibot-browser-extension-release-review-board-claim-alignment-v1"
+            ),
+            "required_browser_manifest_schema_version": (
+                "unibot-browser-manifest-content-boundary-claim-alignment-v1"
+            ),
+            "required_local_demo_schema_version": (
+                "unibot-local-demo-release-review-board-claim-alignment-v1"
+            ),
+            "required_publication_schema_version": (
+                "unibot-publication-release-review-board-claim-alignment-v1"
+            ),
+            "required_readiness_check_ids": REDTEAM_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS,
+            "required_human_gates": REDTEAM_RELEASE_REVIEW_BOARD_HUMAN_GATES,
+            "use": "Red-team evidence supports review-board risk review, not public release, institutional submission, or exam clearance.",
+        },
+        "scenario_rows": scenario_rows,
+        "unique_readiness_check_ids": sorted(
+            {check_id for row in scenario_rows for check_id in row["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for row in scenario_rows for gate in row["human_gates"]}),
+        "blocked_claims": ["exam clearance", "official grading", "proctoring", "KI-detection evidence"],
+        "public_language": "Red-team smoke evidence is a public-safe risk-control summary and cannot approve public or institutional claims.",
+    }
+    required_check_ids = set(alignment["manual_publication_claim_contract"]["required_readiness_check_ids"])
+    present_check_ids = set(alignment["unique_readiness_check_ids"])
+    alignment["missing_release_review_board_claim_check_ids"] = sorted(required_check_ids - present_check_ids)
+    required_human_gates = set(alignment["manual_publication_claim_contract"]["required_human_gates"])
+    present_human_gates = set(alignment["required_human_gates"])
+    alignment["missing_release_review_board_claim_human_gates"] = sorted(required_human_gates - present_human_gates)
+    if (
+        report.get("status") != "pass"
+        or report.get("failed_count") != 0
+        or alignment["missing_release_review_board_claim_check_ids"]
+        or alignment["missing_release_review_board_claim_human_gates"]
+    ):
+        alignment["status"] = "blocked"
+    scan = scan_text(json.dumps(alignment, ensure_ascii=False), "redteam-claim-alignment")
+    alignment["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        alignment["status"] = "blocked"
+        alignment["public_safety_findings"] = scan["findings"]
+    return alignment
 
 
 def _solution_output_is_blocked() -> RedTeamScenario:

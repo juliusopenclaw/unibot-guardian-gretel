@@ -76,6 +76,22 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertEqual(report["source_card_drift"]["status"], "pass")
         self.assertEqual(report["source_card_drift"]["missing_required_source_card_ids"], [])
         self.assertEqual(report["source_card_drift"]["unlisted_high_risk_source_card_ids"], [])
+        redteam = next(check for check in report["checks"] if check["check_id"] == "redteam")
+        self.assertEqual(
+            redteam["evidence"]["manual_publication_claim_contract_status"],
+            "unibot-redteam-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(redteam["evidence"]["claim_alignment_status"], "ready")
+        self.assertEqual(redteam["evidence"]["claim_alignment_public_safety_status"], "pass")
+        self.assertTrue(redteam["evidence"]["hash_or_category_evidence_only"])
+        self.assertTrue(redteam["evidence"]["notebook_handoff_claim_linked"])
+        self.assertTrue(redteam["evidence"]["browser_handoff_claim_linked"])
+        self.assertTrue(redteam["evidence"]["browser_manifest_boundary_linked"])
+        self.assertTrue(redteam["evidence"]["local_demo_claim_linked"])
+        self.assertTrue(redteam["evidence"]["publication_claim_linked"])
+        self.assertTrue(redteam["evidence"]["review_board_claim_linked"])
+        self.assertTrue(redteam["evidence"]["human_submission_gate_linked"])
+        self.assertTrue(redteam["evidence"]["exam_clearance_blocked"])
         publication = next(check for check in report["checks"] if check["check_id"] == "publication_package")
         self.assertEqual(publication["evidence"]["reproducibility_alignment_status"], "ready")
         self.assertIn("human_submission_review_required", publication["evidence"]["reproducibility_alignment_human_gates"])

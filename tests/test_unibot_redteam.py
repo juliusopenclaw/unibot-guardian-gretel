@@ -9,7 +9,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.redteam import run_redteam_smoke  # noqa: E402
+from unibot.redteam import (  # noqa: E402
+    REDTEAM_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+    build_redteam_claim_alignment,
+    run_redteam_smoke,
+)
 from unibot.server import route_request  # noqa: E402
 
 
@@ -39,6 +43,41 @@ class UniBotRedTeamTests(unittest.TestCase):
         self.assertNotIn("sk-test", report_text)
         self.assertNotIn("private/notebook.ipynb", report_text)
         self.assertIn("raw_output_hash", report_text)
+
+    def test_redteam_claim_alignment_links_review_board_chain(self) -> None:
+        report = run_redteam_smoke()
+        alignment = report["claim_alignment"]
+
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertTrue(alignment["practice_only"])
+        self.assertTrue(alignment["public_summary_only"])
+        self.assertTrue(alignment["hash_or_category_evidence_only"])
+        self.assertEqual(
+            alignment["manual_publication_claim_contract"]["expected_schema_version"],
+            REDTEAM_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+        )
+        self.assertIn("redteam", alignment["unique_readiness_check_ids"])
+        self.assertIn("notebook_template", alignment["unique_readiness_check_ids"])
+        self.assertIn("browser_extension_demo_handoff", alignment["unique_readiness_check_ids"])
+        self.assertIn("browser_manifest_content_boundary", alignment["unique_readiness_check_ids"])
+        self.assertIn("local_demo_run", alignment["unique_readiness_check_ids"])
+        self.assertIn("publication_package", alignment["unique_readiness_check_ids"])
+        self.assertIn("review_board_packet", alignment["unique_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertEqual(alignment["missing_release_review_board_claim_check_ids"], [])
+        self.assertEqual(alignment["missing_release_review_board_claim_human_gates"], [])
+        self.assertIn("exam clearance", alignment["blocked_claims"])
+
+    def test_redteam_claim_alignment_blocks_failed_report(self) -> None:
+        report = run_redteam_smoke()
+        report["status"] = "fail"
+        report["failed_count"] = 1
+        report["scenarios"][0]["passed"] = False
+        alignment = build_redteam_claim_alignment(report)
+
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertEqual(alignment["public_safety_status"], "pass")
 
     def test_redteam_api_route(self) -> None:
         status, report = route_request("/api/unibot/redteam/run", {})

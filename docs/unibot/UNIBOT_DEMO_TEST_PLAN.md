@@ -71,6 +71,19 @@ This notebook handoff remains a local practice artifact. It does not approve
 publication, institutional submission, provider calls, exam use, official
 grading, proctoring, or KI-detection claims.
 
+## Red-Team Claim Alignment
+
+The red-team smoke carries `claim_alignment` with the contract
+`unibot-redteam-release-review-board-claim-alignment-v1`. It links hash- and
+category-only safety evidence to the notebook handoff, browser sidepanel,
+browser manifest/content boundary, local demo, validated feedback, publication
+package, release runbook, review-board packet, bachelor thesis package,
+public-safety gate, and human submission gates.
+
+This red-team evidence is a risk-control summary only. It does not approve
+publication, institutional submission, provider calls, exam use, official
+grading, proctoring, or KI-detection claims.
+
 During public-safe demos, reviewers should look for five descriptive dimensions:
 
 - Socratic help quality: the learner keeps the next cognitive step.

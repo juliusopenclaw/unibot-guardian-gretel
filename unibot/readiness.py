@@ -306,11 +306,39 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
         },
         {
             "check_id": "redteam",
-            "passed": redteam["status"] == "pass" and redteam["failed_count"] == 0,
+            "passed": redteam["status"] == "pass"
+            and redteam["failed_count"] == 0
+            and redteam["claim_alignment"]["status"] == "ready"
+            and redteam["claim_alignment"]["public_safety_status"] == "pass"
+            and redteam["claim_alignment"]["hash_or_category_evidence_only"] is True
+            and redteam["claim_alignment"]["missing_release_review_board_claim_check_ids"] == []
+            and redteam["claim_alignment"]["missing_release_review_board_claim_human_gates"] == [],
             "evidence": {
                 "status": redteam["status"],
                 "passed_count": redteam["passed_count"],
                 "scenario_count": redteam["scenario_count"],
+                "claim_alignment_status": redteam["claim_alignment"]["status"],
+                "claim_alignment_public_safety_status": redteam["claim_alignment"]["public_safety_status"],
+                "manual_publication_claim_contract_status": redteam["claim_alignment"][
+                    "manual_publication_claim_contract"
+                ]["expected_schema_version"],
+                "hash_or_category_evidence_only": redteam["claim_alignment"]["hash_or_category_evidence_only"],
+                "notebook_handoff_claim_linked": (
+                    "notebook_template" in redteam["claim_alignment"]["unique_readiness_check_ids"]
+                ),
+                "browser_handoff_claim_linked": (
+                    "browser_extension_demo_handoff" in redteam["claim_alignment"]["unique_readiness_check_ids"]
+                ),
+                "browser_manifest_boundary_linked": (
+                    "browser_manifest_content_boundary" in redteam["claim_alignment"]["unique_readiness_check_ids"]
+                ),
+                "local_demo_claim_linked": "local_demo_run" in redteam["claim_alignment"]["unique_readiness_check_ids"],
+                "publication_claim_linked": "publication_package" in redteam["claim_alignment"]["unique_readiness_check_ids"],
+                "review_board_claim_linked": "review_board_packet" in redteam["claim_alignment"]["unique_readiness_check_ids"],
+                "human_submission_gate_linked": (
+                    "human_submission_review_required" in redteam["claim_alignment"]["required_human_gates"]
+                ),
+                "exam_clearance_blocked": "exam clearance" in redteam["claim_alignment"]["blocked_claims"],
             },
         },
         {
