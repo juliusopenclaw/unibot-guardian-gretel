@@ -11,6 +11,27 @@ from .guardian import stable_hash
 from .public_safety import scan_text
 
 
+DEMO_FEEDBACK_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-demo-feedback-release-review-board-claim-alignment-v1"
+)
+
+DEMO_FEEDBACK_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS = [
+    "demo_feedback_contract",
+    "demo_feedback_triage",
+    "github_issue_bundle",
+    "publication_package",
+    "release_runbook",
+    "review_board_packet",
+    "gretel_bachelor_thesis_package",
+    "public_safety",
+]
+
+DEMO_FEEDBACK_RELEASE_REVIEW_BOARD_HUMAN_GATES = [
+    "human_review_before_github_create",
+    "human_submission_review_required",
+    "public_safety_required",
+]
+
 DEMO_FEEDBACK_SCHEMA_VERSION = "unibot-demo-feedback-v1"
 DEFAULT_FEEDBACK_PATH = Path.home() / ".unibot_guardian" / "demo_feedback.jsonl"
 
@@ -112,7 +133,9 @@ def validate_demo_feedback(raw: dict[str, Any]) -> dict[str, Any]:
         issues.append("feedback_not_public_safe")
 
     public_record = _to_public_feedback_record(normalized)
+    claim_alignment = build_demo_feedback_claim_alignment([public_record] if not issues else [])
     return {
+        "claim_alignment": claim_alignment,
         "schema_version": DEMO_FEEDBACK_SCHEMA_VERSION,
         "status": "blocked" if issues else "ok",
         "issues": issues,
@@ -193,6 +216,7 @@ def summarize_demo_feedback(path: str | Path | None = None) -> dict[str, Any]:
 
 def export_public_demo_feedback_summary(path: str | Path | None = None) -> dict[str, Any]:
     summary = summarize_demo_feedback(path)
+    records = [row.get("feedback", {}) for row in read_demo_feedback(path).get("records", [])]
     return {
         "schema_version": summary["schema_version"],
         "generated_at_utc": summary["generated_at_utc"],
@@ -202,7 +226,66 @@ def export_public_demo_feedback_summary(path: str | Path | None = None) -> dict[
         "by_outcome": summary["by_outcome"],
         "by_severity": summary["by_severity"],
         "public_policy": "no screenshots, copied free text, local paths, emails, health/accommodation details, or real exam data",
+        "claim_alignment": build_demo_feedback_claim_alignment(records),
     }
+
+def build_demo_feedback_claim_alignment(records: list[dict[str, Any]]) -> dict[str, Any]:
+    feedback_rows = [
+        {
+            "feedback_id": record["feedback_id"],
+            "scenario_id": record.get("scenario_id", "unknown"),
+            "outcome": record.get("outcome", "unknown"),
+            "severity": record.get("severity", "unknown"),
+            "readiness_check_ids": record.get("readiness_check_ids", []),
+            "human_gates": record.get("human_gates", []),
+            "local_only": record.get("local_only") is True,
+            "public_summary_only": record.get("public_summary_only") is True,
+        }
+        for record in records
+        if "feedback_id" in record
+    ]
+    alignment = {
+        "schema_version": "unibot-demo-feedback-claim-alignment-v1",
+        "status": "ready" if feedback_rows else "empty",
+        "feedback_count": len(feedback_rows),
+        "local_only": all(row["local_only"] for row in feedback_rows),
+        "public_summary_only": all(row["public_summary_only"] for row in feedback_rows),
+        "manual_publication_claim_contract": {
+            "expected_schema_version": DEMO_FEEDBACK_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+            "required_feedback_triage_claim_schema_version": (
+                "unibot-feedback-triage-release-review-board-claim-alignment-v1"
+            ),
+            "required_github_issue_claim_schema_version": (
+                "unibot-github-issue-release-review-board-claim-alignment-v1"
+            ),
+            "required_publication_release_review_board_schema_version": (
+                "unibot-publication-release-review-board-claim-alignment-v1"
+            ),
+            "required_readiness_check_ids": DEMO_FEEDBACK_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS,
+            "required_human_gates": DEMO_FEEDBACK_RELEASE_REVIEW_BOARD_HUMAN_GATES,
+            "local_only": True,
+            "public_summary_only": True,
+            "use": "Validated demo feedback must remain local, sanitized, and traceable before downstream triage, issue, publication, or review-board work.",
+        },
+        "feedback_rows": feedback_rows,
+        "unique_readiness_check_ids": sorted({check_id for row in feedback_rows for check_id in row["readiness_check_ids"]}),
+        "required_human_gates": sorted({gate for row in feedback_rows for gate in row["human_gates"]}),
+        "policy": "Validated feedback stores public-safe metadata locally and exposes only aggregate/public-summary evidence downstream.",
+    }
+    required_check_ids = set(alignment["manual_publication_claim_contract"]["required_readiness_check_ids"])
+    present_check_ids = set(alignment["unique_readiness_check_ids"])
+    alignment["missing_release_review_board_claim_check_ids"] = sorted(required_check_ids - present_check_ids)
+    required_human_gates = set(alignment["manual_publication_claim_contract"]["required_human_gates"])
+    present_human_gates = set(alignment["required_human_gates"])
+    alignment["missing_release_review_board_claim_human_gates"] = sorted(required_human_gates - present_human_gates)
+    if (alignment["missing_release_review_board_claim_check_ids"] or alignment["missing_release_review_board_claim_human_gates"]) and feedback_rows:
+        alignment["status"] = "blocked"
+    scan = scan_text(json.dumps(alignment, ensure_ascii=False), "demo-feedback-claim-alignment")
+    alignment["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        alignment["status"] = "blocked"
+        alignment["public_safety_findings"] = scan["findings"]
+    return alignment
 
 
 def _to_public_feedback_record(normalized: dict[str, Any]) -> dict[str, Any]:
@@ -215,6 +298,11 @@ def _to_public_feedback_record(normalized: dict[str, Any]) -> dict[str, Any]:
         "button_or_endpoint": normalized["button_or_endpoint"],
         "private_data_removed": normalized["private_data_removed"],
         "has_public_safe_text": bool(normalized["public_safe_text"]),
+        "readiness_check_ids": DEMO_FEEDBACK_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS,
+        "human_gates": DEMO_FEEDBACK_RELEASE_REVIEW_BOARD_HUMAN_GATES,
+        "local_only": True,
+        "public_summary_only": True,
+        "raw_text_excluded": True,
         "has_follow_up_note": bool(normalized["follow_up_needed"]),
         "text_hash": stable_hash(
             "\n".join(

@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT))
 
 from unibot.feedback import (  # noqa: E402
     append_demo_feedback,
+    build_demo_feedback_claim_alignment,
     demo_feedback_template,
     export_public_demo_feedback_summary,
     read_demo_feedback,
@@ -55,6 +56,26 @@ class UniBotFeedbackTests(unittest.TestCase):
         self.assertEqual(validation["issues"], [])
         self.assertIn("feedback_id", validation["public_record"])
         self.assertIn("text_hash", validation["public_record"])
+        self.assertTrue(validation["public_record"]["local_only"])
+        self.assertTrue(validation["public_record"]["public_summary_only"])
+        self.assertTrue(validation["public_record"]["raw_text_excluded"])
+        self.assertIn("demo_feedback_triage", validation["public_record"]["readiness_check_ids"])
+        self.assertIn("github_issue_bundle", validation["public_record"]["readiness_check_ids"])
+        self.assertIn("human_submission_review_required", validation["public_record"]["human_gates"])
+        claim_alignment = validation["claim_alignment"]
+        self.assertEqual(claim_alignment["status"], "ready")
+        self.assertEqual(claim_alignment["public_safety_status"], "pass")
+        self.assertEqual(
+            claim_alignment["manual_publication_claim_contract"]["expected_schema_version"],
+            "unibot-demo-feedback-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(
+            claim_alignment["manual_publication_claim_contract"]["required_feedback_triage_claim_schema_version"],
+            "unibot-feedback-triage-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(claim_alignment["missing_release_review_board_claim_check_ids"], [])
+        self.assertEqual(claim_alignment["missing_release_review_board_claim_human_gates"], [])
+        self.assertEqual(build_demo_feedback_claim_alignment([validation["public_record"]])["status"], "ready")
         self.assertNotIn("Clipboard stayed empty", payload)
         self.assertNotIn("Clicked prompt card", payload)
 
@@ -89,6 +110,10 @@ class UniBotFeedbackTests(unittest.TestCase):
             public_summary = export_public_demo_feedback_summary(feedback_path)
             public_payload = json.dumps(public_summary, ensure_ascii=False)
             self.assertEqual(public_summary["feedback_count"], 1)
+            self.assertEqual(public_summary["claim_alignment"]["status"], "ready")
+            self.assertTrue(public_summary["claim_alignment"]["local_only"])
+            self.assertTrue(public_summary["claim_alignment"]["public_summary_only"])
+            self.assertIn("publication_package", public_summary["claim_alignment"]["unique_readiness_check_ids"])
             self.assertNotIn("what_happened", public_payload)
             self.assertEqual(scan_text(public_payload, "feedback-summary")["status"], "pass")
 

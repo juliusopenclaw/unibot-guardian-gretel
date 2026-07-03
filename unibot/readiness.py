@@ -457,8 +457,18 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             "check_id": "demo_feedback_contract",
             "passed": feedback_template_scan["status"] == "pass"
             and demo_feedback_validation["status"] == "ok"
-            and feedback_summary_scan["status"] == "pass",
+            and feedback_summary_scan["status"] == "pass"
+            and demo_feedback_validation["claim_alignment"]["status"] == "ready"
+            and demo_feedback_validation["claim_alignment"]["public_safety_status"] == "pass"
+            and demo_feedback_validation["claim_alignment"]["local_only"] is True
+            and demo_feedback_validation["claim_alignment"]["missing_release_review_board_claim_check_ids"] == []
+            and demo_feedback_validation["claim_alignment"]["missing_release_review_board_claim_human_gates"] == [],
             "evidence": {
+                "claim_alignment_status": demo_feedback_validation["claim_alignment"]["status"],
+                "claim_alignment_public_safety_status": demo_feedback_validation["claim_alignment"]["public_safety_status"],
+                "local_only": demo_feedback_validation["claim_alignment"]["local_only"],
+                "public_summary_only": demo_feedback_validation["claim_alignment"]["public_summary_only"],
+                "manual_publication_claim_contract_status": demo_feedback_validation["claim_alignment"]["manual_publication_claim_contract"]["expected_schema_version"],
                 "template_status": feedback_template["status"],
                 "template_public_safety_status": feedback_template_scan["status"],
                 "validation_status": demo_feedback_validation["status"],

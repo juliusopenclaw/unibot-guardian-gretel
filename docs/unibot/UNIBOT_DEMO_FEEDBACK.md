@@ -33,6 +33,18 @@ turns a loose bug report into a structured, reproducible, local-only record.
 
 ## Safety Rules
 
+
+## Review-Board Claim Alignment
+
+Validated feedback records include `claim_alignment` with the contract
+`unibot-demo-feedback-release-review-board-claim-alignment-v1`. This keeps
+local demo feedback aligned with downstream feedback triage, GitHub issue
+drafts, the publication package, release runbook, review-board thesis/evaluation
+boundary, and public-safety gates.
+
+The contract is local-only and public-summary-only. It does not publish raw
+feedback, create issues, approve publication, recruit participants, call
+providers, clear exam use, or approve a thesis submission.
 Unsafe or incomplete feedback is blocked and not stored. Public summaries
 exclude screenshots, copied free text, local paths, emails, health or
 accommodation details, real exam work, and raw private course text.
