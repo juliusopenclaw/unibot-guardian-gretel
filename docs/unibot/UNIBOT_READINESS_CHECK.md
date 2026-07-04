@@ -45,6 +45,7 @@ It aggregates:
 - extraction human-review and private manifest-plan alignment
 - private tutor-use flow and learner-agency boundary alignment
 - study-session receipt and formative review alignment
+- notebook checkpoint and hash-only local cell evidence alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -161,6 +162,13 @@ notebook action, source anchor, and reflection. A6 or final-solution exposure
 forces a repeat task. The report does not store raw student text, grade, rank,
 proctor, detect AI use, claim Eigenleistung percentages, or clear exam
 deployment.
+
+The notebook-checkpoint gate carries
+`unibot-notebook-checkpoint-release-review-board-claim-alignment-v1`. It turns
+local notebook cell work into hash-only checkpoint evidence and can write a
+checkpoint journal event only with operator confirmation. It does not return
+raw cell text, notebook code, local paths, final solutions, grades, proctoring,
+AI-detection evidence, Eigenleistung percentages, or exam clearance.
 
 ## Source-Card Drift Guard
 

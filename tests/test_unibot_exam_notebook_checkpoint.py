@@ -10,7 +10,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.exam_notebook_checkpoint import build_exam_notebook_checkpoint_adapter_dry_run  # noqa: E402
+from unibot.exam_notebook_checkpoint import (  # noqa: E402
+    build_exam_notebook_checkpoint_adapter_dry_run,
+    build_notebook_checkpoint_release_claim_alignment,
+)
 from unibot.materials import sha256_text  # noqa: E402
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
@@ -118,6 +121,85 @@ class UniBotExamNotebookCheckpointTests(unittest.TestCase):
         self.assertFalse(report["notebook_code_returned"])
         self.assertNotIn("final answer", payload.lower())
         self.assertEqual(scan_text(payload, "checkpoint-adapter-repeat")["status"], "pass")
+
+    def test_notebook_checkpoint_release_claim_alignment_links_hashes_and_boundaries(self) -> None:
+        alignment = build_notebook_checkpoint_release_claim_alignment()
+
+        self.assertEqual(
+            alignment["schema_version"],
+            "unibot-notebook-checkpoint-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["ready_public_safety_status"], "pass")
+        self.assertEqual(alignment["stored_public_safety_status"], "pass")
+        self.assertEqual(alignment["repeat_public_safety_status"], "pass")
+        self.assertEqual(alignment["ready_checkpoint_status"], "notebook_checkpoint_ready")
+        self.assertEqual(alignment["stored_checkpoint_status"], "notebook_checkpoint_ready")
+        self.assertEqual(alignment["repeat_checkpoint_status"], "notebook_checkpoint_repeat_task_required")
+        self.assertEqual(alignment["exam_deployment_status"], "not_cleared")
+        self.assertEqual(alignment["study_receipt_status"], "ok_study_session_receipt")
+        self.assertTrue(alignment["checkpoint_hash_present"])
+        self.assertEqual(alignment["checkpoint_journal_status"], "stored")
+        self.assertTrue(alignment["checkpoint_journal_written"])
+        self.assertEqual(alignment["repeat_receipt_status"], "repeat_task_required")
+        self.assertTrue(alignment["repeat_task_required"])
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertIn("notebook_checkpoint", alignment["required_readiness_check_ids"])
+        self.assertIn("study_session", alignment["required_readiness_check_ids"])
+        self.assertIn("private_tutor_use_flow", alignment["required_readiness_check_ids"])
+        self.assertIn("evaluation_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("exam_boundary", alignment["required_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertTrue(alignment["contracts"]["hash_only_checkpoint_ready"])
+        self.assertTrue(alignment["contracts"]["operator_confirmed_journal_hash_only"])
+        self.assertTrue(alignment["contracts"]["a6_or_final_solution_forces_repeat"])
+        self.assertTrue(alignment["contracts"]["public_outputs_hide_private_notebook_data"])
+        self.assertTrue(alignment["contracts"]["high_stakes_actions_not_started"])
+        self.assertIn("raw notebook code returned", alignment["blocked_claims"])
+        self.assertIn("checkpoint journal write without operator confirmation", alignment["blocked_claims"])
+        self.assertIn("final solution acceptance", alignment["blocked_claims"])
+        self.assertIn("Eigenleistung percentage claim", alignment["blocked_claims"])
+        self.assertIn("exam deployment", alignment["blocked_claims"])
+
+    def test_notebook_checkpoint_release_claim_alignment_blocks_raw_or_exam_claims(self) -> None:
+        ready = build_exam_notebook_checkpoint_adapter_dry_run(
+            task_id="bad-checkpoint",
+            skill_tag="pandas",
+            source_card_ids=["dfg-gwp"],
+            cell_source="x = 1\n",
+            prediction_present=True,
+            retrieval_response_present=True,
+            notebook_action_present=True,
+            reflection_present=True,
+            public_safe=True,
+        )
+        stored = dict(ready)
+        repeat = dict(ready)
+        ready["exam_deployment_status"] = "cleared"
+        ready["execution_boundary"] = "Notebook checkpoint returns raw notebook code and clears exams."
+        ready["raw_cell_returned"] = True
+        ready["notebook_code_returned"] = True
+        ready["automatic_grading_started"] = True
+        ready["notebook_checkpoint"]["raw_cell_returned"] = True
+        ready["notebook_checkpoint"]["notebook_code_returned"] = True
+        stored["operator_confirmations"] = {"checkpoint_store": False}
+        stored["checkpoint_journal_summary"] = {"status": "stored", "checkpoint_journal_written": True, "path_returned": True}
+        repeat["status"] = "notebook_checkpoint_ready"
+        repeat["solution_marker_detected"] = False
+        repeat["study_receipt_summary"] = {"status": "ok_study_session_receipt", "repeat_task_required": False}
+
+        alignment = build_notebook_checkpoint_release_claim_alignment(ready, stored, repeat)
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertIn("hash_only_checkpoint_ready", alignment["failed_contract_ids"])
+        self.assertIn("operator_confirmed_journal_hash_only", alignment["failed_contract_ids"])
+        self.assertIn("a6_or_final_solution_forces_repeat", alignment["failed_contract_ids"])
+        self.assertIn("public_outputs_hide_private_notebook_data", alignment["failed_contract_ids"])
+        self.assertIn("high_stakes_actions_not_started", alignment["failed_contract_ids"])
 
 
 if __name__ == "__main__":

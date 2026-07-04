@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -9,10 +10,14 @@ from typing import Any
 from .course_tutor import DEFAULT_COURSE_ID, safe_course_id
 from .materials import sha256_text
 from .public_safety import scan_text
+from .source_cards import get_source_card
 from .study_session import validate_study_session_receipt
 
 
 EXAM_NOTEBOOK_CHECKPOINT_SCHEMA_VERSION = "unibot-exam-notebook-checkpoint-v1"
+EXAM_NOTEBOOK_CHECKPOINT_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-notebook-checkpoint-release-review-board-claim-alignment-v1"
+)
 HEX_SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 SOLUTION_MARKER_RE = re.compile(
     r"(solution[_ -]?key|final[_ -]?answer|finale? loesung|fertige loesung|abgabefertig|complete solution|inserted[_ -]?values)",
@@ -175,6 +180,190 @@ def build_exam_notebook_checkpoint_adapter_dry_run(
     }
     attach_public_scan(report, public_safe=public_safe)
     return report
+
+
+def build_notebook_checkpoint_release_claim_alignment(
+    ready_report: dict[str, Any] | None = None,
+    stored_report: dict[str, Any] | None = None,
+    repeat_report: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if ready_report is None or stored_report is None or repeat_report is None:
+        with tempfile.TemporaryDirectory(prefix="unibot_notebook_checkpoint_alignment_") as temp_dir:
+            journal_path = Path(temp_dir) / "checkpoints.jsonl"
+            ready_report = ready_report or build_exam_notebook_checkpoint_adapter_dry_run(
+                task_id="synthetic-checkpoint-task",
+                skill_tag="pandas",
+                source_card_ids=["dfg-gwp", "uoc-ki-faq"],
+                cell_source="own_values = [1, 2, 3]\nlen(own_values)\n",
+                cell_index=2,
+                cell_id="synthetic-private-cell",
+                requested_help_level="A2",
+                prediction_present=True,
+                retrieval_response_present=True,
+                notebook_action_present=True,
+                reflection_present=True,
+                checkpoint_journal_path=journal_path,
+            )
+            stored_report = stored_report or build_exam_notebook_checkpoint_adapter_dry_run(
+                task_id="synthetic-checkpoint-task",
+                skill_tag="python_lists",
+                source_card_ids=["dfg-gwp"],
+                cell_source="result = sum([1, 2, 3])\n",
+                prediction_present=True,
+                retrieval_response_present=True,
+                notebook_action_present=True,
+                reflection_present=True,
+                checkpoint_journal_path=journal_path,
+                operator_confirmed_checkpoint_store=True,
+            )
+            repeat_report = repeat_report or build_exam_notebook_checkpoint_adapter_dry_run(
+                task_id="synthetic-repeat-task",
+                skill_tag="pandas",
+                source_card_ids=["dfg-gwp"],
+                cell_source="# final answer: use this exact completed solution\n",
+                prediction_present=True,
+                retrieval_response_present=True,
+                notebook_action_present=True,
+                reflection_present=True,
+            )
+
+    sections = [
+        {
+            "section_id": "hash_only_checkpoint_trace",
+            "summary_claim": "notebook checkpoints turn local cell work into hashes and never return raw notebook code",
+            "source_card_ids": ["dfg-gwp", "gdpr-2016-679", "dsk-ai-privacy-2024"],
+            "readiness_check_ids": ["notebook_checkpoint", "study_session", "private_tutor_use_flow"],
+            "human_gates": ["datenschutz_review_required_before_real_pilot", "human_submission_review_required"],
+        },
+        {
+            "section_id": "operator_confirmed_checkpoint_journal_trace",
+            "summary_claim": "checkpoint journal writes are hash-only and require explicit operator confirmation",
+            "source_card_ids": ["dfg-gwp", "dsk-ai-privacy-2024"],
+            "readiness_check_ids": ["notebook_checkpoint", "study_session", "review_board_packet"],
+            "human_gates": ["human_submission_review_required", "public_safety_required"],
+        },
+        {
+            "section_id": "learner_agency_repeat_trace",
+            "summary_claim": "final-solution or A6 exposure forces repeat-task handling instead of accepting the checkpoint",
+            "source_card_ids": ["dfg-gwp", "uoc-ki-faq", "uoc-hilfsmittel"],
+            "readiness_check_ids": ["notebook_checkpoint", "study_session", "evaluation_packet"],
+            "human_gates": ["human_submission_review_required", "written_university_clearance_required_before_exam_use"],
+        },
+        {
+            "section_id": "not_authorized_trace",
+            "summary_claim": "notebook checkpoints do not publish raw code, grade, proctor, detect AI use, or clear exam deployment",
+            "source_card_ids": ["eu-ai-act-2024", "uoc-ki-faq", "uoc-hilfsmittel"],
+            "readiness_check_ids": ["notebook_checkpoint", "external_decision_state", "exam_boundary"],
+            "human_gates": ["written_university_clearance_required_before_exam_use", "human_submission_review_required"],
+        },
+    ]
+    required_source_card_ids = sorted({source_id for section in sections for source_id in section["source_card_ids"]})
+    missing_source_card_ids = sorted(source_id for source_id in required_source_card_ids if get_source_card(source_id) is None)
+    ready_checkpoint = ready_report.get("notebook_checkpoint", {})
+    ready_receipt = ready_report.get("study_receipt_summary", {})
+    stored_journal = stored_report.get("checkpoint_journal_summary", {})
+    repeat_receipt = repeat_report.get("study_receipt_summary", {})
+    blocked_claims = [
+        "raw notebook code returned",
+        "raw cell text returned",
+        "raw notebook returned",
+        "local path returned",
+        "checkpoint journal write without operator confirmation",
+        "final solution acceptance",
+        "complete code outsourcing",
+        "inserted values",
+        "final interpretation",
+        "automatic grading",
+        "proctoring",
+        "KI-detection evidence",
+        "Eigenleistung percentage claim",
+        "cloud processing",
+        "exam deployment",
+    ]
+    ready_boundary = str(ready_report.get("execution_boundary", ""))
+    contracts = {
+        "ready_checkpoint_public_safe": ready_report.get("public_safety_status") == "pass",
+        "stored_checkpoint_public_safe": stored_report.get("public_safety_status") == "pass",
+        "repeat_checkpoint_public_safe": repeat_report.get("public_safety_status") == "pass",
+        "hash_only_checkpoint_ready": ready_report.get("status") == "notebook_checkpoint_ready"
+        and bool(ready_checkpoint.get("cell_source_sha256"))
+        and ready_checkpoint.get("raw_cell_returned") is False
+        and ready_checkpoint.get("raw_notebook_returned") is False
+        and ready_checkpoint.get("notebook_code_returned") is False
+        and ready_checkpoint.get("local_path_returned") is False
+        and ready_receipt.get("status") == "ok_study_session_receipt",
+        "operator_confirmed_journal_hash_only": stored_report.get("status") == "notebook_checkpoint_ready"
+        and stored_report.get("operator_confirmations", {}).get("checkpoint_store") is True
+        and stored_journal.get("status") == "stored"
+        and stored_journal.get("checkpoint_journal_written") is True
+        and stored_journal.get("path_returned") is False
+        and bool(stored_journal.get("event_hash")),
+        "a6_or_final_solution_forces_repeat": repeat_report.get("status") == "notebook_checkpoint_repeat_task_required"
+        and repeat_report.get("solution_marker_detected") is True
+        and repeat_receipt.get("status") == "repeat_task_required"
+        and repeat_receipt.get("repeat_task_required") is True,
+        "public_outputs_hide_private_notebook_data": ready_report.get("raw_cell_returned") is False
+        and ready_report.get("raw_text_returned") is False
+        and ready_report.get("raw_notebook_returned") is False
+        and ready_report.get("notebook_code_returned") is False
+        and ready_report.get("local_paths_returned") is False
+        and "never returns raw cell text" in ready_boundary
+        and "notebook code" in ready_boundary
+        and "local paths" in ready_boundary,
+        "high_stakes_actions_not_started": ready_report.get("exam_deployment_status") == "not_cleared"
+        and ready_report.get("automatic_grading_started") is False
+        and ready_report.get("proctoring_started") is False
+        and ready_report.get("ai_detection_started") is False
+        and ready_report.get("exam_clearance_claimed") is False,
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    payload = {
+        "sections": sections,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "blocked_claims": blocked_claims,
+        "ready_status": ready_report.get("status"),
+        "stored_status": stored_report.get("status"),
+        "repeat_status": repeat_report.get("status"),
+    }
+    scan = scan_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        "notebook-checkpoint-release-claim-alignment",
+    )
+    status = "ready" if not missing_source_card_ids and not failed_contract_ids and scan["status"] == "pass" else "needs_review"
+    return {
+        "schema_version": EXAM_NOTEBOOK_CHECKPOINT_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "ready_checkpoint_status": ready_report.get("status"),
+        "ready_public_safety_status": ready_report.get("public_safety_status"),
+        "stored_checkpoint_status": stored_report.get("status"),
+        "stored_public_safety_status": stored_report.get("public_safety_status"),
+        "repeat_checkpoint_status": repeat_report.get("status"),
+        "repeat_public_safety_status": repeat_report.get("public_safety_status"),
+        "exam_deployment_status": ready_report.get("exam_deployment_status"),
+        "study_receipt_status": ready_receipt.get("status"),
+        "checkpoint_hash_present": bool(ready_checkpoint.get("notebook_work_sha256")),
+        "checkpoint_journal_status": stored_journal.get("status"),
+        "checkpoint_journal_written": bool(stored_journal.get("checkpoint_journal_written", False)),
+        "repeat_receipt_status": repeat_receipt.get("status"),
+        "repeat_task_required": bool(repeat_receipt.get("repeat_task_required", False)),
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "blocked_claims": blocked_claims,
+        "public_safety_status": scan["status"],
+        "policy": (
+            "Notebook checkpoints are hash-only local learning evidence. They can record checkpoint hashes and "
+            "operator-confirmed journal events, but they do not return raw code or paths, accept final solutions, "
+            "grade, proctor, detect AI use, claim Eigenleistung percentages, or clear exams."
+        ),
+    }
 
 
 def first_valid_hash(*values: Any) -> str:

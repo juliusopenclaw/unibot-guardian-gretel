@@ -16,6 +16,7 @@ from .decision_journal import build_decision_journal_release_claim_alignment
 from .decision_state import build_external_decision_state_release_claim_alignment
 from .evaluation import build_evaluation_packet
 from .external_decision_journal import build_external_decision_record_journal_release_claim_alignment
+from .exam_notebook_checkpoint import build_notebook_checkpoint_release_claim_alignment
 from .extraction_completion import build_extraction_completion_release_claim_alignment
 from .extraction_human_review import build_extraction_human_review_release_claim_alignment
 from .extraction_manifest_apply import build_private_manifest_apply_release_claim_alignment
@@ -137,6 +138,7 @@ def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
         "extraction_human_review",
         "private_tutor_use_flow",
         "study_session",
+        "notebook_checkpoint",
         "gretel_glm_evolve_lane",
         "gretel_bachelor_thesis_package",
         "gretel_autonomous_research_loop",
@@ -218,6 +220,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     extraction_human_review_alignment = build_extraction_human_review_release_claim_alignment()
     private_tutor_use_flow_alignment = build_private_tutor_use_flow_release_claim_alignment()
     study_session_alignment = build_study_session_release_claim_alignment()
+    notebook_checkpoint_alignment = build_notebook_checkpoint_release_claim_alignment()
     notebook = generate_practice_notebook("UniBot readiness notebook smoke")
     source_cards = list_source_cards()
     source_card_drift = build_source_card_drift_report()
@@ -1404,6 +1407,97 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 in study_session_alignment["blocked_claims"],
                 "cloud_processing_blocked": "cloud processing" in study_session_alignment["blocked_claims"],
                 "exam_deployment_blocked": "exam deployment" in study_session_alignment["blocked_claims"],
+            },
+        },
+        {
+            "check_id": "notebook_checkpoint",
+            "passed": notebook_checkpoint_alignment["status"] == "ready"
+            and notebook_checkpoint_alignment["public_safety_status"] == "pass"
+            and notebook_checkpoint_alignment["ready_public_safety_status"] == "pass"
+            and notebook_checkpoint_alignment["stored_public_safety_status"] == "pass"
+            and notebook_checkpoint_alignment["repeat_public_safety_status"] == "pass"
+            and notebook_checkpoint_alignment["exam_deployment_status"] == "not_cleared"
+            and notebook_checkpoint_alignment["missing_source_card_ids"] == []
+            and notebook_checkpoint_alignment["failed_contract_ids"] == [],
+            "evidence": {
+                "release_claim_alignment_status": notebook_checkpoint_alignment["status"],
+                "release_claim_alignment_public_safety_status": notebook_checkpoint_alignment["public_safety_status"],
+                "release_claim_alignment_contract_status": notebook_checkpoint_alignment["schema_version"],
+                "release_claim_alignment_section_count": notebook_checkpoint_alignment["section_count"],
+                "ready_checkpoint_status": notebook_checkpoint_alignment["ready_checkpoint_status"],
+                "ready_public_safety_status": notebook_checkpoint_alignment["ready_public_safety_status"],
+                "stored_checkpoint_status": notebook_checkpoint_alignment["stored_checkpoint_status"],
+                "stored_public_safety_status": notebook_checkpoint_alignment["stored_public_safety_status"],
+                "repeat_checkpoint_status": notebook_checkpoint_alignment["repeat_checkpoint_status"],
+                "repeat_public_safety_status": notebook_checkpoint_alignment["repeat_public_safety_status"],
+                "exam_deployment_status": notebook_checkpoint_alignment["exam_deployment_status"],
+                "study_receipt_status": notebook_checkpoint_alignment["study_receipt_status"],
+                "checkpoint_hash_present": notebook_checkpoint_alignment["checkpoint_hash_present"],
+                "checkpoint_journal_status": notebook_checkpoint_alignment["checkpoint_journal_status"],
+                "checkpoint_journal_written": notebook_checkpoint_alignment["checkpoint_journal_written"],
+                "repeat_receipt_status": notebook_checkpoint_alignment["repeat_receipt_status"],
+                "repeat_task_required": notebook_checkpoint_alignment["repeat_task_required"],
+                "release_claim_alignment_human_gates": notebook_checkpoint_alignment["required_human_gates"],
+                "study_session_claim_linked": (
+                    "study_session" in notebook_checkpoint_alignment["required_readiness_check_ids"]
+                ),
+                "private_tutor_use_flow_claim_linked": (
+                    "private_tutor_use_flow" in notebook_checkpoint_alignment["required_readiness_check_ids"]
+                ),
+                "evaluation_claim_linked": (
+                    "evaluation_packet" in notebook_checkpoint_alignment["required_readiness_check_ids"]
+                ),
+                "review_board_claim_linked": (
+                    "review_board_packet" in notebook_checkpoint_alignment["required_readiness_check_ids"]
+                ),
+                "external_decision_state_claim_linked": (
+                    "external_decision_state" in notebook_checkpoint_alignment["required_readiness_check_ids"]
+                ),
+                "exam_boundary_claim_linked": (
+                    "exam_boundary" in notebook_checkpoint_alignment["required_readiness_check_ids"]
+                ),
+                "human_submission_gate_linked": (
+                    "human_submission_review_required" in notebook_checkpoint_alignment["required_human_gates"]
+                ),
+                "datenschutz_gate_linked": (
+                    "datenschutz_review_required_before_real_pilot"
+                    in notebook_checkpoint_alignment["required_human_gates"]
+                ),
+                "written_clearance_gate_linked": (
+                    "written_university_clearance_required_before_exam_use"
+                    in notebook_checkpoint_alignment["required_human_gates"]
+                ),
+                "hash_only_checkpoint_ready": notebook_checkpoint_alignment["contracts"][
+                    "hash_only_checkpoint_ready"
+                ],
+                "operator_confirmed_journal_hash_only": notebook_checkpoint_alignment["contracts"][
+                    "operator_confirmed_journal_hash_only"
+                ],
+                "a6_or_final_solution_forces_repeat": notebook_checkpoint_alignment["contracts"][
+                    "a6_or_final_solution_forces_repeat"
+                ],
+                "public_outputs_hide_private_notebook_data": notebook_checkpoint_alignment["contracts"][
+                    "public_outputs_hide_private_notebook_data"
+                ],
+                "high_stakes_actions_not_started": notebook_checkpoint_alignment["contracts"][
+                    "high_stakes_actions_not_started"
+                ],
+                "raw_notebook_code_returned_blocked": "raw notebook code returned"
+                in notebook_checkpoint_alignment["blocked_claims"],
+                "raw_cell_text_returned_blocked": "raw cell text returned"
+                in notebook_checkpoint_alignment["blocked_claims"],
+                "unconfirmed_checkpoint_journal_write_blocked": "checkpoint journal write without operator confirmation"
+                in notebook_checkpoint_alignment["blocked_claims"],
+                "final_solution_acceptance_blocked": "final solution acceptance"
+                in notebook_checkpoint_alignment["blocked_claims"],
+                "eigenleistung_percentage_claim_blocked": "Eigenleistung percentage claim"
+                in notebook_checkpoint_alignment["blocked_claims"],
+                "automatic_grading_blocked": "automatic grading" in notebook_checkpoint_alignment["blocked_claims"],
+                "proctoring_blocked": "proctoring" in notebook_checkpoint_alignment["blocked_claims"],
+                "ki_detection_evidence_blocked": "KI-detection evidence"
+                in notebook_checkpoint_alignment["blocked_claims"],
+                "cloud_processing_blocked": "cloud processing" in notebook_checkpoint_alignment["blocked_claims"],
+                "exam_deployment_blocked": "exam deployment" in notebook_checkpoint_alignment["blocked_claims"],
             },
         },
         {
