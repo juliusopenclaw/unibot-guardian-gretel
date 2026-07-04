@@ -3,7 +3,13 @@ from __future__ import annotations
 import copy
 import unittest
 
-from unibot.review_chain_integrity import build_review_chain_integrity_check
+from unibot.review_chain_integrity import (
+    build_review_chain_integrity_check,
+    build_review_chain_workspace_card_alignment,
+    review_chain_hash,
+    review_chain_integrity_hash,
+    synthetic_review_chain_workspace_card,
+)
 from unibot.server import route_request
 
 
@@ -185,6 +191,20 @@ class UniBotReviewChainIntegrityTests(unittest.TestCase):
         self.assertFalse(report["local_paths_returned"])
         self.assertFalse(report["exam_clearance_claimed"])
         self.assertEqual(report["public_safety_status"], "pass")
+        alignment = report["workspace_card_chain_alignment"]
+        self.assertEqual(alignment["schema_version"], "unibot-review-chain-integrity-workspace-card-chain-alignment-v1")
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["alignment_public_safety_status"], "pass")
+        self.assertEqual(alignment["review_chain_hash"], review_chain_hash(report))
+        self.assertEqual(alignment["review_chain_integrity_hash"], review_chain_integrity_hash(report))
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_review_chain_gate_linked"])
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertFalse(alignment["raw_workspace_card_returned"])
+        self.assertIn("review_chain_integrity", alignment["required_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
 
     def test_review_chain_integrity_marks_contradictory_journal_receipt(self) -> None:
         chain = synthetic_chain()
@@ -205,6 +225,35 @@ class UniBotReviewChainIntegrityTests(unittest.TestCase):
             any(item["item"] == "journal_review_receipt_id" for item in report["findings"] if item["status"] != "pass")
         )
         self.assertEqual(report["public_safety_status"], "pass")
+        self.assertEqual(report["workspace_card_chain_alignment"]["status"], "blocked")
+        self.assertIn(
+            "review_chain_integrity_pass",
+            report["workspace_card_chain_alignment"]["failed_contract_ids"],
+        )
+
+    def test_review_chain_workspace_card_alignment_blocks_broken_hash_link(self) -> None:
+        chain = synthetic_chain()
+        report = build_review_chain_integrity_check(
+            exam_run_packet=chain["packet"],
+            exam_packet_timeline=chain["timeline"],
+            timeline_export_review_packet=chain["review"],
+            timeline_export_receipt_journal_append=chain["journal_append"],
+            timeline_export_receipt_journal_summary=chain["journal_summary"],
+            selected_skill_tag="python_lists",
+        )
+        card = synthetic_review_chain_workspace_card()
+        card["workspace_card_summary"]["checkpoint_hash"] = "broken-checkpoint"
+        card["workspace_card_summary"]["task_hash"] = "broken-task"
+        alignment = build_review_chain_workspace_card_alignment(
+            report,
+            python_exam_local_cycle_operator_workspace_card=card,
+        )
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertEqual(alignment["alignment_public_safety_status"], "pass")
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertFalse(alignment["workspace_card_review_chain_gate_linked"])
+        self.assertIn("workspace_card_review_chain_gate_linked", alignment["failed_contract_ids"])
+        self.assertFalse(alignment["raw_workspace_card_returned"])
 
     def test_review_chain_integrity_api_route(self) -> None:
         chain = synthetic_chain()
@@ -222,6 +271,8 @@ class UniBotReviewChainIntegrityTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(report["status"], "review_chain_integrity_pass")
         self.assertEqual(report["public_safety_status"], "pass")
+        self.assertEqual(report["workspace_card_chain_alignment"]["status"], "ready")
+        self.assertTrue(report["workspace_card_chain_alignment"]["workspace_card_review_chain_gate_linked"])
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from datetime import datetime, timezone
 from typing import Any
 
@@ -9,6 +10,9 @@ from .timeline_export_receipt_journal import summarize_timeline_export_receipt_j
 
 
 REVIEW_CHAIN_INTEGRITY_SCHEMA_VERSION = "unibot-review-chain-integrity-v1"
+REVIEW_CHAIN_WORKSPACE_CARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-review-chain-integrity-workspace-card-chain-alignment-v1"
+)
 REVIEW_CHAIN_INTEGRITY_ENDPOINT = "/api/unibot/course/review-chain-integrity-check"
 
 
@@ -66,7 +70,409 @@ def build_review_chain_integrity_check(
         "next_actions": next_actions(summary),
     }
     attach_public_scan(payload, public_safe=public_safe)
+    payload["workspace_card_chain_alignment"] = build_review_chain_workspace_card_alignment(payload)
+    attach_public_scan(payload, public_safe=public_safe)
     return payload
+
+
+def stable_hash(value: Any) -> str:
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def review_chain_hash(check: dict[str, Any]) -> str:
+    return stable_hash(
+        {
+            "schema_version": check.get("schema_version", ""),
+            "artifact_type": check.get("artifact_type", ""),
+            "status": check.get("status", ""),
+            "exam_deployment_status": check.get("exam_deployment_status", ""),
+            "chain_integrity_summary": check.get("chain_integrity_summary", {}),
+            "chain_context": check.get("chain_context", {}),
+            "findings": check.get("findings", []),
+            "next_actions": check.get("next_actions", []),
+            "public_safety_status": check.get("public_safety_status", ""),
+        }
+    )
+
+
+def review_chain_integrity_hash(check: dict[str, Any]) -> str:
+    return stable_hash(
+        {
+            "chain_context": check.get("chain_context", {}),
+            "findings": check.get("findings", []),
+            "next_safe_action": (check.get("chain_integrity_summary", {}) or {}).get("next_safe_action", ""),
+            "raw_flags": {
+                "raw_query_returned": check.get("raw_query_returned", None),
+                "raw_text_returned": check.get("raw_text_returned", None),
+                "raw_cell_returned": check.get("raw_cell_returned", None),
+                "raw_notebook_returned": check.get("raw_notebook_returned", None),
+                "notebook_code_returned": check.get("notebook_code_returned", None),
+                "local_paths_returned": check.get("local_paths_returned", None),
+            },
+            "high_stakes_flags": {
+                "automatic_grading_started": check.get("automatic_grading_started", None),
+                "proctoring_started": check.get("proctoring_started", None),
+                "ai_detection_started": check.get("ai_detection_started", None),
+                "exam_clearance_claimed": check.get("exam_clearance_claimed", None),
+            },
+        }
+    )
+
+
+def synthetic_review_chain_workspace_card() -> dict[str, Any]:
+    preview_hash = hashlib.sha256(b"synthetic review chain workspace card").hexdigest()
+    return {
+        "schema_version": "unibot-python-exam-local-cycle-operator-workspace-card-v1",
+        "artifact_type": "python_exam_local_cycle_operator_workspace_card",
+        "status": "python_exam_local_cycle_operator_workspace_card_ready",
+        "selected_skill_tag": "python_lists",
+        "exam_deployment_status": "not_cleared",
+        "not_cleared_receipt": True,
+        "workspace_card_summary": {
+            "recommendation": "ready_for_operator_prefill",
+            "recommendation_reason": "synthetic review-chain metadata prerequisites are satisfied",
+            "ready_for_operator_prefill": True,
+            "help_ledger_preview_status": "help_ledger_preview_ready",
+            "selected_skill_tag": "python_lists",
+            "next_safe_action": "review_hash_only_chain_integrity_before_workspace_prefill",
+            "next_safe_user_action": "review_metadata_only_chain_before_public_claim_use",
+            "operator_run_endpoint": "/api/unibot/exam-workspace/operator-run",
+            "operator_run_method": "POST",
+            "help_level": "A2",
+            "task_hash": "__REVIEW_CHAIN_INTEGRITY_HASH__",
+            "checkpoint_hash": "__REVIEW_CHAIN_HASH__",
+            "source_card_ids": ["dfg-gwp", "gdpr-2016-679", "zai-glm-52"],
+            "source_anchor_count": 3,
+            "help_ledger_preview_hash": preview_hash,
+        },
+        "help_ledger_preview": {
+            "status": "help_ledger_preview_ready",
+            "help_level": "A2",
+            "preview_hash": preview_hash,
+        },
+    }
+
+
+def safe_review_chain_workspace_card(
+    workspace_card: dict[str, Any],
+    *,
+    chain_hash: str = "",
+    integrity_hash: str = "",
+) -> dict[str, Any]:
+    summary = workspace_card.get("workspace_card_summary", {}) if isinstance(workspace_card.get("workspace_card_summary"), dict) else {}
+    ledger = workspace_card.get("help_ledger_preview", {}) if isinstance(workspace_card.get("help_ledger_preview"), dict) else {}
+    if not summary and (
+        workspace_card.get("help_ledger_preview_hash") is not None
+        or workspace_card.get("ready_for_operator_prefill") is not None
+        or workspace_card.get("help_ledger_preview_status") is not None
+    ):
+        summary = workspace_card
+    checkpoint_hash = str(summary.get("checkpoint_hash", ""))
+    task_hash = str(summary.get("task_hash", ""))
+    if chain_hash and checkpoint_hash == "__REVIEW_CHAIN_HASH__":
+        checkpoint_hash = chain_hash
+    if integrity_hash and task_hash == "__REVIEW_CHAIN_INTEGRITY_HASH__":
+        task_hash = integrity_hash
+    return {
+        "status": workspace_card.get("status", "missing"),
+        "selected_skill_tag": str(summary.get("selected_skill_tag", workspace_card.get("selected_skill_tag", ""))),
+        "recommendation": str(summary.get("recommendation", "keep_blocked")),
+        "recommendation_reason": str(summary.get("recommendation_reason", "missing_review_chain_integrity_gate")),
+        "ready_for_operator_prefill": bool(summary.get("ready_for_operator_prefill", False)),
+        "help_ledger_preview_status": str(summary.get("help_ledger_preview_status", ledger.get("status", "missing"))),
+        "next_safe_action": str(summary.get("next_safe_action", "")),
+        "next_safe_user_action": str(summary.get("next_safe_user_action", "")),
+        "operator_run_endpoint": str(summary.get("operator_run_endpoint", "")),
+        "operator_run_method": str(summary.get("operator_run_method", "POST")),
+        "help_level": str(summary.get("help_level", ledger.get("help_level", "A2"))),
+        "task_hash": task_hash,
+        "checkpoint_hash": checkpoint_hash,
+        "source_card_ids": [str(item) for item in (summary.get("source_card_ids", []) or [])][:8],
+        "source_anchor_count": int(summary.get("source_anchor_count", 0) or 0),
+        "help_ledger_preview_hash": str(summary.get("help_ledger_preview_hash", ledger.get("preview_hash", ""))),
+        "not_cleared_receipt": bool(workspace_card.get("not_cleared_receipt", True)),
+        "exam_deployment_status": "not_cleared",
+        "raw_workspace_card_returned": False,
+    }
+
+
+def build_review_chain_workspace_card_alignment(
+    check: dict[str, Any] | None = None,
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    check = check if isinstance(check, dict) else {}
+    chain_hash = review_chain_hash(check)
+    integrity_hash = review_chain_integrity_hash(check)
+    workspace_card = safe_review_chain_workspace_card(
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else synthetic_review_chain_workspace_card(),
+        chain_hash=chain_hash,
+        integrity_hash=integrity_hash,
+    )
+    summary = check.get("chain_integrity_summary", {}) if isinstance(check.get("chain_integrity_summary"), dict) else {}
+    context = check.get("chain_context", {}) if isinstance(check.get("chain_context"), dict) else {}
+    artifacts_present = context.get("artifacts_present", {}) if isinstance(context.get("artifacts_present"), dict) else {}
+    receipt_hashes_present = (
+        context.get("receipt_hashes_present", {}) if isinstance(context.get("receipt_hashes_present"), dict) else {}
+    )
+    safety_flags = context.get("safety_flags", {}) if isinstance(context.get("safety_flags"), dict) else {}
+    workspace_card_readiness_gate_linked = (
+        workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and workspace_card.get("help_ledger_preview_hash") != ""
+        and workspace_card.get("exam_deployment_status") == "not_cleared"
+        and workspace_card.get("not_cleared_receipt") is True
+        and workspace_card.get("raw_workspace_card_returned") is False
+    )
+    raw_flag_names = [
+        "raw_query_returned",
+        "raw_text_returned",
+        "raw_cell_returned",
+        "raw_notebook_returned",
+        "notebook_code_returned",
+        "local_paths_returned",
+    ]
+    high_stakes_flag_names = [
+        "automatic_grading_started",
+        "proctoring_started",
+        "ai_detection_started",
+        "exam_clearance_claimed",
+    ]
+    contracts = {
+        "review_chain_integrity_pass": check.get("status") == "review_chain_integrity_pass"
+        and summary.get("status") == "review_chain_integrity_pass"
+        and summary.get("issue_count") == 0
+        and check.get("public_safety_status") == "pass",
+        "packet_timeline_review_journal_linked": bool(artifacts_present)
+        and all(value is True for value in artifacts_present.values())
+        and bool(receipt_hashes_present)
+        and all(value is True for value in receipt_hashes_present.values())
+        and summary.get("checked_link_count") == 4,
+        "next_safe_action_present": bool(summary.get("next_safe_action"))
+        and bool(check.get("next_actions", [])),
+        "no_clearance_or_deployment_claim": check.get("exam_deployment_status") == "not_cleared",
+        "metadata_only_safety_flags_false": all(check.get(flag) is False for flag in raw_flag_names)
+        and all(safety_flags.get(flag) is False for flag in raw_flag_names),
+        "high_stakes_boundaries_blocked": all(check.get(flag) is False for flag in high_stakes_flag_names)
+        and all(safety_flags.get(flag) is False for flag in high_stakes_flag_names),
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_review_chain_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("checkpoint_hash") == chain_hash
+        and workspace_card.get("task_hash") == integrity_hash,
+        "workspace_card_public_metadata_only": workspace_card.get("raw_workspace_card_returned") is False,
+    }
+    required_readiness_check_ids = [
+        "review_chain_integrity",
+        "timeline_export_receipt_journal",
+        "timeline_export_review_packet",
+        "python_exam_local_cycle_operator_workspace_card",
+    ]
+    alignment = {
+        "schema_version": REVIEW_CHAIN_WORKSPACE_CARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": "ready",
+        "review_chain_hash": chain_hash,
+        "review_chain_integrity_hash": integrity_hash,
+        "chain_status": check.get("status", "missing"),
+        "chain_summary_status": summary.get("status", "missing"),
+        "issue_count": summary.get("issue_count", -1),
+        "checked_link_count": summary.get("checked_link_count", 0),
+        "skill_tags": summary.get("skill_tags", []),
+        "journal_status": summary.get("journal_status", {}),
+        "exam_deployment_status": check.get("exam_deployment_status", "missing"),
+        "required_readiness_check_ids": required_readiness_check_ids,
+        "required_human_gates": [
+            "human_review_required",
+            "public_safety_required",
+            "external_live_actions_require_explicit_go",
+            "exam_clearance_requires_written_authority_clearance",
+        ],
+        "blocked_claims": [
+            "raw private course text publication",
+            "contact data publication",
+            "local path publication",
+            "provider call",
+            "autonomous publication",
+            "approval claim",
+            "exam clearance claim",
+            "grading",
+            "proctoring",
+            "KI-detection evidence",
+            "exam deployment",
+        ],
+        "contracts": contracts,
+        "failed_contract_ids": sorted(contract_id for contract_id, passed in contracts.items() if not passed),
+        "workspace_card_status": workspace_card["status"],
+        "workspace_card_selected_skill_tag": workspace_card["selected_skill_tag"],
+        "workspace_card_ready_for_operator_prefill": workspace_card["ready_for_operator_prefill"],
+        "workspace_card_help_ledger_status": workspace_card["help_ledger_preview_status"],
+        "workspace_card_help_ledger_hash_present": workspace_card["help_ledger_preview_hash"] != "",
+        "workspace_card_operator_prefill_hash_present": workspace_card["task_hash"] != ""
+        and workspace_card["checkpoint_hash"] != "",
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_review_chain_gate_linked": contracts["workspace_card_review_chain_gate_linked"],
+        "workspace_card_readiness_gate_claim_linked": "python_exam_local_cycle_operator_workspace_card"
+        in required_readiness_check_ids,
+        "raw_workspace_card_returned": workspace_card["raw_workspace_card_returned"],
+        "public_language": (
+            "Review-chain integrity claims are hash-only review aids for packet, timeline, review, and journal "
+            "metadata; they do not authorize publication, provider calls, grading, proctoring, KI detection, or exam use."
+        ),
+    }
+    if alignment["failed_contract_ids"]:
+        alignment["status"] = "blocked"
+    scan = scan_text(json.dumps(alignment, ensure_ascii=False), "review-chain-workspace-card-chain-alignment")
+    alignment["alignment_public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        alignment["status"] = "blocked"
+        alignment["public_safety_findings"] = scan["findings"]
+    return alignment
+
+
+def synthetic_review_chain_inputs() -> dict[str, dict[str, Any]]:
+    packet = {
+        "artifact_type": "exam_run_packet",
+        "status": "exam_run_packet_ready",
+        "exam_deployment_status": "not_cleared",
+        "selected_skill_packet": {
+            "skill_tag": "python_lists",
+            "help_level_profile": {"A2": 1},
+            "open_operator_confirmation_count": 2,
+        },
+        "packet_receipt": {"receipt_id": "packet-1", "receipt_hash": "p" * 64},
+        "raw_query_returned": False,
+        "raw_text_returned": False,
+        "raw_cell_returned": False,
+        "raw_notebook_returned": False,
+        "notebook_code_returned": False,
+        "local_paths_returned": False,
+        "automatic_grading_started": False,
+        "proctoring_started": False,
+        "ai_detection_started": False,
+        "exam_clearance_claimed": False,
+        "public_safety_status": "pass",
+    }
+    timeline = {
+        "artifact_type": "exam_packet_timeline",
+        "status": "exam_packet_timeline_ready",
+        "exam_deployment_status": "not_cleared",
+        "timeline_summary": {
+            "event_count": 1,
+            "skill_tags": ["python_lists"],
+            "checkpoint_hash_count": 1,
+            "help_level_profile": {"A2": 1},
+            "open_operator_confirmation_count": 2,
+            "reflection_statuses": ["reflection_evidence_present"],
+        },
+        "timeline_events": [
+            {
+                "packet_receipt_id": "packet-1",
+                "route_id": "review_open_operator_confirmations",
+                "executed_artifact_type": "exam_workspace_run_history_export_review",
+                "checkpoint_hashes": ["c" * 64],
+            }
+        ],
+        "timeline_receipt": {"receipt_id": "timeline-1", "receipt_hash": "t" * 64},
+        "raw_query_returned": False,
+        "raw_text_returned": False,
+        "raw_cell_returned": False,
+        "raw_notebook_returned": False,
+        "notebook_code_returned": False,
+        "local_paths_returned": False,
+        "automatic_grading_started": False,
+        "proctoring_started": False,
+        "ai_detection_started": False,
+        "exam_clearance_claimed": False,
+        "public_safety_status": "pass",
+    }
+    review = {
+        "artifact_type": "timeline_export_review_packet",
+        "status": "timeline_export_review_packet_ready",
+        "exam_deployment_status": "not_cleared",
+        "export_review_summary": {
+            "event_count": 1,
+            "skill_tags": ["python_lists"],
+            "checkpoint_hash_count": 1,
+            "help_level_profile": {"A2": 1},
+            "open_operator_confirmation_count": 2,
+            "reflection_statuses": ["reflection_evidence_present"],
+            "reviewer_question_count": 6,
+        },
+        "skill_review_packets": [
+            {
+                "status": "ready_for_human_review",
+                "skill_tag": "python_lists",
+                "packet_receipts": ["packet-1"],
+                "route_ids": ["review_open_operator_confirmations"],
+                "executed_artifacts": ["exam_workspace_run_history_export_review"],
+            }
+        ],
+        "local_export_receipt": {"receipt_id": "review-1", "receipt_hash": "r" * 64},
+        "raw_query_returned": False,
+        "raw_text_returned": False,
+        "raw_cell_returned": False,
+        "raw_notebook_returned": False,
+        "notebook_code_returned": False,
+        "local_paths_returned": False,
+        "automatic_grading_started": False,
+        "proctoring_started": False,
+        "ai_detection_started": False,
+        "exam_clearance_claimed": False,
+        "public_safety_status": "pass",
+    }
+    journal_append = {
+        "artifact_type": "timeline_export_receipt_journal_append",
+        "status": "stored",
+        "stored_record": {
+            "status": "accepted",
+            "event": {
+                "receipt_id": "review-1",
+                "receipt_hash": "r" * 64,
+                "skill_tags": ["python_lists"],
+                "event_count": 1,
+                "checkpoint_hash_count": 1,
+                "reviewer_question_count": 6,
+                "help_level_profile": {"A2": 1},
+                "open_operator_confirmation_count": 2,
+                "reflection_statuses": ["reflection_evidence_present"],
+                "exam_deployment_status": "not_cleared",
+            },
+        },
+    }
+    journal_summary = {
+        "artifact_type": "timeline_export_receipt_journal_summary",
+        "status": "ok",
+        "record_count": 1,
+        "accepted_record_count": 1,
+        "blocked_record_count": 0,
+        "skill_tags": ["python_lists"],
+        "event_count": 1,
+        "checkpoint_hash_count": 1,
+        "reviewer_question_count": 6,
+        "help_level_profile": {"A2": 1},
+        "open_operator_confirmation_count": 2,
+        "reflection_statuses": ["reflection_evidence_present"],
+        "exam_deployment_status": "not_cleared",
+        "raw_query_returned": False,
+        "raw_text_returned": False,
+        "raw_cell_returned": False,
+        "raw_notebook_returned": False,
+        "notebook_code_returned": False,
+        "local_paths_returned": False,
+        "automatic_grading_started": False,
+        "proctoring_started": False,
+        "ai_detection_started": False,
+        "exam_clearance_claimed": False,
+    }
+    return {
+        "packet": packet,
+        "timeline": timeline,
+        "review": review,
+        "journal_append": journal_append,
+        "journal_summary": journal_summary,
+    }
 
 
 def chain_context(

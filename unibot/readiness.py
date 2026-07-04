@@ -61,6 +61,7 @@ from .publication import build_publication_package
 from .public_safety import scan_public_files, scan_text
 from .redteam import build_threat_model_release_review_board_claim_alignment, run_redteam_smoke
 from .release_runbook import build_release_runbook
+from .review_chain_integrity import build_review_chain_integrity_check, synthetic_review_chain_inputs
 from .source_cards import (
     build_source_card_drift_report,
     build_source_card_release_review_board_claim_alignment,
@@ -426,6 +427,19 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     paperclip_bridge_scan = scan_text(json.dumps(paperclip_bridge, ensure_ascii=False), "unibot-paperclip-evaluation-readiness")
     command_center = build_unibot_command_center()
     command_center_scan = scan_text(json.dumps(command_center, ensure_ascii=False), "unibot-command-center-readiness")
+    review_chain_inputs = synthetic_review_chain_inputs()
+    review_chain_integrity = build_review_chain_integrity_check(
+        exam_run_packet=review_chain_inputs["packet"],
+        exam_packet_timeline=review_chain_inputs["timeline"],
+        timeline_export_review_packet=review_chain_inputs["review"],
+        timeline_export_receipt_journal_append=review_chain_inputs["journal_append"],
+        timeline_export_receipt_journal_summary=review_chain_inputs["journal_summary"],
+        selected_skill_tag="python_lists",
+    )
+    review_chain_integrity_scan = scan_text(
+        json.dumps(review_chain_integrity, ensure_ascii=False),
+        "unibot-review-chain-integrity-readiness",
+    )
     handoff_validation = validate_chat_handoff(
         {
             "role_id": "qa_redteam",
@@ -4100,6 +4114,61 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                     "workspace_card_readiness_gate_claim_linked"
                 ],
                 "raw_workspace_card_returned": paperclip_workspace_card_alignment["raw_workspace_card_returned"],
+            },
+        },
+        {
+            "check_id": "review_chain_integrity",
+            "passed": review_chain_integrity["status"] == "review_chain_integrity_pass"
+            and review_chain_integrity["public_safety_status"] == "pass"
+            and review_chain_integrity_scan["status"] == "pass"
+            and review_chain_integrity["chain_integrity_summary"]["issue_count"] == 0
+            and review_chain_integrity["exam_deployment_status"] == "not_cleared"
+            and review_chain_integrity["workspace_card_chain_alignment"]["status"] == "ready"
+            and review_chain_integrity["workspace_card_chain_alignment"]["alignment_public_safety_status"] == "pass"
+            and review_chain_integrity["workspace_card_chain_alignment"]["failed_contract_ids"] == []
+            and review_chain_integrity["workspace_card_chain_alignment"]["workspace_card_readiness_gate_linked"] is True
+            and review_chain_integrity["workspace_card_chain_alignment"]["workspace_card_review_chain_gate_linked"] is True
+            and review_chain_integrity["workspace_card_chain_alignment"]["raw_workspace_card_returned"] is False,
+            "evidence": {
+                "status": review_chain_integrity["status"],
+                "public_safety_status": review_chain_integrity["public_safety_status"],
+                "scan_status": review_chain_integrity_scan["status"],
+                "issue_count": review_chain_integrity["chain_integrity_summary"]["issue_count"],
+                "checked_link_count": review_chain_integrity["chain_integrity_summary"]["checked_link_count"],
+                "exam_deployment_status": review_chain_integrity["exam_deployment_status"],
+                "workspace_card_chain_alignment_status": review_chain_integrity["workspace_card_chain_alignment"][
+                    "status"
+                ],
+                "workspace_card_chain_alignment_public_safety_status": review_chain_integrity[
+                    "workspace_card_chain_alignment"
+                ]["alignment_public_safety_status"],
+                "workspace_card_status": review_chain_integrity["workspace_card_chain_alignment"][
+                    "workspace_card_status"
+                ],
+                "workspace_card_selected_skill_tag": review_chain_integrity["workspace_card_chain_alignment"][
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": review_chain_integrity[
+                    "workspace_card_chain_alignment"
+                ]["workspace_card_ready_for_operator_prefill"],
+                "workspace_card_help_ledger_status": review_chain_integrity["workspace_card_chain_alignment"][
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": review_chain_integrity[
+                    "workspace_card_chain_alignment"
+                ]["workspace_card_help_ledger_hash_present"],
+                "workspace_card_readiness_gate_linked": review_chain_integrity["workspace_card_chain_alignment"][
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_review_chain_gate_linked": review_chain_integrity["workspace_card_chain_alignment"][
+                    "workspace_card_review_chain_gate_linked"
+                ],
+                "workspace_card_readiness_gate_claim_linked": review_chain_integrity[
+                    "workspace_card_chain_alignment"
+                ]["workspace_card_readiness_gate_claim_linked"],
+                "raw_workspace_card_returned": review_chain_integrity["workspace_card_chain_alignment"][
+                    "raw_workspace_card_returned"
+                ],
             },
         },
     ]
