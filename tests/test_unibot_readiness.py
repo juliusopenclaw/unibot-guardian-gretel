@@ -68,6 +68,7 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertIn("external_decision_record_journal", check_ids)
         self.assertIn("external_decision_state", check_ids)
         self.assertIn("extraction_receipt_journal", check_ids)
+        self.assertIn("exam_packet_timeline", check_ids)
         self.assertIn("timeline_export_review_packet", check_ids)
         self.assertIn("timeline_export_receipt_journal", check_ids)
         self.assertIn("extraction_progress", check_ids)
@@ -782,6 +783,31 @@ class UniBotReadinessTests(unittest.TestCase):
         )
         self.assertTrue(timeline_review_packet["evidence"]["workspace_card_help_ledger_hash_present"])
         self.assertFalse(timeline_review_packet["evidence"]["raw_workspace_card_returned"])
+        exam_packet_timeline = next(check for check in report["checks"] if check["check_id"] == "exam_packet_timeline")
+        self.assertEqual(exam_packet_timeline["evidence"]["workspace_card_timeline_alignment_status"], "ready")
+        self.assertEqual(
+            exam_packet_timeline["evidence"]["workspace_card_timeline_alignment_public_safety_status"],
+            "pass",
+        )
+        self.assertEqual(exam_packet_timeline["evidence"]["timeline_status"], "exam_packet_timeline_ready")
+        self.assertEqual(
+            exam_packet_timeline["evidence"]["receipt_status"],
+            "exam_packet_timeline_receipt_ready_not_exam_clearance",
+        )
+        self.assertGreaterEqual(exam_packet_timeline["evidence"]["event_count"], 1)
+        self.assertGreaterEqual(exam_packet_timeline["evidence"]["visible_event_count"], 1)
+        self.assertGreaterEqual(exam_packet_timeline["evidence"]["packet_receipt_count"], 1)
+        self.assertEqual(exam_packet_timeline["evidence"]["export_review_preview_status"], "timeline_export_review_ready")
+        self.assertEqual(exam_packet_timeline["evidence"]["exam_deployment_status"], "not_cleared")
+        self.assertTrue(exam_packet_timeline["evidence"]["workspace_card_readiness_gate_linked"])
+        self.assertTrue(exam_packet_timeline["evidence"]["workspace_card_exam_packet_timeline_gate_linked"])
+        self.assertTrue(exam_packet_timeline["evidence"]["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(
+            exam_packet_timeline["evidence"]["workspace_card_help_ledger_status"],
+            "help_ledger_preview_ready",
+        )
+        self.assertTrue(exam_packet_timeline["evidence"]["workspace_card_help_ledger_hash_present"])
+        self.assertFalse(exam_packet_timeline["evidence"]["raw_workspace_card_returned"])
         self.assertEqual(report["evidence_snapshot"]["status"], "ready")
         self.assertEqual(report["evidence_snapshot"]["public_safety_status"], "pass")
         self.assertEqual(report["evidence_snapshot"]["failed_check_ids"], [])

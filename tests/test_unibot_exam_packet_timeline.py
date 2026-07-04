@@ -12,7 +12,13 @@ sys.path.insert(0, str(ROOT))
 
 from unibot.course_exam_coverage_dashboard import build_course_exam_coverage_dashboard  # noqa: E402
 from unibot.course_per_skill_action_router import build_course_per_skill_action_router  # noqa: E402
-from unibot.exam_packet_timeline import build_exam_packet_timeline  # noqa: E402
+from unibot.exam_packet_timeline import (  # noqa: E402
+    build_exam_packet_timeline,
+    build_exam_packet_timeline_workspace_card_alignment,
+    exam_packet_timeline_hash,
+    exam_packet_timeline_receipt_hash,
+    synthetic_exam_packet_timeline_workspace_card,
+)
 from unibot.exam_run_packet_builder import build_exam_run_packet  # noqa: E402
 from unibot.exam_workspace_session_console import build_exam_workspace_session_console  # noqa: E402
 from unibot.materials import build_material_manifest, sha256_text  # noqa: E402
@@ -222,6 +228,44 @@ class UniBotExamPacketTimelineTests(unittest.TestCase):
             self.assertNotIn("Week 01 Python", payload)
             self.assertNotIn(str(temp_dir), payload)
             self.assertEqual(scan_text(payload, "exam-packet-timeline")["status"], "pass")
+            alignment = timeline["workspace_card_timeline_alignment"]
+            self.assertEqual(
+                alignment["schema_version"],
+                "unibot-exam-packet-timeline-workspace-card-timeline-alignment-v1",
+            )
+            self.assertEqual(alignment["status"], "ready")
+            self.assertEqual(alignment["alignment_public_safety_status"], "pass")
+            self.assertEqual(alignment["exam_packet_timeline_hash"], exam_packet_timeline_hash(timeline))
+            self.assertEqual(alignment["exam_packet_timeline_receipt_hash"], exam_packet_timeline_receipt_hash(timeline))
+            self.assertEqual(alignment["failed_contract_ids"], [])
+            self.assertEqual(alignment["event_count"], timeline["timeline_summary"]["event_count"])
+            self.assertEqual(alignment["visible_event_count"], len(timeline["timeline_events"]))
+            self.assertEqual(alignment["export_review_preview_status"], "timeline_export_review_ready")
+            self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+            self.assertTrue(alignment["workspace_card_exam_packet_timeline_gate_linked"])
+            self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+            self.assertFalse(alignment["raw_workspace_card_returned"])
+
+    def test_workspace_card_alignment_blocks_broken_hash_link(self) -> None:
+        timeline = build_exam_packet_timeline(
+            selected_skill_tag="python_lists",
+            focus_query="Python Listen",
+            public_safe=True,
+        )
+        card = synthetic_exam_packet_timeline_workspace_card()
+        card["workspace_card_summary"]["checkpoint_hash"] = "broken-timeline-hash"
+        card["workspace_card_summary"]["task_hash"] = "broken-receipt-hash"
+        alignment = build_exam_packet_timeline_workspace_card_alignment(
+            timeline,
+            python_exam_local_cycle_operator_workspace_card=card,
+        )
+
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertEqual(alignment["alignment_public_safety_status"], "pass")
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertFalse(alignment["workspace_card_exam_packet_timeline_gate_linked"])
+        self.assertIn("workspace_card_exam_packet_timeline_gate_linked", alignment["failed_contract_ids"])
+        self.assertFalse(alignment["raw_workspace_card_returned"])
 
     def test_timeline_api_route_builds_from_minimal_inputs(self) -> None:
         status, timeline = route_request(
@@ -239,6 +283,10 @@ class UniBotExamPacketTimelineTests(unittest.TestCase):
         self.assertEqual(timeline["exam_deployment_status"], "not_cleared")
         self.assertFalse(timeline["raw_text_returned"])
         self.assertFalse(timeline["local_paths_returned"])
+        self.assertEqual(timeline["workspace_card_timeline_alignment"]["status"], "ready")
+        self.assertTrue(
+            timeline["workspace_card_timeline_alignment"]["workspace_card_exam_packet_timeline_gate_linked"]
+        )
 
 
 if __name__ == "__main__":

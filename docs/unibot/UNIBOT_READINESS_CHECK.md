@@ -58,6 +58,7 @@ It aggregates:
 - orchestration command center and workspace-card route alignment
 - completion audit and workspace-card closure alignment
 - review-chain integrity and workspace-card chain alignment
+- exam packet timeline and workspace-card timeline alignment
 - timeline export review packet and workspace-card review alignment
 - timeline export receipt journal and workspace-card journal alignment
 - Gretel/GLM proposal lane
@@ -124,6 +125,16 @@ workspace-card readiness gate without exposing raw private course text, contact
 data, local paths, notebook code, autonomous publication, approval or
 exam-clearance claims, grading, proctoring, KI-detection evidence, exam
 deployment claims, or the raw workspace card.
+
+The exam packet timeline carries
+`unibot-exam-packet-timeline-workspace-card-timeline-alignment-v1`. This
+contract keeps timeline events, packet receipt references, checkpoint hash
+counts, export-review-preview status, and the not-cleared deployment line
+hash-linked to the harnessed local-cycle operator workspace-card readiness gate
+without exposing raw private course text, contact data, local paths, notebook
+code, autonomous publication, approval or exam-clearance claims, grading,
+proctoring, KI-detection evidence, exam deployment claims, or the raw workspace
+card.
 
 The timeline export review packet carries
 `unibot-timeline-export-review-packet-workspace-card-review-alignment-v1`.

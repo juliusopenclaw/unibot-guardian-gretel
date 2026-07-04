@@ -90,7 +90,11 @@ from .extraction_receipt_journal import (
     read_extraction_receipt_journal,
     summarize_extraction_receipt_journal,
 )
-from .exam_packet_timeline import build_exam_packet_timeline
+from .exam_packet_timeline import (
+    build_exam_packet_timeline,
+    build_exam_packet_timeline_workspace_card_alignment,
+    synthetic_exam_packet_timeline_inputs,
+)
 from .exam_run_packet_builder import build_exam_run_packet
 from .external_decision_journal import (
     append_external_decision_journal_record,
@@ -327,6 +331,8 @@ __all__ = [
     "build_course_exam_coverage_dashboard",
     "build_course_per_skill_action_router",
     "build_exam_packet_timeline",
+    "build_exam_packet_timeline_workspace_card_alignment",
+    "synthetic_exam_packet_timeline_inputs",
     "build_exam_run_packet",
     "build_timeline_export_receipt_journal_append",
     "build_timeline_export_receipt_journal_workspace_card_alignment",
