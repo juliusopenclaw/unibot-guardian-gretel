@@ -166,6 +166,7 @@ def build_exam_workspace_run_history_release_claim_alignment(
                 tutor_index_path=index_path,
                 operator_confirmed_tutor_index_build=True,
             )
+            workspace_card = synthetic_history_workspace_card()
             first = build_exam_workspace_session_console(
                 base_path=str(materials_root),
                 review_policy="local_private_tutor",
@@ -173,6 +174,7 @@ def build_exam_workspace_run_history_release_claim_alignment(
                 private_manifest_path=manifest_path,
                 tutor_index_path=index_path,
                 selected_skill_tag="python_lists",
+                python_exam_local_cycle_operator_workspace_card=workspace_card,
                 cell_source="own_checkpoint = []\n",
                 repeat_run_index=1,
                 study_receipt={
@@ -189,6 +191,7 @@ def build_exam_workspace_run_history_release_claim_alignment(
                 private_manifest_path=manifest_path,
                 tutor_index_path=index_path,
                 selected_skill_tag="python_lists",
+                python_exam_local_cycle_operator_workspace_card=workspace_card,
                 cell_source="own_checkpoint = ['next']\n",
                 repeat_run_index=2,
                 previous_console_receipts=[first["session_console_receipt"]],
@@ -221,14 +224,24 @@ def build_exam_workspace_run_history_release_claim_alignment(
             "section_id": "operator_reflection_export_trace",
             "summary_claim": "history export preserves operator-confirmation state, blockers, and reflection evidence for human review",
             "source_card_ids": ["dfg-gwp", "dsk-ai-privacy-2024"],
-            "readiness_check_ids": ["exam_workspace_run_history", "study_session", "review_board_packet"],
+            "readiness_check_ids": [
+                "exam_workspace_run_history",
+                "python_exam_local_cycle_operator_workspace_card",
+                "study_session",
+                "review_board_packet",
+            ],
             "human_gates": ["human_submission_review_required", "public_safety_required"],
         },
         {
             "section_id": "not_cleared_export_receipt_trace",
             "summary_claim": "history export receipt is human-reviewable evidence and remains not exam clearance",
             "source_card_ids": ["dfg-gwp", "uoc-ki-faq", "uoc-hilfsmittel"],
-            "readiness_check_ids": ["exam_workspace_run_history", "external_decision_state", "exam_boundary"],
+            "readiness_check_ids": [
+                "exam_workspace_run_history",
+                "python_exam_local_cycle_operator_workspace_card",
+                "external_decision_state",
+                "exam_boundary",
+            ],
             "human_gates": ["human_submission_review_required", "written_university_clearance_required_before_exam_use"],
         },
         {
@@ -269,6 +282,24 @@ def build_exam_workspace_run_history_release_claim_alignment(
         if isinstance(waiting_report.get("export_review_receipt"), dict)
         else {}
     )
+    session_report_entries = [entry for entry in entries if entry.get("entry_type") == "session_console_report"]
+    workspace_card_entries = [
+        entry.get("local_cycle_operator_workspace_card", {})
+        for entry in session_report_entries
+        if isinstance(entry.get("local_cycle_operator_workspace_card"), dict)
+    ]
+    workspace_card_readiness_gate_linked = any(
+        "python_exam_local_cycle_operator_workspace_card" in section["readiness_check_ids"] for section in sections
+    )
+    ready_workspace_card_entries = [
+        card
+        for card in workspace_card_entries
+        if card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and card.get("ready_for_operator_prefill") is True
+    ]
+    workspace_card_help_ledger_hash_count = len(
+        [card for card in workspace_card_entries if bool(card.get("help_ledger_preview_hash"))]
+    )
     blocked_claims = [
         "raw query returned",
         "raw history returned",
@@ -305,6 +336,18 @@ def build_exam_workspace_run_history_release_claim_alignment(
         in set(review_items.get("reflection_statuses", []) or [])
         and "operator_confirmations_open" in dict(summary.get("blocker_profile", {}) or {})
         and int(summary.get("open_operator_step_count", 0) or 0) >= 1,
+        "workspace_card_review_gate_linked": workspace_card_readiness_gate_linked
+        and bool(workspace_card_entries)
+        and len(ready_workspace_card_entries) == len(workspace_card_entries)
+        and workspace_card_help_ledger_hash_count == len(workspace_card_entries)
+        and all(
+            entry.get("local_cycle_operator_workspace_card", {}).get("selected_skill_tag") == entry.get("skill_tag")
+            for entry in session_report_entries
+            if isinstance(entry.get("local_cycle_operator_workspace_card"), dict)
+        )
+        and all(card.get("not_cleared_receipt") is True for card in workspace_card_entries)
+        and "python_exam_local_cycle_operator_workspace_card_ready"
+        in dict(review_items.get("workspace_card_profile", {}) or {}),
         "export_review_package_human_reviewable": package.get("status") == "export_review_ready"
         and package.get("human_reviewable_independence_evidence") is True
         and package.get("raw_query_returned") is False
@@ -379,6 +422,10 @@ def build_exam_workspace_run_history_release_claim_alignment(
         "help_level_profile": dict(summary.get("help_level_profile", {}) or {}),
         "blocker_profile": dict(summary.get("blocker_profile", {}) or {}),
         "open_operator_step_count": summary.get("open_operator_step_count", 0),
+        "workspace_card_profile": dict(summary.get("workspace_card_profile", {}) or {}),
+        "workspace_card_ready_entry_count": len(ready_workspace_card_entries),
+        "workspace_card_help_ledger_hash_count": workspace_card_help_ledger_hash_count,
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
         "export_review_status": package.get("status"),
         "human_reviewable_independence_evidence": bool(package.get("human_reviewable_independence_evidence", False)),
         "reflection_evidence_present": "reflection_evidence_present"
@@ -416,6 +463,12 @@ def build_history_entries(*, reports: list[dict[str, Any]], receipts: list[dict[
         ledger = console.get("help_ledger_preview", {}) if isinstance(console.get("help_ledger_preview"), dict) else {}
         export = console.get("export_receipt", {}) if isinstance(console.get("export_receipt"), dict) else {}
         confirmations = console.get("operator_confirmations", {}) if isinstance(console.get("operator_confirmations"), dict) else {}
+        workspace_card = (
+            console.get("local_cycle_operator_workspace_card", {})
+            if isinstance(console.get("local_cycle_operator_workspace_card"), dict)
+            and console.get("local_cycle_operator_workspace_card", {}).get("status") != "missing"
+            else report.get("local_cycle_operator_workspace_card", {})
+        )
         entry = {
             "entry_type": "session_console_report",
             "receipt_id": receipt.get("receipt_id", ""),
@@ -436,7 +489,7 @@ def build_history_entries(*, reports: list[dict[str, Any]], receipts: list[dict[
                 "raw_help_text_returned": False,
             },
             "local_cycle_operator_workspace_card": safe_workspace_card_view(
-                console.get("local_cycle_operator_workspace_card", {})
+                workspace_card if isinstance(workspace_card, dict) else {}
             ),
             "blockers": blockers_from_console(report, console),
             "operator_confirmations": {
@@ -519,6 +572,40 @@ def write_synthetic_history_manifest(path: Path) -> None:
     manifest["exam_deployment_status"] = "not_cleared"
     manifest["storage_policy"] = "hash-only private material metadata; no raw text or local paths"
     path.write_text(json.dumps(manifest, ensure_ascii=False, sort_keys=True), encoding="utf-8")
+
+
+def synthetic_history_workspace_card() -> dict[str, Any]:
+    preview_hash = sha256_text("synthetic history workspace card")
+    return {
+        "schema_version": "unibot-python-exam-local-cycle-operator-workspace-card-v1",
+        "artifact_type": "python_exam_local_cycle_operator_workspace_card",
+        "status": "python_exam_local_cycle_operator_workspace_card_ready",
+        "selected_skill_tag": "python_lists",
+        "exam_deployment_status": "not_cleared",
+        "not_cleared_receipt": True,
+        "workspace_card_summary": {
+            "recommendation": "ready_for_operator_prefill",
+            "recommendation_reason": "synthetic local-cycle prerequisites are satisfied",
+            "ready_for_operator_prefill": True,
+            "help_ledger_preview_status": "help_ledger_preview_ready",
+            "selected_skill_tag": "python_lists",
+            "next_safe_action": "open_operator_run_dry_run",
+            "next_safe_user_action": "review_run_history_before_any_local_write",
+            "operator_run_endpoint": "/api/unibot/exam-workspace/operator-run",
+            "operator_run_method": "POST",
+            "help_level": "A2",
+            "task_hash": preview_hash,
+            "checkpoint_hash": preview_hash,
+            "source_card_ids": ["dfg-gwp", "vanlehn-2011"],
+            "source_anchor_count": 2,
+            "help_ledger_preview_hash": preview_hash,
+        },
+        "help_ledger_preview": {
+            "status": "help_ledger_preview_ready",
+            "help_level": "A2",
+            "preview_hash": preview_hash,
+        },
+    }
 
 
 def synthetic_history_decision_record() -> dict[str, Any]:

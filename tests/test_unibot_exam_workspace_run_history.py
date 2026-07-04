@@ -293,6 +293,10 @@ class UniBotExamWorkspaceRunHistoryTests(unittest.TestCase):
         self.assertEqual(alignment["help_level_profile"]["A2"], 2)
         self.assertIn("operator_confirmations_open", alignment["blocker_profile"])
         self.assertGreaterEqual(alignment["open_operator_step_count"], 1)
+        self.assertIn("python_exam_local_cycle_operator_workspace_card_ready", alignment["workspace_card_profile"])
+        self.assertEqual(alignment["workspace_card_ready_entry_count"], 2)
+        self.assertEqual(alignment["workspace_card_help_ledger_hash_count"], 2)
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
         self.assertEqual(alignment["export_review_status"], "export_review_ready")
         self.assertTrue(alignment["human_reviewable_independence_evidence"])
         self.assertTrue(alignment["reflection_evidence_present"])
@@ -305,6 +309,7 @@ class UniBotExamWorkspaceRunHistoryTests(unittest.TestCase):
         self.assertIn("exam_workspace_run_history", alignment["required_readiness_check_ids"])
         self.assertIn("exam_workspace_run", alignment["required_readiness_check_ids"])
         self.assertIn("exam_workspace_launch", alignment["required_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
         self.assertIn("study_session", alignment["required_readiness_check_ids"])
         self.assertIn("review_board_packet", alignment["required_readiness_check_ids"])
         self.assertIn("external_decision_state", alignment["required_readiness_check_ids"])
@@ -317,6 +322,7 @@ class UniBotExamWorkspaceRunHistoryTests(unittest.TestCase):
         self.assertTrue(alignment["contracts"]["waiting_history_public_safe"])
         self.assertTrue(alignment["contracts"]["run_history_hash_only_ready"])
         self.assertTrue(alignment["contracts"]["operator_reflection_and_blockers_preserved"])
+        self.assertTrue(alignment["contracts"]["workspace_card_review_gate_linked"])
         self.assertTrue(alignment["contracts"]["export_review_package_human_reviewable"])
         self.assertTrue(alignment["contracts"]["export_review_receipt_not_exam_clearance"])
         self.assertTrue(alignment["contracts"]["waiting_history_has_no_reviewable_export"])
@@ -351,6 +357,7 @@ class UniBotExamWorkspaceRunHistoryTests(unittest.TestCase):
                 "checkpoint_hash_count": 0,
                 "raw_history_returned": True,
                 "blocker_profile": {},
+                "workspace_card_profile": {},
                 "open_operator_step_count": 0,
             },
             "export_review_package": {
@@ -405,6 +412,7 @@ class UniBotExamWorkspaceRunHistoryTests(unittest.TestCase):
         self.assertEqual(alignment["status"], "needs_review")
         self.assertIn("run_history_hash_only_ready", alignment["failed_contract_ids"])
         self.assertIn("operator_reflection_and_blockers_preserved", alignment["failed_contract_ids"])
+        self.assertIn("workspace_card_review_gate_linked", alignment["failed_contract_ids"])
         self.assertIn("export_review_package_human_reviewable", alignment["failed_contract_ids"])
         self.assertIn("export_review_receipt_not_exam_clearance", alignment["failed_contract_ids"])
         self.assertIn("public_outputs_hide_private_history_data", alignment["failed_contract_ids"])

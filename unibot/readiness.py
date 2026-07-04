@@ -1786,6 +1786,16 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "help_level_profile": exam_workspace_run_history_alignment["help_level_profile"],
                 "blocker_profile": exam_workspace_run_history_alignment["blocker_profile"],
                 "open_operator_step_count": exam_workspace_run_history_alignment["open_operator_step_count"],
+                "workspace_card_profile": exam_workspace_run_history_alignment["workspace_card_profile"],
+                "workspace_card_ready_entry_count": exam_workspace_run_history_alignment[
+                    "workspace_card_ready_entry_count"
+                ],
+                "workspace_card_help_ledger_hash_count": exam_workspace_run_history_alignment[
+                    "workspace_card_help_ledger_hash_count"
+                ],
+                "workspace_card_readiness_gate_linked": exam_workspace_run_history_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
                 "export_review_status": exam_workspace_run_history_alignment["export_review_status"],
                 "human_reviewable_independence_evidence": exam_workspace_run_history_alignment[
                     "human_reviewable_independence_evidence"
@@ -1801,6 +1811,10 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 ),
                 "launch_claim_linked": (
                     "exam_workspace_launch" in exam_workspace_run_history_alignment["required_readiness_check_ids"]
+                ),
+                "workspace_card_readiness_gate_claim_linked": (
+                    "python_exam_local_cycle_operator_workspace_card"
+                    in exam_workspace_run_history_alignment["required_readiness_check_ids"]
                 ),
                 "study_session_claim_linked": (
                     "study_session" in exam_workspace_run_history_alignment["required_readiness_check_ids"]
@@ -1838,6 +1852,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 ],
                 "operator_reflection_and_blockers_preserved": exam_workspace_run_history_alignment["contracts"][
                     "operator_reflection_and_blockers_preserved"
+                ],
+                "workspace_card_review_gate_linked": exam_workspace_run_history_alignment["contracts"][
+                    "workspace_card_review_gate_linked"
                 ],
                 "export_review_package_human_reviewable": exam_workspace_run_history_alignment["contracts"][
                     "export_review_package_human_reviewable"

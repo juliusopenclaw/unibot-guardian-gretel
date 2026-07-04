@@ -199,10 +199,11 @@ exam clearance.
 The exam-workspace run-history gate carries
 `unibot-exam-workspace-run-history-release-review-board-claim-alignment-v1`.
 It aggregates session-console receipt ids, checkpoint hashes, help-level
-profiles, blockers, operator-confirmation state, reflection status, and
-not-cleared export receipts into a human-review surface. It does not publish raw
-history, raw queries, notebook code, local paths, grades, proctoring,
-AI-detection evidence, Eigenleistung percentages, or exam clearance.
+profiles, blockers, operator-confirmation state, harnessed local-cycle
+workspace-card readiness metadata, reflection status, and not-cleared export
+receipts into a human-review surface. It does not publish raw history, raw
+queries, notebook code, local paths, grades, proctoring, AI-detection evidence,
+Eigenleistung percentages, or exam clearance.
 
 The exam-workspace operator-run gate carries
 `unibot-exam-workspace-operator-run-release-review-board-claim-alignment-v1`.
