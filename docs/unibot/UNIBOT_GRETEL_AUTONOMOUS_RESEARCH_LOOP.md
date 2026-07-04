@@ -57,11 +57,11 @@ contract change.
 
 ## Current Work Queue
 
-- `exam_workspace_session_console_release_review_board_claim_alignment` is
-  ready. It should align the exam-workspace session console with operator-run
-  receipts, run history, local-cycle workspace cards, reflection evidence, no
-  raw notebook/query publication, no grading, no proctoring, no KI-detection,
-  and no exam deployment claims.
+- `python_exam_local_cycle_start_packet_release_review_board_claim_alignment`
+  is ready. It should align the Python exam local-cycle start packet with
+  session console/operator-run evidence, safe-cycle gate, local workspace-card
+  prerequisites, no raw notebook/query publication, no grading/proctoring,
+  no KI-detection, and no exam deployment claims.
 
 ## Closed Harnessed Work
 
@@ -257,6 +257,10 @@ contract change.
   `b5fee21` with Start Exam Workspace view, dry-run default, individual
   confirmation boundaries, repeat-task stop, not-cleared receipt, and no exam
   deployment claims.
+- `exam_workspace_session_console_release_review_board_claim_alignment`: closed
+  in `e5d013b` with operator-run receipt, run-history context, workspace-card
+  status, reflection evidence, hash-only checkpoint receipt, repeated dry-run
+  boundary, and no exam deployment claims.
 
 ## Automation Rule
 
