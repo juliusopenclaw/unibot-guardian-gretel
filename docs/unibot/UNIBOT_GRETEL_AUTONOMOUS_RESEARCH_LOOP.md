@@ -57,11 +57,11 @@ contract change.
 
 ## Current Work Queue
 
-- `exam_workspace_operator_run_release_review_board_claim_alignment` is ready.
-  It should align the operator-facing Start Exam Workspace run receipt with
-  launch/run/history evidence, individual operator confirmations, runtime
-  isolation, no raw notebook/query publication, no grading, no proctoring, no
-  KI-detection, and no exam deployment claims.
+- `exam_workspace_session_console_release_review_board_claim_alignment` is
+  ready. It should align the exam-workspace session console with operator-run
+  receipts, run history, local-cycle workspace cards, reflection evidence, no
+  raw notebook/query publication, no grading, no proctoring, no KI-detection,
+  and no exam deployment claims.
 
 ## Closed Harnessed Work
 
@@ -253,6 +253,10 @@ contract change.
   `2581243` with hash-only session-console receipts, checkpoint hashes,
   operator blockers, reflection evidence, not-cleared export receipts, and no
   exam deployment claims.
+- `exam_workspace_operator_run_release_review_board_claim_alignment`: closed in
+  `b5fee21` with Start Exam Workspace view, dry-run default, individual
+  confirmation boundaries, repeat-task stop, not-cleared receipt, and no exam
+  deployment claims.
 
 ## Automation Rule
 

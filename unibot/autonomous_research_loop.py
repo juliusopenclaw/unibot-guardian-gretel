@@ -1079,7 +1079,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "exam_workspace_operator_run_release_review_board_claim_alignment",
             "priority": 56,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align the operator-facing Start Exam Workspace run receipt with launch/run/history evidence, individual operator confirmations, runtime isolation, no raw notebook/query publication, no grading, no proctoring, no KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/exam_workspace_operator_run.py",
@@ -1089,6 +1089,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_exam_workspace_operator_run.py tests/test_unibot_readiness.py -q"],
             "review_gate": "exam_workspace_operator_run_release_review_board_claim_traceability",
+            "closure_evidence": {
+                "commit": "b5fee21",
+                "summary": "Exam-workspace operator-run release-claim alignment added with Start Exam Workspace view, dry-run default, individual confirmation boundaries, repeat-task stop, not-cleared receipt, and no exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "exam_workspace_session_console_release_review_board_claim_alignment",
+            "priority": 57,
+            "status": "ready",
+            "goal": "Align the exam-workspace session console with operator-run receipts, run history, local-cycle workspace cards, reflection evidence, no raw notebook/query publication, no grading, no proctoring, no KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/exam_workspace_session_console.py",
+                "tests/test_unibot_exam_workspace_session_console.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_exam_workspace_session_console.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "exam_workspace_session_console_release_review_board_claim_traceability",
         },
     ]
 
