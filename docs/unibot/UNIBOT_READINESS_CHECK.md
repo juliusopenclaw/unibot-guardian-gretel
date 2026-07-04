@@ -37,6 +37,7 @@ It aggregates:
 - stakeholder decision journal and hash-only process-evidence alignment
 - external decision record journal and no-deployment-switch alignment
 - external decision state and no-silent-deployment alignment
+- extraction receipt journal and hash-only evidence-ledger alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -90,6 +91,14 @@ contract keeps derived gate state public-safe and hash-only: validated records
 may derive next gates, but the state still blocks raw decision storage,
 submission sends, legal-advice language, silent deployment switches, grading,
 proctoring, KI-detection evidence, and exam deployment by itself.
+
+The extraction receipt journal carries
+`unibot-extraction-receipt-journal-release-review-board-claim-alignment-v1`.
+This contract keeps extraction evidence local-private and public-safe: receipts
+may expose hashes, counts, statuses, and human-review metadata, but they do not
+store raw extracted text, expose local paths, update the tutor manifest by
+themselves, authorize cloud processing, grade, proctor, provide KI-detection
+evidence, or clear exam deployment.
 
 ## Source-Card Drift Guard
 

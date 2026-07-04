@@ -16,6 +16,7 @@ from .decision_journal import build_decision_journal_release_claim_alignment
 from .decision_state import build_external_decision_state_release_claim_alignment
 from .evaluation import build_evaluation_packet
 from .external_decision_journal import build_external_decision_record_journal_release_claim_alignment
+from .extraction_receipt_journal import build_extraction_receipt_journal_release_claim_alignment
 from .feedback import demo_feedback_template, export_public_demo_feedback_summary, validate_demo_feedback
 from .github_issues import build_github_issue_bundle
 from .gretel_glm_evolve import (
@@ -121,6 +122,7 @@ def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
         "stakeholder_decision_journal",
         "external_decision_record_journal",
         "external_decision_state",
+        "extraction_receipt_journal",
         "gretel_glm_evolve_lane",
         "gretel_bachelor_thesis_package",
         "gretel_autonomous_research_loop",
@@ -194,6 +196,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     stakeholder_decision_journal_alignment = build_decision_journal_release_claim_alignment()
     external_decision_record_journal_alignment = build_external_decision_record_journal_release_claim_alignment()
     external_decision_state_alignment = build_external_decision_state_release_claim_alignment()
+    extraction_receipt_journal_alignment = build_extraction_receipt_journal_release_claim_alignment()
     notebook = generate_practice_notebook("UniBot readiness notebook smoke")
     source_cards = list_source_cards()
     source_card_drift = build_source_card_drift_report()
@@ -725,6 +728,71 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "silent_deployment_switch_blocked": "silent deployment switch"
                 in external_decision_state_alignment["blocked_claims"],
                 "exam_deployment_blocked": "exam deployment" in external_decision_state_alignment["blocked_claims"],
+            },
+        },
+        {
+            "check_id": "extraction_receipt_journal",
+            "passed": extraction_receipt_journal_alignment["status"] == "ready"
+            and extraction_receipt_journal_alignment["public_safety_status"] == "pass"
+            and extraction_receipt_journal_alignment["summary_public_safety_status"] == "pass"
+            and extraction_receipt_journal_alignment["missing_source_card_ids"] == []
+            and extraction_receipt_journal_alignment["failed_contract_ids"] == [],
+            "evidence": {
+                "release_claim_alignment_status": extraction_receipt_journal_alignment["status"],
+                "release_claim_alignment_public_safety_status": extraction_receipt_journal_alignment[
+                    "public_safety_status"
+                ],
+                "release_claim_alignment_contract_status": extraction_receipt_journal_alignment["schema_version"],
+                "release_claim_alignment_section_count": extraction_receipt_journal_alignment["section_count"],
+                "record_count": extraction_receipt_journal_alignment["record_count"],
+                "accepted_record_count": extraction_receipt_journal_alignment["accepted_record_count"],
+                "ready_for_human_review_count": extraction_receipt_journal_alignment[
+                    "ready_for_human_review_count"
+                ],
+                "eligible_for_private_tutor_index_count": extraction_receipt_journal_alignment[
+                    "eligible_for_private_tutor_index_count"
+                ],
+                "progress_receipt_count": extraction_receipt_journal_alignment["progress_receipt_count"],
+                "release_claim_alignment_human_gates": extraction_receipt_journal_alignment["required_human_gates"],
+                "data_protection_claim_linked": (
+                    "data_protection_screening"
+                    in extraction_receipt_journal_alignment["required_readiness_check_ids"]
+                ),
+                "external_decision_state_claim_linked": (
+                    "external_decision_state" in extraction_receipt_journal_alignment["required_readiness_check_ids"]
+                ),
+                "course_material_policy_claim_linked": (
+                    "course_material_policy" in extraction_receipt_journal_alignment["required_readiness_check_ids"]
+                ),
+                "review_board_claim_linked": (
+                    "review_board_packet" in extraction_receipt_journal_alignment["required_readiness_check_ids"]
+                ),
+                "exam_boundary_claim_linked": (
+                    "exam_boundary" in extraction_receipt_journal_alignment["required_readiness_check_ids"]
+                ),
+                "human_submission_gate_linked": (
+                    "human_submission_review_required"
+                    in extraction_receipt_journal_alignment["required_human_gates"]
+                ),
+                "datenschutz_gate_linked": (
+                    "datenschutz_review_required_before_real_pilot"
+                    in extraction_receipt_journal_alignment["required_human_gates"]
+                ),
+                "written_clearance_gate_linked": (
+                    "written_university_clearance_required_before_exam_use"
+                    in extraction_receipt_journal_alignment["required_human_gates"]
+                ),
+                "hash_only_records": extraction_receipt_journal_alignment["contracts"]["records_hash_only"],
+                "raw_text_storage_blocked": "raw extracted text storage"
+                in extraction_receipt_journal_alignment["blocked_claims"],
+                "local_path_storage_blocked": "local path storage"
+                in extraction_receipt_journal_alignment["blocked_claims"],
+                "manifest_update_by_receipt_alone_blocked": "tutor manifest update by receipt alone"
+                in extraction_receipt_journal_alignment["blocked_claims"],
+                "cloud_processing_blocked": "cloud processing"
+                in extraction_receipt_journal_alignment["blocked_claims"],
+                "exam_deployment_blocked": "exam deployment"
+                in extraction_receipt_journal_alignment["blocked_claims"],
             },
         },
         {

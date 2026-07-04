@@ -9,10 +9,45 @@ from typing import Any
 from .extraction_operator import validate_extraction_receipt
 from .materials import sha256_text
 from .public_safety import scan_text
+from .source_cards import get_source_card
 
 
 EXTRACTION_RECEIPT_JOURNAL_SCHEMA_VERSION = "unibot-extraction-receipt-journal-v1"
+EXTRACTION_RECEIPT_JOURNAL_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-extraction-receipt-journal-release-review-board-claim-alignment-v1"
+)
 DEFAULT_EXTRACTION_RECEIPT_JOURNAL_PATH = Path.home() / ".unibot_guardian" / "extraction_receipts.jsonl"
+
+
+def synthetic_extraction_receipt_decision_record() -> dict[str, Any]:
+    return {
+        "decision_status": "approved_for_local_extraction",
+        "scope": "local_private_course_extraction",
+        "allowed_job_types": ["ocr", "transcription"],
+        "storage_policy": "local_private_only",
+        "cloud_processing_allowed": False,
+        "raw_text_public_release_allowed": False,
+        "human_review_before_tutor_index": True,
+        "retention_decision": "delete private extraction artifacts after reviewed metadata is accepted",
+        "access_roles": ["project_owner", "approved_reviewer"],
+        "reviewer_roles": ["Datenschutz", "Lehreinheit / Modulverantwortliche", "IT / SZI"],
+        "decision_reference": "synthetic extraction receipt journal decision",
+    }
+
+
+def synthetic_extraction_receipt(*, human_review_status: str = "pending_review") -> dict[str, Any]:
+    decision_reference = str(synthetic_extraction_receipt_decision_record()["decision_reference"])
+    return {
+        "job_id": "synthetic-receipt-job-1",
+        "material_id": "synthetic-material-1",
+        "job_type": "ocr",
+        "extraction_status": "extracted_private",
+        "raw_text_sha256": "d" * 64,
+        "extracted_text_char_count": 640,
+        "private_artifact_reference": "synthetic local private extraction artifact reference",
+        "human_review_status": human_review_status,
+        "decision_reference_hash": sha256_text(decision_reference),
+    }
 
 
 def resolve_extraction_receipt_journal_path(path: str | Path | None = None) -> Path:
@@ -175,6 +210,137 @@ def summarize_extraction_receipt_records(records: list[dict[str, Any]], *, statu
         summary["status"] = "blocked_public_safety"
         summary["public_safety_findings"] = scan["findings"]
     return summary
+
+
+def build_extraction_receipt_journal_release_claim_alignment(
+    records: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    if records is None:
+        decision = synthetic_extraction_receipt_decision_record()
+        pending_receipt = synthetic_extraction_receipt(human_review_status="pending_review")
+        reviewed_receipt = synthetic_extraction_receipt(human_review_status="reviewed_for_private_tutor")
+        reviewed_receipt["job_id"] = "synthetic-receipt-job-2"
+        reviewed_receipt["material_id"] = "synthetic-material-2"
+        records = [
+            sanitize_extraction_receipt_record(
+                pending_receipt,
+                decision_record=decision,
+            ),
+            sanitize_extraction_receipt_record(
+                reviewed_receipt,
+                decision_record=decision,
+            ),
+        ]
+    summary = summarize_extraction_receipt_records(records)
+    progress_receipts = extraction_receipts_for_progress(records=records)
+    sections = [
+        {
+            "section_id": "receipt_hash_storage_trace",
+            "summary_claim": "receipt journal stores receipt hashes, counts, statuses, and review metadata without raw extracted text or local paths",
+            "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024", "dfg-gwp"],
+            "readiness_check_ids": ["extraction_receipt_journal", "data_protection_screening", "public_safety"],
+            "human_gates": ["datenschutz_review_required_before_real_pilot", "human_submission_review_required"],
+        },
+        {
+            "section_id": "local_private_processing_trace",
+            "summary_claim": "receipt evidence supports local-private processing only and does not authorize cloud processing or public raw text release",
+            "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024"],
+            "readiness_check_ids": ["extraction_receipt_journal", "external_decision_state", "course_material_policy"],
+            "human_gates": ["datenschutz_review_required_before_real_pilot", "public_safety_required"],
+        },
+        {
+            "section_id": "human_review_queue_trace",
+            "summary_claim": "reviewed receipts may feed progress metadata, but tutor-index or manifest updates remain separate human-reviewed steps",
+            "source_card_ids": ["dfg-gwp"],
+            "readiness_check_ids": ["extraction_receipt_journal", "review_board_packet", "release_runbook"],
+            "human_gates": ["human_submission_review_required", "public_safety_required"],
+        },
+        {
+            "section_id": "not_authorized_trace",
+            "summary_claim": "receipt journals do not clear exam deployment, grading, proctoring, KI-detection evidence, or high-stakes education claims",
+            "source_card_ids": ["eu-ai-act-2024", "uoc-ki-faq"],
+            "readiness_check_ids": ["extraction_receipt_journal", "exam_boundary", "gretel_bachelor_thesis_package"],
+            "human_gates": ["written_university_clearance_required_before_exam_use", "human_submission_review_required"],
+        },
+    ]
+    required_source_card_ids = sorted({source_id for section in sections for source_id in section["source_card_ids"]})
+    missing_source_card_ids = sorted(source_id for source_id in required_source_card_ids if get_source_card(source_id) is None)
+    accepted_records = [record for record in records if record.get("status") == "accepted"]
+    events = [record.get("event", {}) for record in accepted_records]
+    blocked_claims = [
+        "raw extracted text storage",
+        "local path storage",
+        "private artifact reference exposure",
+        "tutor manifest update by receipt alone",
+        "public raw course text release",
+        "cloud processing",
+        "exam deployment",
+        "official grading",
+        "proctoring",
+        "KI-detection evidence",
+    ]
+    contracts = {
+        "records_public_safe": all(record.get("public_safety_status") == "pass" for record in records),
+        "records_accepted": bool(accepted_records) and len(accepted_records) == len(records),
+        "summary_public_safe": summary.get("public_safety_status") == "pass",
+        "summary_blocks_manifest_and_exam_clearance": "do not update the tutor manifest or clear exam deployment"
+        in summary.get("gate_policy", ""),
+        "summary_excludes_raw_and_paths": "excludes raw OCR text, raw transcripts, local paths, and private artifact references"
+        in summary.get("storage_policy", ""),
+        "records_hash_only": all(
+            event.get("raw_text_stored") is False
+            and event.get("local_path_stored") is False
+            and bool(event.get("raw_text_sha256"))
+            and bool(event.get("private_artifact_reference_hash"))
+            and bool(event.get("decision_reference_hash"))
+            for event in events
+        ),
+        "human_review_queue_linked": summary.get("ready_for_human_review_count", 0) >= 1,
+        "private_tutor_index_still_separate": summary.get("eligible_for_private_tutor_index_count", 0) >= 1
+        and all("private-artifact-hash:" in receipt.get("private_artifact_reference", "") for receipt in progress_receipts),
+        "no_duplicate_job_ids": summary.get("duplicate_job_id_count") == 0,
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    payload = {
+        "sections": sections,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "blocked_claims": blocked_claims,
+        "summary": summary,
+        "progress_receipt_count": len(progress_receipts),
+    }
+    scan = scan_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        "extraction-receipt-journal-release-claim-alignment",
+    )
+    status = "ready" if not missing_source_card_ids and not failed_contract_ids and scan["status"] == "pass" else "needs_review"
+    return {
+        "schema_version": EXTRACTION_RECEIPT_JOURNAL_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "record_count": len(records),
+        "accepted_record_count": len(accepted_records),
+        "summary_status": summary.get("status"),
+        "summary_public_safety_status": summary.get("public_safety_status"),
+        "ready_for_human_review_count": summary.get("ready_for_human_review_count", 0),
+        "eligible_for_private_tutor_index_count": summary.get("eligible_for_private_tutor_index_count", 0),
+        "progress_receipt_count": len(progress_receipts),
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "blocked_claims": blocked_claims,
+        "public_safety_status": scan["status"],
+        "policy": (
+            "Extraction receipt journals are local-private evidence ledgers only; they may expose hashes, counts, "
+            "statuses, and review metadata, but they do not store raw extracted text, expose local paths, update the "
+            "tutor manifest by themselves, clear cloud processing, grade, proctor, detect KI, or clear exam use."
+        ),
+    }
 
 
 def extraction_receipts_for_progress(

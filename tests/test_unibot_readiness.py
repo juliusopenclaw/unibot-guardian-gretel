@@ -67,6 +67,7 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertIn("stakeholder_decision_journal", check_ids)
         self.assertIn("external_decision_record_journal", check_ids)
         self.assertIn("external_decision_state", check_ids)
+        self.assertIn("extraction_receipt_journal", check_ids)
         self.assertIn("gretel_glm_evolve_lane", check_ids)
         self.assertIn("gretel_bachelor_thesis_package", check_ids)
         self.assertIn("gretel_autonomous_research_loop", check_ids)
@@ -227,6 +228,30 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertTrue(external_state["evidence"]["raw_decision_storage_blocked"])
         self.assertTrue(external_state["evidence"]["silent_deployment_switch_blocked"])
         self.assertTrue(external_state["evidence"]["exam_deployment_blocked"])
+        receipt_journal = next(check for check in report["checks"] if check["check_id"] == "extraction_receipt_journal")
+        self.assertEqual(receipt_journal["evidence"]["release_claim_alignment_status"], "ready")
+        self.assertEqual(receipt_journal["evidence"]["release_claim_alignment_public_safety_status"], "pass")
+        self.assertEqual(
+            receipt_journal["evidence"]["release_claim_alignment_contract_status"],
+            "unibot-extraction-receipt-journal-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(receipt_journal["evidence"]["accepted_record_count"], 2)
+        self.assertGreaterEqual(receipt_journal["evidence"]["ready_for_human_review_count"], 1)
+        self.assertGreaterEqual(receipt_journal["evidence"]["eligible_for_private_tutor_index_count"], 1)
+        self.assertTrue(receipt_journal["evidence"]["data_protection_claim_linked"])
+        self.assertTrue(receipt_journal["evidence"]["external_decision_state_claim_linked"])
+        self.assertTrue(receipt_journal["evidence"]["course_material_policy_claim_linked"])
+        self.assertTrue(receipt_journal["evidence"]["review_board_claim_linked"])
+        self.assertTrue(receipt_journal["evidence"]["exam_boundary_claim_linked"])
+        self.assertTrue(receipt_journal["evidence"]["human_submission_gate_linked"])
+        self.assertTrue(receipt_journal["evidence"]["datenschutz_gate_linked"])
+        self.assertTrue(receipt_journal["evidence"]["written_clearance_gate_linked"])
+        self.assertTrue(receipt_journal["evidence"]["hash_only_records"])
+        self.assertTrue(receipt_journal["evidence"]["raw_text_storage_blocked"])
+        self.assertTrue(receipt_journal["evidence"]["local_path_storage_blocked"])
+        self.assertTrue(receipt_journal["evidence"]["manifest_update_by_receipt_alone_blocked"])
+        self.assertTrue(receipt_journal["evidence"]["cloud_processing_blocked"])
+        self.assertTrue(receipt_journal["evidence"]["exam_deployment_blocked"])
         notebook = next(check for check in report["checks"] if check["check_id"] == "notebook_template")
         self.assertEqual(
             notebook["evidence"]["manual_publication_claim_contract_status"],

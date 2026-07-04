@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT))
 from unibot.extraction import build_course_extraction_queue  # noqa: E402
 from unibot.extraction_receipt_journal import (  # noqa: E402
     append_extraction_receipt_record,
+    build_extraction_receipt_journal_release_claim_alignment,
     extraction_receipts_for_progress,
     read_extraction_receipt_journal,
     sanitize_extraction_receipt_record,
@@ -85,6 +86,45 @@ class UniBotExtractionReceiptJournalTests(unittest.TestCase):
         self.assertTrue(record["event"]["private_artifact_reference_hash"])
         self.assertNotIn("local private extraction artifact reference", payload)
         self.assertEqual(scan_text(payload, "extraction-receipt-journal-test")["status"], "pass")
+
+    def test_receipt_journal_release_claim_alignment_links_hash_only_records_and_gates(self) -> None:
+        alignment = build_extraction_receipt_journal_release_claim_alignment()
+
+        self.assertEqual(
+            alignment["schema_version"],
+            "unibot-extraction-receipt-journal-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertEqual(alignment["record_count"], 2)
+        self.assertEqual(alignment["accepted_record_count"], 2)
+        self.assertGreaterEqual(alignment["ready_for_human_review_count"], 1)
+        self.assertGreaterEqual(alignment["eligible_for_private_tutor_index_count"], 1)
+        self.assertIn("extraction_receipt_journal", alignment["required_readiness_check_ids"])
+        self.assertIn("data_protection_screening", alignment["required_readiness_check_ids"])
+        self.assertIn("external_decision_state", alignment["required_readiness_check_ids"])
+        self.assertIn("course_material_policy", alignment["required_readiness_check_ids"])
+        self.assertIn("exam_boundary", alignment["required_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertTrue(alignment["contracts"]["records_hash_only"])
+        self.assertIn("raw extracted text storage", alignment["blocked_claims"])
+        self.assertIn("local path storage", alignment["blocked_claims"])
+        self.assertIn("tutor manifest update by receipt alone", alignment["blocked_claims"])
+        self.assertIn("exam deployment", alignment["blocked_claims"])
+
+    def test_receipt_journal_release_claim_alignment_blocks_raw_or_path_storage_flags(self) -> None:
+        record = sanitize_extraction_receipt_record(receipt_for_job({"job_id": "job-1", "material_id": "material-1", "job_type": "ocr"}), decision_record=valid_decision())
+        record["event"]["raw_text_stored"] = True
+        record["event"]["local_path_stored"] = True
+
+        alignment = build_extraction_receipt_journal_release_claim_alignment([record])
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertIn("records_hash_only", alignment["failed_contract_ids"])
 
     def test_receipt_journal_append_read_summary_and_progress_receipts(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
