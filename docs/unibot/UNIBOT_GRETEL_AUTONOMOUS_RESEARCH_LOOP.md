@@ -57,10 +57,10 @@ contract change.
 
 ## Current Work Queue
 
-- `stakeholder_decision_journal_release_review_board_claim_alignment` is ready.
-  It should align stakeholder decision journals with decision-request receipts,
-  hash-only references, submission-bundle evidence, public language controls,
-  and human gates.
+- `external_decision_record_journal_release_review_board_claim_alignment` is
+  ready. It should align external decision record journals with validated
+  decision records, hash-only references, no deployment switch, public language
+  controls, and human gates.
 
 ## Closed Harnessed Work
 
@@ -194,6 +194,10 @@ contract change.
   in `99060f6` with stakeholder decision request release-claim alignment across
   submission-bundle, receipt-boundary, review-board, Datenschutz,
   public-safety, and human-gate controls.
+- `stakeholder_decision_journal_release_review_board_claim_alignment`: closed
+  in `a6052b7` with stakeholder decision journal release-claim alignment across
+  hash-only records, request/receipt traceability, no raw decision storage, no
+  tool-send, and human-gate controls.
 
 ## Automation Rule
 
