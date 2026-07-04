@@ -64,16 +64,26 @@ artifacts.
 
 ## Current Work Queue
 
-- `review_chain_integrity_local_cycle_workspace_card_chain_link_alignment`
-  is ready. It should link UniBot review-chain integrity metadata,
-  packet/timeline/review/journal status, and next-safe-action evidence with the
-  harnessed local-cycle operator workspace-card readiness gate, preserving
-  chain/integrity hashes and workspace-card prefill evidence, no raw private
-  course text/contact data/local path publication, no provider call/autonomous
-  publication, no approval or exam-clearance claim, no grading/proctoring/
-  KI-detection, and no exam deployment claims.
+- `timeline_export_receipt_journal_local_cycle_workspace_card_journal_link_alignment`
+  is ready. It should link UniBot timeline export receipt journal
+  append/summary metadata, accepted/rejected counts, and no-clearance/local-
+  write boundary with the harnessed local-cycle operator workspace-card
+  readiness gate, preserving journal/summary hashes and workspace-card prefill
+  evidence, no raw private course text/contact data/local path publication, no
+  provider call/autonomous publication, no approval or exam-clearance claim, no
+  grading/proctoring/KI-detection, and no exam deployment claims.
 
 ## Closed Harnessed Work
+
+- `review_chain_integrity_local_cycle_workspace_card_chain_link_alignment`:
+  closed in `d8c6612` with UniBot review-chain integrity metadata,
+  packet/timeline/review/journal status, next-safe-action evidence, and the
+  no-clearance deployment line linked to the harnessed local-cycle operator
+  workspace-card readiness gate, chain/integrity and ready-for-prefill
+  metadata, and blocked raw private course text/contact data/local path
+  publication, provider calls, autonomous publication, approval or
+  exam-clearance claims, grading, proctoring, KI-detection, and exam deployment
+  claims.
 
 - `completion_audit_local_cycle_workspace_card_closure_link_alignment`:
   closed in `85b1667` with UniBot completion-audit public-draft closure status,
