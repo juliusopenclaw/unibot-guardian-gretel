@@ -1441,7 +1441,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "stakeholder_decision_journal_local_cycle_workspace_card_request_link_alignment",
             "priority": 76,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link stakeholder decision journal hash-only request/receipt metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving request/journal hashes and workspace-card prefill evidence, no raw request or written-decision text/contact data publication, no automatic gate changes, no grading/proctoring/KI-detection, and no exam clearance claims.",
             "allowed_files": [
                 "unibot/decision_journal.py",
@@ -1451,6 +1451,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_decision_journal.py tests/test_unibot_readiness.py -q"],
             "review_gate": "stakeholder_decision_journal_local_cycle_workspace_card_request_link_traceability",
+            "closure_evidence": {
+                "commit": "6d7f5d0",
+                "summary": "Stakeholder decision journal release-claim alignment now links decision-journal and request/receipt hashes to the harnessed local-cycle operator workspace-card readiness gate, preserves hash-only request/receipt and ready-for-prefill metadata, and blocks raw request or written-decision text/contact data publication, automatic gate changes, grading, proctoring, KI-detection, and exam clearance claims.",
+            },
+        },
+        {
+            "work_id": "stakeholder_decision_request_local_cycle_workspace_card_packet_link_alignment",
+            "priority": 77,
+            "status": "ready",
+            "goal": "Link stakeholder decision request packet and receipt-template metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving request/packet hashes and workspace-card prefill evidence, no raw written-decision/contact data publication, no automatic external send or approval claim, no grading/proctoring/KI-detection, and no exam clearance claims.",
+            "allowed_files": [
+                "unibot/decision_request.py",
+                "tests/test_unibot_decision_request.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_decision_request.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "stakeholder_decision_request_local_cycle_workspace_card_packet_link_traceability",
         },
     ]
 

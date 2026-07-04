@@ -57,15 +57,23 @@ contract change.
 
 ## Current Work Queue
 
-- `stakeholder_decision_journal_local_cycle_workspace_card_request_link_alignment`
-  is ready. It should link stakeholder decision journal hash-only
-  request/receipt metadata with the harnessed local-cycle operator
-  workspace-card readiness gate, preserving request/journal hashes and
-  workspace-card prefill evidence, no raw request or written-decision
-  text/contact data publication, no automatic gate changes, no
+- `stakeholder_decision_request_local_cycle_workspace_card_packet_link_alignment`
+  is ready. It should link stakeholder decision request packet and
+  receipt-template metadata with the harnessed local-cycle operator
+  workspace-card readiness gate, preserving request/packet hashes and
+  workspace-card prefill evidence, no raw written-decision/contact data
+  publication, no automatic external send or approval claim, no
   grading/proctoring/KI-detection, and no exam clearance claims.
 
 ## Closed Harnessed Work
+
+- `stakeholder_decision_journal_local_cycle_workspace_card_request_link_alignment`:
+  closed in `6d7f5d0` with stakeholder decision journal release-claim links
+  from decision-journal and request/receipt hashes to the harnessed local-cycle
+  operator workspace-card readiness gate, hash-only request/receipt and
+  ready-for-prefill metadata, and blocked raw request or written-decision
+  text/contact data publication, automatic gate changes, grading, proctoring,
+  KI-detection, and exam clearance claims.
 
 - `external_decision_record_journal_local_cycle_workspace_card_record_link_alignment`:
   closed in `59be092` with external decision record journal release-claim links
