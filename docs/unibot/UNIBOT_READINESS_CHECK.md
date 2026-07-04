@@ -123,7 +123,10 @@ contract keeps progress reporting public-safe and metadata-only: it can expose
 receipt counts, review queues, and private manifest-update candidates, but it
 does not expose raw extracted text, local paths, private artifact references,
 cloud-processing approval, tutor retrieval, grading, proctoring,
-KI-detection evidence, or exam deployment.
+KI-detection evidence, or exam deployment. Progress queue and review hashes
+are now linked to the harnessed local-cycle operator workspace-card readiness
+gate without exposing raw extracted text, local paths, private artifact
+references, or the raw workspace card.
 
 The extraction manifest update plan carries
 `unibot-extraction-manifest-update-release-review-board-claim-alignment-v1`.

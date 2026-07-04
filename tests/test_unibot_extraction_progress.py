@@ -14,6 +14,9 @@ from unibot.extraction import build_course_extraction_queue  # noqa: E402
 from unibot.extraction_progress import (  # noqa: E402
     build_extraction_progress_release_claim_alignment,
     build_extraction_progress_report,
+    progress_queue_hash,
+    progress_review_hash,
+    synthetic_extraction_progress_workspace_card,
 )
 from unibot.materials import sha256_text  # noqa: E402
 from unibot.public_safety import scan_text  # noqa: E402
@@ -89,14 +92,21 @@ class UniBotExtractionProgressTests(unittest.TestCase):
                 base_path=str(fixture_root),
                 decision_record=valid_decision(),
                 receipts=[receipt],
+                python_exam_local_cycle_operator_workspace_card=synthetic_extraction_progress_workspace_card(),
             )
             payload = json.dumps(report, ensure_ascii=False)
+            workspace_card = report["local_cycle_operator_workspace_card"]
 
             self.assertEqual(report["status"], "receipts_ready_for_human_review")
             self.assertEqual(report["receipt_summary"]["valid_receipt_count"], 1)
             self.assertEqual(report["receipt_summary"]["ready_for_human_review_count"], 1)
             self.assertEqual(len(report["review_queue"]), 1)
             self.assertEqual(report["review_queue"][0]["job_id"], receipt["job_id"])
+            self.assertEqual(workspace_card["status"], "python_exam_local_cycle_operator_workspace_card_ready")
+            self.assertTrue(workspace_card["ready_for_operator_prefill"])
+            self.assertEqual(workspace_card["checkpoint_hash"], progress_queue_hash(report))
+            self.assertEqual(workspace_card["task_hash"], progress_review_hash(report))
+            self.assertFalse(workspace_card["raw_workspace_card_returned"])
             self.assertNotIn("private progress artifact ref", payload)
 
     def test_progress_report_builds_manifest_candidates_after_review(self) -> None:
@@ -137,6 +147,7 @@ class UniBotExtractionProgressTests(unittest.TestCase):
         self.assertGreaterEqual(alignment["review_queue_count"], 1)
         self.assertGreaterEqual(alignment["manifest_update_candidate_count"], 1)
         self.assertIn("extraction_progress", alignment["required_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
         self.assertIn("extraction_receipt_journal", alignment["required_readiness_check_ids"])
         self.assertIn("course_material_policy", alignment["required_readiness_check_ids"])
         self.assertIn("external_decision_state", alignment["required_readiness_check_ids"])
@@ -146,9 +157,43 @@ class UniBotExtractionProgressTests(unittest.TestCase):
         self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
         self.assertTrue(alignment["contracts"]["review_queue_hash_only"])
         self.assertTrue(alignment["contracts"]["manifest_candidates_private_metadata_only"])
+        self.assertTrue(alignment["contracts"]["workspace_card_progress_queue_gate_linked"])
+        self.assertEqual(alignment["workspace_card_status"], "python_exam_local_cycle_operator_workspace_card_ready")
+        self.assertEqual(alignment["workspace_card_selected_skill_tag"], "pandas")
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_progress_queue_gate_linked"])
         self.assertIn("raw extracted text in progress report", alignment["blocked_claims"])
         self.assertIn("tutor retrieval without manifest update", alignment["blocked_claims"])
         self.assertIn("exam deployment", alignment["blocked_claims"])
+
+    def test_progress_release_claim_alignment_rejects_unlinked_workspace_card_hashes(self) -> None:
+        card = synthetic_extraction_progress_workspace_card()
+        card["workspace_card_summary"]["checkpoint_hash"] = "x"
+        card["workspace_card_summary"]["task_hash"] = "x"
+        decision = valid_decision()
+        report = build_extraction_progress_report(
+            decision_record=decision,
+            receipts=[
+                receipt_for_job(
+                    {"job_id": "job-1", "material_id": "material-1", "job_type": "ocr"},
+                    human_review_status="pending_review",
+                ),
+                receipt_for_job(
+                    {"job_id": "job-2", "material_id": "material-2", "job_type": "ocr"},
+                    human_review_status="reviewed_for_private_tutor",
+                ),
+            ],
+            python_exam_local_cycle_operator_workspace_card=card,
+        )
+
+        alignment = build_extraction_progress_release_claim_alignment(report)
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertFalse(alignment["workspace_card_progress_queue_gate_linked"])
+        self.assertIn("workspace_card_progress_queue_gate_linked", alignment["failed_contract_ids"])
 
     def test_progress_release_claim_alignment_blocks_exam_deployment_claims(self) -> None:
         report = build_extraction_progress_report(

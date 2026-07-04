@@ -883,7 +883,28 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 ],
                 "review_queue_count": extraction_progress_alignment["review_queue_count"],
                 "manifest_update_candidate_count": extraction_progress_alignment["manifest_update_candidate_count"],
+                "workspace_card_status": extraction_progress_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": extraction_progress_alignment["workspace_card_selected_skill_tag"],
+                "workspace_card_ready_for_operator_prefill": extraction_progress_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": extraction_progress_alignment[
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": extraction_progress_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": extraction_progress_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_progress_queue_gate_linked": extraction_progress_alignment[
+                    "workspace_card_progress_queue_gate_linked"
+                ],
                 "release_claim_alignment_human_gates": extraction_progress_alignment["required_human_gates"],
+                "workspace_card_readiness_gate_claim_linked": (
+                    "python_exam_local_cycle_operator_workspace_card"
+                    in extraction_progress_alignment["required_readiness_check_ids"]
+                ),
                 "receipt_journal_claim_linked": (
                     "extraction_receipt_journal" in extraction_progress_alignment["required_readiness_check_ids"]
                 ),
@@ -913,6 +934,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "review_queue_hash_only": extraction_progress_alignment["contracts"]["review_queue_hash_only"],
                 "manifest_candidates_private_metadata_only": extraction_progress_alignment["contracts"][
                     "manifest_candidates_private_metadata_only"
+                ],
+                "workspace_card_progress_queue_gate_contract": extraction_progress_alignment["contracts"][
+                    "workspace_card_progress_queue_gate_linked"
                 ],
                 "raw_text_in_progress_blocked": "raw extracted text in progress report"
                 in extraction_progress_alignment["blocked_claims"],
