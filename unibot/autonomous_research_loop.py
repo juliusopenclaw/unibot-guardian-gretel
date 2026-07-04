@@ -1792,7 +1792,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "exam_run_packet_local_cycle_workspace_card_packet_link_alignment",
             "priority": 95,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link UniBot exam run packet selected skill packet, route execution metadata, packet receipt, local-cycle chain snapshot, and no-clearance/local-write boundary with the harnessed local-cycle operator workspace-card readiness gate, preserving packet/receipt hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no provider call/autonomous publication, no approval or exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/exam_run_packet_builder.py",
@@ -1804,6 +1804,26 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
                 "python3 -m pytest tests/test_unibot_exam_run_packet.py tests/test_unibot_readiness.py -q"
             ],
             "review_gate": "exam_run_packet_local_cycle_workspace_card_packet_link_traceability",
+            "closure_evidence": {
+                "commit": "e8db021",
+                "summary": "UniBot exam run packet selected skill packet, route execution metadata, packet receipt, local-cycle chain snapshot, local-write boundary, and no-clearance deployment line now link to the harnessed local-cycle operator workspace-card readiness gate, preserving packet/receipt and ready-for-prefill metadata, and blocking raw private course text/contact data/local path publication, provider calls, autonomous publication, approval or exam-clearance claims, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "routed_action_executor_local_cycle_workspace_card_execution_link_alignment",
+            "priority": 96,
+            "status": "ready",
+            "goal": "Link UniBot routed action executor dry-run execution metadata, selected route, result/receipt hashes, and no-clearance/local-write boundary with the harnessed local-cycle operator workspace-card readiness gate, preserving execution/receipt hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no provider call/autonomous publication, no approval or exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/routed_action_executor.py",
+                "tests/test_unibot_routed_action_executor.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": [
+                "python3 -m pytest tests/test_unibot_routed_action_executor.py tests/test_unibot_readiness.py -q"
+            ],
+            "review_gate": "routed_action_executor_local_cycle_workspace_card_execution_link_traceability",
         },
     ]
 
