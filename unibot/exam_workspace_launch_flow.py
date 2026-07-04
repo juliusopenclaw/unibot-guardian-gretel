@@ -47,6 +47,7 @@ def build_exam_workspace_launch_flow_dry_run(
     student_reflection: str = "",
     study_receipt: dict[str, Any] | None = None,
     notebook_checkpoint: dict[str, Any] | None = None,
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
     cell_source: str = "",
     cell_index: int = 0,
     cell_id: str = "",
@@ -61,6 +62,11 @@ def build_exam_workspace_launch_flow_dry_run(
     public_safe: bool = True,
 ) -> dict[str, Any]:
     safe_id = safe_course_id(course_id)
+    local_cycle_workspace_card = safe_local_cycle_workspace_card(
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else {}
+    )
     coverage = build_course_material_coverage_run(
         safe_id,
         base_path=base_path,
@@ -240,8 +246,10 @@ def build_exam_workspace_launch_flow_dry_run(
             },
             "local_notebook_checkpoint": local_checkpoint,
             "operator_confirmations": workspace_run.get("operator_confirmations", {}),
+            "local_cycle_operator_workspace_card": local_cycle_workspace_card,
             "requires_operator_confirmation_for_writes": True,
         },
+        "local_cycle_operator_workspace_card": local_cycle_workspace_card,
         "local_notebook_checkpoint": local_checkpoint,
         "exam_workspace_run_summary": workspace_run_summary(workspace_run),
         "help_ledger_preview": help_ledger_preview(workspace_run),
@@ -311,6 +319,7 @@ def build_exam_workspace_launch_release_claim_alignment(
                     "notebook_action_present": True,
                     "reflection_present": True,
                 },
+                "python_exam_local_cycle_operator_workspace_card": synthetic_launch_workspace_card(),
                 "public_safe": True,
             }
             launch_report = launch_report or build_exam_workspace_launch_flow_dry_run(
@@ -340,14 +349,24 @@ def build_exam_workspace_launch_release_claim_alignment(
             "section_id": "private_tutor_use_trace",
             "summary_claim": "launch flow stays within private tutor use, study receipts, and source-anchored A0-A2 help",
             "source_card_ids": ["dfg-gwp", "dsk-ai-privacy-2024"],
-            "readiness_check_ids": ["exam_workspace_launch", "private_tutor_use_flow", "evaluation_packet"],
+            "readiness_check_ids": [
+                "exam_workspace_launch",
+                "python_exam_local_cycle_operator_workspace_card",
+                "private_tutor_use_flow",
+                "evaluation_packet",
+            ],
             "human_gates": ["human_submission_review_required", "public_safety_required"],
         },
         {
             "section_id": "dry_run_boundary_trace",
             "summary_claim": "launch flow defaults to dry-run and requires operator review before local writes or any real exam posture",
             "source_card_ids": ["dfg-gwp", "uoc-ki-faq", "uoc-hilfsmittel"],
-            "readiness_check_ids": ["exam_workspace_launch", "review_board_packet", "exam_boundary"],
+            "readiness_check_ids": [
+                "exam_workspace_launch",
+                "python_exam_local_cycle_operator_workspace_card",
+                "review_board_packet",
+                "exam_boundary",
+            ],
             "human_gates": ["human_submission_review_required", "written_university_clearance_required_before_exam_use"],
         },
         {
@@ -374,6 +393,16 @@ def build_exam_workspace_launch_release_claim_alignment(
     workspace_summary = (
         launch_report.get("exam_workspace_run_summary", {})
         if isinstance(launch_report.get("exam_workspace_run_summary"), dict)
+        else {}
+    )
+    workspace_card = (
+        launch_report.get("local_cycle_operator_workspace_card", {})
+        if isinstance(launch_report.get("local_cycle_operator_workspace_card"), dict)
+        else {}
+    )
+    launch_workspace_card = (
+        launch_config.get("local_cycle_operator_workspace_card", {})
+        if isinstance(launch_config.get("local_cycle_operator_workspace_card"), dict)
         else {}
     )
     help_preview = (
@@ -404,6 +433,9 @@ def build_exam_workspace_launch_release_claim_alignment(
         "exam clearance",
     ]
     boundary = str(launch_report.get("execution_boundary", ""))
+    workspace_card_readiness_gate_linked = any(
+        "python_exam_local_cycle_operator_workspace_card" in section["readiness_check_ids"] for section in sections
+    )
     contracts = {
         "launch_public_safe": launch_report.get("public_safety_status") == "pass",
         "blocked_launch_public_safe": blocked_report.get("public_safety_status") == "pass",
@@ -419,6 +451,15 @@ def build_exam_workspace_launch_release_claim_alignment(
         and help_preview.get("status") == "preview_ready"
         and help_preview.get("general_help_ledger_written") is False
         and help_preview.get("exam_ledger_written") is False,
+        "workspace_card_launch_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and bool(workspace_card.get("help_ledger_preview_hash"))
+        and workspace_card.get("selected_skill_tag") == launch_config.get("skill_tag")
+        and workspace_card.get("not_cleared_receipt") is True
+        and launch_workspace_card.get("status") == workspace_card.get("status")
+        and launch_workspace_card.get("raw_workspace_card_returned") is False,
         "dry_run_operator_boundaries_hold": launch_config.get("requires_operator_confirmation_for_writes") is True
         and launch_report.get("exam_deployment_status") == "not_cleared"
         and launch_report.get("export_receipt", {}).get("not_cleared_receipt") is True
@@ -468,6 +509,12 @@ def build_exam_workspace_launch_release_claim_alignment(
         "checkpoint_hash_present": bool(local_checkpoint.get("notebook_work_sha256")),
         "study_receipt_status": workspace_summary.get("study_receipt_status"),
         "tutor_status": workspace_summary.get("tutor_status"),
+        "workspace_card_status": workspace_card.get("status"),
+        "workspace_card_selected_skill_tag": workspace_card.get("selected_skill_tag"),
+        "workspace_card_ready_for_operator_prefill": bool(workspace_card.get("ready_for_operator_prefill", False)),
+        "workspace_card_help_ledger_status": workspace_card.get("help_ledger_preview_status"),
+        "workspace_card_help_ledger_hash_present": bool(workspace_card.get("help_ledger_preview_hash")),
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
         "help_ledger_preview_status": help_preview.get("status"),
         "general_help_ledger_written": bool(help_preview.get("general_help_ledger_written", False)),
         "exam_ledger_written": bool(help_preview.get("exam_ledger_written", False)),
@@ -513,6 +560,40 @@ def synthetic_launch_manifest_record() -> dict[str, Any]:
     }
 
 
+def synthetic_launch_workspace_card() -> dict[str, Any]:
+    preview_hash = sha256_text("synthetic launch workspace card")
+    return {
+        "schema_version": "unibot-python-exam-local-cycle-operator-workspace-card-v1",
+        "artifact_type": "python_exam_local_cycle_operator_workspace_card",
+        "status": "python_exam_local_cycle_operator_workspace_card_ready",
+        "selected_skill_tag": "boxplots",
+        "exam_deployment_status": "not_cleared",
+        "not_cleared_receipt": True,
+        "workspace_card_summary": {
+            "recommendation": "ready_for_operator_prefill",
+            "recommendation_reason": "synthetic launch prerequisites are satisfied",
+            "ready_for_operator_prefill": True,
+            "help_ledger_preview_status": "help_ledger_preview_ready",
+            "selected_skill_tag": "boxplots",
+            "next_safe_action": "open_launch_dry_run",
+            "next_safe_user_action": "review_launch_checkpoint_before_any_local_write",
+            "operator_run_endpoint": "/api/unibot/exam-workspace/operator-run",
+            "operator_run_method": "POST",
+            "help_level": "A2",
+            "task_hash": preview_hash,
+            "checkpoint_hash": preview_hash,
+            "source_card_ids": ["dfg-gwp", "vanlehn-2011"],
+            "source_anchor_count": 2,
+            "help_ledger_preview_hash": preview_hash,
+        },
+        "help_ledger_preview": {
+            "status": "help_ledger_preview_ready",
+            "help_level": "A2",
+            "preview_hash": preview_hash,
+        },
+    }
+
+
 def synthetic_launch_decision_record() -> dict[str, Any]:
     return {
         "decision_status": "approved_for_local_extraction",
@@ -526,6 +607,40 @@ def synthetic_launch_decision_record() -> dict[str, Any]:
         "access_roles": ["project_owner", "approved_reviewer"],
         "reviewer_roles": ["Datenschutz", "Lehreinheit / Modulverantwortliche", "IT / SZI"],
         "decision_reference": "synthetic launch flow decision",
+    }
+
+
+def safe_local_cycle_workspace_card(workspace_card: dict[str, Any]) -> dict[str, Any]:
+    summary = workspace_card.get("workspace_card_summary", {}) if isinstance(workspace_card.get("workspace_card_summary"), dict) else {}
+    review = workspace_card.get("readiness_review", {}) if isinstance(workspace_card.get("readiness_review"), dict) else {}
+    handoff = workspace_card.get("readiness_handoff", {}) if isinstance(workspace_card.get("readiness_handoff"), dict) else {}
+    ledger = workspace_card.get("help_ledger_preview", {}) if isinstance(workspace_card.get("help_ledger_preview"), dict) else {}
+    if not summary and (
+        workspace_card.get("help_ledger_preview_hash") is not None
+        or workspace_card.get("ready_for_operator_prefill") is not None
+        or workspace_card.get("help_ledger_preview_status") is not None
+    ):
+        summary = workspace_card
+    return {
+        "status": workspace_card.get("status", "missing"),
+        "selected_skill_tag": str(summary.get("selected_skill_tag", workspace_card.get("selected_skill_tag", ""))),
+        "recommendation": str(summary.get("recommendation", review.get("recommendation", "keep_blocked"))),
+        "recommendation_reason": str(summary.get("recommendation_reason", review.get("recommendation_reason", "missing_start_packet"))),
+        "ready_for_operator_prefill": bool(summary.get("ready_for_operator_prefill", False)),
+        "help_ledger_preview_status": str(summary.get("help_ledger_preview_status", ledger.get("status", "missing"))),
+        "next_safe_action": str(summary.get("next_safe_action", review.get("next_safe_action", ""))),
+        "next_safe_user_action": str(summary.get("next_safe_user_action", review.get("next_safe_user_action", ""))),
+        "operator_run_endpoint": str(summary.get("operator_run_endpoint", handoff.get("operator_run_endpoint", ""))),
+        "operator_run_method": str(summary.get("operator_run_method", handoff.get("operator_run_method", "POST"))),
+        "help_level": str(summary.get("help_level", ledger.get("help_level", "A2"))),
+        "task_hash": str(summary.get("task_hash", "")),
+        "checkpoint_hash": str(summary.get("checkpoint_hash", "")),
+        "source_card_ids": [str(item) for item in (summary.get("source_card_ids", []) or [])][:8],
+        "source_anchor_count": int(summary.get("source_anchor_count", 0) or 0),
+        "help_ledger_preview_hash": str(summary.get("help_ledger_preview_hash", ledger.get("preview_hash", ""))),
+        "not_cleared_receipt": bool(workspace_card.get("not_cleared_receipt", True)),
+        "exam_deployment_status": "not_cleared",
+        "raw_workspace_card_returned": False,
     }
 
 

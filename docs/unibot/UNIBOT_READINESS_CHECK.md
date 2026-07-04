@@ -182,10 +182,11 @@ AI-detection evidence, Eigenleistung percentages, or exam clearance.
 The exam-workspace launch gate carries
 `unibot-exam-workspace-launch-release-review-board-claim-alignment-v1`. It
 connects the coverage-selected start point, private tutor-use flow, study
-receipt, and notebook checkpoint into a dry-run launch receipt. It stays
-operator-reviewed, hash-only, and not cleared for real exams; it does not
-return raw notebook code or private text, grade, proctor, detect AI use, claim
-Eigenleistung percentages, or clear exam deployment.
+receipt, notebook checkpoint, and harnessed local-cycle operator workspace-card
+readiness metadata into a dry-run launch receipt. It stays operator-reviewed,
+hash-only, and not cleared for real exams; it does not return raw notebook code
+or private text, grade, proctor, detect AI use, claim Eigenleistung
+percentages, or clear exam deployment.
 
 The exam-workspace run gate carries
 `unibot-exam-workspace-run-release-review-board-claim-alignment-v1`. It links
