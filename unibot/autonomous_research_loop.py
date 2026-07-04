@@ -863,7 +863,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "extraction_receipt_journal_release_review_board_claim_alignment",
             "priority": 44,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align extraction receipt journals with hash-only receipt storage, local-only processing evidence, no tutor-manifest update by receipt alone, and human-review gates.",
             "allowed_files": [
                 "unibot/extraction_receipt_journal.py",
@@ -873,6 +873,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_extraction_receipt_journal.py tests/test_unibot_readiness.py -q"],
             "review_gate": "extraction_receipt_journal_release_review_board_claim_traceability",
+            "closure_evidence": {
+                "commit": "51b537a",
+                "summary": "Extraction receipt journal release-claim alignment added with hash-only receipt records, local-private evidence boundaries, human-review links, no manifest update by receipt alone, and high-stakes claim blocks.",
+            },
+        },
+        {
+            "work_id": "extraction_progress_release_review_board_claim_alignment",
+            "priority": 45,
+            "status": "ready",
+            "goal": "Align extraction progress reports with receipt metadata, review queues, manifest-update boundaries, no raw text or local paths, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/extraction_progress.py",
+                "tests/test_unibot_extraction_progress.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_extraction_progress.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "extraction_progress_release_review_board_claim_traceability",
         },
     ]
 

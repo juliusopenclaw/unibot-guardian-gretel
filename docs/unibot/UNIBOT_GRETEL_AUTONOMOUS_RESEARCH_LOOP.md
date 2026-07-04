@@ -57,10 +57,10 @@ contract change.
 
 ## Current Work Queue
 
-- `extraction_receipt_journal_release_review_board_claim_alignment` is ready. It
-  should align extraction receipt journals with hash-only receipt storage,
-  local-only processing evidence, no tutor-manifest update by receipt alone, and
-  human-review gates.
+- `extraction_progress_release_review_board_claim_alignment` is ready. It
+  should align extraction progress reports with receipt metadata, review queues,
+  manifest-update boundaries, no raw text or local paths, and no exam deployment
+  claims.
 
 ## Closed Harnessed Work
 
@@ -206,6 +206,10 @@ contract change.
   `05fb04e` with external decision state release-claim alignment across
   validated record derivation, hash-only references, no silent deployment
   switch, and human-gate controls.
+- `extraction_receipt_journal_release_review_board_claim_alignment`: closed in
+  `51b537a` with extraction receipt journal release-claim alignment across
+  hash-only receipt records, local-private evidence boundaries, human-review
+  links, no manifest update by receipt alone, and high-stakes claim blocks.
 
 ## Automation Rule
 
