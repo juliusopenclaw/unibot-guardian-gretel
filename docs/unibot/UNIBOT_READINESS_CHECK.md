@@ -94,6 +94,10 @@ This contract keeps journal entries local and hash-only: request hashes,
 markdown hashes, receipt validation hashes, lane metadata, and statuses only.
 It blocks raw request text, raw written decision text, tool-sent stakeholder
 messages, automatic gate changes, extraction approval, and exam clearance.
+Decision-journal and request/receipt hashes are now linked to the harnessed
+local-cycle operator workspace-card readiness gate without exposing raw request
+text, raw written decisions, contact data, automatic gate changes, or the raw
+workspace card.
 
 The external decision record journal carries
 `unibot-external-decision-record-journal-release-review-board-claim-alignment-v1`.

@@ -14,9 +14,12 @@ from unibot.decision_journal import (  # noqa: E402
     append_decision_request_journal_event,
     append_prepared_request_to_journal,
     build_decision_journal_release_claim_alignment,
+    decision_journal_hash,
+    decision_request_journal_hash,
     read_decision_journal,
     sanitize_decision_journal_event,
     summarize_decision_journal,
+    synthetic_decision_journal_workspace_card,
 )
 from unibot.decision_request import build_stakeholder_decision_request, build_stakeholder_decision_request_markdown  # noqa: E402
 from unibot.public_safety import scan_text  # noqa: E402
@@ -63,6 +66,7 @@ class UniBotDecisionJournalTests(unittest.TestCase):
         self.assertIn("decision_request_prepared", alignment["event_types"])
         self.assertIn("decision_request_receipt_validated", alignment["event_types"])
         self.assertIn("stakeholder_decision_journal", alignment["required_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
         self.assertIn("stakeholder_decision_request", alignment["required_readiness_check_ids"])
         self.assertIn("stakeholder_submission_bundle", alignment["required_readiness_check_ids"])
         self.assertIn("data_protection_screening", alignment["required_readiness_check_ids"])
@@ -70,9 +74,68 @@ class UniBotDecisionJournalTests(unittest.TestCase):
         self.assertIn("human_submission_review_required", alignment["required_human_gates"])
         self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
         self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertTrue(alignment["contracts"]["workspace_card_decision_journal_gate_linked"])
+        self.assertEqual(alignment["workspace_card_status"], "python_exam_local_cycle_operator_workspace_card_ready")
+        self.assertEqual(alignment["workspace_card_selected_skill_tag"], "pandas")
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_decision_journal_gate_linked"])
         self.assertIn("raw written decision storage", alignment["blocked_claims"])
         self.assertIn("tool-sent stakeholder message", alignment["blocked_claims"])
         self.assertIn("automatic gate change", alignment["blocked_claims"])
+
+    def test_decision_journal_hash_helpers_link_records_and_request_receipts(self) -> None:
+        request = build_stakeholder_decision_request()
+        record = sanitize_decision_journal_event(
+            {
+                "event_type": "decision_request_prepared",
+                "request": request,
+            }
+        )
+        events = [record["event"]]
+
+        self.assertTrue(decision_journal_hash([record]))
+        self.assertTrue(decision_request_journal_hash(events))
+        self.assertNotEqual(decision_journal_hash([record]), decision_request_journal_hash(events))
+
+    def test_decision_journal_release_claim_alignment_rejects_unlinked_workspace_card_hashes(self) -> None:
+        request = build_stakeholder_decision_request()
+        receipt = dict(request["receipt_template"])
+        receipt.update(
+            {
+                "manual_submission_status": "sent_for_human_review",
+                "channel": "synthetic manual review channel",
+                "submission_reference": "synthetic hash-only journal reference",
+            }
+        )
+        records = [
+            sanitize_decision_journal_event(
+                {
+                    "event_type": "decision_request_prepared",
+                    "request": request,
+                }
+            ),
+            sanitize_decision_journal_event(
+                {
+                    "event_type": "decision_request_receipt_validated",
+                    "receipt": receipt,
+                }
+            ),
+        ]
+        card = synthetic_decision_journal_workspace_card()
+        card["workspace_card_summary"]["checkpoint_hash"] = "x"
+        card["workspace_card_summary"]["task_hash"] = "x"
+
+        alignment = build_decision_journal_release_claim_alignment(
+            records,
+            python_exam_local_cycle_operator_workspace_card=card,
+        )
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertFalse(alignment["workspace_card_decision_journal_gate_linked"])
+        self.assertIn("workspace_card_decision_journal_gate_linked", alignment["failed_contract_ids"])
 
     def test_decision_journal_release_claim_alignment_blocks_raw_or_tool_sent_records(self) -> None:
         request = build_stakeholder_decision_request()

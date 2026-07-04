@@ -662,7 +662,30 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "release_claim_alignment_section_count": stakeholder_decision_journal_alignment["section_count"],
                 "record_count": stakeholder_decision_journal_alignment["record_count"],
                 "event_types": stakeholder_decision_journal_alignment["event_types"],
+                "workspace_card_status": stakeholder_decision_journal_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": stakeholder_decision_journal_alignment[
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": stakeholder_decision_journal_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": stakeholder_decision_journal_alignment[
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": stakeholder_decision_journal_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": stakeholder_decision_journal_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_decision_journal_gate_linked": stakeholder_decision_journal_alignment[
+                    "workspace_card_decision_journal_gate_linked"
+                ],
                 "release_claim_alignment_human_gates": stakeholder_decision_journal_alignment["required_human_gates"],
+                "workspace_card_readiness_gate_claim_linked": (
+                    "python_exam_local_cycle_operator_workspace_card"
+                    in stakeholder_decision_journal_alignment["required_readiness_check_ids"]
+                ),
                 "decision_request_claim_linked": (
                     "stakeholder_decision_request"
                     in stakeholder_decision_journal_alignment["required_readiness_check_ids"]
@@ -686,6 +709,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                     "datenschutz_review_required_before_real_pilot"
                     in stakeholder_decision_journal_alignment["required_human_gates"]
                 ),
+                "workspace_card_decision_journal_gate_contract": stakeholder_decision_journal_alignment["contracts"][
+                    "workspace_card_decision_journal_gate_linked"
+                ],
                 "raw_decision_storage_blocked": "raw written decision storage"
                 in stakeholder_decision_journal_alignment["blocked_claims"],
                 "tool_sent_message_blocked": "tool-sent stakeholder message"
