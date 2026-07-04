@@ -935,7 +935,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "extraction_completion_release_review_board_claim_alignment",
             "priority": 48,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align extraction completion reports and deferrals with reviewed receipt coverage, intentional deferral evidence, no raw deferral text, no manifest updates, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/extraction_completion.py",
@@ -945,6 +945,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_extraction_completion.py tests/test_unibot_readiness.py -q"],
             "review_gate": "extraction_completion_release_review_board_claim_traceability",
+            "closure_evidence": {
+                "commit": "19f9bfe",
+                "summary": "Extraction completion release-claim alignment added with reviewed receipt coverage, intentional deferral evidence, public-safety checks, no manifest update, and no exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "extraction_human_review_release_review_board_claim_alignment",
+            "priority": 49,
+            "status": "ready",
+            "goal": "Align extraction human-review queues and decisions with completion evidence, private artifacts, source-card review, no raw text/public release, no tutor indexing by review alone, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/extraction_human_review.py",
+                "tests/test_unibot_extraction_human_review.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_extraction_human_review.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "extraction_human_review_release_review_board_claim_traceability",
         },
     ]
 

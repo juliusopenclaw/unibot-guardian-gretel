@@ -57,10 +57,10 @@ contract change.
 
 ## Current Work Queue
 
-- `extraction_completion_release_review_board_claim_alignment` is ready. It
-  should align extraction completion reports and deferrals with reviewed receipt
-  coverage, intentional deferral evidence, no raw deferral text, no manifest
-  updates, and no exam deployment claims.
+- `extraction_human_review_release_review_board_claim_alignment` is ready. It
+  should align extraction human-review queues and decisions with completion
+  evidence, private artifacts, source-card review, no raw text/public release,
+  no tutor indexing by review alone, and no exam deployment claims.
 
 ## Closed Harnessed Work
 
@@ -222,6 +222,9 @@ contract change.
   `fbda8fe` with private manifest apply release-claim alignment across
   dry-run/no-write proof, operator-confirmed private metadata writes,
   path/raw-text suppression, no tutor indexing, and no exam deployment claims.
+- `extraction_completion_release_review_board_claim_alignment`: closed in
+  `19f9bfe` with reviewed receipt coverage, intentional deferral evidence,
+  public-safety checks, no manifest updates, and no exam deployment claims.
 
 ## Automation Rule
 
