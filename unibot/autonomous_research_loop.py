@@ -1259,7 +1259,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "exam_workspace_run_local_cycle_workspace_card_execution_link_alignment",
             "priority": 66,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link exam-workspace run dry-run evidence with the harnessed local-cycle operator workspace-card readiness gate, preserving tutor sidecar, study receipt, notebook checkpoint, export metadata, workspace-card prefill evidence, no raw notebook/query publication, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/exam_workspace_run.py",
@@ -1269,6 +1269,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_exam_workspace_run.py tests/test_unibot_readiness.py -q"],
             "review_gate": "exam_workspace_run_local_cycle_workspace_card_execution_link_traceability",
+            "closure_evidence": {
+                "commit": "20eb12b",
+                "summary": "Exam-workspace run release-claim alignment now links the harnessed local-cycle operator workspace-card readiness gate, preserves tutor sidecar, study receipt, notebook checkpoint, export metadata, workspace-card prefill and Help-Ledger hash evidence, and blocks raw notebook/query, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "notebook_checkpoint_local_cycle_workspace_card_checkpoint_link_alignment",
+            "priority": 67,
+            "status": "ready",
+            "goal": "Link notebook-checkpoint hash-only local cell evidence with the harnessed local-cycle operator workspace-card readiness gate, preserving checkpoint hashes, study receipt metadata, workspace-card prefill evidence, no raw cell/notebook/query publication, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/exam_notebook_checkpoint.py",
+                "tests/test_unibot_exam_notebook_checkpoint.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_exam_notebook_checkpoint.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "notebook_checkpoint_local_cycle_workspace_card_checkpoint_link_traceability",
         },
     ]
 
