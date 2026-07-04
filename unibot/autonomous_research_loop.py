@@ -1331,7 +1331,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "extraction_manifest_apply_local_cycle_workspace_card_manifest_link_alignment",
             "priority": 70,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link private manifest-apply dry-run and operator-confirmed local manifest metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving candidate/apply metadata, workspace-card prefill evidence, no raw extracted text/local path publication, no tutor-indexing by apply alone, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/extraction_manifest_apply.py",
@@ -1341,6 +1341,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_extraction_manifest_apply.py tests/test_unibot_readiness.py -q"],
             "review_gate": "extraction_manifest_apply_local_cycle_workspace_card_manifest_link_traceability",
+            "closure_evidence": {
+                "commit": "7e16ae9",
+                "summary": "Private manifest-apply release-claim alignment now links confirmed manifest and delta hashes to the harnessed local-cycle operator workspace-card readiness gate, preserves candidate/apply and ready-for-prefill metadata, and blocks raw extracted text/local paths, tutor-indexing by apply alone, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "extraction_manifest_update_local_cycle_workspace_card_candidate_link_alignment",
+            "priority": 71,
+            "status": "ready",
+            "goal": "Link extraction manifest-update candidate metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving reviewed-candidate hashes and workspace-card prefill evidence, no raw OCR/transcript/local path publication, no manifest writes by update alone, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/extraction_manifest_update.py",
+                "tests/test_unibot_extraction_manifest_update.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_extraction_manifest_update.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "extraction_manifest_update_local_cycle_workspace_card_candidate_link_traceability",
         },
     ]
 
