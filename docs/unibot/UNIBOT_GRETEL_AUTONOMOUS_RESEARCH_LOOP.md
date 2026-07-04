@@ -57,16 +57,24 @@ contract change.
 
 ## Current Work Queue
 
-- `readiness_evidence_snapshot_local_cycle_workspace_card_snapshot_link_alignment`
-  is ready. It should link readiness evidence snapshot status and
-  scientific-gate metadata with the harnessed local-cycle operator
-  workspace-card readiness gate, preserving snapshot/scientific-gate hashes and
+- `autonomous_research_loop_local_cycle_workspace_card_budget_link_alignment`
+  is ready. It should link Gretel autonomous research-loop budget/cadence,
+  next-work receipt, and safety metadata with the harnessed local-cycle
+  operator workspace-card readiness gate, preserving loop/budget hashes and
   workspace-card prefill evidence, no raw private course text/contact data/local
   path publication, no provider call/autonomous publication, no approval or
   exam-clearance claim, no grading/proctoring/KI-detection, and no exam
   deployment claims.
 
 ## Closed Harnessed Work
+
+- `readiness_evidence_snapshot_local_cycle_workspace_card_snapshot_link_alignment`:
+  closed in `3ad3e5f` with readiness snapshot and scientific-gate hashes linked
+  to the harnessed local-cycle operator workspace-card readiness gate,
+  snapshot/scientific-gate and ready-for-prefill metadata, and blocked raw
+  private course text/contact data/local path publication, provider calls,
+  autonomous publication, approval or exam-clearance claims, grading,
+  proctoring, KI-detection, and exam deployment claims.
 
 - `source_card_drift_guard_local_cycle_workspace_card_source_link_alignment`:
   closed in `f2efef7` with source-card corpus and drift-report hashes linked to

@@ -1632,9 +1632,23 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_readiness.py tests/test_unibot_autonomous_research_loop.py -q"],
             "review_gate": "readiness_evidence_snapshot_local_cycle_workspace_card_snapshot_link_traceability",
             "closure_evidence": {
-                "commit": "local-2026-07-04-readiness-snapshot-workspace-card-link",
+                "commit": "3ad3e5f",
                 "summary": "Readiness evidence snapshots now link snapshot and scientific-gate hashes to the harnessed local-cycle operator workspace-card readiness gate, preserve prefill/hash metadata, and block raw private course text/contact data/local path publication, provider calls, autonomous publication, approval or exam-clearance claims, grading, proctoring, KI-detection, and exam deployment claims.",
             },
+        },
+        {
+            "work_id": "autonomous_research_loop_local_cycle_workspace_card_budget_link_alignment",
+            "priority": 87,
+            "status": "ready",
+            "goal": "Link Gretel autonomous research-loop budget/cadence, next-work receipt, and safety metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving loop/budget hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no provider call/autonomous publication, no approval/exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/autonomous_research_loop.py",
+                "tests/test_unibot_autonomous_research_loop.py",
+                "docs/unibot/UNIBOT_GRETEL_AUTONOMOUS_RESEARCH_LOOP.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_autonomous_research_loop.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "autonomous_research_loop_local_cycle_workspace_card_budget_link_traceability",
         },
     ]
 
