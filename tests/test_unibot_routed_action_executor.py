@@ -14,7 +14,13 @@ from unibot.course_per_skill_action_router import build_course_per_skill_action_
 from unibot.exam_workspace_session_console import build_exam_workspace_session_console  # noqa: E402
 from unibot.materials import build_material_manifest, sha256_text  # noqa: E402
 from unibot.public_safety import scan_text  # noqa: E402
-from unibot.routed_action_executor import build_routed_action_executor  # noqa: E402
+from unibot.routed_action_executor import (  # noqa: E402
+    build_routed_action_executor,
+    build_routed_action_executor_workspace_card_alignment,
+    routed_action_executor_hash,
+    routed_action_executor_receipt_hash,
+    synthetic_routed_action_executor_workspace_card,
+)
 from unibot.server import route_request  # noqa: E402
 from unibot.tutor_index import build_private_tutor_index_dry_run  # noqa: E402
 
@@ -117,6 +123,32 @@ class UniBotRoutedActionExecutorTests(unittest.TestCase):
             self.assertEqual(report["execution_result_summary"]["receipt"]["status"], "session_console_receipt_ready_not_exam_clearance")
             self.assertEqual(report["executor_receipt"]["status"], "executor_receipt_ready_not_exam_clearance")
             self.assertFalse(report["execution_result_summary"]["local_write_started"])
+            alignment = report["workspace_card_execution_alignment"]
+            self.assertEqual(
+                alignment["schema_version"],
+                "unibot-routed-action-executor-workspace-card-execution-alignment-v1",
+            )
+            self.assertEqual(alignment["status"], "ready")
+            self.assertEqual(alignment["alignment_public_safety_status"], "pass")
+            self.assertEqual(alignment["failed_contract_ids"], [])
+            self.assertEqual(alignment["routed_action_executor_hash"], routed_action_executor_hash(report))
+            self.assertEqual(alignment["routed_action_executor_receipt_hash"], routed_action_executor_receipt_hash(report))
+            self.assertEqual(alignment["executor_status"], "routed_action_executor_ready")
+            self.assertEqual(alignment["receipt_status"], "executor_receipt_ready_not_exam_clearance")
+            self.assertEqual(alignment["route_id"], "start_session_console_dry_run")
+            self.assertEqual(alignment["executed_artifact_type"], "exam_workspace_session_console")
+            self.assertEqual(alignment["executed_status"], "exam_workspace_session_console_ready")
+            self.assertTrue(alignment["executed_result_hash_present"])
+            self.assertFalse(alignment["local_write_started"])
+            self.assertTrue(alignment["dry_run_by_default"])
+            self.assertTrue(alignment["local_write_confirmations_are_explicit"])
+            self.assertEqual(alignment["exam_deployment_status"], "not_cleared")
+            self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+            self.assertTrue(alignment["workspace_card_routed_action_executor_gate_linked"])
+            self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+            self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+            self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+            self.assertFalse(alignment["raw_workspace_card_returned"])
             self.assertFalse(report["raw_query_returned"])
             self.assertFalse(report["raw_cell_returned"])
             self.assertFalse(report["raw_text_returned"])
@@ -196,6 +228,32 @@ class UniBotRoutedActionExecutorTests(unittest.TestCase):
             self.assertFalse(report["exam_clearance_claimed"])
             self.assertEqual(report["public_safety_status"], "pass")
 
+    def test_executor_workspace_card_alignment_blocks_when_prefill_hashes_do_not_match(self) -> None:
+        route = {
+            "skill_tag": "python_lists",
+            "route_id": "review_open_operator_confirmations",
+            "endpoint": "/api/unibot/exam-workspace/run-history-export-review",
+            "dry_run_by_default": True,
+            "requested_help_level": "A2",
+            "requires_operator_confirmation_for_local_writes": True,
+        }
+        report = build_routed_action_executor(
+            selected_skill_tag="python_lists",
+            selected_route=route,
+            public_safe=True,
+        )
+        workspace_card = synthetic_routed_action_executor_workspace_card()
+        workspace_card["workspace_card_summary"]["checkpoint_hash"] = "wrong-executor-hash"
+        workspace_card["workspace_card_summary"]["task_hash"] = "wrong-receipt-hash"
+
+        alignment = build_routed_action_executor_workspace_card_alignment(report, workspace_card)
+
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertIn("workspace_card_routed_action_executor_gate_linked", alignment["failed_contract_ids"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertFalse(alignment["workspace_card_routed_action_executor_gate_linked"])
+        self.assertEqual(alignment["alignment_public_safety_status"], "pass")
+
     def test_executor_keeps_private_extraction_waiting_without_operator_confirmation(self) -> None:
         route = {
             "skill_tag": "python_lists",
@@ -219,6 +277,7 @@ class UniBotRoutedActionExecutorTests(unittest.TestCase):
         self.assertEqual(report["execution_result_summary"]["status"], "dry_run_waiting_for_operator_confirmation")
         self.assertFalse(report["execution_result_summary"]["local_write_started"])
         self.assertEqual(report["executor_receipt"]["status"], "executor_receipt_ready_not_exam_clearance")
+        self.assertEqual(report["workspace_card_execution_alignment"]["status"], "ready")
         self.assertFalse(report["raw_text_returned"])
         self.assertFalse(report["local_paths_returned"])
 

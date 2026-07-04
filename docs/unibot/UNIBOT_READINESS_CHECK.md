@@ -58,6 +58,7 @@ It aggregates:
 - orchestration command center and workspace-card route alignment
 - completion audit and workspace-card closure alignment
 - review-chain integrity and workspace-card chain alignment
+- routed action executor and workspace-card execution alignment
 - exam run packet and workspace-card packet alignment
 - exam packet timeline and workspace-card timeline alignment
 - timeline export review packet and workspace-card review alignment
@@ -126,6 +127,16 @@ workspace-card readiness gate without exposing raw private course text, contact
 data, local paths, notebook code, autonomous publication, approval or
 exam-clearance claims, grading, proctoring, KI-detection evidence, exam
 deployment claims, or the raw workspace card.
+
+The routed action executor carries
+`unibot-routed-action-executor-workspace-card-execution-alignment-v1`. This
+contract keeps selected route metadata, dry-run execution status, result and
+receipt hashes, explicit local-write confirmation boundaries, and the
+not-cleared deployment line hash-linked to the harnessed local-cycle operator
+workspace-card readiness gate without exposing raw private course text, contact
+data, local paths, notebook code, autonomous publication, provider calls,
+approval or exam-clearance claims, grading, proctoring, KI-detection evidence,
+exam deployment claims, or the raw workspace card.
 
 The exam run packet carries
 `unibot-exam-run-packet-workspace-card-packet-alignment-v1`. This contract

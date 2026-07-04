@@ -178,7 +178,11 @@ from .readiness import build_readiness_markdown, default_public_paths, run_readi
 from .completion_audit import build_completion_audit
 from .release_runbook import build_release_runbook, build_release_runbook_evidence_alignment, build_release_runbook_markdown
 from .redteam import run_redteam_smoke
-from .routed_action_executor import build_routed_action_executor
+from .routed_action_executor import (
+    build_routed_action_executor,
+    build_routed_action_executor_workspace_card_alignment,
+    synthetic_routed_action_executor_inputs,
+)
 from .skill_to_workspace_session_carryover import build_skill_to_workspace_session_carryover
 from .skill_to_workspace_live_flow import build_skill_to_workspace_live_flow
 from .server import route_request
@@ -288,6 +292,8 @@ __all__ = [
     "build_review_board_evidence_alignment",
     "run_redteam_smoke",
     "build_routed_action_executor",
+    "build_routed_action_executor_workspace_card_alignment",
+    "synthetic_routed_action_executor_inputs",
     "build_authority_handoff_packet",
     "build_authority_handoff_markdown",
     "build_evaluation_packet",

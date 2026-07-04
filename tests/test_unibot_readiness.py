@@ -783,6 +783,39 @@ class UniBotReadinessTests(unittest.TestCase):
         )
         self.assertTrue(timeline_review_packet["evidence"]["workspace_card_help_ledger_hash_present"])
         self.assertFalse(timeline_review_packet["evidence"]["raw_workspace_card_returned"])
+        routed_action_executor = next(
+            check for check in report["checks"] if check["check_id"] == "routed_action_executor"
+        )
+        self.assertEqual(
+            routed_action_executor["evidence"]["workspace_card_execution_alignment_status"],
+            "ready",
+        )
+        self.assertEqual(
+            routed_action_executor["evidence"]["workspace_card_execution_alignment_public_safety_status"],
+            "pass",
+        )
+        self.assertEqual(routed_action_executor["evidence"]["executor_status"], "routed_action_executor_ready")
+        self.assertEqual(
+            routed_action_executor["evidence"]["receipt_status"],
+            "executor_receipt_ready_not_exam_clearance",
+        )
+        self.assertNotEqual(routed_action_executor["evidence"]["route_id"], "missing")
+        self.assertNotEqual(routed_action_executor["evidence"]["executed_artifact_type"], "missing")
+        self.assertNotEqual(routed_action_executor["evidence"]["executed_status"], "missing")
+        self.assertTrue(routed_action_executor["evidence"]["executed_result_hash_present"])
+        self.assertFalse(routed_action_executor["evidence"]["local_write_started"])
+        self.assertTrue(routed_action_executor["evidence"]["dry_run_by_default"])
+        self.assertTrue(routed_action_executor["evidence"]["local_write_confirmations_are_explicit"])
+        self.assertEqual(routed_action_executor["evidence"]["exam_deployment_status"], "not_cleared")
+        self.assertTrue(routed_action_executor["evidence"]["workspace_card_readiness_gate_linked"])
+        self.assertTrue(routed_action_executor["evidence"]["workspace_card_routed_action_executor_gate_linked"])
+        self.assertTrue(routed_action_executor["evidence"]["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(
+            routed_action_executor["evidence"]["workspace_card_help_ledger_status"],
+            "help_ledger_preview_ready",
+        )
+        self.assertTrue(routed_action_executor["evidence"]["workspace_card_help_ledger_hash_present"])
+        self.assertFalse(routed_action_executor["evidence"]["raw_workspace_card_returned"])
         exam_run_packet = next(check for check in report["checks"] if check["check_id"] == "exam_run_packet")
         self.assertEqual(exam_run_packet["evidence"]["workspace_card_packet_alignment_status"], "ready")
         self.assertEqual(

@@ -24,6 +24,10 @@ from .exam_run_packet_builder import (
     build_exam_run_packet_workspace_card_alignment,
     synthetic_exam_run_packet_inputs,
 )
+from .routed_action_executor import (
+    build_routed_action_executor_workspace_card_alignment,
+    synthetic_routed_action_executor_inputs,
+)
 from .exam_notebook_checkpoint import build_notebook_checkpoint_release_claim_alignment
 from .exam_workspace_launch_flow import build_exam_workspace_launch_release_claim_alignment
 from .exam_workspace_operator_run import build_exam_workspace_operator_run_release_claim_alignment
@@ -464,6 +468,10 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     timeline_review_packet_inputs = synthetic_timeline_export_review_packet_inputs()
     timeline_review_packet_alignment = build_timeline_export_review_packet_workspace_card_alignment(
         timeline_review_packet_inputs["review_packet"],
+    )
+    routed_action_executor_inputs = synthetic_routed_action_executor_inputs()
+    routed_action_executor_alignment = build_routed_action_executor_workspace_card_alignment(
+        routed_action_executor_inputs["routed_action_executor"],
     )
     exam_run_packet_inputs = synthetic_exam_run_packet_inputs()
     exam_run_packet_alignment = build_exam_run_packet_workspace_card_alignment(
@@ -4316,6 +4324,67 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                     "workspace_card_readiness_gate_claim_linked"
                 ],
                 "raw_workspace_card_returned": timeline_review_packet_alignment["raw_workspace_card_returned"],
+            },
+        },
+        {
+            "check_id": "routed_action_executor",
+            "passed": routed_action_executor_alignment["status"] == "ready"
+            and routed_action_executor_alignment["alignment_public_safety_status"] == "pass"
+            and routed_action_executor_alignment["failed_contract_ids"] == []
+            and routed_action_executor_alignment["executor_status"] == "routed_action_executor_ready"
+            and routed_action_executor_alignment["receipt_status"] == "executor_receipt_ready_not_exam_clearance"
+            and routed_action_executor_alignment["route_id"] != "missing"
+            and routed_action_executor_alignment["executed_artifact_type"] != "missing"
+            and routed_action_executor_alignment["executed_status"] != "missing"
+            and routed_action_executor_alignment["executed_result_hash_present"] is True
+            and routed_action_executor_alignment["local_write_started"] is False
+            and routed_action_executor_alignment["dry_run_by_default"] is True
+            and routed_action_executor_alignment["local_write_confirmations_are_explicit"] is True
+            and routed_action_executor_alignment["exam_deployment_status"] == "not_cleared"
+            and routed_action_executor_alignment["workspace_card_readiness_gate_linked"] is True
+            and routed_action_executor_alignment["workspace_card_routed_action_executor_gate_linked"] is True
+            and routed_action_executor_alignment["raw_workspace_card_returned"] is False,
+            "evidence": {
+                "workspace_card_execution_alignment_status": routed_action_executor_alignment["status"],
+                "workspace_card_execution_alignment_public_safety_status": routed_action_executor_alignment[
+                    "alignment_public_safety_status"
+                ],
+                "executor_status": routed_action_executor_alignment["executor_status"],
+                "receipt_status": routed_action_executor_alignment["receipt_status"],
+                "route_id": routed_action_executor_alignment["route_id"],
+                "executed_endpoint": routed_action_executor_alignment["executed_endpoint"],
+                "executed_artifact_type": routed_action_executor_alignment["executed_artifact_type"],
+                "executed_status": routed_action_executor_alignment["executed_status"],
+                "executed_result_hash_present": routed_action_executor_alignment["executed_result_hash_present"],
+                "local_write_started": routed_action_executor_alignment["local_write_started"],
+                "dry_run_by_default": routed_action_executor_alignment["dry_run_by_default"],
+                "local_write_confirmations_are_explicit": routed_action_executor_alignment[
+                    "local_write_confirmations_are_explicit"
+                ],
+                "exam_deployment_status": routed_action_executor_alignment["exam_deployment_status"],
+                "workspace_card_status": routed_action_executor_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": routed_action_executor_alignment[
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": routed_action_executor_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": routed_action_executor_alignment[
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": routed_action_executor_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": routed_action_executor_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_routed_action_executor_gate_linked": routed_action_executor_alignment[
+                    "workspace_card_routed_action_executor_gate_linked"
+                ],
+                "workspace_card_readiness_gate_claim_linked": routed_action_executor_alignment[
+                    "workspace_card_readiness_gate_claim_linked"
+                ],
+                "raw_workspace_card_returned": routed_action_executor_alignment["raw_workspace_card_returned"],
             },
         },
         {
