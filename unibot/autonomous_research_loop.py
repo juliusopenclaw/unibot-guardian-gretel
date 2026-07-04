@@ -827,7 +827,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "external_decision_record_journal_release_review_board_claim_alignment",
             "priority": 42,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align external decision record journals with validated decision records, hash-only references, no deployment switch, public language controls, and human gates.",
             "allowed_files": [
                 "unibot/external_decision_journal.py",
@@ -837,6 +837,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_external_decision_journal.py tests/test_unibot_readiness.py -q"],
             "review_gate": "external_decision_record_journal_release_review_board_claim_traceability",
+            "closure_evidence": {
+                "commit": "e785479",
+                "summary": "External decision record journal release-claim alignment added with validated record hashes, no raw decision storage, no deployment switch, and human-gate links.",
+            },
+        },
+        {
+            "work_id": "external_decision_state_release_review_board_claim_alignment",
+            "priority": 43,
+            "status": "ready",
+            "goal": "Align external decision state derivation with validated records, no raw references, no silent deployment switch, public language controls, and human gates.",
+            "allowed_files": [
+                "unibot/decision_state.py",
+                "tests/test_unibot_decision_state.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_decision_state.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "external_decision_state_release_review_board_claim_traceability",
         },
     ]
 

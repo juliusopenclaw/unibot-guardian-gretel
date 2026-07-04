@@ -57,10 +57,10 @@ contract change.
 
 ## Current Work Queue
 
-- `external_decision_record_journal_release_review_board_claim_alignment` is
-  ready. It should align external decision record journals with validated
-  decision records, hash-only references, no deployment switch, public language
-  controls, and human gates.
+- `external_decision_state_release_review_board_claim_alignment` is ready. It
+  should align external decision state derivation with validated records, no raw
+  references, no silent deployment switch, public language controls, and human
+  gates.
 
 ## Closed Harnessed Work
 
@@ -198,6 +198,10 @@ contract change.
   in `a6052b7` with stakeholder decision journal release-claim alignment across
   hash-only records, request/receipt traceability, no raw decision storage, no
   tool-send, and human-gate controls.
+- `external_decision_record_journal_release_review_board_claim_alignment`:
+  closed in `e785479` with external decision record journal release-claim
+  alignment across validated record hashes, no raw decision storage, no
+  deployment switch, and human-gate controls.
 
 ## Automation Rule
 
