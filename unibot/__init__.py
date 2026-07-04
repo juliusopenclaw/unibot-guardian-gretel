@@ -179,8 +179,10 @@ from .study_session import build_course_study_session_plan, build_study_session_
 from .tutor_coverage import build_course_tutor_coverage_plan
 from .timeline_export_receipt_journal import (
     build_timeline_export_receipt_journal_append,
+    build_timeline_export_receipt_journal_workspace_card_alignment,
     read_timeline_export_receipt_journal,
     summarize_timeline_export_receipt_journal,
+    synthetic_timeline_export_receipt_journal_inputs,
 )
 from .timeline_export_review_packet import build_timeline_export_review_packet
 from .review_chain_integrity import build_review_chain_integrity_check
@@ -323,8 +325,10 @@ __all__ = [
     "build_exam_packet_timeline",
     "build_exam_run_packet",
     "build_timeline_export_receipt_journal_append",
+    "build_timeline_export_receipt_journal_workspace_card_alignment",
     "read_timeline_export_receipt_journal",
     "summarize_timeline_export_receipt_journal",
+    "synthetic_timeline_export_receipt_journal_inputs",
     "build_timeline_export_review_packet",
     "build_review_chain_integrity_check",
     "build_python_exam_cockpit_flow",

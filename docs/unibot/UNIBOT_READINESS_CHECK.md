@@ -58,6 +58,7 @@ It aggregates:
 - orchestration command center and workspace-card route alignment
 - completion audit and workspace-card closure alignment
 - review-chain integrity and workspace-card chain alignment
+- timeline export receipt journal and workspace-card journal alignment
 - Gretel/GLM proposal lane
 - Gretel autonomous research loop and workspace-card budget/receipt alignment
 - Paperclip evaluation bridge and workspace-card control/receipt alignment
@@ -118,6 +119,16 @@ The review-chain integrity check carries
 contract keeps Exam Run Packet, Exam Packet Timeline, Timeline Export Review
 Packet, Timeline Export Receipt Journal, next-safe-action metadata, and the
 not-cleared deployment line hash-linked to the harnessed local-cycle operator
+workspace-card readiness gate without exposing raw private course text, contact
+data, local paths, notebook code, autonomous publication, approval or
+exam-clearance claims, grading, proctoring, KI-detection evidence, exam
+deployment claims, or the raw workspace card.
+
+The timeline export receipt journal carries
+`unibot-timeline-export-receipt-journal-workspace-card-journal-alignment-v1`.
+This contract keeps append-preview status, accepted/blocked record counts,
+summary hashes, local-write confirmation boundaries, and the not-cleared
+deployment line hash-linked to the harnessed local-cycle operator
 workspace-card readiness gate without exposing raw private course text, contact
 data, local paths, notebook code, autonomous publication, approval or
 exam-clearance claims, grading, proctoring, KI-detection evidence, exam

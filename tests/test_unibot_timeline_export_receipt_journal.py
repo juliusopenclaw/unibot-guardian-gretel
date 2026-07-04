@@ -14,8 +14,12 @@ from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
 from unibot.timeline_export_receipt_journal import (  # noqa: E402
     build_timeline_export_receipt_journal_append,
+    build_timeline_export_receipt_journal_workspace_card_alignment,
     read_timeline_export_receipt_journal,
     summarize_timeline_export_receipt_journal,
+    synthetic_timeline_export_receipt_journal_workspace_card,
+    timeline_export_receipt_journal_hash,
+    timeline_export_receipt_journal_summary_hash,
 )
 
 
@@ -85,6 +89,21 @@ class UniBotTimelineExportReceiptJournalTests(unittest.TestCase):
             self.assertFalse(preview["exam_clearance_claimed"])
             self.assertNotIn(str(temp_dir), payload)
             self.assertEqual(scan_text(payload, "timeline-export-receipt-preview")["status"], "pass")
+            alignment = preview["workspace_card_journal_alignment"]
+            self.assertEqual(
+                alignment["schema_version"],
+                "unibot-timeline-export-receipt-journal-workspace-card-journal-alignment-v1",
+            )
+            self.assertEqual(alignment["status"], "ready")
+            self.assertEqual(alignment["alignment_public_safety_status"], "pass")
+            self.assertEqual(alignment["append_status"], "write_preview_ready")
+            self.assertFalse(alignment["journal_written"])
+            self.assertEqual(alignment["accepted_record_count"], 1)
+            self.assertEqual(alignment["timeline_receipt_journal_hash"], timeline_export_receipt_journal_hash(preview))
+            self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+            self.assertTrue(alignment["workspace_card_timeline_receipt_journal_gate_linked"])
+            self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+            self.assertFalse(alignment["raw_workspace_card_returned"])
 
     def test_confirmed_append_writes_safe_record_and_summary(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -101,6 +120,10 @@ class UniBotTimelineExportReceiptJournalTests(unittest.TestCase):
             self.assertTrue(journal_path.exists())
             self.assertNotIn(str(temp_dir), payload)
             self.assertFalse(stored["local_paths_returned"])
+            self.assertEqual(stored["workspace_card_journal_alignment"]["status"], "ready")
+            self.assertTrue(
+                stored["workspace_card_journal_alignment"]["workspace_card_timeline_receipt_journal_gate_linked"]
+            )
 
             journal = read_timeline_export_receipt_journal(journal_path)
             self.assertEqual(journal["count"], 1)
@@ -128,6 +151,28 @@ class UniBotTimelineExportReceiptJournalTests(unittest.TestCase):
             self.assertFalse(summary["exam_clearance_claimed"])
             self.assertNotIn(str(temp_dir), summary_payload)
             self.assertEqual(scan_text(summary_payload, "timeline-export-receipt-summary")["status"], "pass")
+            summary_hash = timeline_export_receipt_journal_summary_hash(summary)
+            self.assertEqual(
+                stored["workspace_card_journal_alignment"]["timeline_receipt_journal_summary_hash"],
+                summary_hash,
+            )
+
+    def test_workspace_card_alignment_blocks_broken_hash_link(self) -> None:
+        append = build_timeline_export_receipt_journal_append(review_packet=review_packet())
+        card = synthetic_timeline_export_receipt_journal_workspace_card()
+        card["workspace_card_summary"]["checkpoint_hash"] = "broken-journal-hash"
+        card["workspace_card_summary"]["task_hash"] = "broken-summary-hash"
+        alignment = build_timeline_export_receipt_journal_workspace_card_alignment(
+            timeline_export_receipt_journal_append=append,
+            python_exam_local_cycle_operator_workspace_card=card,
+        )
+
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertEqual(alignment["alignment_public_safety_status"], "pass")
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertFalse(alignment["workspace_card_timeline_receipt_journal_gate_linked"])
+        self.assertIn("workspace_card_timeline_receipt_journal_gate_linked", alignment["failed_contract_ids"])
+        self.assertFalse(alignment["raw_workspace_card_returned"])
 
     def test_api_preview_append_and_summary(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
