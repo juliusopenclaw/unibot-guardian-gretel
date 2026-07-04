@@ -1313,7 +1313,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "private_tutor_use_flow_local_cycle_workspace_card_help_ledger_link_alignment",
             "priority": 69,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link private tutor-use flow A0-A2 source-anchored help and operator-confirmed Help-Ledger evidence with the harnessed local-cycle operator workspace-card readiness gate, preserving tutor response/help-ledger metadata, workspace-card prefill evidence, no raw query/course text publication, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/private_tutor_use_flow.py",
@@ -1323,6 +1323,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_private_tutor_use_flow.py tests/test_unibot_readiness.py -q"],
             "review_gate": "private_tutor_use_flow_local_cycle_workspace_card_help_ledger_link_traceability",
+            "closure_evidence": {
+                "commit": "89f4938",
+                "summary": "Private tutor-use flow release-claim alignment now links operator-confirmed Help-Ledger event hashes to the harnessed local-cycle operator workspace-card readiness gate, preserves tutor response and ready-for-prefill metadata, and blocks raw query/course text, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "extraction_manifest_apply_local_cycle_workspace_card_manifest_link_alignment",
+            "priority": 70,
+            "status": "ready",
+            "goal": "Link private manifest-apply dry-run and operator-confirmed local manifest metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving candidate/apply metadata, workspace-card prefill evidence, no raw extracted text/local path publication, no tutor-indexing by apply alone, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/extraction_manifest_apply.py",
+                "tests/test_unibot_extraction_manifest_apply.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_extraction_manifest_apply.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "extraction_manifest_apply_local_cycle_workspace_card_manifest_link_traceability",
         },
     ]
 

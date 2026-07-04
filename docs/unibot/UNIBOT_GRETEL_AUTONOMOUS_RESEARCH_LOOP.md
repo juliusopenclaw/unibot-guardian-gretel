@@ -57,15 +57,22 @@ contract change.
 
 ## Current Work Queue
 
-- `private_tutor_use_flow_local_cycle_workspace_card_help_ledger_link_alignment`
-  is ready. It should link private tutor-use flow A0-A2 source-anchored help
-  and operator-confirmed Help-Ledger evidence with the harnessed local-cycle
-  operator workspace-card readiness gate, preserving tutor response/
-  help-ledger metadata, workspace-card prefill evidence, no raw query/course
-  text publication, no grading/proctoring/KI-detection, and no exam deployment
-  claims.
+- `extraction_manifest_apply_local_cycle_workspace_card_manifest_link_alignment`
+  is ready. It should link private manifest-apply dry-run and
+  operator-confirmed local manifest metadata with the harnessed local-cycle
+  operator workspace-card readiness gate, preserving candidate/apply metadata,
+  workspace-card prefill evidence, no raw extracted text/local path
+  publication, no tutor-indexing by apply alone, no
+  grading/proctoring/KI-detection, and no exam deployment claims.
 
 ## Closed Harnessed Work
+
+- `private_tutor_use_flow_local_cycle_workspace_card_help_ledger_link_alignment`:
+  closed in `89f4938` with private tutor-use flow release-claim links from
+  operator-confirmed Help-Ledger event hashes to the harnessed local-cycle
+  operator workspace-card readiness gate, tutor response and ready-for-prefill
+  metadata, and blocked raw query/course text, grading, proctoring,
+  KI-detection, and exam deployment claims.
 
 - `study_session_local_cycle_workspace_card_reflection_link_alignment`:
   closed in `77d12b5` with study-session release-claim links from formative
