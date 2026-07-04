@@ -816,7 +816,30 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                     "eligible_for_private_tutor_index_count"
                 ],
                 "progress_receipt_count": extraction_receipt_journal_alignment["progress_receipt_count"],
+                "workspace_card_status": extraction_receipt_journal_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": extraction_receipt_journal_alignment[
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": extraction_receipt_journal_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": extraction_receipt_journal_alignment[
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": extraction_receipt_journal_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": extraction_receipt_journal_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_receipt_journal_gate_linked": extraction_receipt_journal_alignment[
+                    "workspace_card_receipt_journal_gate_linked"
+                ],
                 "release_claim_alignment_human_gates": extraction_receipt_journal_alignment["required_human_gates"],
+                "workspace_card_readiness_gate_claim_linked": (
+                    "python_exam_local_cycle_operator_workspace_card"
+                    in extraction_receipt_journal_alignment["required_readiness_check_ids"]
+                ),
                 "data_protection_claim_linked": (
                     "data_protection_screening"
                     in extraction_receipt_journal_alignment["required_readiness_check_ids"]
@@ -846,6 +869,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                     in extraction_receipt_journal_alignment["required_human_gates"]
                 ),
                 "hash_only_records": extraction_receipt_journal_alignment["contracts"]["records_hash_only"],
+                "workspace_card_receipt_journal_gate_contract": extraction_receipt_journal_alignment["contracts"][
+                    "workspace_card_receipt_journal_gate_linked"
+                ],
                 "raw_text_storage_blocked": "raw extracted text storage"
                 in extraction_receipt_journal_alignment["blocked_claims"],
                 "local_path_storage_blocked": "local path storage"

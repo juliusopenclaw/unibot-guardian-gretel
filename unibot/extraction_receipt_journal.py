@@ -214,6 +214,7 @@ def summarize_extraction_receipt_records(records: list[dict[str, Any]], *, statu
 
 def build_extraction_receipt_journal_release_claim_alignment(
     records: list[dict[str, Any]] | None = None,
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if records is None:
         decision = synthetic_extraction_receipt_decision_record()
@@ -231,6 +232,9 @@ def build_extraction_receipt_journal_release_claim_alignment(
                 decision_record=decision,
             ),
         ]
+        python_exam_local_cycle_operator_workspace_card = (
+            python_exam_local_cycle_operator_workspace_card or synthetic_extraction_receipt_journal_workspace_card()
+        )
     summary = summarize_extraction_receipt_records(records)
     progress_receipts = extraction_receipts_for_progress(records=records)
     sections = [
@@ -238,7 +242,12 @@ def build_extraction_receipt_journal_release_claim_alignment(
             "section_id": "receipt_hash_storage_trace",
             "summary_claim": "receipt journal stores receipt hashes, counts, statuses, and review metadata without raw extracted text or local paths",
             "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024", "dfg-gwp"],
-            "readiness_check_ids": ["extraction_receipt_journal", "data_protection_screening", "public_safety"],
+            "readiness_check_ids": [
+                "extraction_receipt_journal",
+                "python_exam_local_cycle_operator_workspace_card",
+                "data_protection_screening",
+                "public_safety",
+            ],
             "human_gates": ["datenschutz_review_required_before_real_pilot", "human_submission_review_required"],
         },
         {
@@ -267,6 +276,16 @@ def build_extraction_receipt_journal_release_claim_alignment(
     missing_source_card_ids = sorted(source_id for source_id in required_source_card_ids if get_source_card(source_id) is None)
     accepted_records = [record for record in records if record.get("status") == "accepted"]
     events = [record.get("event", {}) for record in accepted_records]
+    workspace_card = safe_local_cycle_workspace_card(
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else {},
+        journal_hash=receipt_journal_hash(records),
+        progress_receipt_hash=progress_receipt_hash(progress_receipts),
+    )
+    workspace_card_readiness_gate_linked = any(
+        "python_exam_local_cycle_operator_workspace_card" in section["readiness_check_ids"] for section in sections
+    )
     blocked_claims = [
         "raw extracted text storage",
         "local path storage",
@@ -299,6 +318,15 @@ def build_extraction_receipt_journal_release_claim_alignment(
         "private_tutor_index_still_separate": summary.get("eligible_for_private_tutor_index_count", 0) >= 1
         and all("private-artifact-hash:" in receipt.get("private_artifact_reference", "") for receipt in progress_receipts),
         "no_duplicate_job_ids": summary.get("duplicate_job_id_count") == 0,
+        "workspace_card_receipt_journal_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and workspace_card.get("checkpoint_hash") == receipt_journal_hash(records)
+        and workspace_card.get("task_hash") == progress_receipt_hash(progress_receipts)
+        and bool(workspace_card.get("help_ledger_preview_hash"))
+        and workspace_card.get("not_cleared_receipt") is True
+        and workspace_card.get("raw_workspace_card_returned") is False,
     }
     failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
     payload = {
@@ -326,6 +354,13 @@ def build_extraction_receipt_journal_release_claim_alignment(
         "ready_for_human_review_count": summary.get("ready_for_human_review_count", 0),
         "eligible_for_private_tutor_index_count": summary.get("eligible_for_private_tutor_index_count", 0),
         "progress_receipt_count": len(progress_receipts),
+        "workspace_card_status": workspace_card.get("status"),
+        "workspace_card_selected_skill_tag": workspace_card.get("selected_skill_tag"),
+        "workspace_card_ready_for_operator_prefill": bool(workspace_card.get("ready_for_operator_prefill", False)),
+        "workspace_card_help_ledger_status": workspace_card.get("help_ledger_preview_status"),
+        "workspace_card_help_ledger_hash_present": bool(workspace_card.get("help_ledger_preview_hash")),
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_receipt_journal_gate_linked": contracts["workspace_card_receipt_journal_gate_linked"],
         "contracts": contracts,
         "missing_source_card_ids": missing_source_card_ids,
         "failed_contract_ids": failed_contract_ids,
@@ -370,6 +405,125 @@ def extraction_receipts_for_progress(
             }
         )
     return receipts
+
+
+def synthetic_extraction_receipt_journal_workspace_card() -> dict[str, Any]:
+    preview_hash = sha256_text("synthetic extraction receipt journal workspace card")
+    return {
+        "schema_version": "unibot-python-exam-local-cycle-operator-workspace-card-v1",
+        "artifact_type": "python_exam_local_cycle_operator_workspace_card",
+        "status": "python_exam_local_cycle_operator_workspace_card_ready",
+        "selected_skill_tag": "pandas",
+        "exam_deployment_status": "not_cleared",
+        "not_cleared_receipt": True,
+        "workspace_card_summary": {
+            "recommendation": "ready_for_operator_prefill",
+            "recommendation_reason": "synthetic extraction receipt journal prerequisites are satisfied",
+            "ready_for_operator_prefill": True,
+            "help_ledger_preview_status": "help_ledger_preview_ready",
+            "selected_skill_tag": "pandas",
+            "next_safe_action": "review_extraction_receipt_journal_before_workspace_prefill",
+            "next_safe_user_action": "review_hash_only_receipt_journal_before_progress_queue",
+            "operator_run_endpoint": "/api/unibot/exam-workspace/operator-run",
+            "operator_run_method": "POST",
+            "help_level": "A2",
+            "task_hash": "__PROGRESS_RECEIPT_HASH__",
+            "checkpoint_hash": "__RECEIPT_JOURNAL_HASH__",
+            "source_card_ids": ["dfg-gwp", "dsk-ai-privacy-2024"],
+            "source_anchor_count": 2,
+            "help_ledger_preview_hash": preview_hash,
+        },
+        "help_ledger_preview": {
+            "status": "help_ledger_preview_ready",
+            "help_level": "A2",
+            "preview_hash": preview_hash,
+        },
+    }
+
+
+def receipt_journal_hash(records: list[dict[str, Any]]) -> str:
+    return sha256_text(
+        json.dumps(
+            [
+                {
+                    "status": record.get("status", ""),
+                    "event_type": (record.get("event", {}) if isinstance(record.get("event"), dict) else {}).get(
+                        "event_type", ""
+                    ),
+                    "job_id": (record.get("event", {}) if isinstance(record.get("event"), dict) else {}).get(
+                        "job_id", ""
+                    ),
+                    "material_id": (record.get("event", {}) if isinstance(record.get("event"), dict) else {}).get(
+                        "material_id", ""
+                    ),
+                    "validation_hash": (record.get("event", {}) if isinstance(record.get("event"), dict) else {}).get(
+                        "validation_hash", ""
+                    ),
+                    "receipt_validation_status": (
+                        record.get("event", {}) if isinstance(record.get("event"), dict) else {}
+                    ).get("receipt_validation_status", ""),
+                    "human_review_status": (
+                        record.get("event", {}) if isinstance(record.get("event"), dict) else {}
+                    ).get("human_review_status", ""),
+                }
+                for record in records
+                if isinstance(record, dict)
+            ],
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+    )
+
+
+def progress_receipt_hash(progress_receipts: list[dict[str, Any]]) -> str:
+    return sha256_text(json.dumps(progress_receipts, sort_keys=True, ensure_ascii=False))
+
+
+def safe_local_cycle_workspace_card(
+    workspace_card: dict[str, Any],
+    *,
+    journal_hash: str = "",
+    progress_receipt_hash: str = "",
+) -> dict[str, Any]:
+    summary = workspace_card.get("workspace_card_summary", {}) if isinstance(workspace_card.get("workspace_card_summary"), dict) else {}
+    review = workspace_card.get("readiness_review", {}) if isinstance(workspace_card.get("readiness_review"), dict) else {}
+    handoff = workspace_card.get("readiness_handoff", {}) if isinstance(workspace_card.get("readiness_handoff"), dict) else {}
+    ledger = workspace_card.get("help_ledger_preview", {}) if isinstance(workspace_card.get("help_ledger_preview"), dict) else {}
+    if not summary and (
+        workspace_card.get("help_ledger_preview_hash") is not None
+        or workspace_card.get("ready_for_operator_prefill") is not None
+        or workspace_card.get("help_ledger_preview_status") is not None
+    ):
+        summary = workspace_card
+    checkpoint_hash = str(summary.get("checkpoint_hash", ""))
+    task_hash = str(summary.get("task_hash", ""))
+    if journal_hash and checkpoint_hash == "__RECEIPT_JOURNAL_HASH__":
+        checkpoint_hash = journal_hash
+    if progress_receipt_hash and task_hash == "__PROGRESS_RECEIPT_HASH__":
+        task_hash = progress_receipt_hash
+    return {
+        "status": workspace_card.get("status", "missing"),
+        "selected_skill_tag": str(summary.get("selected_skill_tag", workspace_card.get("selected_skill_tag", ""))),
+        "recommendation": str(summary.get("recommendation", review.get("recommendation", "keep_blocked"))),
+        "recommendation_reason": str(
+            summary.get("recommendation_reason", review.get("recommendation_reason", "missing_receipt_journal"))
+        ),
+        "ready_for_operator_prefill": bool(summary.get("ready_for_operator_prefill", False)),
+        "help_ledger_preview_status": str(summary.get("help_ledger_preview_status", ledger.get("status", "missing"))),
+        "next_safe_action": str(summary.get("next_safe_action", review.get("next_safe_action", ""))),
+        "next_safe_user_action": str(summary.get("next_safe_user_action", review.get("next_safe_user_action", ""))),
+        "operator_run_endpoint": str(summary.get("operator_run_endpoint", handoff.get("operator_run_endpoint", ""))),
+        "operator_run_method": str(summary.get("operator_run_method", handoff.get("operator_run_method", "POST"))),
+        "help_level": str(summary.get("help_level", ledger.get("help_level", "A2"))),
+        "task_hash": task_hash,
+        "checkpoint_hash": checkpoint_hash,
+        "source_card_ids": [str(item) for item in (summary.get("source_card_ids", []) or [])][:8],
+        "source_anchor_count": int(summary.get("source_anchor_count", 0) or 0),
+        "help_ledger_preview_hash": str(summary.get("help_ledger_preview_hash", ledger.get("preview_hash", ""))),
+        "not_cleared_receipt": bool(workspace_card.get("not_cleared_receipt", True)),
+        "exam_deployment_status": "not_cleared",
+        "raw_workspace_card_returned": False,
+    }
 
 
 def duplicate_values(values: list[str]) -> list[str]:

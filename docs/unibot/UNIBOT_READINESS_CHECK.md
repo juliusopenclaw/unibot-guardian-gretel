@@ -115,7 +115,10 @@ This contract keeps extraction evidence local-private and public-safe: receipts
 may expose hashes, counts, statuses, and human-review metadata, but they do not
 store raw extracted text, expose local paths, update the tutor manifest by
 themselves, authorize cloud processing, grade, proctor, provide KI-detection
-evidence, or clear exam deployment.
+evidence, or clear exam deployment. Receipt journal and progress-receipt hashes
+are now linked to the harnessed local-cycle operator workspace-card readiness
+gate without exposing raw extracted text, local paths, private artifact
+references, or the raw workspace card.
 
 The extraction progress report carries
 `unibot-extraction-progress-release-review-board-claim-alignment-v1`. This
