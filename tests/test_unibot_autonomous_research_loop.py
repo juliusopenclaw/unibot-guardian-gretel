@@ -1020,7 +1020,13 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         )
         self.assertEqual(
             by_id["autonomous_research_loop_local_cycle_workspace_card_budget_link_alignment"]["status"],
-            "ready",
+            "closed_harnessed",
+        )
+        self.assertEqual(
+            by_id["autonomous_research_loop_local_cycle_workspace_card_budget_link_alignment"]["closure_evidence"][
+                "commit"
+            ],
+            "2a43b20",
         )
         self.assertEqual(
             by_id["autonomous_research_loop_local_cycle_workspace_card_budget_link_alignment"]["review_gate"],
@@ -1031,10 +1037,22 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             by_id["autonomous_research_loop_local_cycle_workspace_card_budget_link_alignment"]["allowed_files"],
         )
         self.assertEqual(
-            loop["next_recommended_work_id"],
-            "autonomous_research_loop_local_cycle_workspace_card_budget_link_alignment",
+            by_id["paperclip_evaluation_bridge_local_cycle_workspace_card_control_link_alignment"]["status"],
+            "ready",
         )
-        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 86)
+        self.assertEqual(
+            by_id["paperclip_evaluation_bridge_local_cycle_workspace_card_control_link_alignment"]["review_gate"],
+            "paperclip_evaluation_bridge_local_cycle_workspace_card_control_link_traceability",
+        )
+        self.assertIn(
+            "unibot/paperclip_evaluation_bridge.py",
+            by_id["paperclip_evaluation_bridge_local_cycle_workspace_card_control_link_alignment"]["allowed_files"],
+        )
+        self.assertEqual(
+            loop["next_recommended_work_id"],
+            "paperclip_evaluation_bridge_local_cycle_workspace_card_control_link_alignment",
+        )
+        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 87)
         self.assertEqual(loop["receipt"]["ready_work_items"], 1)
         self.assertLessEqual(loop["budget_policy"]["cadence"]["max_active_work_item_per_run"], 1)
         for item in queue:
@@ -1051,9 +1069,9 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("Default reasoning effort: low", markdown)
         self.assertIn("Workspace-card gate linked: True", markdown)
         self.assertIn("Autonomous GitHub push: False", markdown)
-        self.assertIn("Closed harnessed items: 86", markdown)
+        self.assertIn("Closed harnessed items: 87", markdown)
         self.assertIn(
-            "Next recommended work: autonomous_research_loop_local_cycle_workspace_card_budget_link_alignment",
+            "Next recommended work: paperclip_evaluation_bridge_local_cycle_workspace_card_control_link_alignment",
             markdown,
         )
 
