@@ -1392,7 +1392,31 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                     "repeat_validation_public_safety_status"
                 ],
                 "repeat_task_required": study_session_alignment["repeat_task_required"],
+                "workspace_card_status": study_session_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": study_session_alignment["workspace_card_selected_skill_tag"],
+                "workspace_card_ready_for_operator_prefill": study_session_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": study_session_alignment[
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": study_session_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": study_session_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_reflection_gate_linked": study_session_alignment[
+                    "workspace_card_reflection_gate_linked"
+                ],
+                "workspace_card_reflection_hash_present": study_session_alignment[
+                    "workspace_card_reflection_hash_present"
+                ],
                 "release_claim_alignment_human_gates": study_session_alignment["required_human_gates"],
+                "workspace_card_readiness_gate_claim_linked": (
+                    "python_exam_local_cycle_operator_workspace_card"
+                    in study_session_alignment["required_readiness_check_ids"]
+                ),
                 "private_tutor_use_flow_claim_linked": (
                     "private_tutor_use_flow" in study_session_alignment["required_readiness_check_ids"]
                 ),
@@ -1430,6 +1454,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 ],
                 "a6_or_final_solution_forces_repeat": study_session_alignment["contracts"][
                     "a6_or_final_solution_forces_repeat"
+                ],
+                "workspace_card_reflection_gate_linked_contract": study_session_alignment["contracts"][
+                    "workspace_card_reflection_gate_linked"
                 ],
                 "non_grading_human_review_only": study_session_alignment["contracts"][
                     "non_grading_human_review_only"

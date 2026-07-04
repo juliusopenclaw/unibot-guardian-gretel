@@ -168,9 +168,12 @@ The study-session gate carries
 `unibot-study-session-release-review-board-claim-alignment-v1`. It proves only
 formative, hash-only learning evidence: prediction, retrieval response,
 notebook action, source anchor, and reflection. A6 or final-solution exposure
-forces a repeat task. The report does not store raw student text, grade, rank,
-proctor, detect AI use, claim Eigenleistung percentages, or clear exam
-deployment.
+forces a repeat task. It now also links the reflection receipt hash to the
+harnessed local-cycle operator workspace-card readiness gate, preserving
+ready-for-prefill metadata and Help-Ledger-preview hashes without exposing raw
+learner text or the raw workspace card. The report does not store raw student
+text, grade, rank, proctor, detect AI use, claim Eigenleistung percentages, or
+clear exam deployment.
 
 The notebook-checkpoint gate carries
 `unibot-notebook-checkpoint-release-review-board-claim-alignment-v1`. It turns
