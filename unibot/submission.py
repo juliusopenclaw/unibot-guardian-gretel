@@ -14,9 +14,165 @@ from .handoff import build_authority_handoff_packet
 from .privacy import build_data_protection_screening
 from .public_safety import scan_text
 from .review_board import build_review_board_packet
+from .source_cards import get_source_card
 
 
 STAKEHOLDER_SUBMISSION_SCHEMA_VERSION = "unibot-stakeholder-submission-v1"
+STAKEHOLDER_SUBMISSION_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-stakeholder-submission-release-review-board-claim-alignment-v1"
+)
+
+
+def build_stakeholder_submission_release_claim_alignment(bundle: dict[str, Any]) -> dict[str, Any]:
+    sections = [
+        {
+            "section_id": "submission_boundary_trace",
+            "summary_claim": "stakeholder bundle is a human-review draft and never an automatic send, approval, or exam clearance",
+            "source_card_ids": ["uoc-ki-lehre", "dfg-gwp"],
+            "readiness_check_ids": [
+                "stakeholder_submission_bundle",
+                "review_board_packet",
+                "authority_handoff",
+                "release_runbook",
+                "public_safety",
+            ],
+            "human_gates": ["human_submission_review_required", "public_safety_required"],
+        },
+        {
+            "section_id": "local_extraction_decision_trace",
+            "summary_claim": "local OCR/transcription lane remains rights/privacy gated and excludes public raw text or cloud processing claims",
+            "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024", "dfg-gwp"],
+            "readiness_check_ids": [
+                "stakeholder_submission_bundle",
+                "data_protection_screening",
+                "course_material_policy",
+                "public_safety",
+            ],
+            "human_gates": ["datenschutz_review_required_before_real_pilot", "human_submission_review_required"],
+        },
+        {
+            "section_id": "exam_gateway_decision_trace",
+            "summary_claim": "exam gateway lane remains not cleared and asks only for written authority review of a possible controlled A0-A2 scope",
+            "source_card_ids": ["hg-nrw-2025", "hg-nrw-64", "uoc-hilfsmittel", "uoc-ki-faq", "eu-ai-act-2024"],
+            "readiness_check_ids": [
+                "stakeholder_submission_bundle",
+                "authority_handoff",
+                "compliance_matrix",
+                "review_board_packet",
+                "exam_boundary",
+            ],
+            "human_gates": [
+                "written_university_clearance_required_before_exam_use",
+                "human_submission_review_required",
+            ],
+        },
+        {
+            "section_id": "evidence_chain_trace",
+            "summary_claim": "bundle evidence links extraction queue, operator packet, clearance board, review board, compliance, privacy, and authority handoff statuses",
+            "source_card_ids": [],
+            "readiness_check_ids": [
+                "stakeholder_submission_bundle",
+                "source_card_drift_guard",
+                "review_board_packet",
+                "authority_handoff",
+                "data_protection_screening",
+            ],
+            "human_gates": ["human_submission_review_required"],
+        },
+    ]
+    required_source_card_ids = sorted({source_id for section in sections for source_id in section["source_card_ids"]})
+    missing_source_card_ids = sorted(source_id for source_id in required_source_card_ids if get_source_card(source_id) is None)
+
+    lanes = {lane.get("lane_id"): lane for lane in bundle.get("decision_lanes", [])}
+    extraction = lanes.get("rights_privacy_local_extraction", {})
+    exam = lanes.get("exam_gateway_authority_clearance", {})
+    summary = bundle.get("combined_evidence_summary", {})
+    public_safety_statuses = summary.get("public_safety_statuses", {})
+    do_not_include = set(bundle.get("do_not_include_in_submission", []))
+    open_gates = set(bundle.get("open_external_gates", []))
+
+    contracts = {
+        "bundle_prepares_human_submission_not_sent": bundle.get("status") == "ready_for_human_submission_not_sent",
+        "exam_deployment_not_cleared": bundle.get("exam_deployment_status") == "not_cleared",
+        "submission_boundary_blocks_send_approval_legal_exam": all(
+            phrase in bundle.get("submission_boundary", "")
+            for phrase in ["does not send messages", "does not claim approval", "does not provide legal advice", "does not clear exam deployment"]
+        ),
+        "open_external_gates_explicit": {
+            "rights/privacy decision before local OCR/transcription",
+            "written exam authority clearance before any real exam use",
+        }.issubset(open_gates),
+        "exactly_two_decision_lanes": set(lanes) == {"rights_privacy_local_extraction", "exam_gateway_authority_clearance"},
+        "local_extraction_lane_is_rights_privacy_gated": extraction.get("validator_endpoint")
+        == "/api/unibot/course/extraction-decision/validate"
+        and extraction.get("minimum_record_template", {}).get("cloud_processing_allowed") is False
+        and extraction.get("minimum_record_template", {}).get("raw_text_public_release_allowed") is False
+        and "Datenschutz" in extraction.get("reviewer_roles", []),
+        "exam_gateway_lane_requires_written_clearance": exam.get("validator_endpoint") == "/api/unibot/institutional-clearance/validate"
+        and exam.get("exam_deployment_status") == "not_cleared"
+        and exam.get("minimum_record_template", {}).get("help_levels_allowed") == ["A0", "A1", "A2"]
+        and "Pruefungsamt" in exam.get("reviewer_roles", []),
+        "combined_evidence_links_review_privacy_compliance_authority": summary.get("review_board_status")
+        == "draft_for_institutional_review"
+        and summary.get("clearance_board_status") == "pending_written_clearance"
+        and summary.get("compliance_status") == "draft_ready_for_authority_review"
+        and summary.get("privacy_status") == "draft_for_datenschutz_review"
+        and summary.get("authority_handoff_status") == "draft_not_officially_cleared",
+        "public_safety_evidence_passes": all(
+            public_safety_statuses.get(key) == "pass"
+            for key in ["extraction_queue", "extraction_decision", "operator_packet", "clearance_board", "privacy", "compliance", "review_board"]
+        ),
+        "submission_excludes_private_raw_and_high_stakes_claims": {
+            "raw private course text",
+            "local absolute paths",
+            "raw external KI outputs",
+            "student personal data",
+            "health or accommodation records",
+            "official-grade language",
+            "claims that the exam gateway is already cleared",
+        }.issubset(do_not_include),
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    payload = {
+        "sections": sections,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "blocked_claims": [
+            "automatic submission",
+            "exam clearance",
+            "official grading",
+            "proctoring",
+            "KI-detection evidence",
+            "Datenschutz approval",
+            "cloud processing approval",
+            "public raw course text release",
+        ],
+    }
+    scan = scan_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        "stakeholder-submission-release-claim-alignment",
+    )
+    status = "ready" if not missing_source_card_ids and not failed_contract_ids and scan["status"] == "pass" else "needs_review"
+    return {
+        "schema_version": STAKEHOLDER_SUBMISSION_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "blocked_claims": payload["blocked_claims"],
+        "public_safety_status": scan["status"],
+        "policy": (
+            "Stakeholder submission release claims are draft-review aids only; they do not send messages, "
+            "approve processing, clear exam use, authorize public raw material release, grade, proctor, "
+            "detect KI, or replace written human decisions."
+        ),
+    }
 
 
 def build_stakeholder_submission_bundle(
@@ -111,6 +267,7 @@ def build_stakeholder_submission_bundle(
             "Keep exam_deployment_status not_cleared unless the responsible authorities issue written clearance.",
         ],
     }
+    bundle["release_claim_alignment"] = build_stakeholder_submission_release_claim_alignment(bundle)
     attach_public_scan(bundle, public_safe=public_safe, source_name="stakeholder-submission-bundle")
     return bundle
 
@@ -231,11 +388,17 @@ def build_stakeholder_submission_markdown(
             f"Draft message: {lane['submission_message_template']}\n\n"
             f"Must not claim:\n{must_not}\n"
         )
+    release_alignment = bundle["release_claim_alignment"]
     return (
         "# UniBot Stakeholder Submission Bundle\n\n"
         f"Status: {bundle['status_label_de']}\n\n"
         f"Exam deployment: {bundle['exam_deployment_status']}\n\n"
         f"Boundary: {bundle['submission_boundary']}\n\n"
+        "## Release Claim Alignment\n\n"
+        f"- Status: {release_alignment['status']}\n"
+        f"- Public Safety: {release_alignment['public_safety_status']}\n"
+        f"- Human Gates: {', '.join(release_alignment['required_human_gates'])}\n"
+        f"- Blocked Claims: {', '.join(release_alignment['blocked_claims'])}\n\n"
         "## Open External Gates\n\n"
         + "\n".join(f"- {item}" for item in bundle["open_external_gates"])
         + "\n\n"

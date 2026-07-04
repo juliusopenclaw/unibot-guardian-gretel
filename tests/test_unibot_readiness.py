@@ -62,6 +62,7 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertIn("pilot_protocol", check_ids)
         self.assertIn("data_protection_screening", check_ids)
         self.assertIn("review_board_packet", check_ids)
+        self.assertIn("stakeholder_submission_bundle", check_ids)
         self.assertIn("gretel_glm_evolve_lane", check_ids)
         self.assertIn("gretel_bachelor_thesis_package", check_ids)
         self.assertIn("gretel_autonomous_research_loop", check_ids)
@@ -126,6 +127,26 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertIn(
             "written_university_clearance_required_before_exam_use",
             authority["evidence"]["release_claim_alignment_human_gates"],
+        )
+        stakeholder_submission = next(check for check in report["checks"] if check["check_id"] == "stakeholder_submission_bundle")
+        self.assertEqual(stakeholder_submission["evidence"]["release_claim_alignment_status"], "ready")
+        self.assertEqual(stakeholder_submission["evidence"]["release_claim_alignment_public_safety_status"], "pass")
+        self.assertEqual(
+            stakeholder_submission["evidence"]["release_claim_alignment_contract_status"],
+            "unibot-stakeholder-submission-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(stakeholder_submission["evidence"]["decision_lane_count"], 2)
+        self.assertTrue(stakeholder_submission["evidence"]["review_board_claim_linked"])
+        self.assertTrue(stakeholder_submission["evidence"]["authority_handoff_claim_linked"])
+        self.assertTrue(stakeholder_submission["evidence"]["data_protection_claim_linked"])
+        self.assertTrue(stakeholder_submission["evidence"]["source_card_drift_claim_linked"])
+        self.assertTrue(stakeholder_submission["evidence"]["human_submission_gate_linked"])
+        self.assertTrue(stakeholder_submission["evidence"]["datenschutz_gate_linked"])
+        self.assertTrue(stakeholder_submission["evidence"]["exam_clearance_blocked"])
+        self.assertTrue(stakeholder_submission["evidence"]["automatic_submission_blocked"])
+        self.assertIn(
+            "written_university_clearance_required_before_exam_use",
+            stakeholder_submission["evidence"]["release_claim_alignment_human_gates"],
         )
         notebook = next(check for check in report["checks"] if check["check_id"] == "notebook_template")
         self.assertEqual(

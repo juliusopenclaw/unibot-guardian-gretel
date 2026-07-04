@@ -32,6 +32,7 @@ It aggregates:
 - pilot protocol
 - data-protection screening
 - review board packet
+- stakeholder submission bundle and release-claim alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -50,6 +51,13 @@ contract keeps university-facing handoff language source-bound, public-safe,
 and explicitly blocked from exam clearance, grading, proctoring, KI-detection
 evidence, provider calls, real pilots, or submission until the named human
 review gates are satisfied.
+
+The stakeholder submission bundle carries
+`unibot-stakeholder-submission-release-review-board-claim-alignment-v1`. This
+contract keeps the rights/privacy extraction lane and exam-authority lane tied
+to review-board, authority-handoff, source-card, Datenschutz, public-safety, and
+human-gate evidence. It does not send messages, approve processing, clear exam
+use, or authorize public release of private course material.
 
 ## Source-Card Drift Guard
 

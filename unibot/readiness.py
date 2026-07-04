@@ -35,6 +35,7 @@ from .source_cards import (
     build_source_card_release_review_board_claim_alignment,
     list_source_cards,
 )
+from .submission import build_stakeholder_submission_bundle
 from .triage import build_feedback_triage
 from .review_board import build_review_board_packet
 
@@ -111,6 +112,7 @@ def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
         "redteam",
         "publication_package",
         "review_board_packet",
+        "stakeholder_submission_bundle",
         "gretel_glm_evolve_lane",
         "gretel_bachelor_thesis_package",
         "gretel_autonomous_research_loop",
@@ -179,6 +181,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     evaluation = build_evaluation_packet()
     evaluation_learner_agency_alignment = evaluation["learner_agency_boundary_alignment"]
     handoff = build_authority_handoff_packet()
+    stakeholder_submission = build_stakeholder_submission_bundle()
     notebook = generate_practice_notebook("UniBot readiness notebook smoke")
     source_cards = list_source_cards()
     source_card_drift = build_source_card_drift_report()
@@ -446,6 +449,64 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                     "human_submission_review_required" in handoff["release_claim_alignment"]["required_human_gates"]
                 ),
                 "exam_clearance_blocked": "exam clearance" in handoff["release_claim_alignment"]["blocked_claims"],
+            },
+        },
+        {
+            "check_id": "stakeholder_submission_bundle",
+            "passed": stakeholder_submission["status"] == "ready_for_human_submission_not_sent"
+            and stakeholder_submission["exam_deployment_status"] == "not_cleared"
+            and stakeholder_submission["public_safety_status"] == "pass"
+            and stakeholder_submission["release_claim_alignment"]["status"] == "ready"
+            and stakeholder_submission["release_claim_alignment"]["public_safety_status"] == "pass"
+            and stakeholder_submission["release_claim_alignment"]["missing_source_card_ids"] == []
+            and stakeholder_submission["release_claim_alignment"]["failed_contract_ids"] == [],
+            "evidence": {
+                "status": stakeholder_submission["status"],
+                "exam_deployment_status": stakeholder_submission["exam_deployment_status"],
+                "public_safety_status": stakeholder_submission["public_safety_status"],
+                "decision_lane_count": len(stakeholder_submission["decision_lanes"]),
+                "open_external_gate_count": len(stakeholder_submission["open_external_gates"]),
+                "release_claim_alignment_status": stakeholder_submission["release_claim_alignment"]["status"],
+                "release_claim_alignment_public_safety_status": stakeholder_submission["release_claim_alignment"][
+                    "public_safety_status"
+                ],
+                "release_claim_alignment_contract_status": stakeholder_submission["release_claim_alignment"][
+                    "schema_version"
+                ],
+                "release_claim_alignment_section_count": stakeholder_submission["release_claim_alignment"][
+                    "section_count"
+                ],
+                "release_claim_alignment_human_gates": stakeholder_submission["release_claim_alignment"][
+                    "required_human_gates"
+                ],
+                "review_board_claim_linked": (
+                    "review_board_packet"
+                    in stakeholder_submission["release_claim_alignment"]["required_readiness_check_ids"]
+                ),
+                "authority_handoff_claim_linked": (
+                    "authority_handoff"
+                    in stakeholder_submission["release_claim_alignment"]["required_readiness_check_ids"]
+                ),
+                "data_protection_claim_linked": (
+                    "data_protection_screening"
+                    in stakeholder_submission["release_claim_alignment"]["required_readiness_check_ids"]
+                ),
+                "source_card_drift_claim_linked": (
+                    "source_card_drift_guard"
+                    in stakeholder_submission["release_claim_alignment"]["required_readiness_check_ids"]
+                ),
+                "human_submission_gate_linked": (
+                    "human_submission_review_required"
+                    in stakeholder_submission["release_claim_alignment"]["required_human_gates"]
+                ),
+                "datenschutz_gate_linked": (
+                    "datenschutz_review_required_before_real_pilot"
+                    in stakeholder_submission["release_claim_alignment"]["required_human_gates"]
+                ),
+                "exam_clearance_blocked": "exam clearance"
+                in stakeholder_submission["release_claim_alignment"]["blocked_claims"],
+                "automatic_submission_blocked": "automatic submission"
+                in stakeholder_submission["release_claim_alignment"]["blocked_claims"],
             },
         },
         {
