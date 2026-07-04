@@ -55,6 +55,12 @@ and written university clearance before any exam use.
 11. Check PM status with `POST /api/unibot/orchestration/command-center`.
 12. Validate parallel-chat handoffs with `POST /api/unibot/orchestration/handoff/validate`.
 13. Run `POST /api/unibot/completion-audit` before claiming project closure.
+    The completion audit carries a workspace-card closure alignment that links
+    public-draft completion status, readiness snapshot evidence,
+    command-center route status, and the not-cleared deployment line through
+    hashes only. It is a technical public-draft closure aid, not public release,
+    provider-call approval, grading, proctoring, KI-detection evidence, or exam
+    clearance.
 14. Inspect course extraction work with `POST /api/unibot/course/extraction-queue`.
 15. Prepare and validate the rights/privacy gate with
     `POST /api/unibot/course/extraction-decision-packet` and

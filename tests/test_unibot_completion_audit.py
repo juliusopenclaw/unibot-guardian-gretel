@@ -10,7 +10,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.completion_audit import build_completion_audit  # noqa: E402
+from unibot.completion_audit import (  # noqa: E402
+    build_completion_audit,
+    build_completion_audit_workspace_card_closure_alignment,
+    completion_audit_hash,
+    completion_closure_hash,
+    synthetic_completion_audit_workspace_card,
+)
 from unibot.external_decision_journal import (  # noqa: E402
     append_external_decision_journal_record,
     read_external_decision_journal,
@@ -78,6 +84,29 @@ class UniBotCompletionAuditTests(unittest.TestCase):
         self.assertTrue(audit["goal_complete"])
         self.assertEqual(audit["status"], "complete")
         self.assertEqual(audit["exam_deployment_status"], "not_cleared")
+        alignment = audit["workspace_card_closure_alignment"]
+        self.assertEqual(alignment["schema_version"], "unibot-completion-audit-workspace-card-closure-alignment-v1")
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["alignment_public_safety_status"], "pass")
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertEqual(alignment["completion_audit_hash"], completion_audit_hash(audit))
+        self.assertEqual(alignment["completion_closure_hash"], completion_closure_hash(audit))
+        self.assertTrue(alignment["goal_complete"])
+        self.assertTrue(alignment["public_draft_ready"])
+        self.assertEqual(alignment["readiness_snapshot_status"], "ready")
+        self.assertTrue(alignment["readiness_snapshot_hash_present"])
+        self.assertEqual(alignment["command_center_route_alignment_status"], "ready")
+        self.assertTrue(alignment["command_center_route_gate_linked"])
+        self.assertEqual(alignment["exam_deployment_status"], "not_cleared")
+        self.assertIn("completion_audit", alignment["required_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_completion_gate_linked"])
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertFalse(alignment["raw_workspace_card_returned"])
+        self.assertIn("exam deployment", alignment["blocked_claims"])
         self.assertEqual(audit["open_count"], 0)
         self.assertEqual(audit["reminder_count"], 1)
         self.assertEqual(requirements["local_cycle_stop_and_go_chain"]["status"], "passed")
@@ -286,6 +315,19 @@ class UniBotCompletionAuditTests(unittest.TestCase):
         self.assertEqual(requirements["course_study_session_receipt_harness"]["status"], "passed")
         self.assertEqual(scan_text(payload, "completion-audit-test")["status"], "pass")
 
+    def test_completion_audit_workspace_card_alignment_rejects_unlinked_hashes(self) -> None:
+        audit = build_completion_audit()
+        workspace_card = synthetic_completion_audit_workspace_card()
+        workspace_card["workspace_card_summary"]["checkpoint_hash"] = "wrong-audit-hash"
+        workspace_card["workspace_card_summary"]["task_hash"] = "wrong-closure-hash"
+
+        alignment = build_completion_audit_workspace_card_closure_alignment(audit, workspace_card)
+
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertIn("workspace_card_completion_gate_linked", alignment["failed_contract_ids"])
+        self.assertFalse(alignment["workspace_card_completion_gate_linked"])
+        self.assertFalse(alignment["raw_workspace_card_returned"])
+
     def test_completion_audit_counts_real_material_extraction_queue(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
             fixture_root = Path(temp_dir)
@@ -358,6 +400,8 @@ class UniBotCompletionAuditTests(unittest.TestCase):
         self.assertEqual(audit["artifact_type"], "unibot_project_completion_audit")
         self.assertTrue(audit["public_draft_ready"])
         self.assertTrue(audit["goal_complete"])
+        self.assertEqual(audit["workspace_card_closure_alignment"]["status"], "ready")
+        self.assertTrue(audit["workspace_card_closure_alignment"]["workspace_card_completion_gate_linked"])
         self.assertEqual(audit["open_count"], 0)
         self.assertGreaterEqual(audit["reminder_count"], 1)
         self.assertTrue(audit["external_real_world_reminders"])

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -30,6 +31,9 @@ from .tutor_coverage import build_course_tutor_coverage_plan
 
 
 COMPLETION_AUDIT_SCHEMA_VERSION = "unibot-completion-audit-v1"
+COMPLETION_AUDIT_WORKSPACE_CARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-completion-audit-workspace-card-closure-alignment-v1"
+)
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -841,9 +845,264 @@ def build_completion_audit(
             "Technical bot delivery is complete when no failed or open technical requirements remain. "
             "Real-world exam clearance is tracked as a reminder and never changes exam_deployment_status by itself."
         ),
+        "readiness_snapshot_status": readiness.get("evidence_snapshot", {}).get("status", "missing"),
+        "readiness_snapshot_hash": readiness.get("evidence_snapshot", {}).get("snapshot_hash", ""),
+        "readiness_failed_count": readiness.get("failed_count", -1),
+        "command_center_route_alignment_status": command_center.get("workspace_card_route_alignment", {}).get(
+            "status",
+            "missing",
+        ),
+        "command_center_route_gate_linked": command_center.get("workspace_card_route_alignment", {}).get(
+            "workspace_card_command_center_gate_linked",
+            False,
+        ),
     }
     attach_public_scan(audit, public_safe=public_safe, source_name="unibot-completion-audit")
+    audit["workspace_card_closure_alignment"] = build_completion_audit_workspace_card_closure_alignment(audit)
+    attach_public_scan(audit, public_safe=public_safe, source_name="unibot-completion-audit")
     return audit
+
+
+def stable_hash(value: Any) -> str:
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def completion_audit_hash(audit: dict[str, Any]) -> str:
+    return stable_hash(
+        {
+            "schema_version": audit.get("schema_version", ""),
+            "artifact_type": audit.get("artifact_type", ""),
+            "status": audit.get("status", ""),
+            "goal_complete": audit.get("goal_complete", None),
+            "public_draft_ready": audit.get("public_draft_ready", None),
+            "exam_deployment_status": audit.get("exam_deployment_status", ""),
+            "requirement_count": audit.get("requirement_count", 0),
+            "passed_count": audit.get("passed_count", 0),
+            "open_count": audit.get("open_count", 0),
+            "failed_count": audit.get("failed_count", 0),
+            "reminder_count": audit.get("reminder_count", 0),
+            "readiness_snapshot_status": audit.get("readiness_snapshot_status", ""),
+            "readiness_snapshot_hash": audit.get("readiness_snapshot_hash", ""),
+            "readiness_failed_count": audit.get("readiness_failed_count", -1),
+            "command_center_route_alignment_status": audit.get("command_center_route_alignment_status", ""),
+            "command_center_route_gate_linked": audit.get("command_center_route_gate_linked", None),
+            "public_safety_status": audit.get("public_safety_status", ""),
+        }
+    )
+
+
+def completion_closure_hash(audit: dict[str, Any]) -> str:
+    return stable_hash(
+        {
+            "requirements": [
+                {
+                    "requirement_id": item.get("requirement_id", ""),
+                    "status": item.get("status", ""),
+                    "evidence_hash": stable_hash(item.get("evidence", {})),
+                }
+                for item in audit.get("requirements", [])
+                if isinstance(item, dict)
+            ],
+            "external_real_world_reminders": audit.get("external_real_world_reminders", []),
+            "next_best_actions": audit.get("next_best_actions", []),
+            "completion_policy": audit.get("completion_policy", ""),
+        }
+    )
+
+
+def synthetic_completion_audit_workspace_card() -> dict[str, Any]:
+    preview_hash = hashlib.sha256(b"synthetic completion audit workspace card").hexdigest()
+    return {
+        "schema_version": "unibot-python-exam-local-cycle-operator-workspace-card-v1",
+        "artifact_type": "python_exam_local_cycle_operator_workspace_card",
+        "status": "python_exam_local_cycle_operator_workspace_card_ready",
+        "selected_skill_tag": "pandas",
+        "exam_deployment_status": "not_cleared",
+        "not_cleared_receipt": True,
+        "workspace_card_summary": {
+            "recommendation": "ready_for_operator_prefill",
+            "recommendation_reason": "synthetic completion-audit closure prerequisites are satisfied",
+            "ready_for_operator_prefill": True,
+            "help_ledger_preview_status": "help_ledger_preview_ready",
+            "selected_skill_tag": "pandas",
+            "next_safe_action": "review_completion_audit_hashes_before_workspace_prefill",
+            "next_safe_user_action": "review_hash_only_completion_audit_before_public_claim_use",
+            "operator_run_endpoint": "/api/unibot/exam-workspace/operator-run",
+            "operator_run_method": "POST",
+            "help_level": "A2",
+            "task_hash": "__COMPLETION_CLOSURE_HASH__",
+            "checkpoint_hash": "__COMPLETION_AUDIT_HASH__",
+            "source_card_ids": ["dfg-gwp", "gdpr-2016-679", "zai-glm-52"],
+            "source_anchor_count": 3,
+            "help_ledger_preview_hash": preview_hash,
+        },
+        "help_ledger_preview": {
+            "status": "help_ledger_preview_ready",
+            "help_level": "A2",
+            "preview_hash": preview_hash,
+        },
+    }
+
+
+def safe_completion_audit_workspace_card(
+    workspace_card: dict[str, Any],
+    *,
+    audit_hash: str = "",
+    closure_hash: str = "",
+) -> dict[str, Any]:
+    summary = workspace_card.get("workspace_card_summary", {}) if isinstance(workspace_card.get("workspace_card_summary"), dict) else {}
+    ledger = workspace_card.get("help_ledger_preview", {}) if isinstance(workspace_card.get("help_ledger_preview"), dict) else {}
+    if not summary and (
+        workspace_card.get("help_ledger_preview_hash") is not None
+        or workspace_card.get("ready_for_operator_prefill") is not None
+        or workspace_card.get("help_ledger_preview_status") is not None
+    ):
+        summary = workspace_card
+    checkpoint_hash = str(summary.get("checkpoint_hash", ""))
+    task_hash = str(summary.get("task_hash", ""))
+    if audit_hash and checkpoint_hash == "__COMPLETION_AUDIT_HASH__":
+        checkpoint_hash = audit_hash
+    if closure_hash and task_hash == "__COMPLETION_CLOSURE_HASH__":
+        task_hash = closure_hash
+    return {
+        "status": workspace_card.get("status", "missing"),
+        "selected_skill_tag": str(summary.get("selected_skill_tag", workspace_card.get("selected_skill_tag", ""))),
+        "recommendation": str(summary.get("recommendation", "keep_blocked")),
+        "recommendation_reason": str(summary.get("recommendation_reason", "missing_completion_audit_closure_gate")),
+        "ready_for_operator_prefill": bool(summary.get("ready_for_operator_prefill", False)),
+        "help_ledger_preview_status": str(summary.get("help_ledger_preview_status", ledger.get("status", "missing"))),
+        "next_safe_action": str(summary.get("next_safe_action", "")),
+        "next_safe_user_action": str(summary.get("next_safe_user_action", "")),
+        "operator_run_endpoint": str(summary.get("operator_run_endpoint", "")),
+        "operator_run_method": str(summary.get("operator_run_method", "POST")),
+        "help_level": str(summary.get("help_level", ledger.get("help_level", "A2"))),
+        "task_hash": task_hash,
+        "checkpoint_hash": checkpoint_hash,
+        "source_card_ids": [str(item) for item in (summary.get("source_card_ids", []) or [])][:8],
+        "source_anchor_count": int(summary.get("source_anchor_count", 0) or 0),
+        "help_ledger_preview_hash": str(summary.get("help_ledger_preview_hash", ledger.get("preview_hash", ""))),
+        "not_cleared_receipt": bool(workspace_card.get("not_cleared_receipt", True)),
+        "exam_deployment_status": "not_cleared",
+        "raw_workspace_card_returned": False,
+    }
+
+
+def build_completion_audit_workspace_card_closure_alignment(
+    audit: dict[str, Any] | None = None,
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    audit = audit if isinstance(audit, dict) else {}
+    audit_hash = completion_audit_hash(audit)
+    closure_hash = completion_closure_hash(audit)
+    workspace_card = safe_completion_audit_workspace_card(
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else synthetic_completion_audit_workspace_card(),
+        audit_hash=audit_hash,
+        closure_hash=closure_hash,
+    )
+    workspace_card_readiness_gate_linked = (
+        workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and workspace_card.get("help_ledger_preview_hash") != ""
+        and workspace_card.get("exam_deployment_status") == "not_cleared"
+        and workspace_card.get("not_cleared_receipt") is True
+        and workspace_card.get("raw_workspace_card_returned") is False
+    )
+    contracts = {
+        "completion_audit_public_draft_ready": audit.get("status") == "complete"
+        and audit.get("goal_complete") is True
+        and audit.get("public_draft_ready") is True
+        and audit.get("public_safety_status") == "pass"
+        and audit.get("failed_count") == 0
+        and audit.get("open_count") == 0,
+        "readiness_snapshot_and_command_center_linked": audit.get("readiness_snapshot_status") == "ready"
+        and bool(audit.get("readiness_snapshot_hash", ""))
+        and audit.get("readiness_failed_count") == 0
+        and audit.get("command_center_route_alignment_status") == "ready"
+        and audit.get("command_center_route_gate_linked") is True,
+        "no_clearance_or_deployment_claim": audit.get("exam_deployment_status") == "not_cleared",
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_completion_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("checkpoint_hash") == audit_hash
+        and workspace_card.get("task_hash") == closure_hash,
+        "workspace_card_public_metadata_only": workspace_card.get("raw_workspace_card_returned") is False,
+        "high_stakes_boundaries_blocked": workspace_card.get("exam_deployment_status") == "not_cleared"
+        and audit.get("exam_deployment_status") == "not_cleared",
+    }
+    alignment = {
+        "schema_version": COMPLETION_AUDIT_WORKSPACE_CARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": "ready",
+        "completion_audit_hash": audit_hash,
+        "completion_closure_hash": closure_hash,
+        "audit_status": audit.get("status", "missing"),
+        "goal_complete": audit.get("goal_complete", None),
+        "public_draft_ready": audit.get("public_draft_ready", None),
+        "readiness_snapshot_status": audit.get("readiness_snapshot_status", "missing"),
+        "readiness_snapshot_hash_present": bool(audit.get("readiness_snapshot_hash", "")),
+        "command_center_route_alignment_status": audit.get("command_center_route_alignment_status", "missing"),
+        "command_center_route_gate_linked": audit.get("command_center_route_gate_linked", False),
+        "exam_deployment_status": audit.get("exam_deployment_status", "missing"),
+        "required_readiness_check_ids": [
+            "completion_audit",
+            "orchestration_command_center",
+            "readiness_evidence_snapshot",
+            "python_exam_local_cycle_operator_workspace_card",
+        ],
+        "required_human_gates": [
+            "human_review_required",
+            "public_safety_required",
+            "external_live_actions_require_explicit_go",
+            "exam_clearance_requires_written_authority_clearance",
+        ],
+        "blocked_claims": [
+            "raw private course text publication",
+            "contact data publication",
+            "local path publication",
+            "provider call",
+            "autonomous publication",
+            "approval claim",
+            "exam clearance claim",
+            "grading",
+            "proctoring",
+            "KI-detection evidence",
+            "exam deployment",
+        ],
+        "contracts": contracts,
+        "failed_contract_ids": sorted(contract_id for contract_id, passed in contracts.items() if not passed),
+        "workspace_card_status": workspace_card["status"],
+        "workspace_card_selected_skill_tag": workspace_card["selected_skill_tag"],
+        "workspace_card_ready_for_operator_prefill": workspace_card["ready_for_operator_prefill"],
+        "workspace_card_help_ledger_status": workspace_card["help_ledger_preview_status"],
+        "workspace_card_help_ledger_hash_present": workspace_card["help_ledger_preview_hash"] != "",
+        "workspace_card_operator_prefill_hash_present": workspace_card["task_hash"] != ""
+        and workspace_card["checkpoint_hash"] != "",
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_completion_gate_linked": contracts["workspace_card_completion_gate_linked"],
+        "workspace_card_readiness_gate_claim_linked": "python_exam_local_cycle_operator_workspace_card"
+        in [
+            "completion_audit",
+            "orchestration_command_center",
+            "readiness_evidence_snapshot",
+            "python_exam_local_cycle_operator_workspace_card",
+        ],
+        "raw_workspace_card_returned": workspace_card["raw_workspace_card_returned"],
+        "public_language": (
+            "Completion-audit claims are hash-only review aids for public-draft closure, readiness snapshots, "
+            "command-center route state, and non-clearance boundaries; they do not authorize publication, "
+            "provider calls, grading, or exam use."
+        ),
+    }
+    if alignment["failed_contract_ids"]:
+        alignment["status"] = "blocked"
+    scan = scan_text(json.dumps(alignment, ensure_ascii=False), "completion-audit-workspace-card-closure-alignment")
+    alignment["alignment_public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        alignment["status"] = "blocked"
+        alignment["public_safety_findings"] = scan["findings"]
+    return alignment
 
 
 def requirement(

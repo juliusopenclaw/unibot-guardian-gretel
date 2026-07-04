@@ -56,6 +56,7 @@ It aggregates:
 - Python exam local-cycle readiness-handoff and operator-prefill alignment
 - Python exam local-cycle operator workspace-card and help-ledger-preview alignment
 - orchestration command center and workspace-card route alignment
+- completion audit and workspace-card closure alignment
 - Gretel/GLM proposal lane
 - Gretel autonomous research loop and workspace-card budget/receipt alignment
 - Paperclip evaluation bridge and workspace-card control/receipt alignment
@@ -101,6 +102,15 @@ without exposing raw private course text, contact data, local paths, provider
 prompts, notebook code, autonomous publication, approval or exam-clearance
 claims, grading, proctoring, KI-detection evidence, exam deployment claims, or
 the raw workspace card.
+
+The completion audit carries
+`unibot-completion-audit-workspace-card-closure-alignment-v1`. This contract
+keeps public-draft closure, readiness snapshot evidence, command-center route
+state, and the not-cleared deployment line hash-linked to the harnessed
+local-cycle operator workspace-card readiness gate without exposing raw private
+course text, contact data, local paths, provider prompts, notebook code,
+autonomous publication, approval or exam-clearance claims, grading, proctoring,
+KI-detection evidence, exam deployment claims, or the raw workspace card.
 
 The Gretel bachelor-thesis package carries
 `unibot-gretel-thesis-evaluation-claim-alignment-v1`. This contract keeps
