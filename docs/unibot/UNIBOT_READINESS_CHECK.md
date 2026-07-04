@@ -107,7 +107,10 @@ The external decision state carries
 contract keeps derived gate state public-safe and hash-only: validated records
 may derive next gates, but the state still blocks raw decision storage,
 submission sends, legal-advice language, silent deployment switches, grading,
-proctoring, KI-detection evidence, and exam deployment by itself.
+proctoring, KI-detection evidence, and exam deployment by itself. Decision gate
+and decision-record hashes are now linked to the harnessed local-cycle operator
+workspace-card readiness gate without exposing raw written decisions, contact
+data, public raw course text, or the raw workspace card.
 
 The extraction receipt journal carries
 `unibot-extraction-receipt-journal-release-review-board-claim-alignment-v1`.

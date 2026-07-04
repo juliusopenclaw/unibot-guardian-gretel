@@ -12,6 +12,9 @@ sys.path.insert(0, str(ROOT))
 from unibot.decision_state import (  # noqa: E402
     build_external_decision_state,
     build_external_decision_state_release_claim_alignment,
+    decision_gate_hash,
+    decision_record_hash,
+    synthetic_external_decision_state_workspace_card,
 )
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
@@ -106,6 +109,7 @@ class UniBotDecisionStateTests(unittest.TestCase):
         self.assertEqual(alignment["missing_source_card_ids"], [])
         self.assertEqual(alignment["failed_contract_ids"], [])
         self.assertIn("external_decision_state", alignment["required_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
         self.assertIn("external_decision_record_journal", alignment["required_readiness_check_ids"])
         self.assertIn("data_protection_screening", alignment["required_readiness_check_ids"])
         self.assertIn("authority_handoff", alignment["required_readiness_check_ids"])
@@ -113,9 +117,47 @@ class UniBotDecisionStateTests(unittest.TestCase):
         self.assertIn("human_submission_review_required", alignment["required_human_gates"])
         self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
         self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertTrue(alignment["contracts"]["workspace_card_decision_gate_linked"])
+        self.assertEqual(alignment["workspace_card_status"], "python_exam_local_cycle_operator_workspace_card_ready")
+        self.assertEqual(alignment["workspace_card_selected_skill_tag"], "pandas")
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_decision_gate_linked"])
         self.assertIn("raw written decision storage", alignment["blocked_claims"])
         self.assertIn("silent deployment switch", alignment["blocked_claims"])
         self.assertIn("exam deployment", alignment["blocked_claims"])
+
+    def test_decision_state_hash_helpers_link_gate_and_decision_metadata(self) -> None:
+        state = build_external_decision_state(
+            extraction_decision_record=valid_extraction_decision(),
+            exam_clearance_record=valid_exam_clearance(),
+            deployment_go_reference="synthetic manual go reference",
+        )
+
+        self.assertTrue(decision_gate_hash(state))
+        self.assertTrue(decision_record_hash(state))
+        self.assertNotEqual(decision_gate_hash(state), decision_record_hash(state))
+
+    def test_decision_state_release_claim_alignment_rejects_unlinked_workspace_card_hashes(self) -> None:
+        state = build_external_decision_state(
+            extraction_decision_record=valid_extraction_decision(),
+            exam_clearance_record=valid_exam_clearance(),
+            deployment_go_reference="synthetic manual go reference",
+        )
+        card = synthetic_external_decision_state_workspace_card()
+        card["workspace_card_summary"]["checkpoint_hash"] = "x"
+        card["workspace_card_summary"]["task_hash"] = "x"
+
+        alignment = build_external_decision_state_release_claim_alignment(
+            state,
+            python_exam_local_cycle_operator_workspace_card=card,
+        )
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertFalse(alignment["workspace_card_decision_gate_linked"])
+        self.assertIn("workspace_card_decision_gate_linked", alignment["failed_contract_ids"])
 
     def test_decision_state_release_claim_alignment_blocks_silent_deployment(self) -> None:
         state = build_external_decision_state(
