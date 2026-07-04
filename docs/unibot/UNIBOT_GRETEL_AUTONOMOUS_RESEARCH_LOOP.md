@@ -57,15 +57,23 @@ contract change.
 
 ## Current Work Queue
 
-- `extraction_progress_local_cycle_workspace_card_queue_link_alignment` is
-  ready. It should link extraction progress review queues and receipt metadata
-  with the harnessed local-cycle operator workspace-card readiness gate,
-  preserving progress/queue hashes and workspace-card prefill evidence, no raw
-  extracted text/local path/private artifact publication, no manifest writes or
-  tutor retrieval, no grading/proctoring/KI-detection, and no exam deployment
-  claims.
+- `extraction_receipt_journal_local_cycle_workspace_card_receipt_link_alignment`
+  is ready. It should link extraction receipt journal hash-only receipt
+  metadata with the harnessed local-cycle operator workspace-card readiness
+  gate, preserving receipt/journal hashes and workspace-card prefill evidence,
+  no raw extracted text/local path/private artifact publication, no manifest
+  writes/tutor retrieval, no grading/proctoring/KI-detection, and no exam
+  deployment claims.
 
 ## Closed Harnessed Work
+
+- `extraction_progress_local_cycle_workspace_card_queue_link_alignment`:
+  closed in `4414ee2` with extraction progress release-claim links from
+  progress queue and review hashes to the harnessed local-cycle operator
+  workspace-card readiness gate, review queue and ready-for-prefill metadata,
+  and blocked raw extracted text/local paths/private artifact publication,
+  manifest writes or tutor retrieval, grading, proctoring, KI-detection, and
+  exam deployment claims.
 
 - `extraction_manifest_update_local_cycle_workspace_card_candidate_link_alignment`:
   closed in `97b8634` with extraction manifest-update release-claim links from

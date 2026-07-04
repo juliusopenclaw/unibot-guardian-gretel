@@ -1367,7 +1367,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "extraction_progress_local_cycle_workspace_card_queue_link_alignment",
             "priority": 72,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link extraction progress review queues and receipt metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving progress/queue hashes and workspace-card prefill evidence, no raw extracted text/local path/private artifact publication, no manifest writes or tutor retrieval, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/extraction_progress.py",
@@ -1377,6 +1377,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_extraction_progress.py tests/test_unibot_readiness.py -q"],
             "review_gate": "extraction_progress_local_cycle_workspace_card_queue_link_traceability",
+            "closure_evidence": {
+                "commit": "4414ee2",
+                "summary": "Extraction progress release-claim alignment now links progress queue and review hashes to the harnessed local-cycle operator workspace-card readiness gate, preserves review queue and ready-for-prefill metadata, and blocks raw extracted text/local paths/private artifact publication, manifest writes or tutor retrieval, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "extraction_receipt_journal_local_cycle_workspace_card_receipt_link_alignment",
+            "priority": 73,
+            "status": "ready",
+            "goal": "Link extraction receipt journal hash-only receipt metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving receipt/journal hashes and workspace-card prefill evidence, no raw extracted text/local path/private artifact publication, no manifest writes/tutor retrieval, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/extraction_receipt_journal.py",
+                "tests/test_unibot_extraction_receipt_journal.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_extraction_receipt_journal.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "extraction_receipt_journal_local_cycle_workspace_card_receipt_link_traceability",
         },
     ]
 
