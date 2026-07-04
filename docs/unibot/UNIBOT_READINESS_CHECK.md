@@ -47,6 +47,7 @@ It aggregates:
 - study-session receipt and formative review alignment
 - notebook checkpoint and hash-only local cell evidence alignment
 - exam workspace launch and release-claim alignment
+- exam workspace run and release-claim alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -178,6 +179,15 @@ receipt, and notebook checkpoint into a dry-run launch receipt. It stays
 operator-reviewed, hash-only, and not cleared for real exams; it does not
 return raw notebook code or private text, grade, proctor, detect AI use, claim
 Eigenleistung percentages, or clear exam deployment.
+
+The exam-workspace run gate carries
+`unibot-exam-workspace-run-release-review-board-claim-alignment-v1`. It links
+the controlled notebook run packet to private tutor sidecar evidence, study
+receipt validation, Help-Ledger and exam-ledger events, and a human-review
+export receipt. Operator-confirmed local writes stay local and hash-oriented;
+the public report still does not return raw queries, raw notebook code, local
+paths, grades, proctoring, AI-detection evidence, Eigenleistung percentages, or
+exam clearance.
 
 ## Source-Card Drift Guard
 
