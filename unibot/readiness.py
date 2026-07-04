@@ -43,6 +43,7 @@ from .paperclip_evaluation_bridge import build_paperclip_evaluation_request, pap
 from .pilot import build_pilot_protocol
 from .privacy import build_data_protection_screening
 from .private_tutor_use_flow import build_private_tutor_use_flow_release_claim_alignment
+from .python_exam_local_cycle_start_packet import build_python_exam_local_cycle_start_packet_release_claim_alignment
 from .publication import build_publication_package
 from .public_safety import scan_public_files, scan_text
 from .redteam import build_threat_model_release_review_board_claim_alignment, run_redteam_smoke
@@ -149,6 +150,7 @@ def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
         "exam_workspace_run_history",
         "exam_workspace_operator_run",
         "exam_workspace_session_console",
+        "python_exam_local_cycle_start_packet",
         "gretel_glm_evolve_lane",
         "gretel_bachelor_thesis_package",
         "gretel_autonomous_research_loop",
@@ -236,6 +238,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     exam_workspace_run_history_alignment = build_exam_workspace_run_history_release_claim_alignment()
     exam_workspace_operator_run_alignment = build_exam_workspace_operator_run_release_claim_alignment()
     exam_workspace_session_console_alignment = build_exam_workspace_session_console_release_claim_alignment()
+    python_exam_local_cycle_start_packet_alignment = build_python_exam_local_cycle_start_packet_release_claim_alignment()
     notebook = generate_practice_notebook("UniBot readiness notebook smoke")
     source_cards = list_source_cards()
     source_card_drift = build_source_card_drift_report()
@@ -2102,6 +2105,133 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "exam_deployment_blocked": "exam deployment"
                 in exam_workspace_session_console_alignment["blocked_claims"],
                 "exam_clearance_blocked": "exam clearance" in exam_workspace_session_console_alignment["blocked_claims"],
+            },
+        },
+        {
+            "check_id": "python_exam_local_cycle_start_packet",
+            "passed": python_exam_local_cycle_start_packet_alignment["status"] == "ready"
+            and python_exam_local_cycle_start_packet_alignment["public_safety_status"] == "pass"
+            and python_exam_local_cycle_start_packet_alignment["open_packet_public_safety_status"] == "pass"
+            and python_exam_local_cycle_start_packet_alignment["confirmed_packet_public_safety_status"] == "pass"
+            and python_exam_local_cycle_start_packet_alignment["exam_deployment_status"] == "not_cleared"
+            and python_exam_local_cycle_start_packet_alignment["missing_source_card_ids"] == []
+            and python_exam_local_cycle_start_packet_alignment["failed_contract_ids"] == [],
+            "evidence": {
+                "release_claim_alignment_status": python_exam_local_cycle_start_packet_alignment["status"],
+                "release_claim_alignment_public_safety_status": python_exam_local_cycle_start_packet_alignment[
+                    "public_safety_status"
+                ],
+                "release_claim_alignment_contract_status": python_exam_local_cycle_start_packet_alignment[
+                    "schema_version"
+                ],
+                "release_claim_alignment_section_count": python_exam_local_cycle_start_packet_alignment[
+                    "section_count"
+                ],
+                "open_packet_status": python_exam_local_cycle_start_packet_alignment["open_packet_status"],
+                "open_packet_public_safety_status": python_exam_local_cycle_start_packet_alignment[
+                    "open_packet_public_safety_status"
+                ],
+                "confirmed_packet_status": python_exam_local_cycle_start_packet_alignment["confirmed_packet_status"],
+                "confirmed_packet_public_safety_status": python_exam_local_cycle_start_packet_alignment[
+                    "confirmed_packet_public_safety_status"
+                ],
+                "exam_deployment_status": python_exam_local_cycle_start_packet_alignment["exam_deployment_status"],
+                "selected_skill_tag": python_exam_local_cycle_start_packet_alignment["selected_skill_tag"],
+                "open_start_status": python_exam_local_cycle_start_packet_alignment["open_start_status"],
+                "open_blocked_reason": python_exam_local_cycle_start_packet_alignment["open_blocked_reason"],
+                "open_confirmation_count": python_exam_local_cycle_start_packet_alignment["open_confirmation_count"],
+                "confirmed_start_status": python_exam_local_cycle_start_packet_alignment["confirmed_start_status"],
+                "confirmed_count": python_exam_local_cycle_start_packet_alignment["confirmed_count"],
+                "task_hash_present": python_exam_local_cycle_start_packet_alignment["task_hash_present"],
+                "checkpoint_hash_present": python_exam_local_cycle_start_packet_alignment["checkpoint_hash_present"],
+                "source_card_ids": python_exam_local_cycle_start_packet_alignment["source_card_ids"],
+                "source_anchor_count": python_exam_local_cycle_start_packet_alignment["source_anchor_count"],
+                "help_level": python_exam_local_cycle_start_packet_alignment["help_level"],
+                "gate_receipt_id_present": python_exam_local_cycle_start_packet_alignment["gate_receipt_id_present"],
+                "decision_receipt_id_present": python_exam_local_cycle_start_packet_alignment[
+                    "decision_receipt_id_present"
+                ],
+                "start_receipt_status": python_exam_local_cycle_start_packet_alignment["start_receipt_status"],
+                "start_receipt_hash_present": python_exam_local_cycle_start_packet_alignment[
+                    "start_receipt_hash_present"
+                ],
+                "not_cleared_receipt": python_exam_local_cycle_start_packet_alignment["not_cleared_receipt"],
+                "safe_cycle_console_status": python_exam_local_cycle_start_packet_alignment[
+                    "safe_cycle_console_status"
+                ],
+                "operator_gate_status": python_exam_local_cycle_start_packet_alignment["operator_gate_status"],
+                "decision_receipt_status": python_exam_local_cycle_start_packet_alignment["decision_receipt_status"],
+                "dry_run_default": python_exam_local_cycle_start_packet_alignment["dry_run_default"],
+                "local_writes_requested": python_exam_local_cycle_start_packet_alignment["local_writes_requested"],
+                "local_execution_started": python_exam_local_cycle_start_packet_alignment["local_execution_started"],
+                "release_claim_alignment_human_gates": python_exam_local_cycle_start_packet_alignment[
+                    "required_human_gates"
+                ],
+                "session_console_claim_linked": (
+                    "exam_workspace_session_console"
+                    in python_exam_local_cycle_start_packet_alignment["required_readiness_check_ids"]
+                ),
+                "operator_run_claim_linked": (
+                    "exam_workspace_operator_run"
+                    in python_exam_local_cycle_start_packet_alignment["required_readiness_check_ids"]
+                ),
+                "study_session_claim_linked": (
+                    "study_session"
+                    in python_exam_local_cycle_start_packet_alignment["required_readiness_check_ids"]
+                ),
+                "external_decision_state_claim_linked": (
+                    "external_decision_state"
+                    in python_exam_local_cycle_start_packet_alignment["required_readiness_check_ids"]
+                ),
+                "evaluation_packet_claim_linked": (
+                    "evaluation_packet"
+                    in python_exam_local_cycle_start_packet_alignment["required_readiness_check_ids"]
+                ),
+                "exam_boundary_claim_linked": (
+                    "exam_boundary" in python_exam_local_cycle_start_packet_alignment["required_readiness_check_ids"]
+                ),
+                "open_packet_public_safe": python_exam_local_cycle_start_packet_alignment["contracts"][
+                    "open_packet_public_safe"
+                ],
+                "confirmed_packet_public_safe": python_exam_local_cycle_start_packet_alignment["contracts"][
+                    "confirmed_packet_public_safe"
+                ],
+                "start_packet_metadata_only_ready": python_exam_local_cycle_start_packet_alignment["contracts"][
+                    "start_packet_metadata_only_ready"
+                ],
+                "open_confirmations_block_local_cycle": python_exam_local_cycle_start_packet_alignment["contracts"][
+                    "open_confirmations_block_local_cycle"
+                ],
+                "confirmed_packet_still_no_execution": python_exam_local_cycle_start_packet_alignment["contracts"][
+                    "confirmed_packet_still_no_execution"
+                ],
+                "source_gate_decision_receipts_linked": python_exam_local_cycle_start_packet_alignment["contracts"][
+                    "source_gate_decision_receipts_linked"
+                ],
+                "public_outputs_hide_private_start_packet_data": python_exam_local_cycle_start_packet_alignment[
+                    "contracts"
+                ]["public_outputs_hide_private_start_packet_data"],
+                "high_stakes_actions_not_started": python_exam_local_cycle_start_packet_alignment["contracts"][
+                    "high_stakes_actions_not_started"
+                ],
+                "not_cleared_receipt_present": python_exam_local_cycle_start_packet_alignment["contracts"][
+                    "not_cleared_receipt_present"
+                ],
+                "raw_notebook_code_returned_blocked": "raw notebook code returned"
+                in python_exam_local_cycle_start_packet_alignment["blocked_claims"],
+                "unconfirmed_local_write_blocked": "unconfirmed local write"
+                in python_exam_local_cycle_start_packet_alignment["blocked_claims"],
+                "local_execution_started_blocked": "local execution started"
+                in python_exam_local_cycle_start_packet_alignment["blocked_claims"],
+                "automatic_grading_blocked": "automatic grading"
+                in python_exam_local_cycle_start_packet_alignment["blocked_claims"],
+                "proctoring_blocked": "proctoring" in python_exam_local_cycle_start_packet_alignment["blocked_claims"],
+                "ki_detection_evidence_blocked": "KI-detection evidence"
+                in python_exam_local_cycle_start_packet_alignment["blocked_claims"],
+                "exam_deployment_blocked": "exam deployment"
+                in python_exam_local_cycle_start_packet_alignment["blocked_claims"],
+                "exam_clearance_blocked": "exam clearance"
+                in python_exam_local_cycle_start_packet_alignment["blocked_claims"],
             },
         },
         {

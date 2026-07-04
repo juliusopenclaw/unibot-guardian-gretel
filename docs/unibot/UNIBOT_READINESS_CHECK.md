@@ -51,6 +51,7 @@ It aggregates:
 - exam workspace run-history and export-review alignment
 - exam workspace operator-run and confirmation-boundary alignment
 - exam workspace session-console and receipt alignment
+- Python exam local-cycle start-packet and confirmation-boundary alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -217,6 +218,16 @@ documentation surface, not a Julius-authored exam clearance system: no raw
 notebook/query/history publication, unconfirmed local writes, grading,
 proctoring, KI-detection evidence, Eigenleistung percentage, cloud-processing
 approval, or exam deployment claim is allowed.
+
+The Python exam local-cycle start-packet gate carries
+`unibot-python-exam-local-cycle-start-packet-release-review-board-claim-alignment-v1`.
+It links safe-cycle console metadata, operator-gate cards, decision receipts,
+source-card ids, task/checkpoint hashes, and open/confirmed confirmation state
+into a dry-run start packet. It is a Gretel documentation and preparation
+surface only: open confirmations block the local cycle, fully confirmed
+packets still start nothing automatically, and no raw notebook/query data,
+local path, grading, proctoring, KI-detection evidence, Eigenleistung
+percentage, or exam deployment claim is allowed.
 
 ## Source-Card Drift Guard
 
