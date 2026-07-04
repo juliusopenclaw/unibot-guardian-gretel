@@ -620,6 +620,22 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertEqual(launch["evidence"]["help_ledger_preview_status"], "preview_ready")
         self.assertFalse(launch["evidence"]["general_help_ledger_written"])
         self.assertFalse(launch["evidence"]["exam_ledger_written"])
+        self.assertEqual(launch["evidence"]["workspace_card_launch_receipt_alignment_status"], "ready")
+        self.assertEqual(launch["evidence"]["workspace_card_launch_receipt_alignment_public_safety_status"], "pass")
+        self.assertEqual(
+            launch["evidence"]["workspace_card_launch_receipt_alignment_contract_status"],
+            "unibot-exam-workspace-launch-workspace-card-launch-receipt-alignment-v1",
+        )
+        self.assertTrue(launch["evidence"]["launch_hash_present"])
+        self.assertTrue(launch["evidence"]["launch_receipt_hash_present"])
+        self.assertTrue(launch["evidence"]["blocked_launch_receipt_hash_present"])
+        self.assertTrue(launch["evidence"]["workspace_card_launch_receipt_gate_linked"])
+        self.assertTrue(launch["evidence"]["workspace_card_launch_receipt_gate_linked_contract"])
+        self.assertTrue(launch["evidence"]["launch_ready_with_receipt"])
+        self.assertTrue(launch["evidence"]["launch_coverage_start_point_preserved"])
+        self.assertTrue(launch["evidence"]["launch_private_tutor_study_checkpoint_references_preserved"])
+        self.assertTrue(launch["evidence"]["launch_receipt_hashes_present_contract"])
+        self.assertTrue(launch["evidence"]["launch_operator_reviewed_boundary_preserved"])
         self.assertTrue(launch["evidence"]["repeat_task_required"])
         self.assertTrue(launch["evidence"]["notebook_checkpoint_claim_linked"])
         self.assertTrue(launch["evidence"]["study_session_claim_linked"])

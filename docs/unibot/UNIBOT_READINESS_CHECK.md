@@ -439,6 +439,17 @@ hash-only, and not cleared for real exams; it does not return raw notebook code
 or private text, grade, proctor, detect AI use, claim Eigenleistung
 percentages, or clear exam deployment.
 
+Its workspace-card launch receipt bridge carries
+`unibot-exam-workspace-launch-workspace-card-launch-receipt-alignment-v1`.
+This contract links the dry-run launch hash, launch receipt hash,
+coverage-selected start point, private tutor/study/notebook-checkpoint
+references, export receipt, operator-reviewed local-write boundary, and
+no-clearance boundary to the local-cycle operator workspace-card readiness gate
+without exposing raw private course text, contact data, local paths, notebook
+code, provider calls, autonomous publication, approval or exam-clearance
+claims, grading, proctoring, KI-detection evidence, exam deployment claims, or
+the raw workspace card.
+
 The exam-workspace run gate carries
 `unibot-exam-workspace-run-release-review-board-claim-alignment-v1`. It links
 the controlled notebook run packet to private tutor sidecar evidence, study

@@ -133,7 +133,12 @@ from .exam_notebook_checkpoint import (
     notebook_checkpoint_receipt_hash,
 )
 from .exam_skill_drilldown import build_exam_skill_drilldown
-from .exam_workspace_launch_flow import build_exam_workspace_launch_flow_dry_run
+from .exam_workspace_launch_flow import (
+    build_exam_workspace_launch_flow_dry_run,
+    build_exam_workspace_launch_workspace_card_receipt_alignment,
+    exam_workspace_launch_hash,
+    exam_workspace_launch_receipt_hash,
+)
 from .exam_workspace_operator_run import build_exam_workspace_operator_run_dry_run
 from .exam_workspace_run_history import build_exam_workspace_run_history_export_review
 from .exam_workspace_session_console import build_exam_workspace_session_console
@@ -441,6 +446,9 @@ __all__ = [
     "notebook_checkpoint_receipt_hash",
     "build_exam_skill_drilldown",
     "build_exam_workspace_launch_flow_dry_run",
+    "build_exam_workspace_launch_workspace_card_receipt_alignment",
+    "exam_workspace_launch_hash",
+    "exam_workspace_launch_receipt_hash",
     "build_exam_workspace_operator_run_dry_run",
     "build_exam_workspace_run_history_export_review",
     "build_exam_workspace_session_console",

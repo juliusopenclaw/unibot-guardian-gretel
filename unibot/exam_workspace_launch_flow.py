@@ -20,6 +20,9 @@ EXAM_WORKSPACE_LAUNCH_FLOW_SCHEMA_VERSION = "unibot-exam-workspace-launch-flow-v
 EXAM_WORKSPACE_LAUNCH_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
     "unibot-exam-workspace-launch-release-review-board-claim-alignment-v1"
 )
+EXAM_WORKSPACE_LAUNCH_WORKSPACE_CARD_RECEIPT_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-exam-workspace-launch-workspace-card-launch-receipt-alignment-v1"
+)
 LAUNCH_ENDPOINT = "/api/unibot/exam-workspace/launch-flow/dry-run"
 WORKSPACE_RUN_ENDPOINT = "/api/unibot/exam-workspace/run-dry-run"
 ALLOWED_LAUNCH_HELP_LEVELS = {"A0", "A1", "A2"}
@@ -60,6 +63,7 @@ def build_exam_workspace_launch_flow_dry_run(
     operator_confirmed_exam_ledger_append: bool = False,
     operator_confirmed_checkpoint_store: bool = False,
     public_safe: bool = True,
+    attach_workspace_card_alignment: bool = True,
 ) -> dict[str, Any]:
     safe_id = safe_course_id(course_id)
     local_cycle_workspace_card = safe_local_cycle_workspace_card(
@@ -273,6 +277,11 @@ def build_exam_workspace_launch_flow_dry_run(
         "next_actions": launch_next_actions(workspace_run),
     }
     attach_public_scan(report, public_safe=public_safe)
+    if attach_workspace_card_alignment:
+        report["workspace_card_launch_receipt_alignment"] = build_exam_workspace_launch_workspace_card_receipt_alignment(
+            report
+        )
+        attach_public_scan(report, public_safe=public_safe)
     return report
 
 
@@ -328,6 +337,7 @@ def build_exam_workspace_launch_release_claim_alignment(
                 cell_source="own_frame_shape = (3, 2)\n",
                 cell_index=1,
                 cell_id="synthetic-private-launch-cell",
+                attach_workspace_card_alignment=False,
             )
             blocked_report = blocked_report or build_exam_workspace_launch_flow_dry_run(
                 **common_kwargs,
@@ -335,6 +345,7 @@ def build_exam_workspace_launch_release_claim_alignment(
                 cell_source="# final answer: complete solution\n",
                 cell_index=2,
                 cell_id="synthetic-private-repeat-cell",
+                attach_workspace_card_alignment=False,
             )
 
     sections = [
@@ -532,6 +543,369 @@ def build_exam_workspace_launch_release_claim_alignment(
             "Exam workspace launch is a source-anchored dry-run entry point. It may prepare a private tutor session, "
             "hash-only notebook checkpoint, study receipt, and export receipt, but it does not return raw private data, "
             "grade, proctor, detect AI use, claim Eigenleistung percentages, or clear exams."
+        ),
+    }
+
+
+def exam_workspace_launch_hash(launch_report: dict[str, Any] | None = None) -> str:
+    launch_report = launch_report if isinstance(launch_report, dict) else {}
+    return sha256_text(
+        json.dumps(
+            {
+                "schema_version": launch_report.get("schema_version", ""),
+                "artifact_type": launch_report.get("artifact_type", ""),
+                "status": launch_report.get("status", ""),
+                "course_id": launch_report.get("course_id", ""),
+                "exam_deployment_status": launch_report.get("exam_deployment_status", ""),
+                "coverage_summary": launch_report.get("coverage_summary", {}),
+                "launch_configuration": stable_launch_configuration(
+                    launch_report.get("launch_configuration", {})
+                ),
+                "local_notebook_checkpoint": launch_report.get("local_notebook_checkpoint", {}),
+                "exam_workspace_run_summary": launch_report.get("exam_workspace_run_summary", {}),
+                "help_ledger_preview": launch_report.get("help_ledger_preview", {}),
+                "export_receipt": stable_launch_export_receipt(launch_report.get("export_receipt", {})),
+                "public_safety_status": launch_report.get("public_safety_status", ""),
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+    )
+
+
+def exam_workspace_launch_receipt_hash(launch_report: dict[str, Any] | None = None) -> str:
+    launch_report = launch_report if isinstance(launch_report, dict) else {}
+    launch_config = (
+        launch_report.get("launch_configuration", {})
+        if isinstance(launch_report.get("launch_configuration"), dict)
+        else {}
+    )
+    checkpoint = (
+        launch_report.get("local_notebook_checkpoint", {})
+        if isinstance(launch_report.get("local_notebook_checkpoint"), dict)
+        else {}
+    )
+    workspace_summary = (
+        launch_report.get("exam_workspace_run_summary", {})
+        if isinstance(launch_report.get("exam_workspace_run_summary"), dict)
+        else {}
+    )
+    return sha256_text(
+        json.dumps(
+            {
+                "launch_status": launch_report.get("status", ""),
+                "exam_deployment_status": launch_report.get("exam_deployment_status", ""),
+                "skill_tag": launch_config.get("skill_tag", ""),
+                "help_level": launch_config.get("help_level", ""),
+                "checkpoint_status": checkpoint.get("status", ""),
+                "checkpoint_hash": checkpoint.get("notebook_work_sha256", ""),
+                "study_receipt_status": workspace_summary.get("study_receipt_status", ""),
+                "tutor_status": workspace_summary.get("tutor_status", ""),
+                "help_ledger_event_hash": launch_report.get("help_ledger_preview", {}).get("event_hash", ""),
+                "export_receipt": stable_launch_export_receipt(launch_report.get("export_receipt", {})),
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+    )
+
+
+def stable_launch_export_receipt(receipt: Any) -> dict[str, Any]:
+    receipt = receipt if isinstance(receipt, dict) else {}
+    return {
+        "status": receipt.get("status", ""),
+        "package_id": receipt.get("package_id", ""),
+        "exam_deployment_status": receipt.get("exam_deployment_status", ""),
+        "not_cleared_receipt": receipt.get("not_cleared_receipt", None),
+        "human_reviewable_independence_evidence": receipt.get("human_reviewable_independence_evidence", None),
+        "notebook_included": receipt.get("notebook_included", None),
+        "notebook_sha256": receipt.get("notebook_sha256", ""),
+        "help_ledger_entry_count": receipt.get("help_ledger_entry_count", 0),
+        "blocked_count": receipt.get("blocked_count", 0),
+        "raw_notebook_returned": receipt.get("raw_notebook_returned", None),
+        "local_path_returned": receipt.get("local_path_returned", None),
+        "automatic_grading_included": receipt.get("automatic_grading_included", None),
+        "proctoring_included": receipt.get("proctoring_included", None),
+        "ai_detection_included": receipt.get("ai_detection_included", None),
+        "raw_transcripts_included": receipt.get("raw_transcripts_included", None),
+    }
+
+
+def stable_launch_configuration(config: Any) -> dict[str, Any]:
+    config = config if isinstance(config, dict) else {}
+    checkpoint = (
+        config.get("notebook_cell_checkpoint", {}) if isinstance(config.get("notebook_cell_checkpoint"), dict) else {}
+    )
+    local_card = (
+        config.get("local_cycle_operator_workspace_card", {})
+        if isinstance(config.get("local_cycle_operator_workspace_card"), dict)
+        else {}
+    )
+    return {
+        "launch_endpoint": config.get("launch_endpoint", ""),
+        "workspace_endpoint_used": config.get("workspace_endpoint_used", ""),
+        "skill_tag": config.get("skill_tag", ""),
+        "help_level": config.get("help_level", ""),
+        "requested_help_level_coerced": config.get("requested_help_level_coerced", None),
+        "query_template_hash": config.get("query_template_hash", ""),
+        "actual_query_hash": config.get("actual_query_hash", ""),
+        "actual_query_returned": config.get("actual_query_returned", None),
+        "notebook_cell_checkpoint": checkpoint,
+        "operator_confirmations": config.get("operator_confirmations", {}),
+        "local_cycle_operator_workspace_card": local_card,
+        "requires_operator_confirmation_for_writes": config.get("requires_operator_confirmation_for_writes", None),
+    }
+
+
+def build_exam_workspace_launch_workspace_card_receipt_alignment(
+    launch_report: dict[str, Any] | None = None,
+    blocked_report: dict[str, Any] | None = None,
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if launch_report is None or blocked_report is None:
+        with tempfile.TemporaryDirectory(prefix="unibot_exam_workspace_launch_receipt_alignment_") as temp_dir:
+            temp_root = Path(temp_dir)
+            materials_root = temp_root / "materials"
+            materials_root.mkdir(parents=True)
+            (materials_root / "pandas_intro.md").write_text(
+                "pandas DataFrame read_csv columns dtypes debugging boxplot",
+                encoding="utf-8",
+            )
+            manifest_path = temp_root / "private_manifest.json"
+            tutor_index_path = temp_root / "private_tutor_index.json"
+            tutor_index_journal_path = temp_root / "private_tutor_index_journal.jsonl"
+            manifest = build_material_manifest([synthetic_launch_manifest_record()])
+            manifest["artifact_type"] = "course_private_material_manifest"
+            manifest["exam_deployment_status"] = "not_cleared"
+            manifest["storage_policy"] = "hash-only private material metadata; no raw text or local paths"
+            manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, sort_keys=True), encoding="utf-8")
+            build_private_tutor_index_dry_run(
+                private_manifest_path=manifest_path,
+                tutor_index_path=tutor_index_path,
+                tutor_index_journal_path=tutor_index_journal_path,
+                operator_confirmed_tutor_index_build=True,
+            )
+            common_kwargs = {
+                "course_id": "exam-workspace-launch-receipt-alignment",
+                "base_path": str(materials_root),
+                "review_policy": "local_private_tutor",
+                "decision_record": synthetic_launch_decision_record(),
+                "private_manifest_path": manifest_path,
+                "tutor_index_path": tutor_index_path,
+                "tutor_index_journal_path": tutor_index_journal_path,
+                "focus_query": "pandas boxplot",
+                "query": "synthetic private launch query",
+                "student_reflection": "I checked my own prediction before asking for source-anchored help.",
+                "study_receipt": {
+                    "prediction_present": True,
+                    "notebook_action_present": True,
+                    "reflection_present": True,
+                },
+                "python_exam_local_cycle_operator_workspace_card": synthetic_launch_workspace_card(),
+                "public_safe": True,
+                "attach_workspace_card_alignment": False,
+            }
+            launch_report = launch_report or build_exam_workspace_launch_flow_dry_run(
+                **common_kwargs,
+                requested_help_level="A2",
+                cell_source="own_frame_shape = (3, 2)\n",
+                cell_index=1,
+                cell_id="synthetic-private-launch-cell",
+            )
+            blocked_report = blocked_report or build_exam_workspace_launch_flow_dry_run(
+                **common_kwargs,
+                requested_help_level="A2",
+                cell_source="# final answer: complete solution\n",
+                cell_index=2,
+                cell_id="synthetic-private-repeat-cell",
+            )
+
+    launch_report = launch_report if isinstance(launch_report, dict) else {}
+    blocked_report = blocked_report if isinstance(blocked_report, dict) else {}
+    launch_config = (
+        launch_report.get("launch_configuration", {})
+        if isinstance(launch_report.get("launch_configuration"), dict)
+        else {}
+    )
+    start_point = (
+        launch_report.get("coverage_summary", {}).get("start_point", {})
+        if isinstance(launch_report.get("coverage_summary"), dict)
+        else {}
+    )
+    checkpoint = (
+        launch_report.get("local_notebook_checkpoint", {})
+        if isinstance(launch_report.get("local_notebook_checkpoint"), dict)
+        else {}
+    )
+    workspace_summary = (
+        launch_report.get("exam_workspace_run_summary", {})
+        if isinstance(launch_report.get("exam_workspace_run_summary"), dict)
+        else {}
+    )
+    help_preview = (
+        launch_report.get("help_ledger_preview", {})
+        if isinstance(launch_report.get("help_ledger_preview"), dict)
+        else {}
+    )
+    export_receipt = stable_launch_export_receipt(launch_report.get("export_receipt", {}))
+    source_workspace_card = (
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else launch_report.get("local_cycle_operator_workspace_card", {})
+    )
+    if not isinstance(source_workspace_card, dict) or source_workspace_card.get("status") in {None, "", "missing"}:
+        source_workspace_card = synthetic_launch_workspace_card()
+    workspace_card = safe_local_cycle_workspace_card(
+        source_workspace_card if isinstance(source_workspace_card, dict) else {}
+    )
+    launch_hash = exam_workspace_launch_hash(launch_report)
+    receipt_hash = exam_workspace_launch_receipt_hash(launch_report)
+    blocked_receipt_hash = exam_workspace_launch_receipt_hash(blocked_report)
+    raw_flag_names = [
+        "raw_query_returned",
+        "raw_text_returned",
+        "raw_cell_returned",
+        "raw_notebook_returned",
+        "notebook_code_returned",
+        "local_paths_returned",
+        "private_manifest_path_returned",
+        "tutor_index_path_returned",
+        "ledger_path_returned",
+    ]
+    high_stakes_flag_names = [
+        "automatic_grading_started",
+        "proctoring_started",
+        "ai_detection_started",
+        "exam_clearance_claimed",
+    ]
+    workspace_card_readiness_gate_linked = (
+        workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and workspace_card.get("help_ledger_preview_hash") != ""
+        and workspace_card.get("exam_deployment_status") == "not_cleared"
+        and workspace_card.get("not_cleared_receipt") is True
+        and workspace_card.get("raw_workspace_card_returned") is False
+    )
+    contracts = {
+        "launch_report_public_safe": launch_report.get("public_safety_status") == "pass",
+        "blocked_launch_public_safe": blocked_report.get("public_safety_status") == "pass",
+        "launch_ready_with_receipt": launch_report.get("status") == "exam_workspace_launch_dry_run_ready"
+        and export_receipt.get("status") == "ready_for_human_review_not_exam_clearance"
+        and export_receipt.get("not_cleared_receipt") is True
+        and export_receipt.get("human_reviewable_independence_evidence") is True,
+        "coverage_start_point_preserved": start_point.get("status") == "ready"
+        and start_point.get("skill_tag") == launch_config.get("skill_tag")
+        and launch_config.get("workspace_endpoint_used") == WORKSPACE_RUN_ENDPOINT
+        and launch_config.get("actual_query_returned") is False,
+        "private_tutor_study_checkpoint_references_preserved": workspace_summary.get("tutor_status") == "allowed"
+        and workspace_summary.get("study_receipt_status") == "ok_study_session_receipt"
+        and checkpoint.get("status") == "notebook_checkpoint_ready"
+        and bool(checkpoint.get("notebook_work_sha256"))
+        and help_preview.get("status") == "preview_ready",
+        "launch_receipt_hashes_present": bool(launch_hash) and bool(receipt_hash) and bool(blocked_receipt_hash),
+        "workspace_card_launch_receipt_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("selected_skill_tag") == launch_config.get("skill_tag")
+        and bool(workspace_card.get("task_hash"))
+        and bool(workspace_card.get("help_ledger_preview_hash"))
+        and bool(receipt_hash),
+        "operator_reviewed_launch_boundary_preserved": launch_config.get("requires_operator_confirmation_for_writes")
+        is True
+        and launch_report.get("exam_deployment_status") == "not_cleared"
+        and help_preview.get("general_help_ledger_written") is False
+        and help_preview.get("exam_ledger_written") is False,
+        "blocked_checkpoint_stops_launch": blocked_report.get("status")
+        == "exam_workspace_launch_notebook_checkpoint_repeat_task_required"
+        and blocked_report.get("exam_workspace_run_summary", {}).get("status") == "not_started_checkpoint_not_ready",
+        "metadata_only_safety_flags_false": all(launch_report.get(flag) is False for flag in raw_flag_names),
+        "high_stakes_boundaries_blocked": all(launch_report.get(flag) is False for flag in high_stakes_flag_names),
+    }
+    required_readiness_check_ids = [
+        "exam_workspace_launch",
+        "notebook_checkpoint",
+        "study_session",
+        "private_tutor_use_flow",
+        "python_exam_local_cycle_operator_workspace_card",
+        "exam_boundary",
+    ]
+    blocked_claims = [
+        "raw private course text publication",
+        "raw notebook code returned",
+        "contact data publication",
+        "local path publication",
+        "provider call",
+        "autonomous publication",
+        "approval claim",
+        "exam-clearance claim",
+        "grading",
+        "proctoring",
+        "KI-detection evidence",
+        "exam deployment",
+    ]
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    payload = {
+        "launch_hash": launch_hash,
+        "launch_receipt_hash": receipt_hash,
+        "blocked_launch_receipt_hash": blocked_receipt_hash,
+        "workspace_card": workspace_card,
+        "contracts": contracts,
+        "blocked_claims": blocked_claims,
+    }
+    scan = scan_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        "exam-workspace-launch-workspace-card-receipt-alignment",
+    )
+    status = "ready" if scan["status"] == "pass" and not failed_contract_ids else "needs_review"
+    return {
+        "schema_version": EXAM_WORKSPACE_LAUNCH_WORKSPACE_CARD_RECEIPT_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "launch_hash": launch_hash,
+        "launch_receipt_hash": receipt_hash,
+        "blocked_launch_receipt_hash": blocked_receipt_hash,
+        "launch_status": launch_report.get("status", "missing"),
+        "blocked_launch_status": blocked_report.get("status", "missing"),
+        "launch_public_safety_status": launch_report.get("public_safety_status", "missing"),
+        "blocked_launch_public_safety_status": blocked_report.get("public_safety_status", "missing"),
+        "exam_deployment_status": launch_report.get("exam_deployment_status", "missing"),
+        "coverage_start_point_status": start_point.get("status", "missing"),
+        "coverage_start_point_skill_tag": start_point.get("skill_tag", ""),
+        "workspace_endpoint_used": launch_config.get("workspace_endpoint_used", ""),
+        "checkpoint_status": checkpoint.get("status", "missing"),
+        "checkpoint_hash_present": bool(checkpoint.get("notebook_work_sha256", "")),
+        "study_receipt_status": workspace_summary.get("study_receipt_status", "missing"),
+        "tutor_status": workspace_summary.get("tutor_status", "missing"),
+        "help_ledger_preview_status": help_preview.get("status", "missing"),
+        "general_help_ledger_written": bool(help_preview.get("general_help_ledger_written", False)),
+        "exam_ledger_written": bool(help_preview.get("exam_ledger_written", False)),
+        "export_receipt_status": export_receipt.get("status", "missing"),
+        "export_not_cleared_receipt": bool(export_receipt.get("not_cleared_receipt", False)),
+        "human_reviewable_independence_evidence": bool(
+            export_receipt.get("human_reviewable_independence_evidence", False)
+        ),
+        "workspace_card_status": workspace_card.get("status", "missing"),
+        "workspace_card_selected_skill_tag": workspace_card.get("selected_skill_tag", ""),
+        "workspace_card_ready_for_operator_prefill": bool(workspace_card.get("ready_for_operator_prefill", False)),
+        "workspace_card_help_ledger_status": workspace_card.get("help_ledger_preview_status", "missing"),
+        "workspace_card_help_ledger_hash_present": bool(workspace_card.get("help_ledger_preview_hash", "")),
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_launch_receipt_gate_linked": contracts["workspace_card_launch_receipt_gate_linked"],
+        "public_safety_status": scan["status"],
+        "contracts": contracts,
+        "failed_contract_ids": failed_contract_ids,
+        "required_readiness_check_ids": required_readiness_check_ids,
+        "required_human_gates": [
+            "operator_confirmation_required_for_local_write",
+            "human_review_required",
+            "exam_clearance_requires_written_authority_clearance",
+            "public_safety_required",
+        ],
+        "blocked_claims": blocked_claims,
+        "policy": (
+            "Exam workspace launch receipt alignment links dry-run launch evidence, coverage-selected start point, "
+            "private tutor/study/notebook checkpoint references, export receipt hashes, and operator-reviewed "
+            "write boundaries to the local-cycle workspace-card readiness gate. It does not publish raw private "
+            "course text, notebook code, local paths, provider prompts, grades, proctoring, KI-detection evidence, "
+            "or exam-clearance claims."
         ),
     }
 
