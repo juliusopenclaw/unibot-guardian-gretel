@@ -12,7 +12,10 @@ sys.path.insert(0, str(ROOT))
 
 from unibot.extraction import build_course_extraction_queue  # noqa: E402
 from unibot.materials import sha256_text  # noqa: E402
-from unibot.private_tutor_use_flow import build_private_tutor_use_flow_dry_run  # noqa: E402
+from unibot.private_tutor_use_flow import (  # noqa: E402
+    build_private_tutor_use_flow_dry_run,
+    build_private_tutor_use_flow_release_claim_alignment,
+)
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
 
@@ -153,6 +156,101 @@ class UniBotPrivateTutorUseFlowTests(unittest.TestCase):
             self.assertNotIn("private tutor use flow artifact ref", payload)
             self.assertEqual(scan_text(payload, "private-tutor-use-flow-confirmed")["status"], "pass")
             self.assertEqual(scan_text(ledger_text, "private-tutor-use-flow-ledger")["status"], "pass")
+
+    def test_private_tutor_use_flow_release_claim_alignment_links_private_learning_boundaries(self) -> None:
+        alignment = build_private_tutor_use_flow_release_claim_alignment()
+
+        self.assertEqual(
+            alignment["schema_version"],
+            "unibot-private-tutor-use-flow-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["flow_public_safety_status"], "pass")
+        self.assertEqual(alignment["flow_status"], "private_tutor_use_flow_ready_with_ledger")
+        self.assertEqual(alignment["exam_deployment_status"], "not_cleared")
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertEqual(alignment["manifest_apply_status"], "private_manifest_applied")
+        self.assertTrue(alignment["manifest_written"])
+        self.assertEqual(alignment["tutor_index_status"], "private_tutor_index_built")
+        self.assertTrue(alignment["tutor_index_built"])
+        self.assertGreaterEqual(alignment["tutor_index_anchor_count"], 1)
+        self.assertEqual(alignment["tutor_response_status"], "allowed")
+        self.assertIn(alignment["effective_help_level"], {"A0", "A1", "A2"})
+        self.assertGreaterEqual(alignment["source_anchor_count"], 1)
+        self.assertEqual(alignment["ledger_status"], "stored")
+        self.assertTrue(alignment["ledger_written"])
+        self.assertEqual(alignment["study_receipt_status"], "ok_study_session_receipt")
+        self.assertIn("private_tutor_use_flow", alignment["required_readiness_check_ids"])
+        self.assertIn("extraction_human_review", alignment["required_readiness_check_ids"])
+        self.assertIn("extraction_manifest_apply", alignment["required_readiness_check_ids"])
+        self.assertIn("evaluation_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("exam_boundary", alignment["required_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertTrue(alignment["contracts"]["reviewed_private_manifest_evidence_operator_confirmed"])
+        self.assertTrue(alignment["contracts"]["hash_only_tutor_index_operator_confirmed"])
+        self.assertTrue(alignment["contracts"]["learner_agency_a0_a2_source_anchored"])
+        self.assertTrue(alignment["contracts"]["help_ledger_operator_confirmed_hash_only"])
+        self.assertTrue(alignment["contracts"]["public_outputs_hide_private_data"])
+        self.assertTrue(alignment["contracts"]["high_stakes_actions_not_started"])
+        self.assertIn("private manifest apply without operator confirmation", alignment["blocked_claims"])
+        self.assertIn("private tutor index build without operator confirmation", alignment["blocked_claims"])
+        self.assertIn("complete code or final-answer tutoring", alignment["blocked_claims"])
+        self.assertIn("exam deployment", alignment["blocked_claims"])
+
+    def test_private_tutor_use_flow_release_claim_alignment_blocks_unconfirmed_or_high_stakes_claims(self) -> None:
+        flow = build_private_tutor_use_flow_release_claim_alignment()["policy"]
+        self.assertIn("operator-confirmed", flow)
+        report = {
+            "status": "private_tutor_use_flow_ready_with_ledger",
+            "public_safety_status": "pass",
+            "exam_deployment_status": "cleared",
+            "execution_boundary": "Private tutor returns raw text and clears exam deployment.",
+            "manifest_apply_summary": {
+                "status": "private_manifest_applied",
+                "manifest_written": True,
+                "path_returned": True,
+            },
+            "tutor_index_summary": {
+                "status": "private_tutor_index_built",
+                "tutor_index_built": True,
+                "path_returned": True,
+                "anchor_count": 0,
+            },
+            "tutor_response_summary": {
+                "status": "allowed",
+                "effective_help_level": "A6",
+                "source_anchor_count": 0,
+                "raw_query_returned": True,
+            },
+            "ledger_append_summary": {"status": "stored", "ledger_written": True, "path_returned": True, "event_hash": ""},
+            "study_receipt_validation": {"status": "blocked"},
+            "operator_confirmed_manifest_apply": False,
+            "operator_confirmed_tutor_index_build": False,
+            "operator_confirmed_help_ledger_append": False,
+            "raw_query_returned": True,
+            "raw_text_returned": True,
+            "local_paths_returned": True,
+            "private_manifest_path_returned": True,
+            "tutor_index_path_returned": True,
+            "ledger_path_returned": True,
+            "automatic_grading_started": True,
+            "proctoring_started": True,
+            "ai_detection_started": True,
+        }
+
+        alignment = build_private_tutor_use_flow_release_claim_alignment(report)
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertIn("reviewed_private_manifest_evidence_operator_confirmed", alignment["failed_contract_ids"])
+        self.assertIn("hash_only_tutor_index_operator_confirmed", alignment["failed_contract_ids"])
+        self.assertIn("learner_agency_a0_a2_source_anchored", alignment["failed_contract_ids"])
+        self.assertIn("help_ledger_operator_confirmed_hash_only", alignment["failed_contract_ids"])
+        self.assertIn("public_outputs_hide_private_data", alignment["failed_contract_ids"])
+        self.assertIn("high_stakes_actions_not_started", alignment["failed_contract_ids"])
 
 
 if __name__ == "__main__":

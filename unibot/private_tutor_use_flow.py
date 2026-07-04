@@ -1,20 +1,26 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from .course_tutor import DEFAULT_COURSE_ID, safe_course_id
+from .extraction import build_course_extraction_queue
 from .extraction_manifest_apply import build_private_manifest_apply_dry_run
 from .ledger import append_ledger_event
 from .materials import sha256_text
 from .public_safety import scan_text
+from .source_cards import get_source_card
 from .study_session import validate_study_session_receipt
 from .tutor_index import build_private_index_tutor_response_dry_run, build_private_tutor_index_dry_run
 
 
 PRIVATE_TUTOR_USE_FLOW_SCHEMA_VERSION = "unibot-private-tutor-use-flow-v1"
+PRIVATE_TUTOR_USE_FLOW_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-private-tutor-use-flow-release-review-board-claim-alignment-v1"
+)
 
 
 def build_private_tutor_use_flow_dry_run(
@@ -136,6 +142,188 @@ def build_private_tutor_use_flow_dry_run(
     }
     attach_public_scan(report, public_safe=public_safe)
     return report
+
+
+def build_private_tutor_use_flow_release_claim_alignment(
+    flow_report: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if flow_report is None:
+        decision_record = synthetic_private_tutor_flow_decision_record()
+        with tempfile.TemporaryDirectory(prefix="unibot_private_tutor_flow_alignment_") as temp_dir:
+            fixture_root = Path(temp_dir) / "materials"
+            (fixture_root / "Week 1").mkdir(parents=True)
+            (fixture_root / "Week 1" / "pandas_boxplot_slides.pdf").write_bytes(b"%PDF-1.4\nfixture")
+            queue = build_course_extraction_queue(
+                base_path=str(fixture_root),
+                rights_decision_reference=str(decision_record["decision_reference"]),
+            )
+            receipts = [
+                synthetic_private_tutor_flow_reviewed_receipt(
+                    queue["jobs"][0],
+                    decision_reference_hash=sha256_text(str(decision_record["decision_reference"])),
+                )
+            ]
+            flow_report = build_private_tutor_use_flow_dry_run(
+                "How do I check pandas columns before plotting?",
+                base_path=str(fixture_root),
+                decision_record=decision_record,
+                receipts=receipts,
+                private_manifest_path=Path(temp_dir) / "private_manifest.json",
+                manifest_apply_journal_path=Path(temp_dir) / "private_manifest_apply.jsonl",
+                tutor_index_path=Path(temp_dir) / "private_tutor_index.json",
+                tutor_index_journal_path=Path(temp_dir) / "private_tutor_index.jsonl",
+                ledger_path=Path(temp_dir) / "help_ledger.jsonl",
+                operator_confirmed_manifest_apply=True,
+                operator_confirmed_tutor_index_build=True,
+                operator_confirmed_help_ledger_append=True,
+                requested_help_level="A2",
+                study_receipt={
+                    "prediction_present": True,
+                    "notebook_action_present": True,
+                    "reflection_present": True,
+                },
+            )
+
+    sections = [
+        {
+            "section_id": "reviewed_private_manifest_evidence_trace",
+            "summary_claim": "private tutor use starts from reviewed private manifest evidence and operator-confirmed local apply",
+            "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024", "dfg-gwp"],
+            "readiness_check_ids": ["private_tutor_use_flow", "extraction_human_review", "extraction_manifest_apply"],
+            "human_gates": ["datenschutz_review_required_before_real_pilot", "human_submission_review_required"],
+        },
+        {
+            "section_id": "hash_only_tutor_index_trace",
+            "summary_claim": "the tutor index is hash-only and local, with no returned paths or raw course text",
+            "source_card_ids": ["dsk-ai-privacy-2024", "dfg-gwp"],
+            "readiness_check_ids": ["private_tutor_use_flow", "extraction_manifest_apply", "extraction_completion"],
+            "human_gates": ["human_submission_review_required", "public_safety_required"],
+        },
+        {
+            "section_id": "learner_agency_trace",
+            "summary_claim": "private tutor responses stay within A0-A2 source-anchored Socratic help and validate study receipts",
+            "source_card_ids": ["dfg-gwp", "uoc-ki-faq", "uoc-hilfsmittel"],
+            "readiness_check_ids": ["private_tutor_use_flow", "evaluation_packet", "review_board_packet"],
+            "human_gates": ["human_submission_review_required", "written_university_clearance_required_before_exam_use"],
+        },
+        {
+            "section_id": "not_authorized_trace",
+            "summary_claim": "private tutor use does not clear public release, cloud processing, official grading, proctoring, KI-detection evidence, or exam deployment",
+            "source_card_ids": ["eu-ai-act-2024", "uoc-ki-faq", "uoc-hilfsmittel"],
+            "readiness_check_ids": ["private_tutor_use_flow", "external_decision_state", "exam_boundary"],
+            "human_gates": ["written_university_clearance_required_before_exam_use", "human_submission_review_required"],
+        },
+    ]
+    required_source_card_ids = sorted({source_id for section in sections for source_id in section["source_card_ids"]})
+    missing_source_card_ids = sorted(source_id for source_id in required_source_card_ids if get_source_card(source_id) is None)
+    manifest_apply = flow_report.get("manifest_apply_summary", {})
+    tutor_index = flow_report.get("tutor_index_summary", {})
+    tutor_response = flow_report.get("tutor_response_summary", {})
+    ledger = flow_report.get("ledger_append_summary", {})
+    study_receipt = flow_report.get("study_receipt_validation", {})
+    blocked_claims = [
+        "raw query returned",
+        "raw extracted course text returned",
+        "local path returned",
+        "private manifest path returned",
+        "tutor index path returned",
+        "ledger path returned",
+        "private manifest apply without operator confirmation",
+        "private tutor index build without operator confirmation",
+        "help ledger append without operator confirmation",
+        "complete code or final-answer tutoring",
+        "public raw course text release",
+        "cloud processing",
+        "exam deployment",
+        "official grading",
+        "proctoring",
+        "KI-detection evidence",
+    ]
+    boundary = str(flow_report.get("execution_boundary", ""))
+    allowed_help_levels = {"A0", "A1", "A2"}
+    contracts = {
+        "flow_public_safe": flow_report.get("public_safety_status") == "pass",
+        "reviewed_private_manifest_evidence_operator_confirmed": manifest_apply.get("status") == "private_manifest_applied"
+        and manifest_apply.get("manifest_written") is True
+        and flow_report.get("operator_confirmed_manifest_apply") is True
+        and manifest_apply.get("path_returned") is False,
+        "hash_only_tutor_index_operator_confirmed": tutor_index.get("status") == "private_tutor_index_built"
+        and tutor_index.get("tutor_index_built") is True
+        and flow_report.get("operator_confirmed_tutor_index_build") is True
+        and tutor_index.get("path_returned") is False
+        and tutor_index.get("anchor_count", 0) >= 1,
+        "learner_agency_a0_a2_source_anchored": tutor_response.get("status") == "allowed"
+        and tutor_response.get("effective_help_level") in allowed_help_levels
+        and tutor_response.get("source_anchor_count", 0) >= 1
+        and tutor_response.get("raw_query_returned") is False
+        and study_receipt.get("status") == "ok_study_session_receipt",
+        "help_ledger_operator_confirmed_hash_only": ledger.get("status") == "stored"
+        and ledger.get("ledger_written") is True
+        and flow_report.get("operator_confirmed_help_ledger_append") is True
+        and ledger.get("path_returned") is False
+        and bool(ledger.get("event_hash")),
+        "public_outputs_hide_private_data": flow_report.get("raw_query_returned") is False
+        and flow_report.get("raw_text_returned") is False
+        and flow_report.get("local_paths_returned") is False
+        and flow_report.get("private_manifest_path_returned") is False
+        and flow_report.get("tutor_index_path_returned") is False
+        and flow_report.get("ledger_path_returned") is False
+        and "never returns raw course text" in boundary
+        and "raw queries" in boundary
+        and "local paths" in boundary,
+        "high_stakes_actions_not_started": flow_report.get("exam_deployment_status") == "not_cleared"
+        and flow_report.get("automatic_grading_started") is False
+        and flow_report.get("proctoring_started") is False
+        and flow_report.get("ai_detection_started") is False,
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    payload = {
+        "sections": sections,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "blocked_claims": blocked_claims,
+        "flow_status": flow_report.get("status"),
+    }
+    scan = scan_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        "private-tutor-use-flow-release-claim-alignment",
+    )
+    status = "ready" if not missing_source_card_ids and not failed_contract_ids and scan["status"] == "pass" else "needs_review"
+    return {
+        "schema_version": PRIVATE_TUTOR_USE_FLOW_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "flow_status": flow_report.get("status"),
+        "flow_public_safety_status": flow_report.get("public_safety_status"),
+        "exam_deployment_status": flow_report.get("exam_deployment_status"),
+        "manifest_apply_status": manifest_apply.get("status"),
+        "manifest_written": bool(manifest_apply.get("manifest_written", False)),
+        "tutor_index_status": tutor_index.get("status"),
+        "tutor_index_built": bool(tutor_index.get("tutor_index_built", False)),
+        "tutor_index_anchor_count": tutor_index.get("anchor_count", 0),
+        "tutor_response_status": tutor_response.get("status"),
+        "effective_help_level": tutor_response.get("effective_help_level", ""),
+        "source_anchor_count": tutor_response.get("source_anchor_count", 0),
+        "ledger_status": ledger.get("status"),
+        "ledger_written": bool(ledger.get("ledger_written", False)),
+        "study_receipt_status": study_receipt.get("status"),
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "blocked_claims": blocked_claims,
+        "public_safety_status": scan["status"],
+        "policy": (
+            "Private tutor use is a local, operator-confirmed learning flow. It may apply reviewed private "
+            "manifest metadata, build a hash-only local tutor index, produce A0-A2 source-anchored help, "
+            "and store hash-only Help-Ledger evidence, but it does not expose raw text or paths, approve "
+            "public release, approve cloud processing, grade, proctor, detect AI use, or clear exams."
+        ),
+    }
 
 
 def maybe_append_help_ledger(
@@ -322,3 +510,37 @@ def attach_public_scan(payload: dict[str, Any], *, public_safe: bool) -> None:
     if scan["status"] != "pass":
         payload["status"] = "blocked_public_safety"
         payload["public_safety_findings"] = scan["findings"]
+
+
+def synthetic_private_tutor_flow_decision_record() -> dict[str, Any]:
+    return {
+        "decision_status": "approved_for_local_extraction",
+        "scope": "local_private_course_extraction",
+        "allowed_job_types": ["ocr", "transcription"],
+        "storage_policy": "local_private_only",
+        "cloud_processing_allowed": False,
+        "raw_text_public_release_allowed": False,
+        "human_review_before_tutor_index": True,
+        "retention_decision": "delete private extraction artifacts after reviewed metadata is accepted",
+        "access_roles": ["project_owner", "approved_reviewer"],
+        "reviewer_roles": ["Datenschutz", "Lehreinheit / Modulverantwortliche", "IT / SZI"],
+        "decision_reference": "synthetic private tutor use flow release alignment decision",
+    }
+
+
+def synthetic_private_tutor_flow_reviewed_receipt(
+    job: dict[str, Any],
+    *,
+    decision_reference_hash: str,
+) -> dict[str, Any]:
+    return {
+        "job_id": job.get("job_id", "synthetic-private-tutor-flow-job"),
+        "material_id": job.get("material_id", "synthetic-private-tutor-flow-material"),
+        "job_type": job.get("job_type", "ocr"),
+        "extraction_status": "extracted_private",
+        "raw_text_sha256": "c" * 64,
+        "extracted_text_char_count": 1200,
+        "private_artifact_reference": "synthetic local private tutor flow artifact reference",
+        "human_review_status": "reviewed_for_private_tutor",
+        "decision_reference_hash": decision_reference_hash,
+    }

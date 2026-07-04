@@ -43,6 +43,7 @@ It aggregates:
 - private manifest apply and operator-confirmed write alignment
 - extraction completion and intentional-deferral alignment
 - extraction human-review and private manifest-plan alignment
+- private tutor-use flow and learner-agency boundary alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -143,6 +144,14 @@ records hash-only local review evidence and may prepare private manifest
 candidates after reviewed receipts, but it does not return raw text or paths,
 write manifests, start tutor indexing, authorize public release, approve cloud
 processing, or clear exam deployment.
+
+The private tutor-use flow carries
+`unibot-private-tutor-use-flow-release-review-board-claim-alignment-v1`. It may
+apply reviewed private manifest metadata, build a hash-only local tutor index,
+produce A0-A2 source-anchored help, and store hash-only Help-Ledger evidence
+only with operator confirmation. It does not expose raw text or paths, approve
+public release, approve cloud processing, grade, proctor, detect AI use, or
+clear exam deployment.
 
 ## Source-Card Drift Guard
 

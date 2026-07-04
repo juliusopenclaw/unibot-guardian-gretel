@@ -36,6 +36,7 @@ from .orchestration import build_unibot_command_center, validate_chat_handoff
 from .paperclip_evaluation_bridge import build_paperclip_evaluation_request, paperclip_status
 from .pilot import build_pilot_protocol
 from .privacy import build_data_protection_screening
+from .private_tutor_use_flow import build_private_tutor_use_flow_release_claim_alignment
 from .publication import build_publication_package
 from .public_safety import scan_public_files, scan_text
 from .redteam import build_threat_model_release_review_board_claim_alignment, run_redteam_smoke
@@ -133,6 +134,7 @@ def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
         "extraction_manifest_apply",
         "extraction_completion",
         "extraction_human_review",
+        "private_tutor_use_flow",
         "gretel_glm_evolve_lane",
         "gretel_bachelor_thesis_package",
         "gretel_autonomous_research_loop",
@@ -212,6 +214,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     extraction_manifest_apply_alignment = build_private_manifest_apply_release_claim_alignment()
     extraction_completion_alignment = build_extraction_completion_release_claim_alignment()
     extraction_human_review_alignment = build_extraction_human_review_release_claim_alignment()
+    private_tutor_use_flow_alignment = build_private_tutor_use_flow_release_claim_alignment()
     notebook = generate_practice_notebook("UniBot readiness notebook smoke")
     source_cards = list_source_cards()
     source_card_drift = build_source_card_drift_report()
@@ -1211,6 +1214,109 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 in extraction_human_review_alignment["blocked_claims"],
                 "cloud_processing_blocked": "cloud processing" in extraction_human_review_alignment["blocked_claims"],
                 "exam_deployment_blocked": "exam deployment" in extraction_human_review_alignment["blocked_claims"],
+            },
+        },
+        {
+            "check_id": "private_tutor_use_flow",
+            "passed": private_tutor_use_flow_alignment["status"] == "ready"
+            and private_tutor_use_flow_alignment["public_safety_status"] == "pass"
+            and private_tutor_use_flow_alignment["flow_public_safety_status"] == "pass"
+            and private_tutor_use_flow_alignment["exam_deployment_status"] == "not_cleared"
+            and private_tutor_use_flow_alignment["missing_source_card_ids"] == []
+            and private_tutor_use_flow_alignment["failed_contract_ids"] == [],
+            "evidence": {
+                "release_claim_alignment_status": private_tutor_use_flow_alignment["status"],
+                "release_claim_alignment_public_safety_status": private_tutor_use_flow_alignment[
+                    "public_safety_status"
+                ],
+                "release_claim_alignment_contract_status": private_tutor_use_flow_alignment["schema_version"],
+                "release_claim_alignment_section_count": private_tutor_use_flow_alignment["section_count"],
+                "flow_status": private_tutor_use_flow_alignment["flow_status"],
+                "flow_public_safety_status": private_tutor_use_flow_alignment["flow_public_safety_status"],
+                "exam_deployment_status": private_tutor_use_flow_alignment["exam_deployment_status"],
+                "manifest_apply_status": private_tutor_use_flow_alignment["manifest_apply_status"],
+                "manifest_written": private_tutor_use_flow_alignment["manifest_written"],
+                "tutor_index_status": private_tutor_use_flow_alignment["tutor_index_status"],
+                "tutor_index_built": private_tutor_use_flow_alignment["tutor_index_built"],
+                "tutor_index_anchor_count": private_tutor_use_flow_alignment["tutor_index_anchor_count"],
+                "tutor_response_status": private_tutor_use_flow_alignment["tutor_response_status"],
+                "effective_help_level": private_tutor_use_flow_alignment["effective_help_level"],
+                "source_anchor_count": private_tutor_use_flow_alignment["source_anchor_count"],
+                "ledger_status": private_tutor_use_flow_alignment["ledger_status"],
+                "ledger_written": private_tutor_use_flow_alignment["ledger_written"],
+                "study_receipt_status": private_tutor_use_flow_alignment["study_receipt_status"],
+                "release_claim_alignment_human_gates": private_tutor_use_flow_alignment["required_human_gates"],
+                "human_review_claim_linked": (
+                    "extraction_human_review"
+                    in private_tutor_use_flow_alignment["required_readiness_check_ids"]
+                ),
+                "manifest_apply_claim_linked": (
+                    "extraction_manifest_apply"
+                    in private_tutor_use_flow_alignment["required_readiness_check_ids"]
+                ),
+                "completion_claim_linked": (
+                    "extraction_completion"
+                    in private_tutor_use_flow_alignment["required_readiness_check_ids"]
+                ),
+                "evaluation_claim_linked": (
+                    "evaluation_packet"
+                    in private_tutor_use_flow_alignment["required_readiness_check_ids"]
+                ),
+                "review_board_claim_linked": (
+                    "review_board_packet"
+                    in private_tutor_use_flow_alignment["required_readiness_check_ids"]
+                ),
+                "external_decision_state_claim_linked": (
+                    "external_decision_state"
+                    in private_tutor_use_flow_alignment["required_readiness_check_ids"]
+                ),
+                "exam_boundary_claim_linked": (
+                    "exam_boundary" in private_tutor_use_flow_alignment["required_readiness_check_ids"]
+                ),
+                "human_submission_gate_linked": (
+                    "human_submission_review_required"
+                    in private_tutor_use_flow_alignment["required_human_gates"]
+                ),
+                "datenschutz_gate_linked": (
+                    "datenschutz_review_required_before_real_pilot"
+                    in private_tutor_use_flow_alignment["required_human_gates"]
+                ),
+                "written_clearance_gate_linked": (
+                    "written_university_clearance_required_before_exam_use"
+                    in private_tutor_use_flow_alignment["required_human_gates"]
+                ),
+                "reviewed_private_manifest_evidence_operator_confirmed": private_tutor_use_flow_alignment[
+                    "contracts"
+                ]["reviewed_private_manifest_evidence_operator_confirmed"],
+                "hash_only_tutor_index_operator_confirmed": private_tutor_use_flow_alignment["contracts"][
+                    "hash_only_tutor_index_operator_confirmed"
+                ],
+                "learner_agency_a0_a2_source_anchored": private_tutor_use_flow_alignment["contracts"][
+                    "learner_agency_a0_a2_source_anchored"
+                ],
+                "help_ledger_operator_confirmed_hash_only": private_tutor_use_flow_alignment["contracts"][
+                    "help_ledger_operator_confirmed_hash_only"
+                ],
+                "public_outputs_hide_private_data": private_tutor_use_flow_alignment["contracts"][
+                    "public_outputs_hide_private_data"
+                ],
+                "high_stakes_actions_not_started": private_tutor_use_flow_alignment["contracts"][
+                    "high_stakes_actions_not_started"
+                ],
+                "raw_query_returned_blocked": "raw query returned"
+                in private_tutor_use_flow_alignment["blocked_claims"],
+                "raw_text_returned_blocked": "raw extracted course text returned"
+                in private_tutor_use_flow_alignment["blocked_claims"],
+                "unconfirmed_manifest_apply_blocked": "private manifest apply without operator confirmation"
+                in private_tutor_use_flow_alignment["blocked_claims"],
+                "unconfirmed_tutor_index_build_blocked": "private tutor index build without operator confirmation"
+                in private_tutor_use_flow_alignment["blocked_claims"],
+                "complete_code_or_final_answer_tutoring_blocked": "complete code or final-answer tutoring"
+                in private_tutor_use_flow_alignment["blocked_claims"],
+                "cloud_processing_blocked": "cloud processing"
+                in private_tutor_use_flow_alignment["blocked_claims"],
+                "exam_deployment_blocked": "exam deployment"
+                in private_tutor_use_flow_alignment["blocked_claims"],
             },
         },
         {
