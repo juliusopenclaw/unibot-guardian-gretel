@@ -14,6 +14,9 @@ from unibot.decision_request import (  # noqa: E402
     build_stakeholder_decision_request,
     build_stakeholder_decision_request_markdown,
     build_stakeholder_decision_request_release_claim_alignment,
+    decision_request_packet_hash,
+    decision_request_receipt_template_hash,
+    synthetic_decision_request_workspace_card,
     validate_decision_request_receipt,
 )
 from unibot.public_safety import scan_text  # noqa: E402
@@ -79,6 +82,7 @@ class UniBotDecisionRequestTests(unittest.TestCase):
         self.assertEqual(alignment["missing_source_card_ids"], [])
         self.assertEqual(alignment["failed_contract_ids"], [])
         self.assertIn("stakeholder_decision_request", alignment["required_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
         self.assertIn("stakeholder_submission_bundle", alignment["required_readiness_check_ids"])
         self.assertIn("review_board_packet", alignment["required_readiness_check_ids"])
         self.assertIn("data_protection_screening", alignment["required_readiness_check_ids"])
@@ -87,9 +91,39 @@ class UniBotDecisionRequestTests(unittest.TestCase):
         self.assertIn("public_safety_required", alignment["required_human_gates"])
         self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
         self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertTrue(alignment["contracts"]["workspace_card_decision_request_gate_linked"])
+        self.assertEqual(alignment["workspace_card_status"], "python_exam_local_cycle_operator_workspace_card_ready")
+        self.assertEqual(alignment["workspace_card_selected_skill_tag"], "pandas")
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_decision_request_gate_linked"])
         self.assertIn("automatic external send", alignment["blocked_claims"])
         self.assertIn("raw written decision storage", alignment["blocked_claims"])
         self.assertIn("exam clearance", alignment["blocked_claims"])
+
+    def test_decision_request_hash_helpers_link_packet_and_receipt_template(self) -> None:
+        packet = build_stakeholder_decision_request()
+
+        self.assertTrue(decision_request_packet_hash(packet))
+        self.assertTrue(decision_request_receipt_template_hash(packet))
+        self.assertNotEqual(decision_request_packet_hash(packet), decision_request_receipt_template_hash(packet))
+
+    def test_decision_request_release_claim_alignment_rejects_unlinked_workspace_card_hashes(self) -> None:
+        packet = build_stakeholder_decision_request()
+        card = synthetic_decision_request_workspace_card()
+        card["workspace_card_summary"]["checkpoint_hash"] = "x"
+        card["workspace_card_summary"]["task_hash"] = "x"
+
+        alignment = build_stakeholder_decision_request_release_claim_alignment(
+            packet,
+            python_exam_local_cycle_operator_workspace_card=card,
+        )
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertFalse(alignment["workspace_card_decision_request_gate_linked"])
+        self.assertIn("workspace_card_decision_request_gate_linked", alignment["failed_contract_ids"])
 
     def test_decision_request_release_claim_alignment_blocks_sent_or_raw_receipt_claims(self) -> None:
         packet = build_stakeholder_decision_request()

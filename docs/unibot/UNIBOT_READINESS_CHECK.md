@@ -87,6 +87,10 @@ This contract keeps a single request lane tied to the submission bundle,
 receipt template, review-board evidence, Datenschutz controls, public-safety,
 and human gates. It keeps the packet manual-review-only and blocks tool-sent
 messages, approval claims, raw written decision storage, and exam clearance.
+Request packet and receipt-template hashes are now linked to the harnessed
+local-cycle operator workspace-card readiness gate without exposing raw written
+decisions, contact data, automatic external sends, approval claims, or the raw
+workspace card.
 
 The stakeholder decision journal carries
 `unibot-stakeholder-decision-journal-release-review-board-claim-alignment-v1`.

@@ -20,7 +20,10 @@ ALLOWED_LANE_IDS = {"rights_privacy_local_extraction", "exam_gateway_authority_c
 ALLOWED_RECEIPT_STATUSES = {"draft_not_sent", "sent_for_human_review", "withdrawn", "response_received"}
 
 
-def build_stakeholder_decision_request_release_claim_alignment(request: dict[str, Any]) -> dict[str, Any]:
+def build_stakeholder_decision_request_release_claim_alignment(
+    request: dict[str, Any],
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     sections = [
         {
             "section_id": "request_boundary_trace",
@@ -28,6 +31,7 @@ def build_stakeholder_decision_request_release_claim_alignment(request: dict[str
             "source_card_ids": ["uoc-ki-lehre", "dfg-gwp"],
             "readiness_check_ids": [
                 "stakeholder_decision_request",
+                "python_exam_local_cycle_operator_workspace_card",
                 "stakeholder_submission_bundle",
                 "review_board_packet",
                 "public_safety",
@@ -71,6 +75,18 @@ def build_stakeholder_decision_request_release_claim_alignment(request: dict[str
     boundary = request.get("request_boundary", "")
     checklist_text = " ".join(request.get("human_review_checklist", []))
     must_not_claim = set(request.get("must_not_claim", []))
+    workspace_card = safe_local_cycle_workspace_card(
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else synthetic_decision_request_workspace_card()
+        if request.get("status") == "ready_for_manual_review_not_sent"
+        else {},
+        request_hash=decision_request_packet_hash(request),
+        receipt_hash=decision_request_receipt_template_hash(request),
+    )
+    workspace_card_readiness_gate_linked = any(
+        "python_exam_local_cycle_operator_workspace_card" in section["readiness_check_ids"] for section in sections
+    )
 
     lane_specific_contract = False
     if lane_id == "rights_privacy_local_extraction":
@@ -128,6 +144,15 @@ def build_stakeholder_decision_request_release_claim_alignment(request: dict[str
         and evidence_by_artifact.get("decision_lane", {}).get("lane_id") == lane_id
         and bool(evidence_by_artifact.get("decision_lane", {}).get("current_evidence_hash")),
         "lane_specific_contract_matches_boundary": lane_specific_contract,
+        "workspace_card_decision_request_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and workspace_card.get("checkpoint_hash") == decision_request_packet_hash(request)
+        and workspace_card.get("task_hash") == decision_request_receipt_template_hash(request)
+        and bool(workspace_card.get("help_ledger_preview_hash"))
+        and workspace_card.get("not_cleared_receipt") is True
+        and workspace_card.get("raw_workspace_card_returned") is False,
     }
     failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
     payload = {
@@ -155,6 +180,13 @@ def build_stakeholder_decision_request_release_claim_alignment(request: dict[str
         "status": status,
         "section_count": len(sections),
         "sections": sections,
+        "workspace_card_status": workspace_card.get("status"),
+        "workspace_card_selected_skill_tag": workspace_card.get("selected_skill_tag"),
+        "workspace_card_ready_for_operator_prefill": bool(workspace_card.get("ready_for_operator_prefill", False)),
+        "workspace_card_help_ledger_status": workspace_card.get("help_ledger_preview_status"),
+        "workspace_card_help_ledger_hash_present": bool(workspace_card.get("help_ledger_preview_hash")),
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_decision_request_gate_linked": contracts["workspace_card_decision_request_gate_linked"],
         "contracts": contracts,
         "missing_source_card_ids": missing_source_card_ids,
         "failed_contract_ids": failed_contract_ids,
@@ -435,6 +467,112 @@ def receipt_effect(status: str, issues: list[str], lane_id: str) -> str:
     if status == "withdrawn":
         return f"manual_request_withdrawn_for_{lane_id}_no_gate_change"
     return "no_gate_change"
+
+
+def synthetic_decision_request_workspace_card() -> dict[str, Any]:
+    preview_hash = sha256_text("synthetic stakeholder decision request workspace card")
+    return {
+        "schema_version": "unibot-python-exam-local-cycle-operator-workspace-card-v1",
+        "artifact_type": "python_exam_local_cycle_operator_workspace_card",
+        "status": "python_exam_local_cycle_operator_workspace_card_ready",
+        "selected_skill_tag": "pandas",
+        "exam_deployment_status": "not_cleared",
+        "not_cleared_receipt": True,
+        "workspace_card_summary": {
+            "recommendation": "ready_for_operator_prefill",
+            "recommendation_reason": "synthetic stakeholder decision request packet prerequisites are satisfied",
+            "ready_for_operator_prefill": True,
+            "help_ledger_preview_status": "help_ledger_preview_ready",
+            "selected_skill_tag": "pandas",
+            "next_safe_action": "review_stakeholder_decision_request_before_workspace_prefill",
+            "next_safe_user_action": "review_hash_only_request_packet_before_manual_submission",
+            "operator_run_endpoint": "/api/unibot/exam-workspace/operator-run",
+            "operator_run_method": "POST",
+            "help_level": "A2",
+            "task_hash": "__DECISION_REQUEST_RECEIPT_HASH__",
+            "checkpoint_hash": "__DECISION_REQUEST_PACKET_HASH__",
+            "source_card_ids": ["dfg-gwp", "dsk-ai-privacy-2024"],
+            "source_anchor_count": 2,
+            "help_ledger_preview_hash": preview_hash,
+        },
+        "help_ledger_preview": {
+            "status": "help_ledger_preview_ready",
+            "help_level": "A2",
+            "preview_hash": preview_hash,
+        },
+    }
+
+
+def decision_request_packet_hash(request: dict[str, Any]) -> str:
+    return sha256_text(
+        json.dumps(
+            {
+                "request_id": request.get("request_id", ""),
+                "lane_id": request.get("lane_id", ""),
+                "status": request.get("status", ""),
+                "decision_type": request.get("decision_type", ""),
+                "validator_endpoint": request.get("validator_endpoint", ""),
+                "follow_up_endpoint_if_valid": request.get("follow_up_endpoint_if_valid", ""),
+                "exam_deployment_status": request.get("exam_deployment_status", ""),
+                "evidence_manifest": request.get("evidence_manifest", []),
+                "minimum_record_template": request.get("minimum_record_template", {}),
+                "must_not_claim": request.get("must_not_claim", []),
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+    )
+
+
+def decision_request_receipt_template_hash(request: dict[str, Any]) -> str:
+    return sha256_text(json.dumps(request.get("receipt_template", {}), sort_keys=True, ensure_ascii=False))
+
+
+def safe_local_cycle_workspace_card(
+    workspace_card: dict[str, Any],
+    *,
+    request_hash: str = "",
+    receipt_hash: str = "",
+) -> dict[str, Any]:
+    summary = workspace_card.get("workspace_card_summary", {}) if isinstance(workspace_card.get("workspace_card_summary"), dict) else {}
+    review = workspace_card.get("readiness_review", {}) if isinstance(workspace_card.get("readiness_review"), dict) else {}
+    handoff = workspace_card.get("readiness_handoff", {}) if isinstance(workspace_card.get("readiness_handoff"), dict) else {}
+    ledger = workspace_card.get("help_ledger_preview", {}) if isinstance(workspace_card.get("help_ledger_preview"), dict) else {}
+    if not summary and (
+        workspace_card.get("help_ledger_preview_hash") is not None
+        or workspace_card.get("ready_for_operator_prefill") is not None
+        or workspace_card.get("help_ledger_preview_status") is not None
+    ):
+        summary = workspace_card
+    checkpoint_hash = str(summary.get("checkpoint_hash", ""))
+    task_hash = str(summary.get("task_hash", ""))
+    if request_hash and checkpoint_hash == "__DECISION_REQUEST_PACKET_HASH__":
+        checkpoint_hash = request_hash
+    if receipt_hash and task_hash == "__DECISION_REQUEST_RECEIPT_HASH__":
+        task_hash = receipt_hash
+    return {
+        "status": workspace_card.get("status", "missing"),
+        "selected_skill_tag": str(summary.get("selected_skill_tag", workspace_card.get("selected_skill_tag", ""))),
+        "recommendation": str(summary.get("recommendation", review.get("recommendation", "keep_blocked"))),
+        "recommendation_reason": str(
+            summary.get("recommendation_reason", review.get("recommendation_reason", "missing_decision_request"))
+        ),
+        "ready_for_operator_prefill": bool(summary.get("ready_for_operator_prefill", False)),
+        "help_ledger_preview_status": str(summary.get("help_ledger_preview_status", ledger.get("status", "missing"))),
+        "next_safe_action": str(summary.get("next_safe_action", review.get("next_safe_action", ""))),
+        "next_safe_user_action": str(summary.get("next_safe_user_action", review.get("next_safe_user_action", ""))),
+        "operator_run_endpoint": str(summary.get("operator_run_endpoint", handoff.get("operator_run_endpoint", ""))),
+        "operator_run_method": str(summary.get("operator_run_method", handoff.get("operator_run_method", "POST"))),
+        "help_level": str(summary.get("help_level", ledger.get("help_level", "A2"))),
+        "task_hash": task_hash,
+        "checkpoint_hash": checkpoint_hash,
+        "source_card_ids": [str(item) for item in (summary.get("source_card_ids", []) or [])][:8],
+        "source_anchor_count": int(summary.get("source_anchor_count", 0) or 0),
+        "help_ledger_preview_hash": str(summary.get("help_ledger_preview_hash", ledger.get("preview_hash", ""))),
+        "not_cleared_receipt": bool(workspace_card.get("not_cleared_receipt", True)),
+        "exam_deployment_status": "not_cleared",
+        "raw_workspace_card_returned": False,
+    }
 
 
 def attach_public_scan(payload: dict[str, Any], *, public_safe: bool, source_name: str) -> None:
