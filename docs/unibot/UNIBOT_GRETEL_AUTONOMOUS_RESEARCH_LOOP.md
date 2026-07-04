@@ -57,10 +57,10 @@ contract change.
 
 ## Current Work Queue
 
-- `exam_workspace_run_history_release_review_board_claim_alignment` is ready.
-  It should align exam-workspace run history and export review with run
-  receipts, session-console hashes, operator confirmations, reflection
-  evidence, no raw notebook/query publication, no grading, no proctoring, no
+- `exam_workspace_operator_run_release_review_board_claim_alignment` is ready.
+  It should align the operator-facing Start Exam Workspace run receipt with
+  launch/run/history evidence, individual operator confirmations, runtime
+  isolation, no raw notebook/query publication, no grading, no proctoring, no
   KI-detection, and no exam deployment claims.
 
 ## Closed Harnessed Work
@@ -249,6 +249,10 @@ contract change.
   `c6a0dbf` with controlled notebook-run evidence, private tutor sidecar, study
   receipt, Help-Ledger/exam-ledger links, export receipt, runtime isolation,
   and no exam deployment claims.
+- `exam_workspace_run_history_release_review_board_claim_alignment`: closed in
+  `2581243` with hash-only session-console receipts, checkpoint hashes,
+  operator blockers, reflection evidence, not-cleared export receipts, and no
+  exam deployment claims.
 
 ## Automation Rule
 
