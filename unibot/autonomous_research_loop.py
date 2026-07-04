@@ -1295,7 +1295,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "study_session_local_cycle_workspace_card_reflection_link_alignment",
             "priority": 68,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link study-session formative review/reflection evidence with the harnessed local-cycle operator workspace-card readiness gate, preserving prediction/notebook-action/reflection metadata, workspace-card prefill evidence, no raw learner/private text publication, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/study_session.py",
@@ -1305,6 +1305,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_study_session.py tests/test_unibot_readiness.py -q"],
             "review_gate": "study_session_local_cycle_workspace_card_reflection_link_traceability",
+            "closure_evidence": {
+                "commit": "77d12b5",
+                "summary": "Study-session release-claim alignment now links formative prediction/notebook-action/reflection evidence to the harnessed local-cycle operator workspace-card readiness gate, preserves reflection and Help-Ledger-preview hashes plus prefill metadata, and blocks raw learner/private text, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "private_tutor_use_flow_local_cycle_workspace_card_help_ledger_link_alignment",
+            "priority": 69,
+            "status": "ready",
+            "goal": "Link private tutor-use flow A0-A2 source-anchored help and operator-confirmed Help-Ledger evidence with the harnessed local-cycle operator workspace-card readiness gate, preserving tutor response/help-ledger metadata, workspace-card prefill evidence, no raw query/course text publication, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/private_tutor_use_flow.py",
+                "tests/test_unibot_private_tutor_use_flow.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_private_tutor_use_flow.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "private_tutor_use_flow_local_cycle_workspace_card_help_ledger_link_traceability",
         },
     ]
 

@@ -57,14 +57,22 @@ contract change.
 
 ## Current Work Queue
 
-- `study_session_local_cycle_workspace_card_reflection_link_alignment` is
-  ready. It should link study-session formative review/reflection evidence
-  with the harnessed local-cycle operator workspace-card readiness gate,
-  preserving prediction/notebook-action/reflection metadata, workspace-card
-  prefill evidence, no raw learner/private text publication, no
-  grading/proctoring/KI-detection, and no exam deployment claims.
+- `private_tutor_use_flow_local_cycle_workspace_card_help_ledger_link_alignment`
+  is ready. It should link private tutor-use flow A0-A2 source-anchored help
+  and operator-confirmed Help-Ledger evidence with the harnessed local-cycle
+  operator workspace-card readiness gate, preserving tutor response/
+  help-ledger metadata, workspace-card prefill evidence, no raw query/course
+  text publication, no grading/proctoring/KI-detection, and no exam deployment
+  claims.
 
 ## Closed Harnessed Work
+
+- `study_session_local_cycle_workspace_card_reflection_link_alignment`:
+  closed in `77d12b5` with study-session release-claim links from formative
+  prediction/notebook-action/reflection evidence to the harnessed local-cycle
+  operator workspace-card readiness gate, reflection and Help-Ledger-preview
+  hashes, prefill metadata, and blocked raw learner/private text, grading,
+  proctoring, KI-detection, and exam deployment claims.
 
 - `notebook_checkpoint_local_cycle_workspace_card_checkpoint_link_alignment`:
   closed in `988cf65` with notebook-checkpoint release-claim links from
