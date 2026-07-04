@@ -1043,7 +1043,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "exam_workspace_run_release_review_board_claim_alignment",
             "priority": 54,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align the controlled exam-workspace run packet with launch, checkpoint, study, tutor, dry-run/operator boundaries, no raw code publication, no grading, no proctoring, no KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/exam_workspace_run.py",
@@ -1053,6 +1053,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_exam_workspace_run.py tests/test_unibot_readiness.py -q"],
             "review_gate": "exam_workspace_run_release_review_board_claim_traceability",
+            "closure_evidence": {
+                "commit": "c6a0dbf",
+                "summary": "Exam-workspace run release-claim alignment added with controlled notebook-run evidence, private tutor sidecar, study receipt, Help-Ledger/exam-ledger links, export receipt, runtime isolation, and no exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "exam_workspace_run_history_release_review_board_claim_alignment",
+            "priority": 55,
+            "status": "ready",
+            "goal": "Align exam-workspace run history and export review with run receipts, session-console hashes, operator confirmations, reflection evidence, no raw notebook/query publication, no grading, no proctoring, no KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/exam_workspace_run_history.py",
+                "tests/test_unibot_exam_workspace_run_history.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_exam_workspace_run_history.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "exam_workspace_run_history_release_review_board_claim_traceability",
         },
     ]
 
