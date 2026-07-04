@@ -1732,7 +1732,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "timeline_export_receipt_journal_local_cycle_workspace_card_journal_link_alignment",
             "priority": 92,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link UniBot timeline export receipt journal append/summary metadata, accepted/rejected counts, and no-clearance/local-write boundary with the harnessed local-cycle operator workspace-card readiness gate, preserving journal/summary hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no provider call/autonomous publication, no approval or exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/timeline_export_receipt_journal.py",
@@ -1744,6 +1744,26 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
                 "python3 -m pytest tests/test_unibot_timeline_export_receipt_journal.py tests/test_unibot_readiness.py -q"
             ],
             "review_gate": "timeline_export_receipt_journal_local_cycle_workspace_card_journal_link_traceability",
+            "closure_evidence": {
+                "commit": "bf1359f",
+                "summary": "UniBot timeline export receipt journal append/summary metadata, accepted/blocked counts, local-write confirmation boundary, and no-clearance deployment line now link to the harnessed local-cycle operator workspace-card readiness gate, preserving journal/summary and ready-for-prefill metadata, and blocking raw private course text/contact data/local path publication, provider calls, autonomous publication, approval or exam-clearance claims, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "timeline_export_review_packet_local_cycle_workspace_card_review_link_alignment",
+            "priority": 93,
+            "status": "ready",
+            "goal": "Link UniBot timeline export review packet summary, local export receipt, reviewer question counts, and no-clearance/local-write boundary with the harnessed local-cycle operator workspace-card readiness gate, preserving review/receipt hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no provider call/autonomous publication, no approval or exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/timeline_export_review_packet.py",
+                "tests/test_unibot_timeline_export_review_packet.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": [
+                "python3 -m pytest tests/test_unibot_timeline_export_review_packet.py tests/test_unibot_readiness.py -q"
+            ],
+            "review_gate": "timeline_export_review_packet_local_cycle_workspace_card_review_link_traceability",
         },
     ]
 
