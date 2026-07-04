@@ -1621,7 +1621,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "readiness_evidence_snapshot_local_cycle_workspace_card_snapshot_link_alignment",
             "priority": 86,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link readiness evidence snapshot status and scientific-gate metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving snapshot/scientific-gate hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no provider call/autonomous publication, no approval/exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/readiness.py",
@@ -1631,6 +1631,10 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_readiness.py tests/test_unibot_autonomous_research_loop.py -q"],
             "review_gate": "readiness_evidence_snapshot_local_cycle_workspace_card_snapshot_link_traceability",
+            "closure_evidence": {
+                "commit": "local-2026-07-04-readiness-snapshot-workspace-card-link",
+                "summary": "Readiness evidence snapshots now link snapshot and scientific-gate hashes to the harnessed local-cycle operator workspace-card readiness gate, preserve prefill/hash metadata, and block raw private course text/contact data/local path publication, provider calls, autonomous publication, approval or exam-clearance claims, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
         },
     ]
 

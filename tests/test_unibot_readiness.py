@@ -726,11 +726,43 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertEqual(snapshot["readiness_status"], "public_draft_ready")
         self.assertEqual(snapshot["exam_deployment_status"], "not_cleared")
         self.assertEqual(snapshot["snapshot_hash"], rebuilt["snapshot_hash"])
+        self.assertEqual(snapshot["scientific_gate_hash"], rebuilt["scientific_gate_hash"])
         self.assertGreaterEqual(snapshot["scientific_gate_count"], 10)
         self.assertEqual(snapshot["scientific_gate_passed_count"], snapshot["scientific_gate_count"])
         self.assertEqual(snapshot["failed_check_ids"], [])
-        self.assertLess(len(json.dumps(snapshot, ensure_ascii=False)), 6000)
+        self.assertLess(len(json.dumps(snapshot, ensure_ascii=False)), 8000)
         self.assertIn("not exam clearance", snapshot["human_gate_reminder"])
+        alignment = snapshot["workspace_card_snapshot_alignment"]
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["snapshot_hash"], snapshot["snapshot_hash"])
+        self.assertEqual(alignment["scientific_gate_hash"], snapshot["scientific_gate_hash"])
+        self.assertEqual(alignment["workspace_card_check_id"], "python_exam_local_cycle_operator_workspace_card")
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertTrue(alignment["workspace_card_operator_prefill_hash_present"])
+        self.assertFalse(alignment["raw_workspace_card_returned"])
+        self.assertTrue(alignment["contracts"]["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["contracts"]["workspace_card_hash_metadata_preserved"])
+        self.assertTrue(alignment["contracts"]["workspace_card_public_metadata_only"])
+        self.assertTrue(alignment["contracts"]["high_stakes_boundaries_blocked"])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertIn("exam clearance", alignment["blocked_claims"])
+
+    def test_readiness_evidence_snapshot_blocks_when_workspace_card_link_breaks(self) -> None:
+        report = run_readiness_check()
+        workspace_card = next(
+            check for check in report["checks"] if check["check_id"] == "python_exam_local_cycle_operator_workspace_card"
+        )
+        workspace_card["evidence"]["help_ledger_preview_hash_present"] = False
+
+        snapshot = build_readiness_evidence_snapshot(report)
+
+        self.assertEqual(snapshot["status"], "blocked")
+        alignment = snapshot["workspace_card_snapshot_alignment"]
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertIn("workspace_card_readiness_gate_linked", alignment["failed_contract_ids"])
+        self.assertFalse(alignment["raw_workspace_card_returned"])
 
     def test_readiness_check_blocks_when_public_scan_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

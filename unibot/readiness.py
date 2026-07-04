@@ -177,6 +177,10 @@ def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
         for check_id in scientific_gate_ids
         if check_id in by_id
     ]
+    workspace_card_check = by_id.get("python_exam_local_cycle_operator_workspace_card", {})
+    workspace_card_evidence = (
+        workspace_card_check.get("evidence", {}) if isinstance(workspace_card_check.get("evidence"), dict) else {}
+    )
     status_payload = {
         "readiness_status": report["status"],
         "exam_deployment_status": report["exam_deployment_status"],
@@ -192,10 +196,73 @@ def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
         "runtime_default_mode": report["runtime_guard"]["routine_budget"]["default_execution_mode"],
     }
     digest = hashlib.sha256(json.dumps(status_payload, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
+    scientific_gate_hash = hashlib.sha256(
+        json.dumps(gate_rows, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    alignment_contracts = {
+        "snapshot_ready": report["status"] == "public_draft_ready" and report["failed_count"] == 0,
+        "scientific_gate_hash_present": scientific_gate_hash != "",
+        "workspace_card_readiness_gate_linked": bool(workspace_card_check.get("passed"))
+        and workspace_card_evidence.get("ready_card_status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card_evidence.get("ready_for_operator_prefill") is True
+        and workspace_card_evidence.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and workspace_card_evidence.get("help_ledger_preview_hash_present") is True
+        and workspace_card_evidence.get("operator_prefill_hash_present") is True,
+        "workspace_card_hash_metadata_preserved": workspace_card_evidence.get("task_hash_present") is True
+        and workspace_card_evidence.get("checkpoint_hash_present") is True,
+        "workspace_card_public_metadata_only": workspace_card_evidence.get("workspace_card_ready_metadata_only") is True
+        and workspace_card_evidence.get("public_outputs_hide_private_workspace_card_data") is True,
+        "high_stakes_boundaries_blocked": workspace_card_evidence.get("exam_deployment_status") == "not_cleared"
+        and workspace_card_evidence.get("automatic_grading_blocked") is True
+        and workspace_card_evidence.get("proctoring_blocked") is True
+        and workspace_card_evidence.get("ki_detection_evidence_blocked") is True
+        and workspace_card_evidence.get("exam_clearance_blocked") is True,
+    }
+    alignment_failed_contract_ids = [
+        contract_id for contract_id, passed in alignment_contracts.items() if passed is not True
+    ]
+    workspace_card_snapshot_alignment = {
+        "schema_version": "unibot-readiness-evidence-snapshot-workspace-card-link-v1",
+        "status": "ready" if alignment_failed_contract_ids == [] else "blocked",
+        "snapshot_hash": digest,
+        "scientific_gate_hash": scientific_gate_hash,
+        "workspace_card_check_id": "python_exam_local_cycle_operator_workspace_card",
+        "workspace_card_status": workspace_card_evidence.get("ready_card_status", "missing"),
+        "workspace_card_selected_skill_tag": workspace_card_evidence.get("selected_skill_tag", ""),
+        "workspace_card_ready_for_operator_prefill": workspace_card_evidence.get("ready_for_operator_prefill") is True,
+        "workspace_card_help_ledger_status": workspace_card_evidence.get("help_ledger_preview_status", "missing"),
+        "workspace_card_help_ledger_hash_present": workspace_card_evidence.get("help_ledger_preview_hash_present")
+        is True,
+        "workspace_card_operator_prefill_hash_present": workspace_card_evidence.get("operator_prefill_hash_present")
+        is True,
+        "raw_workspace_card_returned": False,
+        "contracts": alignment_contracts,
+        "failed_contract_ids": alignment_failed_contract_ids,
+        "blocked_claims": [
+            "raw private course text publication",
+            "contact data publication",
+            "local path publication",
+            "provider call",
+            "autonomous publication",
+            "approval claim",
+            "exam clearance",
+            "grading",
+            "proctoring",
+            "KI-detection evidence",
+            "exam deployment",
+        ],
+    }
     snapshot = {
         "schema_version": "unibot-readiness-evidence-snapshot-v1",
-        "status": "ready" if report["status"] == "public_draft_ready" and report["failed_count"] == 0 else "blocked",
+        "status": (
+            "ready"
+            if report["status"] == "public_draft_ready"
+            and report["failed_count"] == 0
+            and workspace_card_snapshot_alignment["status"] == "ready"
+            else "blocked"
+        ),
         "snapshot_hash": digest,
+        "scientific_gate_hash": scientific_gate_hash,
         "readiness_status": report["status"],
         "exam_deployment_status": report["exam_deployment_status"],
         "check_count": report["check_count"],
@@ -210,6 +277,7 @@ def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
         "required_source_card_count": report["source_card_drift"]["required_source_card_count"],
         "runtime_guard_status": report["runtime_guard"]["status"],
         "runtime_default_mode": report["runtime_guard"]["routine_budget"]["default_execution_mode"],
+        "workspace_card_snapshot_alignment": workspace_card_snapshot_alignment,
         "human_gate_reminder": "Public draft readiness is not exam clearance, legal approval, provider approval, or real submission approval.",
     }
     scan = scan_text(json.dumps(snapshot, ensure_ascii=False), "unibot-readiness-evidence-snapshot")
