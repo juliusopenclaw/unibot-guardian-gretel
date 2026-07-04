@@ -917,7 +917,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "extraction_manifest_apply_release_review_board_claim_alignment",
             "priority": 47,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align private manifest apply dry-runs and confirmed private writes with operator confirmation, metadata-only outputs, local path suppression, no tutor indexing, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/extraction_manifest_apply.py",
@@ -927,6 +927,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_extraction_manifest_apply.py tests/test_unibot_readiness.py -q"],
             "review_gate": "extraction_manifest_apply_release_review_board_claim_traceability",
+            "closure_evidence": {
+                "commit": "fbda8fe",
+                "summary": "Private manifest apply release-claim alignment added with dry-run/no-write proof, operator-confirmed private metadata writes, path/raw-text suppression, no tutor indexing, and no exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "extraction_completion_release_review_board_claim_alignment",
+            "priority": 48,
+            "status": "ready",
+            "goal": "Align extraction completion reports and deferrals with reviewed receipt coverage, intentional deferral evidence, no raw deferral text, no manifest updates, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/extraction_completion.py",
+                "tests/test_unibot_extraction_completion.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_extraction_completion.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "extraction_completion_release_review_board_claim_traceability",
         },
     ]
 
