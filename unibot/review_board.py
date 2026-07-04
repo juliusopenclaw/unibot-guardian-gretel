@@ -16,6 +16,112 @@ from .python_exam_local_cycle_chain_snapshot import build_python_exam_local_cycl
 
 REVIEW_BOARD_SCHEMA_VERSION = "unibot-review-board-packet-v1"
 REVIEW_BOARD_THESIS_EVALUATION_ALIGNMENT_SCHEMA_VERSION = "unibot-review-board-thesis-evaluation-claim-alignment-v1"
+REVIEW_BOARD_RELEASE_CLAIM_SUMMARY_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-review-board-release-claim-summary-alignment-v1"
+)
+
+
+def build_review_board_release_claim_summary_alignment(review_board: dict[str, Any]) -> dict[str, Any]:
+    sections = [
+        {
+            "section_id": "source_card_trace",
+            "summary_claim": "release-facing summaries cite public source-card authority and product rules",
+            "source_card_ids": ["dfg-gwp", "unesco-genai-2023", "gdpr-2016-679", "uoc-ki-lehre"],
+            "readiness_check_ids": ["source_cards", "source_card_drift_guard", "review_board_packet"],
+            "human_gates": ["human_submission_review_required", "public_safety_required"],
+        },
+        {
+            "section_id": "threat_model_trace",
+            "summary_claim": "risk summaries stay tied to threat-model controls rather than security or clearance claims",
+            "source_card_ids": [],
+            "readiness_check_ids": ["redteam", "source_card_drift_guard", "release_runbook", "review_board_packet"],
+            "human_gates": [
+                "human_submission_review_required",
+                "written_university_clearance_required_before_exam_use",
+            ],
+        },
+        {
+            "section_id": "redteam_trace",
+            "summary_claim": "red-team summaries report hash/category control evidence only",
+            "source_card_ids": [],
+            "readiness_check_ids": ["redteam", "public_safety", "review_board_packet"],
+            "human_gates": ["human_submission_review_required", "public_safety_required"],
+        },
+        {
+            "section_id": "publication_boundary_trace",
+            "summary_claim": "publication summaries remain manual-review drafts and not public-release approval",
+            "source_card_ids": ["dfg-gwp", "gdpr-2016-679"],
+            "readiness_check_ids": ["publication_package", "release_runbook", "review_board_packet"],
+            "human_gates": ["human_review_required", "human_submission_review_required"],
+        },
+        {
+            "section_id": "public_language_trace",
+            "summary_claim": "public wording remains non-committal until written approvals exist",
+            "source_card_ids": ["uoc-ki-lehre"],
+            "readiness_check_ids": ["public_safety", "review_board_packet"],
+            "human_gates": ["human_submission_review_required", "public_safety_required"],
+        },
+        {
+            "section_id": "human_gate_trace",
+            "summary_claim": "human gates remain required for provider calls, submission, pilots, and exam use",
+            "source_card_ids": ["eu-ai-act-2024", "gdpr-2016-679"],
+            "readiness_check_ids": [
+                "gretel_glm_evolve_lane",
+                "pilot_protocol",
+                "data_protection_screening",
+                "exam_boundary",
+                "review_board_packet",
+            ],
+            "human_gates": [
+                "provider_call_requires_explicit_go_and_redaction_receipt",
+                "datenschutz_review_required_before_real_pilot",
+                "ethics_or_supervisor_review_required_before_real_pilot",
+                "written_university_clearance_required_before_exam_use",
+            ],
+        },
+    ]
+    required_source_card_ids = sorted({source_id for section in sections for source_id in section["source_card_ids"]})
+    missing_source_card_ids = sorted(source_id for source_id in required_source_card_ids if get_source_card(source_id) is None)
+    contracts = {
+        "exam_deployment_not_cleared": review_board.get("exam_deployment_status") == "not_cleared",
+        "public_language_non_committal": review_board.get("public_language", {}).get("default")
+        == "beantragt / nicht offiziell freigegeben",
+        "public_language_never_approved": review_board.get("public_language", {}).get("approved_in_public") == "never",
+        "red_lines_block_high_stakes_claims": "No automatic grading" in review_board.get("cross_cutting_red_lines", [])
+        and "No official exam use without written clearance" in review_board.get("cross_cutting_red_lines", [])
+        and "No disciplinary KI-detection output" in review_board.get("cross_cutting_red_lines", []),
+        "publication_ready_only_as_draft_review": "public draft review" in review_board.get("ready_for", [])
+        and "exam deployment" in review_board.get("not_ready_for", []),
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    payload = {
+        "sections": sections,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "blocked_claims": ["exam clearance", "official grading", "proctoring", "KI-detection evidence"],
+    }
+    scan = scan_text(json.dumps(payload, ensure_ascii=False, sort_keys=True), "review-board-release-claim-summary-alignment")
+    status = "ready" if not missing_source_card_ids and not failed_contract_ids and scan["status"] == "pass" else "needs_review"
+    return {
+        "schema_version": REVIEW_BOARD_RELEASE_CLAIM_SUMMARY_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "blocked_claims": payload["blocked_claims"],
+        "public_safety_status": scan["status"],
+        "policy": (
+            "Review-board release-claim summaries are source-bound review aids only; they do not authorize "
+            "publication, provider calls, real pilots, university submission, grading, proctoring, KI detection, "
+            "or exam clearance."
+        ),
+    }
 
 
 def build_review_board_evidence_alignment(reviewers: list[dict[str, Any]]) -> dict[str, Any]:
@@ -490,11 +596,18 @@ def build_review_board_packet(
         "not_ready_for": ["exam deployment", "official grading", "automatic support claims", "exam_controlled"],
     }
     review_board["thesis_evaluation_claim_alignment"] = build_review_board_thesis_evaluation_claim_alignment(review_board)
+    review_board["release_claim_summary_alignment"] = build_review_board_release_claim_summary_alignment(review_board)
     review_board["evidence_summary"]["thesis_evaluation_claim_alignment_status"] = review_board[
         "thesis_evaluation_claim_alignment"
     ]["status"]
     review_board["evidence_summary"]["thesis_evaluation_claim_alignment_public_safety_status"] = review_board[
         "thesis_evaluation_claim_alignment"
+    ]["public_safety_status"]
+    review_board["evidence_summary"]["release_claim_summary_alignment_status"] = review_board[
+        "release_claim_summary_alignment"
+    ]["status"]
+    review_board["evidence_summary"]["release_claim_summary_alignment_public_safety_status"] = review_board[
+        "release_claim_summary_alignment"
     ]["public_safety_status"]
     scan = scan_text(json.dumps(review_board, ensure_ascii=False), "unibot-review-board-packet")
     review_board["public_safety_status"] = scan["status"]
@@ -527,12 +640,16 @@ def build_review_board_packet_markdown() -> str:
     evidence = packet["evidence_summary"]
     alignment = packet["evidence_alignment"]
     thesis_evaluation_alignment = packet["thesis_evaluation_claim_alignment"]
+    release_claim_alignment = packet["release_claim_summary_alignment"]
     alignment_lines = "\n".join(
         f"- {item['reviewer']}: claims {', '.join(item['claim_ids'])}; checks {', '.join(item['readiness_check_ids'])}"
         for item in alignment["reviewer_alignment"]
     )
     thesis_evaluation_lines = "\n".join(
         f"- {section['section_id']}: {section['boundary']}" for section in thesis_evaluation_alignment["sections"]
+    )
+    release_claim_lines = "\n".join(
+        f"- {section['section_id']}: {section['summary_claim']}" for section in release_claim_alignment["sections"]
     )
     chain = packet.get("local_cycle_chain_snapshot", {})
     chain_summary = chain.get("chain_snapshot_summary", {}) if isinstance(chain.get("chain_snapshot_summary"), dict) else {}
@@ -569,6 +686,11 @@ def build_review_board_packet_markdown() -> str:
         f"- Status: {thesis_evaluation_alignment['status']}\n"
         f"- Public safety: {thesis_evaluation_alignment['public_safety_status']}\n"
         f"{thesis_evaluation_lines}\n\n"
+        "## Release Claim Summary Alignment\n\n"
+        f"- Status: {release_claim_alignment['status']}\n"
+        f"- Public safety: {release_claim_alignment['public_safety_status']}\n"
+        f"- Human gates: {', '.join(release_claim_alignment['required_human_gates'])}\n"
+        f"{release_claim_lines}\n\n"
         "## Local Cycle Chain\n\n"
         f"- Status: {chain.get('status', 'missing')}\n"
         f"- Snapshot hash: {chain_summary.get('snapshot_hash', '')}\n"

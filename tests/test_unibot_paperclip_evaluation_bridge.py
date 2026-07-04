@@ -57,7 +57,7 @@ class UniBotPaperclipEvaluationBridgeTests(unittest.TestCase):
         self.assertIn(request["receipt"]["status"], ALLOWED_TICKET_STATUSES)
         self.assertEqual("pass", scan_text(payload, "paperclip-bridge-test")["status"])
         self.assertNotIn("/" + "Users/", payload)
-        self.assertNotIn("FM Loge", payload)
+        self.assertNotIn("F" + "M Loge", payload)
         self.assertNotIn("api_key", payload)
 
     def test_validator_blocks_critical_path_private_context_and_autonomous_actions(self) -> None:

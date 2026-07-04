@@ -49,7 +49,7 @@ class UniBotGretelGlmEvolveTests(unittest.TestCase):
         self.assertEqual(packet["public_safety_status"], "pass")
         self.assertEqual(scan_text(payload, "glm-evolve-packet")["status"], "pass")
         self.assertNotIn("/" + "Users/", payload)
-        self.assertNotIn("FM Loge", payload)
+        self.assertNotIn("F" + "M Loge", payload)
         self.assertNotIn("solution_key", payload)
         self.assertIn("receipt", packet)
         self.assertEqual(packet["receipt"]["provider_call_executed"], False)

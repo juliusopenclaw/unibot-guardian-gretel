@@ -13,6 +13,7 @@ from unibot.review_board import (  # noqa: E402
     build_review_board_evidence_alignment,
     build_review_board_packet,
     build_review_board_packet_markdown,
+    build_review_board_release_claim_summary_alignment,
     build_review_board_thesis_evaluation_claim_alignment,
 )
 from unibot.server import route_request  # noqa: E402
@@ -53,6 +54,10 @@ class UniBotReviewBoardTests(unittest.TestCase):
         self.assertEqual(packet["thesis_evaluation_claim_alignment"]["status"], "ready")
         self.assertEqual(packet["thesis_evaluation_claim_alignment"]["public_safety_status"], "pass")
         self.assertEqual(packet["thesis_evaluation_claim_alignment"]["failed_reviewer_ids"], [])
+        self.assertEqual(packet["release_claim_summary_alignment"]["status"], "ready")
+        self.assertEqual(packet["release_claim_summary_alignment"]["public_safety_status"], "pass")
+        self.assertEqual(packet["release_claim_summary_alignment"]["missing_source_card_ids"], [])
+        self.assertEqual(packet["release_claim_summary_alignment"]["failed_contract_ids"], [])
 
     def test_review_board_evidence_alignment_maps_reviewers_to_readiness_gates(self) -> None:
         packet = build_review_board_packet()
@@ -110,12 +115,47 @@ class UniBotReviewBoardTests(unittest.TestCase):
         self.assertIn("Thesis supervision", alignment["failed_reviewer_ids"])
         self.assertIn("required_reviewers_have_evaluation_claim", alignment["failed_contract_ids"])
 
+    def test_review_board_release_claim_summary_alignment_links_public_claim_controls(self) -> None:
+        packet = build_review_board_packet()
+        alignment = build_review_board_release_claim_summary_alignment(packet)
+        sections = {section["section_id"]: section for section in alignment["sections"]}
+
+        self.assertEqual(alignment["schema_version"], "unibot-review-board-release-claim-summary-alignment-v1")
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertTrue(all(alignment["contracts"].values()))
+        self.assertIn("source_card_trace", sections)
+        self.assertIn("threat_model_trace", sections)
+        self.assertIn("redteam_trace", sections)
+        self.assertIn("publication_boundary_trace", sections)
+        self.assertIn("public_language_trace", sections)
+        self.assertIn("human_gate_trace", sections)
+        self.assertIn("source_card_drift_guard", alignment["required_readiness_check_ids"])
+        self.assertIn("redteam", alignment["required_readiness_check_ids"])
+        self.assertIn("publication_package", alignment["required_readiness_check_ids"])
+        self.assertIn("review_board_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertIn("exam clearance", alignment["blocked_claims"])
+
+    def test_review_board_release_claim_summary_alignment_blocks_weakened_public_language(self) -> None:
+        packet = build_review_board_packet()
+        packet["public_language"]["approved_in_public"] = "after_internal_draft"
+        alignment = build_review_board_release_claim_summary_alignment(packet)
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertIn("public_language_never_approved", alignment["failed_contract_ids"])
+
     def test_review_board_markdown_and_api_routes(self) -> None:
         markdown = build_review_board_packet_markdown()
         self.assertIn("# UniBot Review Board Packet", markdown)
         self.assertIn("Cross-cutting Red Lines", markdown)
         self.assertIn("Evidence Alignment", markdown)
         self.assertIn("Thesis Evaluation Claim Alignment", markdown)
+        self.assertIn("Release Claim Summary Alignment", markdown)
+        self.assertIn("publication_boundary_trace", markdown)
         self.assertIn("Snapshot gate count", markdown)
         self.assertIn("Open Decisions", markdown)
 
