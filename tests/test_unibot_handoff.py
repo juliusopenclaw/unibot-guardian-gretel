@@ -12,9 +12,12 @@ sys.path.insert(0, str(ROOT))
 
 from unibot.guardian import guardian_practice_flow  # noqa: E402
 from unibot.handoff import (  # noqa: E402
+    authority_handoff_public_language_hash,
+    authority_handoff_reviewer_packet_hash,
     build_authority_handoff_markdown,
     build_authority_handoff_packet,
     build_authority_handoff_release_claim_alignment,
+    synthetic_authority_workspace_card,
 )
 from unibot.ledger import append_ledger_event  # noqa: E402
 from unibot.server import route_request  # noqa: E402
@@ -55,6 +58,7 @@ class UniBotHandoffTests(unittest.TestCase):
         self.assertEqual(alignment["missing_source_card_ids"], [])
         self.assertEqual(alignment["failed_contract_ids"], [])
         self.assertIn("authority_handoff", alignment["required_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
         self.assertIn("review_board_packet", alignment["required_readiness_check_ids"])
         self.assertIn("source_card_drift_guard", alignment["required_readiness_check_ids"])
         self.assertIn("redteam", alignment["required_readiness_check_ids"])
@@ -68,6 +72,33 @@ class UniBotHandoffTests(unittest.TestCase):
         self.assertIn("provider_call_requires_explicit_go_and_redaction_receipt", alignment["required_human_gates"])
         self.assertIn("exam clearance", alignment["blocked_claims"])
         self.assertIn("KI detection", alignment["policy"])
+        self.assertTrue(alignment["contracts"]["workspace_card_authority_gate_linked"])
+        self.assertEqual(alignment["workspace_card_status"], "python_exam_local_cycle_operator_workspace_card_ready")
+        self.assertEqual(alignment["workspace_card_selected_skill_tag"], "pandas")
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_authority_gate_linked"])
+
+    def test_authority_handoff_hash_helpers_link_reviewer_packet_and_public_language(self) -> None:
+        packet = build_authority_handoff_packet()
+
+        self.assertTrue(authority_handoff_reviewer_packet_hash(packet))
+        self.assertTrue(authority_handoff_public_language_hash(packet))
+        self.assertNotEqual(authority_handoff_reviewer_packet_hash(packet), authority_handoff_public_language_hash(packet))
+
+    def test_authority_handoff_release_claim_alignment_rejects_unlinked_workspace_card_hashes(self) -> None:
+        packet = build_authority_handoff_packet()
+        card = synthetic_authority_workspace_card()
+        card["workspace_card_summary"]["checkpoint_hash"] = "wrong-reviewer-hash"
+        card["workspace_card_summary"]["task_hash"] = "wrong-public-language-hash"
+
+        alignment = build_authority_handoff_release_claim_alignment(packet, card)
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertFalse(alignment["workspace_card_authority_gate_linked"])
+        self.assertIn("workspace_card_authority_gate_linked", alignment["failed_contract_ids"])
 
     def test_authority_handoff_release_claim_alignment_blocks_approval_language(self) -> None:
         packet = build_authority_handoff_packet()

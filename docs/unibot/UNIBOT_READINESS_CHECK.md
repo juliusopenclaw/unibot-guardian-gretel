@@ -72,7 +72,11 @@ The authority handoff carries
 contract keeps university-facing handoff language source-bound, public-safe,
 and explicitly blocked from exam clearance, grading, proctoring, KI-detection
 evidence, provider calls, real pilots, or submission until the named human
-review gates are satisfied.
+review gates are satisfied. Reviewer-packet and public-language hashes are
+linked to the harnessed local-cycle operator workspace-card readiness gate
+without exposing raw private course text, contact data, local paths, external
+sends, legal or approval claims, exam-clearance claims, or the raw workspace
+card.
 
 The stakeholder submission bundle carries
 `unibot-stakeholder-submission-release-review-board-claim-alignment-v1`. This
