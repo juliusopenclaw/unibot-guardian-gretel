@@ -139,7 +139,9 @@ This contract keeps dry-runs and confirmed private writes separate: dry-runs do
 not write, confirmed applies require an operator confirmation, public responses
 hide raw text and local paths, tutor indexing stays off, and public release,
 cloud processing, grading, proctoring, KI-detection evidence, and exam
-deployment remain blocked.
+deployment remain blocked. Confirmed applies now also link the private manifest
+hash and delta hash to the harnessed local-cycle operator workspace-card
+readiness gate without exposing the raw workspace card.
 
 The extraction completion report carries
 `unibot-extraction-completion-release-review-board-claim-alignment-v1`. This

@@ -1028,7 +1028,30 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                     "dry_run_records_to_apply_count"
                 ],
                 "confirmed_applied_count": extraction_manifest_apply_alignment["confirmed_applied_count"],
+                "workspace_card_status": extraction_manifest_apply_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": extraction_manifest_apply_alignment[
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": extraction_manifest_apply_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": extraction_manifest_apply_alignment[
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": extraction_manifest_apply_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": extraction_manifest_apply_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_manifest_gate_linked": extraction_manifest_apply_alignment[
+                    "workspace_card_manifest_gate_linked"
+                ],
                 "release_claim_alignment_human_gates": extraction_manifest_apply_alignment["required_human_gates"],
+                "workspace_card_readiness_gate_claim_linked": (
+                    "python_exam_local_cycle_operator_workspace_card"
+                    in extraction_manifest_apply_alignment["required_readiness_check_ids"]
+                ),
                 "manifest_update_claim_linked": (
                     "extraction_manifest_update"
                     in extraction_manifest_apply_alignment["required_readiness_check_ids"]
@@ -1069,6 +1092,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "dry_run_does_not_write": extraction_manifest_apply_alignment["contracts"]["dry_run_does_not_write"],
                 "confirmed_write_requires_operator_confirmation": extraction_manifest_apply_alignment["contracts"][
                     "confirmed_write_requires_operator_confirmation"
+                ],
+                "workspace_card_manifest_gate_linked_contract": extraction_manifest_apply_alignment["contracts"][
+                    "workspace_card_manifest_gate_linked"
                 ],
                 "public_outputs_hide_paths_and_raw_text": extraction_manifest_apply_alignment["contracts"][
                     "public_outputs_hide_paths_and_raw_text"

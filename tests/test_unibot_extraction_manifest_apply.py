@@ -184,7 +184,15 @@ class UniBotExtractionManifestApplyTests(unittest.TestCase):
         self.assertEqual(alignment["confirmed_status"], "private_manifest_applied")
         self.assertGreaterEqual(alignment["dry_run_records_to_apply_count"], 1)
         self.assertGreaterEqual(alignment["confirmed_applied_count"], 1)
+        self.assertEqual(alignment["workspace_card_status"], "python_exam_local_cycle_operator_workspace_card_ready")
+        self.assertEqual(alignment["workspace_card_selected_skill_tag"], "pandas")
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_manifest_gate_linked"])
         self.assertIn("extraction_manifest_apply", alignment["required_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
         self.assertIn("extraction_manifest_update", alignment["required_readiness_check_ids"])
         self.assertIn("extraction_receipt_journal", alignment["required_readiness_check_ids"])
         self.assertIn("course_material_policy", alignment["required_readiness_check_ids"])
@@ -194,6 +202,7 @@ class UniBotExtractionManifestApplyTests(unittest.TestCase):
         self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
         self.assertTrue(alignment["contracts"]["dry_run_does_not_write"])
         self.assertTrue(alignment["contracts"]["confirmed_write_requires_operator_confirmation"])
+        self.assertTrue(alignment["contracts"]["workspace_card_manifest_gate_linked"])
         self.assertTrue(alignment["contracts"]["public_outputs_hide_paths_and_raw_text"])
         self.assertTrue(alignment["contracts"]["tutor_indexing_never_started"])
         self.assertIn("raw extracted text returned", alignment["blocked_claims"])
@@ -221,6 +230,17 @@ class UniBotExtractionManifestApplyTests(unittest.TestCase):
             "exam_deployment_status": "cleared",
             "candidate_summary": {"records_to_apply_count": 1},
             "delta_preview": {"delta_hash": "abc"},
+            "local_cycle_operator_workspace_card": {
+                "status": "python_exam_local_cycle_operator_workspace_card_ready",
+                "selected_skill_tag": "pandas",
+                "ready_for_operator_prefill": True,
+                "help_ledger_preview_status": "help_ledger_preview_ready",
+                "help_ledger_preview_hash": "x",
+                "checkpoint_hash": "x",
+                "task_hash": "x",
+                "not_cleared_receipt": True,
+                "raw_workspace_card_returned": False,
+            },
             "exam_scope_preview": {"projected_scope_summary": {}},
             "tutor_coverage_preview": {"priority_skill_gaps": []},
             "execution_boundary": "unsafe apply",
@@ -235,6 +255,7 @@ class UniBotExtractionManifestApplyTests(unittest.TestCase):
 
         self.assertEqual(alignment["status"], "needs_review")
         self.assertIn("dry_run_does_not_write", alignment["failed_contract_ids"])
+        self.assertIn("workspace_card_manifest_gate_linked", alignment["failed_contract_ids"])
         self.assertIn("public_outputs_hide_paths_and_raw_text", alignment["failed_contract_ids"])
         self.assertIn("tutor_indexing_never_started", alignment["failed_contract_ids"])
         self.assertIn("exam_deployment_not_cleared", alignment["failed_contract_ids"])

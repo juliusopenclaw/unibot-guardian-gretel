@@ -68,8 +68,14 @@ def build_private_manifest_apply_dry_run(
     private_manifest_path: str | Path | None = None,
     manifest_apply_journal_path: str | Path | None = None,
     operator_confirmed_manifest_apply: bool = False,
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
     public_safe: bool = True,
 ) -> dict[str, Any]:
+    workspace_card_source = (
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else {}
+    )
     decision_context = resolve_extraction_decision_context(
         decision_record=decision_record,
         decision_record_journal_path=decision_record_journal_path,
@@ -143,6 +149,11 @@ def build_private_manifest_apply_dry_run(
             existing_payload=existing_payload,
             public_safe=public_safe,
         )
+    local_cycle_workspace_card = safe_local_cycle_workspace_card(
+        workspace_card_source,
+        manifest_hash=str(apply_result.get("new_manifest_hash", "")),
+        delta_hash=str(apply_result.get("delta_hash", delta["delta_hash"])),
+    )
 
     report = {
         "schema_version": EXTRACTION_MANIFEST_APPLY_SCHEMA_VERSION,
@@ -198,6 +209,7 @@ def build_private_manifest_apply_dry_run(
             "priority_skill_gaps": coverage.get("priority_skill_gaps", [])[:6],
         },
         "apply_result": public_apply_result(apply_result),
+        "local_cycle_operator_workspace_card": local_cycle_workspace_card,
         "operator_confirmed_manifest_apply": operator_confirmed_manifest_apply,
         "manifest_written": bool(apply_result.get("manifest_written", False)),
         "manifest_apply_journal_written": bool(apply_result.get("journal_written", False)),
@@ -242,6 +254,7 @@ def build_private_manifest_apply_release_claim_alignment(
                     private_manifest_path=private_manifest_path,
                     manifest_apply_journal_path=journal_path,
                     operator_confirmed_manifest_apply=True,
+                    python_exam_local_cycle_operator_workspace_card=synthetic_manifest_apply_workspace_card(),
                 )
 
     sections = [
@@ -258,6 +271,7 @@ def build_private_manifest_apply_release_claim_alignment(
             "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024", "dfg-gwp"],
             "readiness_check_ids": [
                 "extraction_manifest_apply",
+                "python_exam_local_cycle_operator_workspace_card",
                 "extraction_manifest_update",
                 "extraction_receipt_journal",
                 "data_protection_screening",
@@ -296,6 +310,14 @@ def build_private_manifest_apply_release_claim_alignment(
     ]
     dry_apply_result = dry_run_report.get("apply_result", {})
     confirmed_apply_result = confirmed_report.get("apply_result", {})
+    workspace_card = (
+        confirmed_report.get("local_cycle_operator_workspace_card", {})
+        if isinstance(confirmed_report.get("local_cycle_operator_workspace_card"), dict)
+        else {}
+    )
+    workspace_card_readiness_gate_linked = any(
+        "python_exam_local_cycle_operator_workspace_card" in section["readiness_check_ids"] for section in sections
+    )
     contracts = {
         "dry_run_public_safe": dry_run_report.get("public_safety_status") == "pass",
         "confirmed_public_safe": confirmed_report.get("public_safety_status") == "pass",
@@ -327,6 +349,15 @@ def build_private_manifest_apply_release_claim_alignment(
         and bool(dry_run_report.get("delta_preview", {}).get("delta_hash"))
         and bool(confirmed_apply_result.get("new_manifest_hash"))
         and bool(confirmed_apply_result.get("delta_hash")),
+        "workspace_card_manifest_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and workspace_card.get("checkpoint_hash") == confirmed_apply_result.get("new_manifest_hash")
+        and workspace_card.get("task_hash") == confirmed_apply_result.get("delta_hash")
+        and bool(workspace_card.get("help_ledger_preview_hash"))
+        and workspace_card.get("not_cleared_receipt") is True
+        and workspace_card.get("raw_workspace_card_returned") is False,
         "projected_scope_preview_metadata_only": "projected_scope_summary" in dry_run_report.get("exam_scope_preview", {})
         and "priority_skill_gaps" in dry_run_report.get("tutor_coverage_preview", {}),
         "execution_boundary_blocks_raw_paths_indexing_exam": "never writes raw extracted text"
@@ -360,6 +391,13 @@ def build_private_manifest_apply_release_claim_alignment(
         "confirmed_public_safety_status": confirmed_report.get("public_safety_status"),
         "dry_run_records_to_apply_count": dry_run_report.get("candidate_summary", {}).get("records_to_apply_count", 0),
         "confirmed_applied_count": confirmed_apply_result.get("applied_count", 0),
+        "workspace_card_status": workspace_card.get("status"),
+        "workspace_card_selected_skill_tag": workspace_card.get("selected_skill_tag"),
+        "workspace_card_ready_for_operator_prefill": bool(workspace_card.get("ready_for_operator_prefill", False)),
+        "workspace_card_help_ledger_status": workspace_card.get("help_ledger_preview_status"),
+        "workspace_card_help_ledger_hash_present": bool(workspace_card.get("help_ledger_preview_hash")),
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_manifest_gate_linked": contracts["workspace_card_manifest_gate_linked"],
         "contracts": contracts,
         "missing_source_card_ids": missing_source_card_ids,
         "failed_contract_ids": failed_contract_ids,
@@ -396,6 +434,87 @@ def synthetic_apply_receipt(decision_record: dict[str, Any]) -> dict[str, Any]:
         "private_artifact_reference": "synthetic local private manifest apply artifact reference",
         "human_review_status": "reviewed_for_private_tutor",
         "decision_reference_hash": sha256_text(str(decision_record["decision_reference"])),
+    }
+
+
+def synthetic_manifest_apply_workspace_card() -> dict[str, Any]:
+    preview_hash = sha256_text("synthetic manifest apply workspace card")
+    return {
+        "schema_version": "unibot-python-exam-local-cycle-operator-workspace-card-v1",
+        "artifact_type": "python_exam_local_cycle_operator_workspace_card",
+        "status": "python_exam_local_cycle_operator_workspace_card_ready",
+        "selected_skill_tag": "pandas",
+        "exam_deployment_status": "not_cleared",
+        "not_cleared_receipt": True,
+        "workspace_card_summary": {
+            "recommendation": "ready_for_operator_prefill",
+            "recommendation_reason": "synthetic manifest apply metadata prerequisites are satisfied",
+            "ready_for_operator_prefill": True,
+            "help_ledger_preview_status": "help_ledger_preview_ready",
+            "selected_skill_tag": "pandas",
+            "next_safe_action": "review_private_manifest_apply_before_workspace_prefill",
+            "next_safe_user_action": "review_hash_only_manifest_apply_receipt_before_any_tutor_indexing",
+            "operator_run_endpoint": "/api/unibot/exam-workspace/operator-run",
+            "operator_run_method": "POST",
+            "help_level": "A2",
+            "task_hash": "__DELTA_HASH__",
+            "checkpoint_hash": "__MANIFEST_HASH__",
+            "source_card_ids": ["dfg-gwp", "dsk-ai-privacy-2024"],
+            "source_anchor_count": 2,
+            "help_ledger_preview_hash": preview_hash,
+        },
+        "help_ledger_preview": {
+            "status": "help_ledger_preview_ready",
+            "help_level": "A2",
+            "preview_hash": preview_hash,
+        },
+    }
+
+
+def safe_local_cycle_workspace_card(
+    workspace_card: dict[str, Any],
+    *,
+    manifest_hash: str = "",
+    delta_hash: str = "",
+) -> dict[str, Any]:
+    summary = workspace_card.get("workspace_card_summary", {}) if isinstance(workspace_card.get("workspace_card_summary"), dict) else {}
+    review = workspace_card.get("readiness_review", {}) if isinstance(workspace_card.get("readiness_review"), dict) else {}
+    handoff = workspace_card.get("readiness_handoff", {}) if isinstance(workspace_card.get("readiness_handoff"), dict) else {}
+    ledger = workspace_card.get("help_ledger_preview", {}) if isinstance(workspace_card.get("help_ledger_preview"), dict) else {}
+    if not summary and (
+        workspace_card.get("help_ledger_preview_hash") is not None
+        or workspace_card.get("ready_for_operator_prefill") is not None
+        or workspace_card.get("help_ledger_preview_status") is not None
+    ):
+        summary = workspace_card
+    checkpoint_hash = str(summary.get("checkpoint_hash", ""))
+    task_hash = str(summary.get("task_hash", ""))
+    if manifest_hash and checkpoint_hash == "__MANIFEST_HASH__":
+        checkpoint_hash = manifest_hash
+    if delta_hash and task_hash == "__DELTA_HASH__":
+        task_hash = delta_hash
+    return {
+        "status": workspace_card.get("status", "missing"),
+        "selected_skill_tag": str(summary.get("selected_skill_tag", workspace_card.get("selected_skill_tag", ""))),
+        "recommendation": str(summary.get("recommendation", review.get("recommendation", "keep_blocked"))),
+        "recommendation_reason": str(
+            summary.get("recommendation_reason", review.get("recommendation_reason", "missing_manifest_apply_receipt"))
+        ),
+        "ready_for_operator_prefill": bool(summary.get("ready_for_operator_prefill", False)),
+        "help_ledger_preview_status": str(summary.get("help_ledger_preview_status", ledger.get("status", "missing"))),
+        "next_safe_action": str(summary.get("next_safe_action", review.get("next_safe_action", ""))),
+        "next_safe_user_action": str(summary.get("next_safe_user_action", review.get("next_safe_user_action", ""))),
+        "operator_run_endpoint": str(summary.get("operator_run_endpoint", handoff.get("operator_run_endpoint", ""))),
+        "operator_run_method": str(summary.get("operator_run_method", handoff.get("operator_run_method", "POST"))),
+        "help_level": str(summary.get("help_level", ledger.get("help_level", "A2"))),
+        "task_hash": task_hash,
+        "checkpoint_hash": checkpoint_hash,
+        "source_card_ids": [str(item) for item in (summary.get("source_card_ids", []) or [])][:8],
+        "source_anchor_count": int(summary.get("source_anchor_count", 0) or 0),
+        "help_ledger_preview_hash": str(summary.get("help_ledger_preview_hash", ledger.get("preview_hash", ""))),
+        "not_cleared_receipt": bool(workspace_card.get("not_cleared_receipt", True)),
+        "exam_deployment_status": "not_cleared",
+        "raw_workspace_card_returned": False,
     }
 
 
