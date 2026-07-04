@@ -569,6 +569,23 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertTrue(checkpoint["evidence"]["hash_only_checkpoint_ready"])
         self.assertTrue(checkpoint["evidence"]["operator_confirmed_journal_hash_only"])
         self.assertTrue(checkpoint["evidence"]["a6_or_final_solution_forces_repeat"])
+        self.assertEqual(checkpoint["evidence"]["workspace_card_checkpoint_receipt_alignment_status"], "ready")
+        self.assertEqual(
+            checkpoint["evidence"]["workspace_card_checkpoint_receipt_alignment_public_safety_status"], "pass"
+        )
+        self.assertEqual(
+            checkpoint["evidence"]["workspace_card_checkpoint_receipt_alignment_contract_status"],
+            "unibot-notebook-checkpoint-workspace-card-checkpoint-receipt-alignment-v1",
+        )
+        self.assertTrue(checkpoint["evidence"]["checkpoint_report_hash_present"])
+        self.assertTrue(checkpoint["evidence"]["checkpoint_receipt_hash_present"])
+        self.assertTrue(checkpoint["evidence"]["stored_checkpoint_receipt_hash_present"])
+        self.assertTrue(checkpoint["evidence"]["workspace_card_checkpoint_receipt_gate_linked"])
+        self.assertTrue(checkpoint["evidence"]["workspace_card_checkpoint_receipt_gate_linked_contract"])
+        self.assertTrue(checkpoint["evidence"]["checkpoint_receipt_study_session_reference_preserved"])
+        self.assertTrue(checkpoint["evidence"]["checkpoint_receipt_operator_journal_boundary_preserved"])
+        self.assertTrue(checkpoint["evidence"]["checkpoint_receipt_local_write_boundary_not_exam_clearance"])
+        self.assertTrue(checkpoint["evidence"]["checkpoint_receipt_hashes_present_contract"])
         self.assertTrue(checkpoint["evidence"]["public_outputs_hide_private_notebook_data"])
         self.assertTrue(checkpoint["evidence"]["high_stakes_actions_not_started"])
         self.assertTrue(checkpoint["evidence"]["raw_notebook_code_returned_blocked"])

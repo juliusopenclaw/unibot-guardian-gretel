@@ -126,7 +126,12 @@ from .material_coverage_run import (
     synthetic_material_coverage_run_inputs,
     synthetic_material_coverage_run_workspace_card,
 )
-from .exam_notebook_checkpoint import build_exam_notebook_checkpoint_adapter_dry_run
+from .exam_notebook_checkpoint import (
+    build_exam_notebook_checkpoint_adapter_dry_run,
+    build_notebook_checkpoint_workspace_card_receipt_alignment,
+    notebook_checkpoint_hash,
+    notebook_checkpoint_receipt_hash,
+)
 from .exam_skill_drilldown import build_exam_skill_drilldown
 from .exam_workspace_launch_flow import build_exam_workspace_launch_flow_dry_run
 from .exam_workspace_operator_run import build_exam_workspace_operator_run_dry_run
@@ -431,6 +436,9 @@ __all__ = [
     "synthetic_material_coverage_run_inputs",
     "synthetic_material_coverage_run_workspace_card",
     "build_exam_notebook_checkpoint_adapter_dry_run",
+    "build_notebook_checkpoint_workspace_card_receipt_alignment",
+    "notebook_checkpoint_hash",
+    "notebook_checkpoint_receipt_hash",
     "build_exam_skill_drilldown",
     "build_exam_workspace_launch_flow_dry_run",
     "build_exam_workspace_operator_run_dry_run",

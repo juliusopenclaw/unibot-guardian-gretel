@@ -13,6 +13,9 @@ sys.path.insert(0, str(ROOT))
 from unibot.exam_notebook_checkpoint import (  # noqa: E402
     build_exam_notebook_checkpoint_adapter_dry_run,
     build_notebook_checkpoint_release_claim_alignment,
+    build_notebook_checkpoint_workspace_card_receipt_alignment,
+    notebook_checkpoint_hash,
+    notebook_checkpoint_receipt_hash,
 )
 from unibot.materials import sha256_text  # noqa: E402
 from unibot.public_safety import scan_text  # noqa: E402
@@ -64,6 +67,12 @@ class UniBotExamNotebookCheckpointTests(unittest.TestCase):
             self.assertFalse(report["proctoring_started"])
             self.assertFalse(report["ai_detection_started"])
             self.assertFalse(report["exam_clearance_claimed"])
+            self.assertEqual(report["workspace_card_checkpoint_receipt_alignment"]["status"], "ready")
+            self.assertTrue(
+                report["workspace_card_checkpoint_receipt_alignment"][
+                    "workspace_card_checkpoint_receipt_gate_linked"
+                ]
+            )
             self.assertFalse(checkpoint_journal.exists())
             self.assertNotIn("own_values", payload)
             self.assertNotIn("private-cell-id", payload)
@@ -173,6 +182,104 @@ class UniBotExamNotebookCheckpointTests(unittest.TestCase):
         self.assertIn("final solution acceptance", alignment["blocked_claims"])
         self.assertIn("Eigenleistung percentage claim", alignment["blocked_claims"])
         self.assertIn("exam deployment", alignment["blocked_claims"])
+
+    def test_notebook_checkpoint_workspace_card_receipt_alignment_links_hashes_and_receipts(self) -> None:
+        alignment = build_notebook_checkpoint_workspace_card_receipt_alignment()
+
+        self.assertEqual(
+            alignment["schema_version"],
+            "unibot-notebook-checkpoint-workspace-card-checkpoint-receipt-alignment-v1",
+        )
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["checkpoint_public_safety_status"], "pass")
+        self.assertEqual(alignment["stored_checkpoint_public_safety_status"], "pass")
+        self.assertEqual(alignment["checkpoint_status"], "notebook_checkpoint_ready")
+        self.assertEqual(alignment["stored_checkpoint_status"], "notebook_checkpoint_ready")
+        self.assertEqual(alignment["study_receipt_status"], "ok_study_session_receipt")
+        self.assertEqual(alignment["checkpoint_journal_status"], "dry_run_not_written")
+        self.assertFalse(alignment["checkpoint_journal_written"])
+        self.assertEqual(alignment["stored_checkpoint_journal_status"], "stored")
+        self.assertTrue(alignment["stored_checkpoint_journal_written"])
+        self.assertTrue(alignment["checkpoint_report_hash"])
+        self.assertTrue(alignment["checkpoint_receipt_hash"])
+        self.assertTrue(alignment["stored_checkpoint_receipt_hash"])
+        self.assertEqual(alignment["workspace_card_status"], "python_exam_local_cycle_operator_workspace_card_ready")
+        self.assertEqual(alignment["workspace_card_selected_skill_tag"], "pandas")
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_checkpoint_receipt_gate_linked"])
+        self.assertEqual(alignment["exam_deployment_status"], "not_cleared")
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertIn("notebook_checkpoint", alignment["required_readiness_check_ids"])
+        self.assertIn("study_session", alignment["required_readiness_check_ids"])
+        self.assertIn("private_tutor_use_flow", alignment["required_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
+        self.assertIn("exam_boundary", alignment["required_readiness_check_ids"])
+        self.assertTrue(alignment["contracts"]["checkpoint_ready_hash_only"])
+        self.assertTrue(alignment["contracts"]["study_session_reference_preserved"])
+        self.assertTrue(alignment["contracts"]["checkpoint_receipt_hashes_present"])
+        self.assertTrue(alignment["contracts"]["operator_confirmed_journal_boundary_preserved"])
+        self.assertTrue(alignment["contracts"]["workspace_card_checkpoint_receipt_gate_linked"])
+        self.assertTrue(alignment["contracts"]["local_write_boundary_not_exam_clearance"])
+        self.assertTrue(alignment["contracts"]["metadata_only_safety_flags_false"])
+        self.assertTrue(alignment["contracts"]["high_stakes_boundaries_blocked"])
+        self.assertIn("raw notebook code returned", alignment["blocked_claims"])
+        self.assertIn("provider call", alignment["blocked_claims"])
+        self.assertIn("autonomous publication", alignment["blocked_claims"])
+        self.assertIn("exam-clearance claim", alignment["blocked_claims"])
+
+    def test_notebook_checkpoint_workspace_card_receipt_alignment_blocks_broken_prefill(self) -> None:
+        ready = build_exam_notebook_checkpoint_adapter_dry_run(
+            task_id="task-pandas-check",
+            skill_tag="pandas",
+            source_card_ids=["dfg-gwp"],
+            cell_source="x = 1\n",
+            prediction_present=True,
+            retrieval_response_present=True,
+            notebook_action_present=True,
+            reflection_present=True,
+            public_safe=True,
+            attach_workspace_card_alignment=False,
+        )
+        stored = build_exam_notebook_checkpoint_adapter_dry_run(
+            task_id="task-pandas-check",
+            skill_tag="pandas",
+            source_card_ids=["dfg-gwp"],
+            cell_source="x = 1\n",
+            prediction_present=True,
+            retrieval_response_present=True,
+            notebook_action_present=True,
+            reflection_present=True,
+            operator_confirmed_checkpoint_store=True,
+            checkpoint_journal_path=Path(tempfile.mkdtemp()) / "checkpoints.jsonl",
+            public_safe=True,
+            attach_workspace_card_alignment=False,
+        )
+        broken_card = {
+            "status": "python_exam_local_cycle_operator_workspace_card_ready",
+            "not_cleared_receipt": True,
+            "workspace_card_summary": {
+                "selected_skill_tag": "pandas",
+                "ready_for_operator_prefill": True,
+                "help_ledger_preview_status": "help_ledger_preview_ready",
+                "checkpoint_hash": "0" * 64,
+                "help_ledger_preview_hash": "1" * 64,
+            },
+        }
+        ready["raw_cell_returned"] = True
+        stored["checkpoint_journal_summary"]["path_returned"] = True
+
+        alignment = build_notebook_checkpoint_workspace_card_receipt_alignment(ready, stored, broken_card)
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertIn("workspace_card_checkpoint_receipt_gate_linked", alignment["failed_contract_ids"])
+        self.assertIn("metadata_only_safety_flags_false", alignment["failed_contract_ids"])
+        self.assertIn("operator_confirmed_journal_boundary_preserved", alignment["failed_contract_ids"])
+        self.assertNotEqual(alignment["checkpoint_report_hash"], notebook_checkpoint_hash({}))
+        self.assertNotEqual(alignment["checkpoint_receipt_hash"], notebook_checkpoint_receipt_hash({}))
 
     def test_notebook_checkpoint_release_claim_alignment_blocks_raw_or_exam_claims(self) -> None:
         ready = build_exam_notebook_checkpoint_adapter_dry_run(

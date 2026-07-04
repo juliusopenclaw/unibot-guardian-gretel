@@ -420,6 +420,16 @@ hashes without exposing the raw workspace card. It does not return raw cell
 text, notebook code, local paths, final solutions, grades, proctoring,
 AI-detection evidence, Eigenleistung percentages, or exam clearance.
 
+Its workspace-card receipt bridge carries
+`unibot-notebook-checkpoint-workspace-card-checkpoint-receipt-alignment-v1`.
+This contract links the checkpoint report hash, checkpoint receipt hash,
+operator-confirmed stored receipt hash, study-session reference, journal-write
+boundary, and no-clearance/local-write boundary to the same local-cycle
+operator workspace-card readiness gate without exposing raw private course
+text, contact data, local paths, notebook code, provider calls, autonomous
+publication, approval or exam-clearance claims, grading, proctoring,
+KI-detection evidence, exam deployment claims, or the raw workspace card.
+
 The exam-workspace launch gate carries
 `unibot-exam-workspace-launch-release-review-board-claim-alignment-v1`. It
 connects the coverage-selected start point, private tutor-use flow, study

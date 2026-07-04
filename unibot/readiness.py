@@ -40,7 +40,10 @@ from .routed_action_executor import (
     build_routed_action_executor_workspace_card_alignment,
     synthetic_routed_action_executor_inputs,
 )
-from .exam_notebook_checkpoint import build_notebook_checkpoint_release_claim_alignment
+from .exam_notebook_checkpoint import (
+    build_notebook_checkpoint_release_claim_alignment,
+    build_notebook_checkpoint_workspace_card_receipt_alignment,
+)
 from .exam_workspace_launch_flow import build_exam_workspace_launch_release_claim_alignment
 from .exam_workspace_operator_run import build_exam_workspace_operator_run_release_claim_alignment
 from .exam_workspace_run import build_exam_workspace_run_release_claim_alignment
@@ -367,6 +370,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
         study_session_inputs["study_session_review_report"],
     )
     notebook_checkpoint_alignment = build_notebook_checkpoint_release_claim_alignment()
+    notebook_checkpoint_workspace_alignment = build_notebook_checkpoint_workspace_card_receipt_alignment()
     exam_workspace_launch_alignment = build_exam_workspace_launch_release_claim_alignment()
     exam_workspace_run_alignment = build_exam_workspace_run_release_claim_alignment()
     exam_workspace_run_history_alignment = build_exam_workspace_run_history_release_claim_alignment()
@@ -2014,7 +2018,13 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and notebook_checkpoint_alignment["repeat_public_safety_status"] == "pass"
             and notebook_checkpoint_alignment["exam_deployment_status"] == "not_cleared"
             and notebook_checkpoint_alignment["missing_source_card_ids"] == []
-            and notebook_checkpoint_alignment["failed_contract_ids"] == [],
+            and notebook_checkpoint_alignment["failed_contract_ids"] == []
+            and notebook_checkpoint_workspace_alignment["status"] == "ready"
+            and notebook_checkpoint_workspace_alignment["public_safety_status"] == "pass"
+            and notebook_checkpoint_workspace_alignment["checkpoint_public_safety_status"] == "pass"
+            and notebook_checkpoint_workspace_alignment["stored_checkpoint_public_safety_status"] == "pass"
+            and notebook_checkpoint_workspace_alignment["exam_deployment_status"] == "not_cleared"
+            and notebook_checkpoint_workspace_alignment["failed_contract_ids"] == [],
             "evidence": {
                 "release_claim_alignment_status": notebook_checkpoint_alignment["status"],
                 "release_claim_alignment_public_safety_status": notebook_checkpoint_alignment["public_safety_status"],
@@ -2048,6 +2058,46 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "workspace_card_checkpoint_gate_linked": notebook_checkpoint_alignment[
                     "workspace_card_checkpoint_gate_linked"
                 ],
+                "workspace_card_checkpoint_receipt_alignment_status": notebook_checkpoint_workspace_alignment[
+                    "status"
+                ],
+                "workspace_card_checkpoint_receipt_alignment_public_safety_status": (
+                    notebook_checkpoint_workspace_alignment["public_safety_status"]
+                ),
+                "workspace_card_checkpoint_receipt_alignment_contract_status": (
+                    notebook_checkpoint_workspace_alignment["schema_version"]
+                ),
+                "checkpoint_report_hash_present": bool(
+                    notebook_checkpoint_workspace_alignment["checkpoint_report_hash"]
+                ),
+                "checkpoint_receipt_hash_present": bool(
+                    notebook_checkpoint_workspace_alignment["checkpoint_receipt_hash"]
+                ),
+                "stored_checkpoint_receipt_hash_present": bool(
+                    notebook_checkpoint_workspace_alignment["stored_checkpoint_receipt_hash"]
+                ),
+                "workspace_card_checkpoint_receipt_gate_linked": notebook_checkpoint_workspace_alignment[
+                    "workspace_card_checkpoint_receipt_gate_linked"
+                ],
+                "workspace_card_checkpoint_receipt_gate_linked_contract": (
+                    notebook_checkpoint_workspace_alignment["contracts"][
+                        "workspace_card_checkpoint_receipt_gate_linked"
+                    ]
+                ),
+                "checkpoint_receipt_study_session_reference_preserved": (
+                    notebook_checkpoint_workspace_alignment["contracts"]["study_session_reference_preserved"]
+                ),
+                "checkpoint_receipt_operator_journal_boundary_preserved": (
+                    notebook_checkpoint_workspace_alignment["contracts"][
+                        "operator_confirmed_journal_boundary_preserved"
+                    ]
+                ),
+                "checkpoint_receipt_local_write_boundary_not_exam_clearance": (
+                    notebook_checkpoint_workspace_alignment["contracts"]["local_write_boundary_not_exam_clearance"]
+                ),
+                "checkpoint_receipt_hashes_present_contract": notebook_checkpoint_workspace_alignment[
+                    "contracts"
+                ]["checkpoint_receipt_hashes_present"],
                 "checkpoint_journal_status": notebook_checkpoint_alignment["checkpoint_journal_status"],
                 "checkpoint_journal_written": notebook_checkpoint_alignment["checkpoint_journal_written"],
                 "repeat_receipt_status": notebook_checkpoint_alignment["repeat_receipt_status"],

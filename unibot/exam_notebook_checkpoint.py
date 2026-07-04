@@ -18,6 +18,9 @@ EXAM_NOTEBOOK_CHECKPOINT_SCHEMA_VERSION = "unibot-exam-notebook-checkpoint-v1"
 EXAM_NOTEBOOK_CHECKPOINT_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
     "unibot-notebook-checkpoint-release-review-board-claim-alignment-v1"
 )
+NOTEBOOK_CHECKPOINT_WORKSPACE_CARD_RECEIPT_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-notebook-checkpoint-workspace-card-checkpoint-receipt-alignment-v1"
+)
 HEX_SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 SOLUTION_MARKER_RE = re.compile(
     r"(solution[_ -]?key|final[_ -]?answer|finale? loesung|fertige loesung|abgabefertig|complete solution|inserted[_ -]?values)",
@@ -57,6 +60,7 @@ def build_exam_notebook_checkpoint_adapter_dry_run(
     python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
     operator_confirmed_checkpoint_store: bool = False,
     public_safe: bool = True,
+    attach_workspace_card_alignment: bool = True,
 ) -> dict[str, Any]:
     safe_id = safe_course_id(course_id)
     local_cycle_workspace_card = safe_local_cycle_workspace_card(
@@ -186,6 +190,11 @@ def build_exam_notebook_checkpoint_adapter_dry_run(
         "next_actions": checkpoint_next_actions(status),
     }
     attach_public_scan(report, public_safe=public_safe)
+    if attach_workspace_card_alignment:
+        report["workspace_card_checkpoint_receipt_alignment"] = (
+            build_notebook_checkpoint_workspace_card_receipt_alignment(report)
+        )
+        attach_public_scan(report, public_safe=public_safe)
     return report
 
 
@@ -211,6 +220,7 @@ def build_notebook_checkpoint_release_claim_alignment(
                 reflection_present=True,
                 checkpoint_journal_path=journal_path,
                 python_exam_local_cycle_operator_workspace_card=synthetic_notebook_checkpoint_workspace_card(),
+                attach_workspace_card_alignment=False,
             )
             stored_report = stored_report or build_exam_notebook_checkpoint_adapter_dry_run(
                 task_id="synthetic-checkpoint-task",
@@ -408,6 +418,307 @@ def build_notebook_checkpoint_release_claim_alignment(
     }
 
 
+def notebook_checkpoint_hash(checkpoint_report: dict[str, Any] | None = None) -> str:
+    checkpoint_report = checkpoint_report if isinstance(checkpoint_report, dict) else {}
+    return sha256_text(
+        json.dumps(
+            {
+                "schema_version": checkpoint_report.get("schema_version", ""),
+                "artifact_type": checkpoint_report.get("artifact_type", ""),
+                "status": checkpoint_report.get("status", ""),
+                "course_id": checkpoint_report.get("course_id", ""),
+                "exam_deployment_status": checkpoint_report.get("exam_deployment_status", ""),
+                "notebook_checkpoint": checkpoint_report.get("notebook_checkpoint", {}),
+                "study_receipt_summary": stable_study_receipt_summary(
+                    checkpoint_report.get("study_receipt_summary", {})
+                ),
+                "help_ledger_preview": checkpoint_report.get("help_ledger_preview", {}),
+                "checkpoint_journal_summary": checkpoint_report.get("checkpoint_journal_summary", {}),
+                "operator_confirmations": checkpoint_report.get("operator_confirmations", {}),
+                "public_safety_status": checkpoint_report.get("public_safety_status", ""),
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+    )
+
+
+def notebook_checkpoint_receipt_hash(checkpoint_report: dict[str, Any] | None = None) -> str:
+    checkpoint_report = checkpoint_report if isinstance(checkpoint_report, dict) else {}
+    journal = (
+        checkpoint_report.get("checkpoint_journal_summary", {})
+        if isinstance(checkpoint_report.get("checkpoint_journal_summary"), dict)
+        else {}
+    )
+    receipt = stable_study_receipt_summary(checkpoint_report.get("study_receipt_summary", {}))
+    return sha256_text(
+        json.dumps(
+            {
+                "checkpoint_status": checkpoint_report.get("status", ""),
+                "checkpoint_id": checkpoint_report.get("notebook_checkpoint", {}).get("checkpoint_id", ""),
+                "checkpoint_hash": checkpoint_report.get("notebook_checkpoint", {}).get("notebook_work_sha256", ""),
+                "journal_status": journal.get("status", ""),
+                "journal_written": journal.get("checkpoint_journal_written", None),
+                "journal_event_hash": journal.get("event_hash", ""),
+                "study_receipt_status": receipt.get("status", ""),
+                "study_task_id": receipt.get("task_id", ""),
+                "study_skill_tag": receipt.get("skill_tag", ""),
+                "study_help_level": receipt.get("help_level", ""),
+                "exam_deployment_status": checkpoint_report.get("exam_deployment_status", ""),
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+    )
+
+
+def stable_study_receipt_summary(receipt: Any) -> dict[str, Any]:
+    receipt = receipt if isinstance(receipt, dict) else {}
+    evidence = receipt.get("evidence", {}) if isinstance(receipt.get("evidence"), dict) else {}
+    return {
+        "schema_version": receipt.get("schema_version", ""),
+        "artifact_type": receipt.get("artifact_type", ""),
+        "status": receipt.get("status", ""),
+        "exam_deployment_status": receipt.get("exam_deployment_status", ""),
+        "task_id": receipt.get("task_id", ""),
+        "skill_tag": receipt.get("skill_tag", ""),
+        "help_level": receipt.get("help_level", ""),
+        "source_anchor_id_hash": receipt.get("source_anchor_id_hash", ""),
+        "evidence": {
+            "prediction_present": evidence.get("prediction_present", None),
+            "retrieval_response_present": evidence.get("retrieval_response_present", None),
+            "notebook_action_present": evidence.get("notebook_action_present", None),
+            "source_anchor_present": evidence.get("source_anchor_present", None),
+            "reflection_present": evidence.get("reflection_present", None),
+        },
+        "repeat_task_required": receipt.get("repeat_task_required", None),
+        "raw_text_stored": receipt.get("raw_text_stored", None),
+        "reflection_stored": receipt.get("reflection_stored", None),
+        "public_safety_status": receipt.get("public_safety_status", ""),
+    }
+
+
+def build_notebook_checkpoint_workspace_card_receipt_alignment(
+    checkpoint_report: dict[str, Any] | None = None,
+    stored_report: dict[str, Any] | None = None,
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if checkpoint_report is None or stored_report is None:
+        with tempfile.TemporaryDirectory(prefix="unibot_notebook_checkpoint_receipt_alignment_") as temp_dir:
+            journal_path = Path(temp_dir) / "checkpoints.jsonl"
+            checkpoint_report = checkpoint_report or build_exam_notebook_checkpoint_adapter_dry_run(
+                task_id="synthetic-checkpoint-task",
+                skill_tag="pandas",
+                source_card_ids=["dfg-gwp", "uoc-ki-faq"],
+                cell_source="own_values = [1, 2, 3]\nlen(own_values)\n",
+                cell_index=2,
+                cell_id="synthetic-private-cell",
+                requested_help_level="A2",
+                prediction_present=True,
+                retrieval_response_present=True,
+                notebook_action_present=True,
+                reflection_present=True,
+                checkpoint_journal_path=journal_path,
+                python_exam_local_cycle_operator_workspace_card=synthetic_notebook_checkpoint_workspace_card(),
+                attach_workspace_card_alignment=False,
+            )
+            stored_report = stored_report or build_exam_notebook_checkpoint_adapter_dry_run(
+                task_id="synthetic-checkpoint-task",
+                skill_tag="pandas",
+                source_card_ids=["dfg-gwp", "uoc-ki-faq"],
+                cell_source="own_values = [1, 2, 3]\nlen(own_values)\n",
+                cell_index=2,
+                cell_id="synthetic-private-cell",
+                requested_help_level="A2",
+                prediction_present=True,
+                retrieval_response_present=True,
+                notebook_action_present=True,
+                reflection_present=True,
+                checkpoint_journal_path=journal_path,
+                operator_confirmed_checkpoint_store=True,
+                python_exam_local_cycle_operator_workspace_card=synthetic_notebook_checkpoint_workspace_card(),
+                attach_workspace_card_alignment=False,
+            )
+
+    checkpoint_report = checkpoint_report if isinstance(checkpoint_report, dict) else {}
+    stored_report = stored_report if isinstance(stored_report, dict) else {}
+    checkpoint = checkpoint_report.get("notebook_checkpoint", {})
+    checkpoint = checkpoint if isinstance(checkpoint, dict) else {}
+    study_receipt = stable_study_receipt_summary(checkpoint_report.get("study_receipt_summary", {}))
+    journal = (
+        checkpoint_report.get("checkpoint_journal_summary", {})
+        if isinstance(checkpoint_report.get("checkpoint_journal_summary"), dict)
+        else {}
+    )
+    stored_journal = (
+        stored_report.get("checkpoint_journal_summary", {})
+        if isinstance(stored_report.get("checkpoint_journal_summary"), dict)
+        else {}
+    )
+    source_workspace_card = (
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else checkpoint_report.get("local_cycle_operator_workspace_card", {})
+    )
+    if not isinstance(source_workspace_card, dict) or source_workspace_card.get("status") in {None, "", "missing"}:
+        source_workspace_card = synthetic_notebook_checkpoint_workspace_card_for_hash(
+            checkpoint_hash=str(checkpoint.get("notebook_work_sha256", "")),
+            skill_tag=str(checkpoint.get("skill_tag", "general_python")),
+        )
+    workspace_card = safe_local_cycle_workspace_card(
+        source_workspace_card if isinstance(source_workspace_card, dict) else {}
+    )
+    report_hash = notebook_checkpoint_hash(checkpoint_report)
+    receipt_hash = notebook_checkpoint_receipt_hash(checkpoint_report)
+    stored_receipt_hash = notebook_checkpoint_receipt_hash(stored_report)
+    checkpoint_hash = str(checkpoint.get("notebook_work_sha256", ""))
+    raw_flag_names = [
+        "raw_query_returned",
+        "raw_text_returned",
+        "raw_cell_returned",
+        "raw_notebook_returned",
+        "notebook_code_returned",
+        "local_paths_returned",
+    ]
+    high_stakes_flag_names = [
+        "automatic_grading_started",
+        "proctoring_started",
+        "ai_detection_started",
+        "exam_clearance_claimed",
+    ]
+    workspace_card_readiness_gate_linked = (
+        workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and workspace_card.get("help_ledger_preview_hash") != ""
+        and workspace_card.get("exam_deployment_status") == "not_cleared"
+        and workspace_card.get("not_cleared_receipt") is True
+        and workspace_card.get("raw_workspace_card_returned") is False
+    )
+    contracts = {
+        "checkpoint_report_public_safe": checkpoint_report.get("public_safety_status") == "pass",
+        "stored_checkpoint_public_safe": stored_report.get("public_safety_status") == "pass",
+        "checkpoint_ready_hash_only": checkpoint_report.get("status") == "notebook_checkpoint_ready"
+        and checkpoint.get("status") == "ready"
+        and bool(checkpoint_hash)
+        and checkpoint.get("raw_cell_returned") is False
+        and checkpoint.get("raw_notebook_returned") is False
+        and checkpoint.get("notebook_code_returned") is False
+        and checkpoint.get("local_path_returned") is False,
+        "study_session_reference_preserved": study_receipt.get("status") == "ok_study_session_receipt"
+        and study_receipt.get("task_id") == checkpoint.get("task_id")
+        and study_receipt.get("skill_tag") == checkpoint.get("skill_tag")
+        and study_receipt.get("help_level") in {"A0", "A1", "A2"}
+        and study_receipt.get("raw_text_stored") is False
+        and study_receipt.get("reflection_stored") is False,
+        "checkpoint_receipt_hashes_present": bool(report_hash)
+        and bool(receipt_hash)
+        and bool(stored_receipt_hash)
+        and bool(journal.get("event_hash"))
+        and bool(stored_journal.get("event_hash")),
+        "operator_confirmed_journal_boundary_preserved": journal.get("checkpoint_journal_written") is False
+        and journal.get("path_returned") is False
+        and stored_report.get("operator_confirmations", {}).get("checkpoint_store") is True
+        and stored_journal.get("status") == "stored"
+        and stored_journal.get("checkpoint_journal_written") is True
+        and stored_journal.get("path_returned") is False,
+        "workspace_card_checkpoint_receipt_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("selected_skill_tag") == checkpoint.get("skill_tag")
+        and workspace_card.get("checkpoint_hash") == checkpoint_hash
+        and bool(receipt_hash)
+        and bool(stored_receipt_hash),
+        "local_write_boundary_not_exam_clearance": checkpoint_report.get("exam_deployment_status") == "not_cleared"
+        and stored_report.get("exam_deployment_status") == "not_cleared"
+        and checkpoint_report.get("operator_confirmations", {}).get("checkpoint_store") is False
+        and stored_report.get("operator_confirmations", {}).get("checkpoint_store") is True,
+        "metadata_only_safety_flags_false": all(checkpoint_report.get(flag) is False for flag in raw_flag_names)
+        and all(stored_report.get(flag) is False for flag in raw_flag_names),
+        "high_stakes_boundaries_blocked": all(checkpoint_report.get(flag) is False for flag in high_stakes_flag_names)
+        and all(stored_report.get(flag) is False for flag in high_stakes_flag_names),
+    }
+    required_readiness_check_ids = [
+        "notebook_checkpoint",
+        "study_session",
+        "private_tutor_use_flow",
+        "python_exam_local_cycle_operator_workspace_card",
+        "exam_boundary",
+    ]
+    blocked_claims = [
+        "raw private course text publication",
+        "raw notebook code returned",
+        "contact data publication",
+        "local path publication",
+        "provider call",
+        "autonomous publication",
+        "approval claim",
+        "exam-clearance claim",
+        "grading",
+        "proctoring",
+        "KI-detection evidence",
+        "exam deployment",
+    ]
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    payload = {
+        "checkpoint_report_hash": report_hash,
+        "checkpoint_receipt_hash": receipt_hash,
+        "stored_checkpoint_receipt_hash": stored_receipt_hash,
+        "checkpoint_hash": checkpoint_hash,
+        "study_receipt_status": study_receipt.get("status", ""),
+        "workspace_card": workspace_card,
+        "contracts": contracts,
+        "blocked_claims": blocked_claims,
+    }
+    scan = scan_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        "notebook-checkpoint-workspace-card-receipt-alignment",
+    )
+    status = "ready" if scan["status"] == "pass" and not failed_contract_ids else "needs_review"
+    return {
+        "schema_version": NOTEBOOK_CHECKPOINT_WORKSPACE_CARD_RECEIPT_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "checkpoint_report_hash": report_hash,
+        "checkpoint_receipt_hash": receipt_hash,
+        "stored_checkpoint_receipt_hash": stored_receipt_hash,
+        "checkpoint_hash": checkpoint_hash,
+        "checkpoint_status": checkpoint_report.get("status", "missing"),
+        "stored_checkpoint_status": stored_report.get("status", "missing"),
+        "study_receipt_status": study_receipt.get("status", "missing"),
+        "study_receipt_task_id_hash": sha256_text(str(study_receipt.get("task_id", ""))),
+        "study_receipt_skill_tag": study_receipt.get("skill_tag", ""),
+        "checkpoint_journal_status": journal.get("status", "missing"),
+        "checkpoint_journal_written": bool(journal.get("checkpoint_journal_written", False)),
+        "stored_checkpoint_journal_status": stored_journal.get("status", "missing"),
+        "stored_checkpoint_journal_written": bool(stored_journal.get("checkpoint_journal_written", False)),
+        "workspace_card_status": workspace_card.get("status", "missing"),
+        "workspace_card_selected_skill_tag": workspace_card.get("selected_skill_tag", ""),
+        "workspace_card_ready_for_operator_prefill": bool(workspace_card.get("ready_for_operator_prefill", False)),
+        "workspace_card_help_ledger_status": workspace_card.get("help_ledger_preview_status", "missing"),
+        "workspace_card_help_ledger_hash_present": bool(workspace_card.get("help_ledger_preview_hash", "")),
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_checkpoint_receipt_gate_linked": contracts["workspace_card_checkpoint_receipt_gate_linked"],
+        "exam_deployment_status": checkpoint_report.get("exam_deployment_status", "missing"),
+        "public_safety_status": scan["status"],
+        "checkpoint_public_safety_status": checkpoint_report.get("public_safety_status", "missing"),
+        "stored_checkpoint_public_safety_status": stored_report.get("public_safety_status", "missing"),
+        "contracts": contracts,
+        "failed_contract_ids": failed_contract_ids,
+        "required_readiness_check_ids": required_readiness_check_ids,
+        "required_human_gates": [
+            "operator_confirmation_required_for_local_write",
+            "human_review_required",
+            "exam_clearance_requires_written_authority_clearance",
+            "public_safety_required",
+        ],
+        "blocked_claims": blocked_claims,
+        "policy": (
+            "Notebook checkpoint receipt alignment links hash-only local cell evidence, checkpoint receipts, "
+            "study-session references, and operator-confirmed journal boundaries to the local-cycle workspace-card "
+            "readiness gate. It does not publish raw notebook text, local paths, provider prompts, grades, "
+            "proctoring, KI-detection evidence, or exam-clearance claims."
+        ),
+    }
+
+
 def first_valid_hash(*values: Any) -> str:
     for value in values:
         candidate = str(value or "").strip().lower()
@@ -538,12 +849,17 @@ def checkpoint_next_actions(status: str) -> list[str]:
 def synthetic_notebook_checkpoint_workspace_card() -> dict[str, Any]:
     cell_source = "own_values = [1, 2, 3]\nlen(own_values)\n"
     checkpoint_hash = sha256_text(cell_source)
+    return synthetic_notebook_checkpoint_workspace_card_for_hash(checkpoint_hash=checkpoint_hash, skill_tag="pandas")
+
+
+def synthetic_notebook_checkpoint_workspace_card_for_hash(*, checkpoint_hash: str, skill_tag: str) -> dict[str, Any]:
     preview_hash = sha256_text(f"synthetic notebook checkpoint workspace card:{checkpoint_hash}")
+    safe_skill_tag = str(skill_tag or "general_python")
     return {
         "schema_version": "unibot-python-exam-local-cycle-operator-workspace-card-v1",
         "artifact_type": "python_exam_local_cycle_operator_workspace_card",
         "status": "python_exam_local_cycle_operator_workspace_card_ready",
-        "selected_skill_tag": "pandas",
+        "selected_skill_tag": safe_skill_tag,
         "exam_deployment_status": "not_cleared",
         "not_cleared_receipt": True,
         "workspace_card_summary": {
@@ -551,7 +867,7 @@ def synthetic_notebook_checkpoint_workspace_card() -> dict[str, Any]:
             "recommendation_reason": "synthetic notebook checkpoint prerequisites are satisfied",
             "ready_for_operator_prefill": True,
             "help_ledger_preview_status": "help_ledger_preview_ready",
-            "selected_skill_tag": "pandas",
+            "selected_skill_tag": safe_skill_tag,
             "next_safe_action": "review_notebook_checkpoint_before_workspace_prefill",
             "next_safe_user_action": "review_checkpoint_hash_before_any_local_write",
             "operator_run_endpoint": "/api/unibot/exam-workspace/operator-run",
