@@ -16,6 +16,9 @@ from .python_exam_local_cycle_chain_snapshot import build_python_exam_local_cycl
 
 
 EXAM_RUN_PACKET_SCHEMA_VERSION = "unibot-exam-run-packet-v1"
+EXAM_RUN_PACKET_WORKSPACE_CARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-exam-run-packet-workspace-card-packet-alignment-v1"
+)
 EXAM_RUN_PACKET_ENDPOINT = "/api/unibot/course/exam-run-packet"
 
 
@@ -196,7 +199,302 @@ def build_exam_run_packet(
         "next_actions": packet_next_actions(router, executor, dashboard_row),
     }
     attach_public_scan(packet, public_safe=public_safe)
+    packet["workspace_card_packet_alignment"] = build_exam_run_packet_workspace_card_alignment(packet)
+    attach_public_scan(packet, public_safe=public_safe)
     return packet
+
+
+def exam_run_packet_hash(packet: dict[str, Any] | None = None) -> str:
+    packet = packet if isinstance(packet, dict) else {}
+    return sha256_text(
+        json.dumps(
+            {
+                "schema_version": packet.get("schema_version", ""),
+                "artifact_type": packet.get("artifact_type", ""),
+                "status": packet.get("status", ""),
+                "course_id": packet.get("course_id", ""),
+                "exam_deployment_status": packet.get("exam_deployment_status", ""),
+                "selected_skill_packet": packet.get("selected_skill_packet", {}),
+                "packet_summary": packet.get("packet_summary", {}),
+                "local_cycle_chain_snapshot": packet.get("local_cycle_chain_snapshot", {}),
+                "human_reviewable_independence_trace": packet.get("human_reviewable_independence_trace", {}),
+                "source_receipts": packet.get("source_receipts", {}),
+                "public_safety_status": packet.get("public_safety_status", ""),
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+    )
+
+
+def exam_run_packet_receipt_hash(packet: dict[str, Any] | None = None) -> str:
+    packet = packet if isinstance(packet, dict) else {}
+    receipt = packet.get("packet_receipt", {}) if isinstance(packet.get("packet_receipt"), dict) else {}
+    return sha256_text(
+        json.dumps(
+            {
+                "receipt_status": receipt.get("status", ""),
+                "receipt_id": receipt.get("receipt_id", ""),
+                "receipt_hash": receipt.get("receipt_hash", ""),
+                "exam_deployment_status": receipt.get("exam_deployment_status", ""),
+                "not_cleared_receipt": receipt.get("not_cleared_receipt", None),
+                "selected_skill_packet_hash": sha256_text(
+                    json.dumps(packet.get("selected_skill_packet", {}), sort_keys=True, ensure_ascii=False)
+                ),
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+    )
+
+
+def synthetic_exam_run_packet_workspace_card() -> dict[str, Any]:
+    preview_hash = sha256_text("synthetic exam run packet workspace card")
+    return {
+        "schema_version": "unibot-python-exam-local-cycle-operator-workspace-card-v1",
+        "artifact_type": "python_exam_local_cycle_operator_workspace_card",
+        "status": "python_exam_local_cycle_operator_workspace_card_ready",
+        "selected_skill_tag": "python_lists",
+        "exam_deployment_status": "not_cleared",
+        "not_cleared_receipt": True,
+        "workspace_card_summary": {
+            "recommendation": "ready_for_operator_prefill",
+            "recommendation_reason": "synthetic exam run packet prerequisites are satisfied",
+            "ready_for_operator_prefill": True,
+            "help_ledger_preview_status": "help_ledger_preview_ready",
+            "selected_skill_tag": "python_lists",
+            "next_safe_action": "review_exam_run_packet_hashes_before_workspace_prefill",
+            "next_safe_user_action": "review_hash_only_packet_before_exam_like_use_or_public_claim",
+            "operator_run_endpoint": "/api/unibot/exam-workspace/operator-run",
+            "operator_run_method": "POST",
+            "help_level": "A2",
+            "task_hash": "__EXAM_RUN_PACKET_RECEIPT_HASH__",
+            "checkpoint_hash": "__EXAM_RUN_PACKET_HASH__",
+            "source_card_ids": ["dfg-gwp", "gdpr-2016-679", "zai-glm-52"],
+            "source_anchor_count": 3,
+            "help_ledger_preview_hash": preview_hash,
+        },
+        "help_ledger_preview": {
+            "status": "help_ledger_preview_ready",
+            "help_level": "A2",
+            "preview_hash": preview_hash,
+        },
+    }
+
+
+def safe_exam_run_packet_workspace_card(
+    workspace_card: dict[str, Any],
+    *,
+    packet_hash: str = "",
+    receipt_hash: str = "",
+) -> dict[str, Any]:
+    summary = workspace_card.get("workspace_card_summary", {}) if isinstance(workspace_card.get("workspace_card_summary"), dict) else {}
+    ledger = workspace_card.get("help_ledger_preview", {}) if isinstance(workspace_card.get("help_ledger_preview"), dict) else {}
+    if not summary and (
+        workspace_card.get("help_ledger_preview_hash") is not None
+        or workspace_card.get("ready_for_operator_prefill") is not None
+        or workspace_card.get("help_ledger_preview_status") is not None
+    ):
+        summary = workspace_card
+    checkpoint_hash = str(summary.get("checkpoint_hash", ""))
+    task_hash = str(summary.get("task_hash", ""))
+    if packet_hash and checkpoint_hash == "__EXAM_RUN_PACKET_HASH__":
+        checkpoint_hash = packet_hash
+    if receipt_hash and task_hash == "__EXAM_RUN_PACKET_RECEIPT_HASH__":
+        task_hash = receipt_hash
+    return {
+        "status": workspace_card.get("status", "missing"),
+        "selected_skill_tag": str(summary.get("selected_skill_tag", workspace_card.get("selected_skill_tag", ""))),
+        "recommendation": str(summary.get("recommendation", "keep_blocked")),
+        "recommendation_reason": str(summary.get("recommendation_reason", "missing_exam_run_packet_gate")),
+        "ready_for_operator_prefill": bool(summary.get("ready_for_operator_prefill", False)),
+        "help_ledger_preview_status": str(summary.get("help_ledger_preview_status", ledger.get("status", "missing"))),
+        "next_safe_action": str(summary.get("next_safe_action", "")),
+        "next_safe_user_action": str(summary.get("next_safe_user_action", "")),
+        "operator_run_endpoint": str(summary.get("operator_run_endpoint", "")),
+        "operator_run_method": str(summary.get("operator_run_method", "POST")),
+        "help_level": str(summary.get("help_level", ledger.get("help_level", "A2"))),
+        "task_hash": task_hash,
+        "checkpoint_hash": checkpoint_hash,
+        "source_card_ids": [str(item) for item in (summary.get("source_card_ids", []) or [])][:8],
+        "source_anchor_count": int(summary.get("source_anchor_count", 0) or 0),
+        "help_ledger_preview_hash": str(summary.get("help_ledger_preview_hash", ledger.get("preview_hash", ""))),
+        "not_cleared_receipt": bool(workspace_card.get("not_cleared_receipt", True)),
+        "exam_deployment_status": "not_cleared",
+        "raw_workspace_card_returned": False,
+    }
+
+
+def build_exam_run_packet_workspace_card_alignment(
+    exam_run_packet: dict[str, Any] | None = None,
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    packet = exam_run_packet if isinstance(exam_run_packet, dict) else {}
+    skill = packet.get("selected_skill_packet", {}) if isinstance(packet.get("selected_skill_packet"), dict) else {}
+    route = skill.get("selected_route", {}) if isinstance(skill.get("selected_route"), dict) else {}
+    executed = skill.get("executed_dry_run", {}) if isinstance(skill.get("executed_dry_run"), dict) else {}
+    receipt = packet.get("packet_receipt", {}) if isinstance(packet.get("packet_receipt"), dict) else {}
+    chain_snapshot = (
+        packet.get("local_cycle_chain_snapshot", {})
+        if isinstance(packet.get("local_cycle_chain_snapshot"), dict)
+        else {}
+    )
+    packet_hash = exam_run_packet_hash(packet)
+    receipt_hash = exam_run_packet_receipt_hash(packet)
+    workspace_card = safe_exam_run_packet_workspace_card(
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else synthetic_exam_run_packet_workspace_card(),
+        packet_hash=packet_hash,
+        receipt_hash=receipt_hash,
+    )
+    workspace_card_readiness_gate_linked = (
+        workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and workspace_card.get("help_ledger_preview_hash") != ""
+        and workspace_card.get("exam_deployment_status") == "not_cleared"
+        and workspace_card.get("not_cleared_receipt") is True
+        and workspace_card.get("raw_workspace_card_returned") is False
+    )
+    raw_flag_names = [
+        "raw_query_returned",
+        "raw_text_returned",
+        "raw_cell_returned",
+        "raw_notebook_returned",
+        "notebook_code_returned",
+        "local_paths_returned",
+    ]
+    high_stakes_flag_names = [
+        "automatic_grading_started",
+        "proctoring_started",
+        "ai_detection_started",
+        "exam_clearance_claimed",
+    ]
+    contracts = {
+        "packet_public_safe": packet.get("public_safety_status") == "pass",
+        "packet_ready": packet.get("status") == "exam_run_packet_ready" and bool(skill),
+        "receipt_ready_not_clearance": receipt.get("status") == "exam_run_packet_receipt_ready_not_exam_clearance"
+        and bool(receipt.get("receipt_id"))
+        and bool(receipt.get("receipt_hash"))
+        and receipt.get("not_cleared_receipt") is True,
+        "route_execution_metadata_present": bool(route.get("route_id"))
+        and bool(executed.get("artifact_type"))
+        and bool(executed.get("status"))
+        and bool(executed.get("result_hash")),
+        "local_cycle_chain_snapshot_preserved": chain_snapshot.get("status") == "python_exam_local_cycle_chain_snapshot_ready"
+        and bool(chain_snapshot.get("snapshot_hash")),
+        "local_write_boundary_preserved": executed.get("local_write_started") is False,
+        "no_clearance_or_deployment_claim": packet.get("exam_deployment_status") == "not_cleared"
+        and receipt.get("exam_deployment_status") == "not_cleared"
+        and skill.get("exam_deployment_status") == "not_cleared",
+        "metadata_only_safety_flags_false": all(packet.get(flag) is False for flag in raw_flag_names)
+        and all(receipt.get(flag, False) is False for flag in raw_flag_names)
+        and all(skill.get(flag, False) is False for flag in raw_flag_names),
+        "high_stakes_boundaries_blocked": all(packet.get(flag) is False for flag in high_stakes_flag_names),
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_exam_run_packet_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("checkpoint_hash") == packet_hash
+        and workspace_card.get("task_hash") == receipt_hash,
+        "workspace_card_public_metadata_only": workspace_card.get("raw_workspace_card_returned") is False,
+    }
+    required_readiness_check_ids = [
+        "exam_run_packet",
+        "exam_packet_timeline",
+        "timeline_export_review_packet",
+        "python_exam_local_cycle_operator_workspace_card",
+    ]
+    alignment = {
+        "schema_version": EXAM_RUN_PACKET_WORKSPACE_CARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": "ready",
+        "exam_run_packet_hash": packet_hash,
+        "exam_run_packet_receipt_hash": receipt_hash,
+        "packet_status": packet.get("status", "missing"),
+        "receipt_status": receipt.get("status", "missing"),
+        "skill_tag": skill.get("skill_tag", ""),
+        "route_id": route.get("route_id", "missing"),
+        "executed_artifact_type": executed.get("artifact_type", "missing"),
+        "executed_status": executed.get("status", "missing"),
+        "executed_result_hash_present": bool(executed.get("result_hash")),
+        "local_write_started": bool(executed.get("local_write_started", True)),
+        "local_cycle_chain_snapshot_status": chain_snapshot.get("status", "missing"),
+        "local_cycle_chain_snapshot_hash_present": bool(chain_snapshot.get("snapshot_hash")),
+        "exam_deployment_status": packet.get("exam_deployment_status", "missing"),
+        "required_readiness_check_ids": required_readiness_check_ids,
+        "required_human_gates": [
+            "human_review_required",
+            "public_safety_required",
+            "operator_confirmation_required_for_local_write",
+            "exam_clearance_requires_written_authority_clearance",
+        ],
+        "blocked_claims": [
+            "raw private course text publication",
+            "contact data publication",
+            "local path publication",
+            "provider call",
+            "autonomous publication",
+            "approval claim",
+            "exam clearance claim",
+            "grading",
+            "proctoring",
+            "KI-detection evidence",
+            "exam deployment",
+        ],
+        "contracts": contracts,
+        "failed_contract_ids": sorted(contract_id for contract_id, passed in contracts.items() if not passed),
+        "workspace_card_status": workspace_card["status"],
+        "workspace_card_selected_skill_tag": workspace_card["selected_skill_tag"],
+        "workspace_card_ready_for_operator_prefill": workspace_card["ready_for_operator_prefill"],
+        "workspace_card_help_ledger_status": workspace_card["help_ledger_preview_status"],
+        "workspace_card_help_ledger_hash_present": workspace_card["help_ledger_preview_hash"] != "",
+        "workspace_card_operator_prefill_hash_present": workspace_card["task_hash"] != ""
+        and workspace_card["checkpoint_hash"] != "",
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_exam_run_packet_gate_linked": contracts["workspace_card_exam_run_packet_gate_linked"],
+        "workspace_card_readiness_gate_claim_linked": "python_exam_local_cycle_operator_workspace_card"
+        in required_readiness_check_ids,
+        "raw_workspace_card_returned": workspace_card["raw_workspace_card_returned"],
+        "public_language": (
+            "Exam run packet claims are hash-only review aids for selected skill packet, route execution "
+            "metadata, packet receipt, local-cycle chain snapshot, and local-write boundaries; they do not "
+            "authorize publication, provider calls, grading, proctoring, KI detection, or exam use."
+        ),
+    }
+    if alignment["failed_contract_ids"]:
+        alignment["status"] = "blocked"
+    scan = scan_text(
+        json.dumps(alignment, ensure_ascii=False, sort_keys=True),
+        "exam-run-packet-workspace-card-alignment",
+    )
+    alignment["alignment_public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        alignment["status"] = "blocked"
+        alignment["public_safety_findings"] = scan["findings"]
+    return alignment
+
+
+def synthetic_exam_run_packet_inputs() -> dict[str, Any]:
+    snapshot_hash = sha256_text("synthetic exam run packet local cycle chain snapshot")
+    packet = build_exam_run_packet(
+        selected_skill_tag="python_lists",
+        focus_query="Python Listen",
+        python_exam_local_cycle_chain_snapshot={
+            "schema_version": "unibot-python-exam-local-cycle-chain-snapshot-v1",
+            "artifact_type": "python_exam_local_cycle_chain_snapshot",
+            "status": "python_exam_local_cycle_chain_snapshot_ready",
+            "selected_skill_tag": "python_lists",
+            "snapshot_hash": snapshot_hash,
+            "chain_step_count": 4,
+            "exam_deployment_status": "not_cleared",
+            "raw_query_returned": False,
+            "raw_text_returned": False,
+            "raw_cell_returned": False,
+            "notebook_code_returned": False,
+            "local_paths_returned": False,
+        },
+        public_safe=True,
+    )
+    return {"exam_run_packet": packet}
 
 
 def selected_skill_tag_from_inputs(selected_skill_tag: str, router: dict[str, Any], executor: dict[str, Any]) -> str:

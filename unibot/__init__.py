@@ -95,7 +95,11 @@ from .exam_packet_timeline import (
     build_exam_packet_timeline_workspace_card_alignment,
     synthetic_exam_packet_timeline_inputs,
 )
-from .exam_run_packet_builder import build_exam_run_packet
+from .exam_run_packet_builder import (
+    build_exam_run_packet,
+    build_exam_run_packet_workspace_card_alignment,
+    synthetic_exam_run_packet_inputs,
+)
 from .external_decision_journal import (
     append_external_decision_journal_record,
     read_external_decision_journal,
@@ -334,6 +338,8 @@ __all__ = [
     "build_exam_packet_timeline_workspace_card_alignment",
     "synthetic_exam_packet_timeline_inputs",
     "build_exam_run_packet",
+    "build_exam_run_packet_workspace_card_alignment",
+    "synthetic_exam_run_packet_inputs",
     "build_timeline_export_receipt_journal_append",
     "build_timeline_export_receipt_journal_workspace_card_alignment",
     "read_timeline_export_receipt_journal",

@@ -12,7 +12,13 @@ sys.path.insert(0, str(ROOT))
 
 from unibot.course_exam_coverage_dashboard import build_course_exam_coverage_dashboard  # noqa: E402
 from unibot.course_per_skill_action_router import build_course_per_skill_action_router  # noqa: E402
-from unibot.exam_run_packet_builder import build_exam_run_packet  # noqa: E402
+from unibot.exam_run_packet_builder import (  # noqa: E402
+    build_exam_run_packet,
+    build_exam_run_packet_workspace_card_alignment,
+    exam_run_packet_hash,
+    exam_run_packet_receipt_hash,
+    synthetic_exam_run_packet_workspace_card,
+)
 from unibot.exam_workspace_session_console import build_exam_workspace_session_console  # noqa: E402
 from unibot.materials import build_material_manifest, sha256_text  # noqa: E402
 from unibot.public_safety import scan_text  # noqa: E402
@@ -199,6 +205,35 @@ class UniBotExamRunPacketTests(unittest.TestCase):
             self.assertTrue(packet["packet_receipt"]["not_cleared_receipt"])
             self.assertEqual(packet["local_cycle_chain_snapshot"]["status"], "python_exam_local_cycle_chain_snapshot_ready")
             self.assertEqual(packet["packet_summary"]["local_cycle_chain_snapshot_status"], "python_exam_local_cycle_chain_snapshot_ready")
+            alignment = packet["workspace_card_packet_alignment"]
+            self.assertEqual(
+                alignment["schema_version"],
+                "unibot-exam-run-packet-workspace-card-packet-alignment-v1",
+            )
+            self.assertEqual(alignment["status"], "ready")
+            self.assertEqual(alignment["alignment_public_safety_status"], "pass")
+            self.assertEqual(alignment["failed_contract_ids"], [])
+            self.assertEqual(alignment["exam_run_packet_hash"], exam_run_packet_hash(packet))
+            self.assertEqual(alignment["exam_run_packet_receipt_hash"], exam_run_packet_receipt_hash(packet))
+            self.assertEqual(alignment["packet_status"], "exam_run_packet_ready")
+            self.assertEqual(alignment["receipt_status"], "exam_run_packet_receipt_ready_not_exam_clearance")
+            self.assertEqual(alignment["route_id"], "review_open_operator_confirmations")
+            self.assertEqual(alignment["executed_artifact_type"], "exam_workspace_run_history_export_review")
+            self.assertEqual(alignment["executed_status"], "exam_workspace_run_history_export_review_ready")
+            self.assertTrue(alignment["executed_result_hash_present"])
+            self.assertFalse(alignment["local_write_started"])
+            self.assertEqual(
+                alignment["local_cycle_chain_snapshot_status"],
+                "python_exam_local_cycle_chain_snapshot_ready",
+            )
+            self.assertTrue(alignment["local_cycle_chain_snapshot_hash_present"])
+            self.assertEqual(alignment["exam_deployment_status"], "not_cleared")
+            self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+            self.assertTrue(alignment["workspace_card_exam_run_packet_gate_linked"])
+            self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+            self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+            self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+            self.assertFalse(alignment["raw_workspace_card_returned"])
             self.assertFalse(packet["raw_query_returned"])
             self.assertFalse(packet["raw_cell_returned"])
             self.assertFalse(packet["raw_text_returned"])
@@ -214,6 +249,29 @@ class UniBotExamRunPacketTests(unittest.TestCase):
             self.assertNotIn(str(temp_dir), payload)
             self.assertEqual(scan_text(payload, "exam-run-packet")["status"], "pass")
 
+    def test_packet_workspace_card_alignment_blocks_when_prefill_hashes_do_not_match(self) -> None:
+        packet = build_exam_run_packet(
+            selected_skill_tag="python_lists",
+            focus_query="Python Listen",
+            python_exam_local_cycle_chain_snapshot={
+                "status": "python_exam_local_cycle_chain_snapshot_ready",
+                "snapshot_hash": sha256_text("local cycle snapshot for broken card test"),
+                "exam_deployment_status": "not_cleared",
+            },
+            public_safe=True,
+        )
+        workspace_card = synthetic_exam_run_packet_workspace_card()
+        workspace_card["workspace_card_summary"]["checkpoint_hash"] = "wrong-packet-hash"
+        workspace_card["workspace_card_summary"]["task_hash"] = "wrong-receipt-hash"
+
+        alignment = build_exam_run_packet_workspace_card_alignment(packet, workspace_card)
+
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertIn("workspace_card_exam_run_packet_gate_linked", alignment["failed_contract_ids"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertFalse(alignment["workspace_card_exam_run_packet_gate_linked"])
+        self.assertEqual(alignment["alignment_public_safety_status"], "pass")
+
     def test_packet_api_route_builds_from_inputs(self) -> None:
         status, packet = route_request(
             "/api/unibot/course/exam-run-packet",
@@ -228,6 +286,11 @@ class UniBotExamRunPacketTests(unittest.TestCase):
         self.assertEqual(packet["artifact_type"], "exam_run_packet")
         self.assertEqual(packet["status"], "exam_run_packet_ready")
         self.assertEqual(packet["exam_deployment_status"], "not_cleared")
+        self.assertIn("workspace_card_packet_alignment", packet)
+        self.assertEqual(
+            packet["workspace_card_packet_alignment"]["schema_version"],
+            "unibot-exam-run-packet-workspace-card-packet-alignment-v1",
+        )
         self.assertFalse(packet["raw_text_returned"])
         self.assertFalse(packet["local_paths_returned"])
 

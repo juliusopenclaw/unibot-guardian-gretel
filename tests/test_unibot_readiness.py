@@ -783,6 +783,37 @@ class UniBotReadinessTests(unittest.TestCase):
         )
         self.assertTrue(timeline_review_packet["evidence"]["workspace_card_help_ledger_hash_present"])
         self.assertFalse(timeline_review_packet["evidence"]["raw_workspace_card_returned"])
+        exam_run_packet = next(check for check in report["checks"] if check["check_id"] == "exam_run_packet")
+        self.assertEqual(exam_run_packet["evidence"]["workspace_card_packet_alignment_status"], "ready")
+        self.assertEqual(
+            exam_run_packet["evidence"]["workspace_card_packet_alignment_public_safety_status"],
+            "pass",
+        )
+        self.assertEqual(exam_run_packet["evidence"]["packet_status"], "exam_run_packet_ready")
+        self.assertEqual(
+            exam_run_packet["evidence"]["receipt_status"],
+            "exam_run_packet_receipt_ready_not_exam_clearance",
+        )
+        self.assertNotEqual(exam_run_packet["evidence"]["route_id"], "missing")
+        self.assertNotEqual(exam_run_packet["evidence"]["executed_artifact_type"], "missing")
+        self.assertNotEqual(exam_run_packet["evidence"]["executed_status"], "missing")
+        self.assertTrue(exam_run_packet["evidence"]["executed_result_hash_present"])
+        self.assertFalse(exam_run_packet["evidence"]["local_write_started"])
+        self.assertEqual(
+            exam_run_packet["evidence"]["local_cycle_chain_snapshot_status"],
+            "python_exam_local_cycle_chain_snapshot_ready",
+        )
+        self.assertTrue(exam_run_packet["evidence"]["local_cycle_chain_snapshot_hash_present"])
+        self.assertEqual(exam_run_packet["evidence"]["exam_deployment_status"], "not_cleared")
+        self.assertTrue(exam_run_packet["evidence"]["workspace_card_readiness_gate_linked"])
+        self.assertTrue(exam_run_packet["evidence"]["workspace_card_exam_run_packet_gate_linked"])
+        self.assertTrue(exam_run_packet["evidence"]["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(
+            exam_run_packet["evidence"]["workspace_card_help_ledger_status"],
+            "help_ledger_preview_ready",
+        )
+        self.assertTrue(exam_run_packet["evidence"]["workspace_card_help_ledger_hash_present"])
+        self.assertFalse(exam_run_packet["evidence"]["raw_workspace_card_returned"])
         exam_packet_timeline = next(check for check in report["checks"] if check["check_id"] == "exam_packet_timeline")
         self.assertEqual(exam_packet_timeline["evidence"]["workspace_card_timeline_alignment_status"], "ready")
         self.assertEqual(
