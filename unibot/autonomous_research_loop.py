@@ -845,7 +845,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "external_decision_state_release_review_board_claim_alignment",
             "priority": 43,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align external decision state derivation with validated records, no raw references, no silent deployment switch, public language controls, and human gates.",
             "allowed_files": [
                 "unibot/decision_state.py",
@@ -855,6 +855,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_decision_state.py tests/test_unibot_readiness.py -q"],
             "review_gate": "external_decision_state_release_review_board_claim_traceability",
+            "closure_evidence": {
+                "commit": "05fb04e",
+                "summary": "External decision state release-claim alignment added with validated record derivation, hash-only references, no silent deployment switch, and human-gate links.",
+            },
+        },
+        {
+            "work_id": "extraction_receipt_journal_release_review_board_claim_alignment",
+            "priority": 44,
+            "status": "ready",
+            "goal": "Align extraction receipt journals with hash-only receipt storage, local-only processing evidence, no tutor-manifest update by receipt alone, and human-review gates.",
+            "allowed_files": [
+                "unibot/extraction_receipt_journal.py",
+                "tests/test_unibot_extraction_receipt_journal.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_extraction_receipt_journal.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "extraction_receipt_journal_release_review_board_claim_traceability",
         },
     ]
 

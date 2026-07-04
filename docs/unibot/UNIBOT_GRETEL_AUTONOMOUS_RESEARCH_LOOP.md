@@ -57,10 +57,10 @@ contract change.
 
 ## Current Work Queue
 
-- `external_decision_state_release_review_board_claim_alignment` is ready. It
-  should align external decision state derivation with validated records, no raw
-  references, no silent deployment switch, public language controls, and human
-  gates.
+- `extraction_receipt_journal_release_review_board_claim_alignment` is ready. It
+  should align extraction receipt journals with hash-only receipt storage,
+  local-only processing evidence, no tutor-manifest update by receipt alone, and
+  human-review gates.
 
 ## Closed Harnessed Work
 
@@ -202,6 +202,10 @@ contract change.
   closed in `e785479` with external decision record journal release-claim
   alignment across validated record hashes, no raw decision storage, no
   deployment switch, and human-gate controls.
+- `external_decision_state_release_review_board_claim_alignment`: closed in
+  `05fb04e` with external decision state release-claim alignment across
+  validated record derivation, hash-only references, no silent deployment
+  switch, and human-gate controls.
 
 ## Automation Rule
 
