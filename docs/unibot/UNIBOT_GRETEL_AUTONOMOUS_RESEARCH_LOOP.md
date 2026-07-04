@@ -64,17 +64,25 @@ artifacts.
 
 ## Current Work Queue
 
-- `completion_audit_local_cycle_workspace_card_closure_link_alignment`
-  is ready. It should link UniBot completion-audit goal-complete/public-draft
-  status, readiness snapshot, command-center route status, and no-clearance
-  deployment line with the harnessed local-cycle operator workspace-card
-  readiness gate, preserving completion/closure hashes and workspace-card
-  prefill evidence, no raw private course text/contact data/local path
-  publication, no provider call/autonomous publication, no approval or
-  exam-clearance claim, no grading/proctoring/KI-detection, and no exam
-  deployment claims.
+- `review_chain_integrity_local_cycle_workspace_card_chain_link_alignment`
+  is ready. It should link UniBot review-chain integrity metadata,
+  packet/timeline/review/journal status, and next-safe-action evidence with the
+  harnessed local-cycle operator workspace-card readiness gate, preserving
+  chain/integrity hashes and workspace-card prefill evidence, no raw private
+  course text/contact data/local path publication, no provider call/autonomous
+  publication, no approval or exam-clearance claim, no grading/proctoring/
+  KI-detection, and no exam deployment claims.
 
 ## Closed Harnessed Work
+
+- `completion_audit_local_cycle_workspace_card_closure_link_alignment`:
+  closed in `85b1667` with UniBot completion-audit public-draft closure status,
+  readiness snapshot evidence, command-center route status, and no-clearance
+  deployment line linked to the harnessed local-cycle operator workspace-card
+  readiness gate, completion/closure and ready-for-prefill metadata, and blocked
+  raw private course text/contact data/local path publication, provider calls,
+  autonomous publication, approval or exam-clearance claims, grading,
+  proctoring, KI-detection, and exam deployment claims.
 
 - `command_center_local_cycle_workspace_card_route_link_alignment`:
   closed in `6d2ed1b` with UniBot command-center role lanes, active harness
