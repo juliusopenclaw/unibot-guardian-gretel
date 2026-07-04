@@ -57,10 +57,10 @@ contract change.
 
 ## Current Work Queue
 
-- `private_tutor_use_flow_release_review_board_claim_alignment` is ready. It
-  should align the private tutor-use flow with reviewed private manifest
-  evidence, learner-agency boundaries, no public raw course text, no cloud
-  processing, and no exam deployment claims.
+- `study_session_release_review_board_claim_alignment` is ready. It should
+  align study-session plans and receipts with learner reflection, source
+  anchors, private tutor-use evidence, no final-answer outsourcing, no grading,
+  and no exam deployment claims.
 
 ## Closed Harnessed Work
 
@@ -229,6 +229,10 @@ contract change.
   `0cecaf4` with hash-only local review evidence, completion links, private
   manifest-plan boundaries, no tutor indexing by review alone, and no exam
   deployment claims.
+- `private_tutor_use_flow_release_review_board_claim_alignment`: closed in
+  `d850fa2` with reviewed private manifest evidence, operator-confirmed
+  hash-only tutor index, A0-A2 learner-agency boundaries, Help-Ledger evidence,
+  and no exam deployment claims.
 
 ## Automation Rule
 
