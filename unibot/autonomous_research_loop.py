@@ -752,6 +752,38 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
                 "summary": "Review-board release-claim summaries aligned with source cards, threat model, red-team, publication, public language controls, and human gates.",
             },
         },
+        {
+            "work_id": "authority_handoff_release_review_board_claim_alignment",
+            "priority": 38,
+            "status": "closed_harnessed",
+            "goal": "Align authority handoff drafts with review-board summaries, source cards, red-team, compliance, public language controls, provider gates, and human gates.",
+            "allowed_files": [
+                "unibot/handoff.py",
+                "tests/test_unibot_handoff.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_handoff.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "authority_handoff_release_review_board_claim_traceability",
+            "closure_evidence": {
+                "commit": "5867d66",
+                "summary": "Authority handoff release-claim alignment added with review-board, source-card, red-team, compliance, public language, provider-gate, and human-gate links.",
+            },
+        },
+        {
+            "work_id": "stakeholder_submission_release_review_board_claim_alignment",
+            "priority": 39,
+            "status": "ready",
+            "goal": "Align stakeholder submission bundle lanes with review-board summaries, authority handoff, source cards, extraction/privacy decisions, public language controls, and human gates.",
+            "allowed_files": [
+                "unibot/submission.py",
+                "tests/test_unibot_submission.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_submission.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "stakeholder_submission_release_review_board_claim_traceability",
+        },
     ]
 
 def build_autonomous_research_loop() -> dict[str, Any]:

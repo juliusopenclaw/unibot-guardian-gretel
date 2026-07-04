@@ -57,9 +57,10 @@ contract change.
 
 ## Current Work Queue
 
-No ready work item is currently queued. The next autonomous cycle should inspect
-the public-safe repository state and add one bounded candidate only if it
-advances the Socratic integrity layer without changing the project boundaries.
+- `stakeholder_submission_release_review_board_claim_alignment` is ready. It
+  should align stakeholder submission bundle lanes with review-board summaries,
+  authority handoff, source cards, extraction/privacy decisions, public
+  language controls, and human gates.
 
 ## Closed Harnessed Work
 
@@ -181,6 +182,10 @@ advances the Socratic integrity layer without changing the project boundaries.
 - `review_board_packet_release_claim_summary_alignment`: closed in `bf2c654`
   with review-board release-claim summaries aligned to source cards, threat
   model, red-team, publication, public language controls, and human gates.
+- `authority_handoff_release_review_board_claim_alignment`: closed in `5867d66`
+  with authority handoff release-claim alignment across review-board,
+  source-card, red-team, compliance, public language, provider-gate, and
+  human-gate controls.
 
 ## Automation Rule
 
