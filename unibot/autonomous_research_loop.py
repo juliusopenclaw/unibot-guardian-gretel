@@ -1992,7 +1992,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "exam_workspace_run_history_local_cycle_workspace_card_history_receipt_link_alignment",
             "priority": 105,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link UniBot exam workspace run-history export-review metadata, session-console receipt ids, checkpoint hashes, help-level profiles, reflection/review status, export receipt references, operator-confirmation state, and no-clearance boundary with the harnessed local-cycle operator workspace-card readiness gate, preserving history/receipt hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no provider call/autonomous publication, no approval or exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/exam_workspace_run_history.py",
@@ -2004,6 +2004,26 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
                 "python3 -m pytest tests/test_unibot_exam_workspace_run_history.py tests/test_unibot_readiness.py -q"
             ],
             "review_gate": "exam_workspace_run_history_local_cycle_workspace_card_history_receipt_link_traceability",
+            "closure_evidence": {
+                "commit": "9da9539",
+                "summary": "UniBot exam workspace run-history export-review metadata, session-console receipt ids, checkpoint hashes, help-level profiles, reflection/review status, export receipt references, operator-confirmation state, history/receipt hashes, waiting-state receipt hash, no-clearance boundary, and workspace-card ready-for-prefill evidence now link to the harnessed local-cycle operator workspace-card readiness gate while blocking raw private course text/contact data/local path publication, provider calls, autonomous publication, approval or exam-clearance claims, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "exam_workspace_operator_run_local_cycle_workspace_card_operator_receipt_link_alignment",
+            "priority": 106,
+            "status": "ready",
+            "goal": "Link UniBot exam workspace operator-run start view/operator confirmation metadata, launch/run/session-console references, help-ledger preview, operator-confirmed local-write boundary, and no-clearance boundary with the harnessed local-cycle operator workspace-card readiness gate, preserving operator-run receipt hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no provider call/autonomous publication, no approval or exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/exam_workspace_operator_run.py",
+                "tests/test_unibot_exam_workspace_operator_run.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": [
+                "python3 -m pytest tests/test_unibot_exam_workspace_operator_run.py tests/test_unibot_readiness.py -q"
+            ],
+            "review_gate": "exam_workspace_operator_run_local_cycle_workspace_card_operator_receipt_link_traceability",
         },
     ]
 

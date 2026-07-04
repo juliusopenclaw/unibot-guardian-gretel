@@ -64,16 +64,16 @@ artifacts.
 
 ## Current Work Queue
 
-- `exam_workspace_run_history_local_cycle_workspace_card_history_receipt_link_alignment`
-  is ready. It should link UniBot exam workspace run-history export-review
-  metadata, session-console receipt ids, checkpoint hashes, help-level
-  profiles, reflection/review status, export receipt references,
-  operator-confirmation state, and no-clearance boundary with the harnessed
-  local-cycle operator workspace-card readiness gate, preserving
-  history/receipt hashes and workspace-card prefill evidence, no raw private
-  course text/contact data/local path publication, no provider call/autonomous
-  publication, no approval or exam-clearance claim, no
-  grading/proctoring/KI-detection, and no exam deployment claims.
+- `exam_workspace_operator_run_local_cycle_workspace_card_operator_receipt_link_alignment`
+  is ready. It should link UniBot exam workspace operator-run start view,
+  operator-confirmation metadata, launch/run/session-console references,
+  help-ledger preview, operator-confirmed local-write boundary, and
+  no-clearance boundary with the harnessed local-cycle operator workspace-card
+  readiness gate while preserving operator-run receipt hashes and
+  workspace-card prefill evidence, no raw private course text/contact data/local
+  path publication, no provider call/autonomous publication, no approval or
+  exam-clearance claim, no grading/proctoring/KI-detection, and no exam
+  deployment claims.
 
 ## Closed Harnessed Work
 
@@ -630,6 +630,14 @@ artifacts.
   `2581243` with hash-only session-console receipts, checkpoint hashes,
   operator blockers, reflection evidence, not-cleared export receipts, and no
   exam deployment claims.
+- `exam_workspace_run_history_local_cycle_workspace_card_history_receipt_link_alignment`:
+  closed in `9da9539` with run-history export-review metadata, session-console
+  receipt ids, checkpoint hashes, help-level profiles, reflection/review status,
+  export receipt references, operator-confirmation state, history/receipt
+  hashes, waiting-state receipt hash, no-clearance boundary, and workspace-card
+  ready-for-prefill evidence linked to the local-cycle operator workspace-card
+  readiness gate without raw private data, provider calls, autonomous
+  publication, grading, proctoring, KI-detection, or exam deployment claims.
 - `exam_workspace_operator_run_release_review_board_claim_alignment`: closed in
   `b5fee21` with Start Exam Workspace view, dry-run default, individual
   confirmation boundaries, repeat-task stop, not-cleared receipt, and no exam
