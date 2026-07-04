@@ -11,7 +11,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from unibot.extraction import build_course_extraction_queue  # noqa: E402
-from unibot.extraction_progress import build_extraction_progress_report  # noqa: E402
+from unibot.extraction_progress import (  # noqa: E402
+    build_extraction_progress_release_claim_alignment,
+    build_extraction_progress_report,
+)
 from unibot.materials import sha256_text  # noqa: E402
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
@@ -116,6 +119,50 @@ class UniBotExtractionProgressTests(unittest.TestCase):
             self.assertEqual(report["receipt_summary"]["eligible_for_private_tutor_index_count"], 1)
             self.assertEqual(len(report["manifest_update_candidates"]), 1)
             self.assertEqual(report["manifest_update_candidates"][0]["review_status_after_review"], "reviewed_for_private_tutor")
+
+    def test_progress_release_claim_alignment_links_metadata_review_and_manifest_boundaries(self) -> None:
+        alignment = build_extraction_progress_release_claim_alignment()
+
+        self.assertEqual(
+            alignment["schema_version"],
+            "unibot-extraction-progress-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["report_public_safety_status"], "pass")
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertEqual(alignment["exam_deployment_status"], "not_cleared")
+        self.assertGreaterEqual(alignment["receipt_summary"]["valid_receipt_count"], 2)
+        self.assertGreaterEqual(alignment["review_queue_count"], 1)
+        self.assertGreaterEqual(alignment["manifest_update_candidate_count"], 1)
+        self.assertIn("extraction_progress", alignment["required_readiness_check_ids"])
+        self.assertIn("extraction_receipt_journal", alignment["required_readiness_check_ids"])
+        self.assertIn("course_material_policy", alignment["required_readiness_check_ids"])
+        self.assertIn("external_decision_state", alignment["required_readiness_check_ids"])
+        self.assertIn("exam_boundary", alignment["required_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertTrue(alignment["contracts"]["review_queue_hash_only"])
+        self.assertTrue(alignment["contracts"]["manifest_candidates_private_metadata_only"])
+        self.assertIn("raw extracted text in progress report", alignment["blocked_claims"])
+        self.assertIn("tutor retrieval without manifest update", alignment["blocked_claims"])
+        self.assertIn("exam deployment", alignment["blocked_claims"])
+
+    def test_progress_release_claim_alignment_blocks_exam_deployment_claims(self) -> None:
+        report = build_extraction_progress_report(
+            decision_record=valid_decision(),
+            receipts=[receipt_for_job({"job_id": "job-1", "material_id": "material-1", "job_type": "ocr"})],
+        )
+        report["exam_deployment_status"] = "cleared"
+        report["policy"] = "Progress report authorizes direct tutor retrieval."
+
+        alignment = build_extraction_progress_release_claim_alignment(report)
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertIn("exam_deployment_not_cleared", alignment["failed_contract_ids"])
+        self.assertIn("policy_blocks_raw_paths_and_direct_tutor_retrieval", alignment["failed_contract_ids"])
 
     def test_progress_report_blocks_invalid_receipts(self) -> None:
         receipt = {
