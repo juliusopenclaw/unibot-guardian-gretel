@@ -433,6 +433,19 @@ class UniBotReadinessTests(unittest.TestCase):
             tutor_flow["evidence"]["release_claim_alignment_contract_status"],
             "unibot-private-tutor-use-flow-release-review-board-claim-alignment-v1",
         )
+        self.assertEqual(tutor_flow["evidence"]["workspace_card_private_use_alignment_status"], "ready")
+        self.assertEqual(
+            tutor_flow["evidence"]["workspace_card_private_use_alignment_public_safety_status"],
+            "pass",
+        )
+        self.assertEqual(
+            tutor_flow["evidence"]["workspace_card_private_use_alignment_contract_status"],
+            "unibot-private-tutor-use-flow-workspace-card-private-use-alignment-v1",
+        )
+        self.assertEqual(
+            tutor_flow["evidence"]["workspace_card_private_use_receipt_status"],
+            "private_tutor_use_flow_receipt_ready_not_exam_clearance",
+        )
         self.assertEqual(tutor_flow["evidence"]["flow_public_safety_status"], "pass")
         self.assertEqual(tutor_flow["evidence"]["flow_status"], "private_tutor_use_flow_ready_with_ledger")
         self.assertEqual(tutor_flow["evidence"]["exam_deployment_status"], "not_cleared")
@@ -461,6 +474,8 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertTrue(tutor_flow["evidence"]["hash_only_tutor_index_operator_confirmed"])
         self.assertTrue(tutor_flow["evidence"]["learner_agency_a0_a2_source_anchored"])
         self.assertTrue(tutor_flow["evidence"]["help_ledger_operator_confirmed_hash_only"])
+        self.assertTrue(tutor_flow["evidence"]["workspace_card_private_tutor_flow_gate_linked"])
+        self.assertTrue(tutor_flow["evidence"]["workspace_card_operator_prefill_hash_present"])
         self.assertTrue(tutor_flow["evidence"]["public_outputs_hide_private_data"])
         self.assertTrue(tutor_flow["evidence"]["high_stakes_actions_not_started"])
         self.assertTrue(tutor_flow["evidence"]["raw_query_returned_blocked"])

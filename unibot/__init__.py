@@ -155,7 +155,14 @@ from .privacy import (
     build_data_protection_screening,
     build_data_protection_screening_markdown,
 )
-from .private_tutor_use_flow import build_private_tutor_use_flow_dry_run
+from .private_tutor_use_flow import (
+    build_private_tutor_use_flow_dry_run,
+    build_private_tutor_use_flow_workspace_card_alignment,
+    private_tutor_use_flow_hash,
+    private_tutor_use_flow_receipt_hash,
+    synthetic_private_tutor_use_flow_inputs,
+    synthetic_private_tutor_use_flow_workspace_card,
+)
 from .private_extraction_runner import run_private_extraction_batch
 from .video_transcription_runner import run_video_transcription_batch, video_transcription_capabilities
 from .review_board import build_review_board_evidence_alignment, build_review_board_packet, build_review_board_packet_markdown
@@ -298,6 +305,11 @@ __all__ = [
     "build_data_protection_screening",
     "build_data_protection_screening_markdown",
     "build_private_tutor_use_flow_dry_run",
+    "build_private_tutor_use_flow_workspace_card_alignment",
+    "private_tutor_use_flow_hash",
+    "private_tutor_use_flow_receipt_hash",
+    "synthetic_private_tutor_use_flow_inputs",
+    "synthetic_private_tutor_use_flow_workspace_card",
     "run_private_extraction_batch",
     "run_video_transcription_batch",
     "video_transcription_capabilities",

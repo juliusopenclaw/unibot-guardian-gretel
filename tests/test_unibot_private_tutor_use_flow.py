@@ -15,6 +15,10 @@ from unibot.materials import sha256_text  # noqa: E402
 from unibot.private_tutor_use_flow import (  # noqa: E402
     build_private_tutor_use_flow_dry_run,
     build_private_tutor_use_flow_release_claim_alignment,
+    build_private_tutor_use_flow_workspace_card_alignment,
+    private_tutor_use_flow_hash,
+    private_tutor_use_flow_receipt_hash,
+    synthetic_private_tutor_use_flow_workspace_card,
 )
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
@@ -140,6 +144,44 @@ class UniBotPrivateTutorUseFlowTests(unittest.TestCase):
             self.assertEqual(report["tutor_response_summary"]["effective_help_level"], "A2")
             self.assertTrue(report["ledger_append_summary"]["ledger_written"])
             self.assertEqual(report["study_receipt_validation"]["status"], "ok_study_session_receipt")
+            self.assertEqual(
+                report["private_tutor_flow_receipt"]["status"],
+                "private_tutor_use_flow_receipt_ready_not_exam_clearance",
+            )
+            self.assertTrue(report["private_tutor_flow_receipt"]["not_cleared_receipt"])
+            alignment = report["workspace_card_private_use_alignment"]
+            self.assertEqual(
+                alignment["schema_version"],
+                "unibot-private-tutor-use-flow-workspace-card-private-use-alignment-v1",
+            )
+            self.assertEqual(alignment["status"], "ready")
+            self.assertEqual(alignment["alignment_public_safety_status"], "pass")
+            self.assertEqual(alignment["failed_contract_ids"], [])
+            self.assertEqual(alignment["private_tutor_use_flow_hash"], private_tutor_use_flow_hash(report))
+            self.assertEqual(
+                alignment["private_tutor_use_flow_receipt_hash"],
+                private_tutor_use_flow_receipt_hash(report),
+            )
+            self.assertEqual(alignment["flow_status"], "private_tutor_use_flow_ready_with_ledger")
+            self.assertEqual(alignment["receipt_status"], "private_tutor_use_flow_receipt_ready_not_exam_clearance")
+            self.assertEqual(alignment["manifest_apply_status"], "private_manifest_applied")
+            self.assertTrue(alignment["manifest_written"])
+            self.assertEqual(alignment["tutor_index_status"], "private_tutor_index_built")
+            self.assertTrue(alignment["tutor_index_built"])
+            self.assertGreaterEqual(alignment["tutor_index_anchor_count"], 1)
+            self.assertEqual(alignment["tutor_response_status"], "allowed")
+            self.assertEqual(alignment["effective_help_level"], "A2")
+            self.assertGreaterEqual(alignment["source_anchor_count"], 1)
+            self.assertEqual(alignment["ledger_status"], "stored")
+            self.assertTrue(alignment["ledger_written"])
+            self.assertEqual(alignment["study_receipt_status"], "ok_study_session_receipt")
+            self.assertEqual(alignment["exam_deployment_status"], "not_cleared")
+            self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+            self.assertTrue(alignment["workspace_card_private_tutor_flow_gate_linked"])
+            self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+            self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+            self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+            self.assertFalse(alignment["raw_workspace_card_returned"])
             self.assertFalse(report["raw_query_returned"])
             self.assertFalse(report["raw_text_returned"])
             self.assertFalse(report["local_paths_returned"])
@@ -272,6 +314,45 @@ class UniBotPrivateTutorUseFlowTests(unittest.TestCase):
         self.assertIn("workspace_card_help_ledger_gate_linked", alignment["failed_contract_ids"])
         self.assertIn("public_outputs_hide_private_data", alignment["failed_contract_ids"])
         self.assertIn("high_stakes_actions_not_started", alignment["failed_contract_ids"])
+
+    def test_private_tutor_use_flow_workspace_card_alignment_blocks_unlinked_prefill_hashes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir) / "materials"
+            manifest_path = Path(temp_dir) / "private_manifest.json"
+            index_path = Path(temp_dir) / "index.json"
+            ledger_path = Path(temp_dir) / "help_ledger.jsonl"
+            write_flow_fixture(root)
+            queue = build_course_extraction_queue(
+                base_path=str(root),
+                rights_decision_reference=str(valid_decision()["decision_reference"]),
+            )
+            receipt = reviewed_receipt_for_job(queue["jobs"][0])
+            report = build_private_tutor_use_flow_dry_run(
+                "Wie pruefe ich mit pandas die Spalten vor dem Boxplot?",
+                base_path=str(root),
+                decision_record=valid_decision(),
+                receipts=[receipt],
+                private_manifest_path=manifest_path,
+                tutor_index_path=index_path,
+                ledger_path=ledger_path,
+                operator_confirmed_manifest_apply=True,
+                operator_confirmed_tutor_index_build=True,
+                operator_confirmed_help_ledger_append=True,
+                requested_help_level="A2",
+                study_receipt=study_receipt_evidence(),
+                public_safe=True,
+            )
+        workspace_card = synthetic_private_tutor_use_flow_workspace_card()
+        workspace_card["workspace_card_summary"]["checkpoint_hash"] = "wrong-private-tutor-flow-hash"
+        workspace_card["workspace_card_summary"]["task_hash"] = "wrong-private-tutor-receipt-hash"
+
+        alignment = build_private_tutor_use_flow_workspace_card_alignment(report, workspace_card)
+
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertIn("workspace_card_private_tutor_flow_gate_linked", alignment["failed_contract_ids"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertFalse(alignment["workspace_card_private_tutor_flow_gate_linked"])
+        self.assertEqual(alignment["alignment_public_safety_status"], "pass")
 
 
 if __name__ == "__main__":

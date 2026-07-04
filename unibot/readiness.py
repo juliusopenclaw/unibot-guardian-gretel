@@ -70,7 +70,11 @@ from .paperclip_evaluation_bridge import (
 )
 from .pilot import build_pilot_protocol
 from .privacy import build_data_protection_screening
-from .private_tutor_use_flow import build_private_tutor_use_flow_release_claim_alignment
+from .private_tutor_use_flow import (
+    build_private_tutor_use_flow_release_claim_alignment,
+    build_private_tutor_use_flow_workspace_card_alignment,
+    synthetic_private_tutor_use_flow_inputs,
+)
 from .python_exam_local_cycle_operator_workspace_card import (
     build_python_exam_local_cycle_operator_workspace_card_release_claim_alignment,
 )
@@ -349,6 +353,10 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     extraction_completion_alignment = build_extraction_completion_release_claim_alignment()
     extraction_human_review_alignment = build_extraction_human_review_release_claim_alignment()
     private_tutor_use_flow_alignment = build_private_tutor_use_flow_release_claim_alignment()
+    private_tutor_use_flow_inputs = synthetic_private_tutor_use_flow_inputs()
+    private_tutor_use_flow_workspace_alignment = build_private_tutor_use_flow_workspace_card_alignment(
+        private_tutor_use_flow_inputs["private_tutor_use_flow"],
+    )
     study_session_alignment = build_study_session_release_claim_alignment()
     notebook_checkpoint_alignment = build_notebook_checkpoint_release_claim_alignment()
     exam_workspace_launch_alignment = build_exam_workspace_launch_release_claim_alignment()
@@ -1708,13 +1716,33 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and private_tutor_use_flow_alignment["flow_public_safety_status"] == "pass"
             and private_tutor_use_flow_alignment["exam_deployment_status"] == "not_cleared"
             and private_tutor_use_flow_alignment["missing_source_card_ids"] == []
-            and private_tutor_use_flow_alignment["failed_contract_ids"] == [],
+            and private_tutor_use_flow_alignment["failed_contract_ids"] == []
+            and private_tutor_use_flow_workspace_alignment["status"] == "ready"
+            and private_tutor_use_flow_workspace_alignment["alignment_public_safety_status"] == "pass"
+            and private_tutor_use_flow_workspace_alignment["failed_contract_ids"] == []
+            and private_tutor_use_flow_workspace_alignment["receipt_status"]
+            == "private_tutor_use_flow_receipt_ready_not_exam_clearance"
+            and private_tutor_use_flow_workspace_alignment["workspace_card_readiness_gate_linked"] is True
+            and private_tutor_use_flow_workspace_alignment["workspace_card_private_tutor_flow_gate_linked"] is True
+            and private_tutor_use_flow_workspace_alignment["raw_workspace_card_returned"] is False,
             "evidence": {
                 "release_claim_alignment_status": private_tutor_use_flow_alignment["status"],
                 "release_claim_alignment_public_safety_status": private_tutor_use_flow_alignment[
                     "public_safety_status"
                 ],
                 "release_claim_alignment_contract_status": private_tutor_use_flow_alignment["schema_version"],
+                "workspace_card_private_use_alignment_status": private_tutor_use_flow_workspace_alignment[
+                    "status"
+                ],
+                "workspace_card_private_use_alignment_public_safety_status": private_tutor_use_flow_workspace_alignment[
+                    "alignment_public_safety_status"
+                ],
+                "workspace_card_private_use_alignment_contract_status": private_tutor_use_flow_workspace_alignment[
+                    "schema_version"
+                ],
+                "workspace_card_private_use_receipt_status": private_tutor_use_flow_workspace_alignment[
+                    "receipt_status"
+                ],
                 "release_claim_alignment_section_count": private_tutor_use_flow_alignment["section_count"],
                 "flow_status": private_tutor_use_flow_alignment["flow_status"],
                 "flow_public_safety_status": private_tutor_use_flow_alignment["flow_public_safety_status"],
@@ -1747,6 +1775,12 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 ],
                 "workspace_card_help_ledger_gate_linked": private_tutor_use_flow_alignment[
                     "workspace_card_help_ledger_gate_linked"
+                ],
+                "workspace_card_private_tutor_flow_gate_linked": private_tutor_use_flow_workspace_alignment[
+                    "workspace_card_private_tutor_flow_gate_linked"
+                ],
+                "workspace_card_operator_prefill_hash_present": private_tutor_use_flow_workspace_alignment[
+                    "workspace_card_operator_prefill_hash_present"
                 ],
                 "study_receipt_status": private_tutor_use_flow_alignment["study_receipt_status"],
                 "release_claim_alignment_human_gates": private_tutor_use_flow_alignment["required_human_gates"],

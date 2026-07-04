@@ -379,6 +379,16 @@ text, local paths, or the raw workspace card. It does not approve public
 release, approve cloud processing, grade, proctor, detect AI use, or clear exam
 deployment.
 
+Its private-use workspace-card alignment carries
+`unibot-private-tutor-use-flow-workspace-card-private-use-alignment-v1`. This
+contract keeps private-manifest apply metadata, hash-only tutor-index metadata,
+Flow/Receipt hashes, Help-Ledger evidence, study-receipt status, and the
+not-cleared deployment line hash-linked to the harnessed local-cycle operator
+workspace-card readiness gate without exposing raw private course text, contact
+data, local paths, notebook code, autonomous publication, provider calls,
+approval or exam-clearance claims, grading, proctoring, KI-detection evidence,
+exam deployment claims, or the raw workspace card.
+
 The study-session gate carries
 `unibot-study-session-release-review-board-claim-alignment-v1`. It proves only
 formative, hash-only learning evidence: prediction, retrieval response,
