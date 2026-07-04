@@ -43,6 +43,9 @@ from .paperclip_evaluation_bridge import build_paperclip_evaluation_request, pap
 from .pilot import build_pilot_protocol
 from .privacy import build_data_protection_screening
 from .private_tutor_use_flow import build_private_tutor_use_flow_release_claim_alignment
+from .python_exam_local_cycle_readiness_review import (
+    build_python_exam_local_cycle_readiness_review_release_claim_alignment,
+)
 from .python_exam_local_cycle_start_packet import build_python_exam_local_cycle_start_packet_release_claim_alignment
 from .publication import build_publication_package
 from .public_safety import scan_public_files, scan_text
@@ -151,6 +154,7 @@ def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
         "exam_workspace_operator_run",
         "exam_workspace_session_console",
         "python_exam_local_cycle_start_packet",
+        "python_exam_local_cycle_readiness_review",
         "gretel_glm_evolve_lane",
         "gretel_bachelor_thesis_package",
         "gretel_autonomous_research_loop",
@@ -239,6 +243,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     exam_workspace_operator_run_alignment = build_exam_workspace_operator_run_release_claim_alignment()
     exam_workspace_session_console_alignment = build_exam_workspace_session_console_release_claim_alignment()
     python_exam_local_cycle_start_packet_alignment = build_python_exam_local_cycle_start_packet_release_claim_alignment()
+    python_exam_local_cycle_readiness_review_alignment = (
+        build_python_exam_local_cycle_readiness_review_release_claim_alignment()
+    )
     notebook = generate_practice_notebook("UniBot readiness notebook smoke")
     source_cards = list_source_cards()
     source_card_drift = build_source_card_drift_report()
@@ -2232,6 +2239,167 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 in python_exam_local_cycle_start_packet_alignment["blocked_claims"],
                 "exam_clearance_blocked": "exam clearance"
                 in python_exam_local_cycle_start_packet_alignment["blocked_claims"],
+            },
+        },
+        {
+            "check_id": "python_exam_local_cycle_readiness_review",
+            "passed": python_exam_local_cycle_readiness_review_alignment["status"] == "ready"
+            and python_exam_local_cycle_readiness_review_alignment["public_safety_status"] == "pass"
+            and python_exam_local_cycle_readiness_review_alignment["open_review_public_safety_status"] == "pass"
+            and python_exam_local_cycle_readiness_review_alignment["confirmed_review_public_safety_status"] == "pass"
+            and python_exam_local_cycle_readiness_review_alignment["missing_review_public_safety_status"] == "pass"
+            and python_exam_local_cycle_readiness_review_alignment["exam_deployment_status"] == "not_cleared"
+            and python_exam_local_cycle_readiness_review_alignment["missing_source_card_ids"] == []
+            and python_exam_local_cycle_readiness_review_alignment["failed_contract_ids"] == [],
+            "evidence": {
+                "release_claim_alignment_status": python_exam_local_cycle_readiness_review_alignment["status"],
+                "release_claim_alignment_public_safety_status": python_exam_local_cycle_readiness_review_alignment[
+                    "public_safety_status"
+                ],
+                "release_claim_alignment_contract_status": python_exam_local_cycle_readiness_review_alignment[
+                    "schema_version"
+                ],
+                "release_claim_alignment_section_count": python_exam_local_cycle_readiness_review_alignment[
+                    "section_count"
+                ],
+                "open_review_status": python_exam_local_cycle_readiness_review_alignment["open_review_status"],
+                "open_review_public_safety_status": python_exam_local_cycle_readiness_review_alignment[
+                    "open_review_public_safety_status"
+                ],
+                "confirmed_review_status": python_exam_local_cycle_readiness_review_alignment[
+                    "confirmed_review_status"
+                ],
+                "confirmed_review_public_safety_status": python_exam_local_cycle_readiness_review_alignment[
+                    "confirmed_review_public_safety_status"
+                ],
+                "missing_review_status": python_exam_local_cycle_readiness_review_alignment["missing_review_status"],
+                "missing_review_public_safety_status": python_exam_local_cycle_readiness_review_alignment[
+                    "missing_review_public_safety_status"
+                ],
+                "exam_deployment_status": python_exam_local_cycle_readiness_review_alignment["exam_deployment_status"],
+                "selected_skill_tag": python_exam_local_cycle_readiness_review_alignment["selected_skill_tag"],
+                "open_recommendation": python_exam_local_cycle_readiness_review_alignment["open_recommendation"],
+                "open_recommendation_reason": python_exam_local_cycle_readiness_review_alignment[
+                    "open_recommendation_reason"
+                ],
+                "open_start_status": python_exam_local_cycle_readiness_review_alignment["open_start_status"],
+                "open_confirmation_count": python_exam_local_cycle_readiness_review_alignment[
+                    "open_confirmation_count"
+                ],
+                "confirmed_recommendation": python_exam_local_cycle_readiness_review_alignment[
+                    "confirmed_recommendation"
+                ],
+                "confirmed_count": python_exam_local_cycle_readiness_review_alignment["confirmed_count"],
+                "missing_recommendation": python_exam_local_cycle_readiness_review_alignment["missing_recommendation"],
+                "missing_recommendation_reason": python_exam_local_cycle_readiness_review_alignment[
+                    "missing_recommendation_reason"
+                ],
+                "packet_present": python_exam_local_cycle_readiness_review_alignment["packet_present"],
+                "hash_metadata_complete": python_exam_local_cycle_readiness_review_alignment[
+                    "hash_metadata_complete"
+                ],
+                "task_hash_present": python_exam_local_cycle_readiness_review_alignment["task_hash_present"],
+                "checkpoint_hash_present": python_exam_local_cycle_readiness_review_alignment[
+                    "checkpoint_hash_present"
+                ],
+                "gate_receipt_hash_present": python_exam_local_cycle_readiness_review_alignment[
+                    "gate_receipt_hash_present"
+                ],
+                "decision_receipt_hash_present": python_exam_local_cycle_readiness_review_alignment[
+                    "decision_receipt_hash_present"
+                ],
+                "start_receipt_hash_present": python_exam_local_cycle_readiness_review_alignment[
+                    "start_receipt_hash_present"
+                ],
+                "review_receipt_hash_present": python_exam_local_cycle_readiness_review_alignment[
+                    "review_receipt_hash_present"
+                ],
+                "source_card_ids": python_exam_local_cycle_readiness_review_alignment["source_card_ids"],
+                "source_anchor_count": python_exam_local_cycle_readiness_review_alignment["source_anchor_count"],
+                "help_level": python_exam_local_cycle_readiness_review_alignment["help_level"],
+                "dry_run_default": python_exam_local_cycle_readiness_review_alignment["dry_run_default"],
+                "local_writes_requested": python_exam_local_cycle_readiness_review_alignment[
+                    "local_writes_requested"
+                ],
+                "local_execution_started": python_exam_local_cycle_readiness_review_alignment[
+                    "local_execution_started"
+                ],
+                "not_cleared_receipt": python_exam_local_cycle_readiness_review_alignment[
+                    "not_cleared_receipt"
+                ],
+                "release_claim_alignment_human_gates": python_exam_local_cycle_readiness_review_alignment[
+                    "required_human_gates"
+                ],
+                "start_packet_claim_linked": (
+                    "python_exam_local_cycle_start_packet"
+                    in python_exam_local_cycle_readiness_review_alignment["required_readiness_check_ids"]
+                ),
+                "session_console_claim_linked": (
+                    "exam_workspace_session_console"
+                    in python_exam_local_cycle_readiness_review_alignment["required_readiness_check_ids"]
+                ),
+                "study_session_claim_linked": (
+                    "study_session"
+                    in python_exam_local_cycle_readiness_review_alignment["required_readiness_check_ids"]
+                ),
+                "external_decision_state_claim_linked": (
+                    "external_decision_state"
+                    in python_exam_local_cycle_readiness_review_alignment["required_readiness_check_ids"]
+                ),
+                "evaluation_packet_claim_linked": (
+                    "evaluation_packet"
+                    in python_exam_local_cycle_readiness_review_alignment["required_readiness_check_ids"]
+                ),
+                "exam_boundary_claim_linked": (
+                    "exam_boundary"
+                    in python_exam_local_cycle_readiness_review_alignment["required_readiness_check_ids"]
+                ),
+                "open_review_public_safe": python_exam_local_cycle_readiness_review_alignment["contracts"][
+                    "open_review_public_safe"
+                ],
+                "confirmed_review_public_safe": python_exam_local_cycle_readiness_review_alignment["contracts"][
+                    "confirmed_review_public_safe"
+                ],
+                "missing_review_public_safe": python_exam_local_cycle_readiness_review_alignment["contracts"][
+                    "missing_review_public_safe"
+                ],
+                "open_confirmation_review_recommendation_ready": python_exam_local_cycle_readiness_review_alignment[
+                    "contracts"
+                ]["open_confirmation_review_recommendation_ready"],
+                "confirmed_review_manual_only_ready": python_exam_local_cycle_readiness_review_alignment["contracts"][
+                    "confirmed_review_manual_only_ready"
+                ],
+                "missing_start_packet_keeps_blocked": python_exam_local_cycle_readiness_review_alignment["contracts"][
+                    "missing_start_packet_keeps_blocked"
+                ],
+                "hash_metadata_and_source_cards_preserved": python_exam_local_cycle_readiness_review_alignment[
+                    "contracts"
+                ]["hash_metadata_and_source_cards_preserved"],
+                "public_outputs_hide_private_review_data": python_exam_local_cycle_readiness_review_alignment[
+                    "contracts"
+                ]["public_outputs_hide_private_review_data"],
+                "high_stakes_actions_not_started": python_exam_local_cycle_readiness_review_alignment["contracts"][
+                    "high_stakes_actions_not_started"
+                ],
+                "not_cleared_receipt_present": python_exam_local_cycle_readiness_review_alignment["contracts"][
+                    "not_cleared_receipt_present"
+                ],
+                "raw_notebook_code_returned_blocked": "raw notebook code returned"
+                in python_exam_local_cycle_readiness_review_alignment["blocked_claims"],
+                "local_write_requested_blocked": "local write requested"
+                in python_exam_local_cycle_readiness_review_alignment["blocked_claims"],
+                "local_execution_started_blocked": "local execution started"
+                in python_exam_local_cycle_readiness_review_alignment["blocked_claims"],
+                "automatic_grading_blocked": "automatic grading"
+                in python_exam_local_cycle_readiness_review_alignment["blocked_claims"],
+                "proctoring_blocked": "proctoring"
+                in python_exam_local_cycle_readiness_review_alignment["blocked_claims"],
+                "ki_detection_evidence_blocked": "KI-detection evidence"
+                in python_exam_local_cycle_readiness_review_alignment["blocked_claims"],
+                "exam_deployment_blocked": "exam deployment"
+                in python_exam_local_cycle_readiness_review_alignment["blocked_claims"],
+                "exam_clearance_blocked": "exam clearance"
+                in python_exam_local_cycle_readiness_review_alignment["blocked_claims"],
             },
         },
         {

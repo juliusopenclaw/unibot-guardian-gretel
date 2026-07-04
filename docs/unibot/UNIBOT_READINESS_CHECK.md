@@ -52,6 +52,7 @@ It aggregates:
 - exam workspace operator-run and confirmation-boundary alignment
 - exam workspace session-console and receipt alignment
 - Python exam local-cycle start-packet and confirmation-boundary alignment
+- Python exam local-cycle readiness-review and manual-review alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -228,6 +229,15 @@ surface only: open confirmations block the local cycle, fully confirmed
 packets still start nothing automatically, and no raw notebook/query data,
 local path, grading, proctoring, KI-detection evidence, Eigenleistung
 percentage, or exam deployment claim is allowed.
+
+The Python exam local-cycle readiness-review gate carries
+`unibot-python-exam-local-cycle-readiness-review-release-review-board-claim-alignment-v1`.
+It consumes the local-cycle start packet and turns open, fully confirmed, or
+missing packet states into a read-only recommendation. Open confirmations
+request human review, fully confirmed packets allow only manual local-cycle
+review, and missing packet evidence stays blocked. The review preserves
+hash/source-card metadata and still starts nothing, writes nothing, grades
+nothing, proctors nothing, detects no AI use, and clears no exam deployment.
 
 ## Source-Card Drift Guard
 
