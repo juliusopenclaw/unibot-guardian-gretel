@@ -57,10 +57,10 @@ contract change.
 
 ## Current Work Queue
 
-- `stakeholder_decision_request_release_review_board_claim_alignment` is ready.
-  It should align single-lane stakeholder decision requests with
-  submission-bundle evidence, receipt boundaries, review-board summaries,
-  public language controls, and human gates.
+- `stakeholder_decision_journal_release_review_board_claim_alignment` is ready.
+  It should align stakeholder decision journals with decision-request receipts,
+  hash-only references, submission-bundle evidence, public language controls,
+  and human gates.
 
 ## Closed Harnessed Work
 
@@ -190,6 +190,10 @@ contract change.
   `408debe` with stakeholder submission release-claim alignment across
   review-board, authority-handoff, source-card, privacy/extraction, public
   language, and human-gate controls.
+- `stakeholder_decision_request_release_review_board_claim_alignment`: closed
+  in `99060f6` with stakeholder decision request release-claim alignment across
+  submission-bundle, receipt-boundary, review-board, Datenschutz,
+  public-safety, and human-gate controls.
 
 ## Automation Rule
 

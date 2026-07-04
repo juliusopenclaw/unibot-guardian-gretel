@@ -56,7 +56,7 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         queue = loop["work_queue"]
         by_id = {item["work_id"]: item for item in queue}
 
-        self.assertGreaterEqual(len(queue), 40)
+        self.assertGreaterEqual(len(queue), 41)
         self.assertEqual(by_id["intent_contract_regression_pack"]["status"], "closed_harnessed")
         self.assertEqual(by_id["intent_contract_regression_pack"]["closure_evidence"]["commit"], "fa942b0")
         self.assertEqual(by_id["scientific_evaluation_depth"]["status"], "closed_harnessed")
@@ -294,14 +294,24 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             "stakeholder_submission_release_review_board_claim_traceability",
         )
         self.assertIn("unibot/submission.py", by_id["stakeholder_submission_release_review_board_claim_alignment"]["allowed_files"])
-        self.assertEqual(by_id["stakeholder_decision_request_release_review_board_claim_alignment"]["status"], "ready")
+        self.assertEqual(by_id["stakeholder_decision_request_release_review_board_claim_alignment"]["status"], "closed_harnessed")
+        self.assertEqual(
+            by_id["stakeholder_decision_request_release_review_board_claim_alignment"]["closure_evidence"]["commit"],
+            "99060f6",
+        )
         self.assertEqual(
             by_id["stakeholder_decision_request_release_review_board_claim_alignment"]["review_gate"],
             "stakeholder_decision_request_release_review_board_claim_traceability",
         )
         self.assertIn("unibot/decision_request.py", by_id["stakeholder_decision_request_release_review_board_claim_alignment"]["allowed_files"])
-        self.assertEqual(loop["next_recommended_work_id"], "stakeholder_decision_request_release_review_board_claim_alignment")
-        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 39)
+        self.assertEqual(by_id["stakeholder_decision_journal_release_review_board_claim_alignment"]["status"], "ready")
+        self.assertEqual(
+            by_id["stakeholder_decision_journal_release_review_board_claim_alignment"]["review_gate"],
+            "stakeholder_decision_journal_release_review_board_claim_traceability",
+        )
+        self.assertIn("unibot/decision_journal.py", by_id["stakeholder_decision_journal_release_review_board_claim_alignment"]["allowed_files"])
+        self.assertEqual(loop["next_recommended_work_id"], "stakeholder_decision_journal_release_review_board_claim_alignment")
+        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 40)
         self.assertEqual(loop["receipt"]["ready_work_items"], 1)
         self.assertLessEqual(loop["budget_policy"]["cadence"]["max_active_work_item_per_run"], 1)
         for item in queue:
@@ -317,8 +327,8 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("Public safety: pass", markdown)
         self.assertIn("Default reasoning effort: low", markdown)
         self.assertIn("Autonomous GitHub push: False", markdown)
-        self.assertIn("Closed harnessed items: 39", markdown)
-        self.assertIn("Next recommended work: stakeholder_decision_request_release_review_board_claim_alignment", markdown)
+        self.assertIn("Closed harnessed items: 40", markdown)
+        self.assertIn("Next recommended work: stakeholder_decision_journal_release_review_board_claim_alignment", markdown)
 
         status, loop = route_request("/api/unibot/autonomous-research-loop", {})
         self.assertEqual(status, 200)
