@@ -1403,7 +1403,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "external_decision_state_local_cycle_workspace_card_gate_link_alignment",
             "priority": 74,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link external decision state gate summaries and hash-only decision metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving local-extraction/exam-authority gate hashes and workspace-card prefill evidence, no raw written decisions/contact data/public raw course text publication, no silent deployment switch, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/decision_state.py",
@@ -1413,6 +1413,26 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_decision_state.py tests/test_unibot_readiness.py -q"],
             "review_gate": "external_decision_state_local_cycle_workspace_card_gate_link_traceability",
+            "closure_evidence": {
+                "commit": "dcebb68",
+                "summary": "External decision state release-claim alignment now links decision gate and decision-record hashes to the harnessed local-cycle operator workspace-card readiness gate, preserves local-extraction/exam-authority gate and ready-for-prefill metadata, and blocks raw written decisions/contact data/public raw course text publication, silent deployment switches, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "external_decision_record_journal_local_cycle_workspace_card_record_link_alignment",
+            "priority": 75,
+            "status": "ready",
+            "goal": "Link external decision record journal hash-only records with the harnessed local-cycle operator workspace-card readiness gate, preserving record/journal hashes and workspace-card prefill evidence, no raw written decisions/contact data/public raw course text publication, no deployment switch, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/external_decision_journal.py",
+                "tests/test_unibot_external_decision_journal.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": [
+                "python3 -m pytest tests/test_unibot_external_decision_journal.py tests/test_unibot_readiness.py -q"
+            ],
+            "review_gate": "external_decision_record_journal_local_cycle_workspace_card_record_link_traceability",
         },
     ]
 
