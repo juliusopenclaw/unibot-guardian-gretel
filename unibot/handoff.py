@@ -1,16 +1,130 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from typing import Any
 
 from .compliance import build_compliance_matrix
 from .ledger import export_public_ledger_summary
 from .notebooks import generate_practice_notebook
+from .public_safety import scan_text
 from .redteam import run_redteam_smoke
 from .source_cards import list_source_cards
 
 
 HANDOFF_SCHEMA_VERSION = "unibot-authority-handoff-v1"
+AUTHORITY_HANDOFF_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-authority-handoff-release-review-board-claim-alignment-v1"
+)
+
+
+def build_authority_handoff_release_claim_alignment(packet: dict[str, Any]) -> dict[str, Any]:
+    sections = [
+        {
+            "section_id": "authority_status_trace",
+            "summary_claim": "authority packet is a draft review artifact, not an approval or request outcome",
+            "source_card_ids": ["uoc-ki-lehre", "uoc-hilfsmittel"],
+            "readiness_check_ids": ["authority_handoff", "review_board_packet", "release_runbook"],
+            "human_gates": [
+                "human_submission_review_required",
+                "written_university_clearance_required_before_exam_use",
+            ],
+        },
+        {
+            "section_id": "privacy_boundary_trace",
+            "summary_claim": "handoff describes public-safe categories and excludes private course, health, path, email, and raw model text",
+            "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024"],
+            "readiness_check_ids": ["authority_handoff", "data_protection_screening", "public_safety"],
+            "human_gates": ["public_safety_required", "datenschutz_review_required_before_real_pilot"],
+        },
+        {
+            "section_id": "source_card_trace",
+            "summary_claim": "university-facing claims stay tied to public source cards and high-risk source review",
+            "source_card_ids": ["hg-nrw-2025", "uoc-nachteilsausgleich", "eu-ai-act-2024"],
+            "readiness_check_ids": ["source_cards", "source_card_drift_guard", "authority_handoff"],
+            "human_gates": ["human_submission_review_required", "public_safety_required"],
+        },
+        {
+            "section_id": "evidence_trace",
+            "summary_claim": "handoff evidence links red-team, notebook, ledger summary, and compliance status without raw private material",
+            "source_card_ids": ["dfg-gwp", "openai-evals"],
+            "readiness_check_ids": ["redteam", "notebook_template", "compliance_matrix", "authority_handoff"],
+            "human_gates": ["human_submission_review_required"],
+        },
+        {
+            "section_id": "provider_trace",
+            "summary_claim": "GLM/provider work remains proposal and redaction gated before any live external call",
+            "source_card_ids": ["zai-glm-52", "zai-glm-52-migration", "zai-glm-pricing"],
+            "readiness_check_ids": ["gretel_glm_evolve_lane", "authority_handoff", "review_board_packet"],
+            "human_gates": ["provider_call_requires_explicit_go_and_redaction_receipt"],
+        },
+    ]
+    source_cards = {card["source_id"]: card for card in packet.get("source_cards", [])}
+    required_source_card_ids = sorted({source_id for section in sections for source_id in section["source_card_ids"]})
+    missing_source_card_ids = sorted(source_id for source_id in required_source_card_ids if source_id not in source_cards)
+
+    modes_by_id = {mode.get("mode"): mode for mode in packet.get("operating_modes", [])}
+    non_goals = set(packet.get("non_goals", []))
+    data_categories = packet.get("data_categories", {})
+    not_stored = set(data_categories.get("not_stored_by_default", []))
+    evidence = packet.get("evidence", {})
+    compliance = evidence.get("compliance_matrix", {})
+    policy = packet.get("authority_packet_policy", "")
+
+    contracts = {
+        "draft_status_not_officially_cleared": packet.get("status") == "draft_not_officially_cleared",
+        "public_label_non_approval": "nicht offiziell freigegeben" in packet.get("status_label_de", ""),
+        "exam_mode_blocked_until_written_clearance": modes_by_id.get("exam_controlled", {}).get("status")
+        == "blocked_until_written_clearance",
+        "no_proctoring_or_grading_or_detection_claims": {
+            "no proctoring",
+            "no KI detection as evidence",
+            "no automatic grading",
+            "no decision on Nachteilsausgleich",
+        }.issubset(non_goals),
+        "private_and_raw_material_not_stored": {
+            "raw external KI output",
+            "private course materials",
+            "emails",
+            "medical or accommodation personal data",
+            "local paths",
+            "official grades",
+        }.issubset(not_stored),
+        "redteam_evidence_passes": evidence.get("redteam", {}).get("status") == "pass",
+        "notebook_audit_passes": evidence.get("notebook_audit", {}).get("status") == "pass",
+        "compliance_ready_for_authority_review": compliance.get("status") == "draft_ready_for_authority_review",
+        "compliance_public_safety_passes": compliance.get("public_safety_status") == "pass",
+        "policy_is_public_summary_only": "public-safe summary only" in policy and "no official decision language" in policy,
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    payload = {
+        "sections": sections,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "blocked_claims": ["exam clearance", "official grading", "proctoring", "KI-detection evidence"],
+    }
+    scan = scan_text(json.dumps(payload, ensure_ascii=False, sort_keys=True), "authority-handoff-release-claim-alignment")
+    status = "ready" if not missing_source_card_ids and not failed_contract_ids and scan["status"] == "pass" else "needs_review"
+    return {
+        "schema_version": AUTHORITY_HANDOFF_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "blocked_claims": payload["blocked_claims"],
+        "public_safety_status": scan["status"],
+        "policy": (
+            "Authority handoff release claims are source-bound draft-review aids only; they do not authorize "
+            "publication, provider calls, real pilots, university submission, grading, proctoring, KI detection, "
+            "Nachteilsausgleich decisions, or exam clearance."
+        ),
+    }
 
 
 def build_authority_handoff_packet(ledger_path: str | None = None) -> dict[str, Any]:
@@ -25,7 +139,7 @@ def build_authority_handoff_packet(ledger_path: str | None = None) -> dict[str, 
     high_risk_cards = [card for card in source_cards if card["risk_level"] == "high"]
     compliance = build_compliance_matrix()
 
-    return {
+    packet = {
         "schema_version": HANDOFF_SCHEMA_VERSION,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "status": "draft_not_officially_cleared",
@@ -128,6 +242,8 @@ def build_authority_handoff_packet(ledger_path: str | None = None) -> dict[str, 
         ],
         "authority_packet_policy": "public-safe summary only; no raw external KI outputs, no private course material, no health data, no official decision language",
     }
+    packet["release_claim_alignment"] = build_authority_handoff_release_claim_alignment(packet)
+    return packet
 
 
 def build_authority_handoff_markdown(ledger_path: str | None = None) -> str:
@@ -136,6 +252,7 @@ def build_authority_handoff_markdown(ledger_path: str | None = None) -> str:
     non_goal_lines = "\n".join(f"- {item}" for item in packet["non_goals"])
     review_lines = "\n".join(f"- {item}" for item in packet["review_questions"])
     evidence = packet["evidence"]
+    release_alignment = packet["release_claim_alignment"]
     source_lines = "\n".join(
         f"- `{card['source_id']}` ({card['source_kind']}): {card['product_rule']}"
         for card in packet["source_cards"]
@@ -159,6 +276,11 @@ def build_authority_handoff_markdown(ledger_path: str | None = None) -> str:
         f"- Source Cards: {evidence['source_card_count']}\n"
         f"- Compliance Matrix: {evidence['compliance_matrix']['status']} ({evidence['compliance_matrix']['requirement_count']} requirements)\n"
         f"- Ledger Public Summary Events: {evidence['ledger_public_summary']['event_count']}\n\n"
+        "## Release Claim Alignment\n\n"
+        f"- Status: {release_alignment['status']}\n"
+        f"- Public Safety: {release_alignment['public_safety_status']}\n"
+        f"- Human Gates: {', '.join(release_alignment['required_human_gates'])}\n"
+        f"- Blocked Claims: {', '.join(release_alignment['blocked_claims'])}\n\n"
         "## Source Cards\n\n"
         f"{source_lines}\n\n"
         "Policy: public-safe summary only; no raw external KI outputs, no private course material, no health data, no official decision language.\n"

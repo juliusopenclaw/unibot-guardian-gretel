@@ -17,6 +17,8 @@ It aggregates:
 - publication release gates
 - evaluation packet presence
 - authority handoff draft status
+- authority handoff release-claim alignment against review-board, source-card,
+  public-safety, compliance, Datenschutz, provider, and human-gate controls
 - practice notebook audit
 - source card count
 - course-material policy
@@ -41,6 +43,13 @@ clearance.
 The Gretel/GLM proposal lane is ready only when it remains proposal-only,
 public-safe, no-provider-call by default, and blocked from autonomous apply,
 external actions, private context, or Final-Go decisions.
+
+The authority handoff carries
+`unibot-authority-handoff-release-review-board-claim-alignment-v1`. This
+contract keeps university-facing handoff language source-bound, public-safe,
+and explicitly blocked from exam clearance, grading, proctoring, KI-detection
+evidence, provider calls, real pilots, or submission until the named human
+review gates are satisfied.
 
 ## Source-Card Drift Guard
 

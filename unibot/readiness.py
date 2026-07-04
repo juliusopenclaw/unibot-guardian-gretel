@@ -410,11 +410,42 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
         {
             "check_id": "authority_handoff",
             "passed": handoff["status"] == "draft_not_officially_cleared"
-            and handoff["evidence"]["redteam"]["status"] == "pass",
+            and handoff["evidence"]["redteam"]["status"] == "pass"
+            and handoff["release_claim_alignment"]["status"] == "ready"
+            and handoff["release_claim_alignment"]["public_safety_status"] == "pass"
+            and handoff["release_claim_alignment"]["missing_source_card_ids"] == []
+            and handoff["release_claim_alignment"]["failed_contract_ids"] == [],
             "evidence": {
                 "status": handoff["status"],
                 "redteam_status": handoff["evidence"]["redteam"]["status"],
                 "reviewer_count": len(handoff["intended_reviewers"]),
+                "release_claim_alignment_status": handoff["release_claim_alignment"]["status"],
+                "release_claim_alignment_public_safety_status": handoff["release_claim_alignment"][
+                    "public_safety_status"
+                ],
+                "release_claim_alignment_contract_status": handoff["release_claim_alignment"]["schema_version"],
+                "release_claim_alignment_section_count": handoff["release_claim_alignment"]["section_count"],
+                "release_claim_alignment_human_gates": handoff["release_claim_alignment"]["required_human_gates"],
+                "review_board_claim_linked": (
+                    "review_board_packet" in handoff["release_claim_alignment"]["required_readiness_check_ids"]
+                ),
+                "source_card_drift_claim_linked": (
+                    "source_card_drift_guard" in handoff["release_claim_alignment"]["required_readiness_check_ids"]
+                ),
+                "compliance_claim_linked": (
+                    "compliance_matrix" in handoff["release_claim_alignment"]["required_readiness_check_ids"]
+                ),
+                "public_safety_claim_linked": (
+                    "public_safety" in handoff["release_claim_alignment"]["required_readiness_check_ids"]
+                ),
+                "datenschutz_gate_linked": (
+                    "datenschutz_review_required_before_real_pilot"
+                    in handoff["release_claim_alignment"]["required_human_gates"]
+                ),
+                "human_submission_gate_linked": (
+                    "human_submission_review_required" in handoff["release_claim_alignment"]["required_human_gates"]
+                ),
+                "exam_clearance_blocked": "exam clearance" in handoff["release_claim_alignment"]["blocked_claims"],
             },
         },
         {

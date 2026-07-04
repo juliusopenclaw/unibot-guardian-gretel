@@ -109,6 +109,24 @@ class UniBotReadinessTests(unittest.TestCase):
             "human_submission_review_required",
             evaluation["evidence"]["learner_agency_alignment_human_gates"],
         )
+        authority = next(check for check in report["checks"] if check["check_id"] == "authority_handoff")
+        self.assertEqual(authority["evidence"]["release_claim_alignment_status"], "ready")
+        self.assertEqual(authority["evidence"]["release_claim_alignment_public_safety_status"], "pass")
+        self.assertEqual(
+            authority["evidence"]["release_claim_alignment_contract_status"],
+            "unibot-authority-handoff-release-review-board-claim-alignment-v1",
+        )
+        self.assertTrue(authority["evidence"]["review_board_claim_linked"])
+        self.assertTrue(authority["evidence"]["source_card_drift_claim_linked"])
+        self.assertTrue(authority["evidence"]["compliance_claim_linked"])
+        self.assertTrue(authority["evidence"]["public_safety_claim_linked"])
+        self.assertTrue(authority["evidence"]["human_submission_gate_linked"])
+        self.assertTrue(authority["evidence"]["datenschutz_gate_linked"])
+        self.assertTrue(authority["evidence"]["exam_clearance_blocked"])
+        self.assertIn(
+            "written_university_clearance_required_before_exam_use",
+            authority["evidence"]["release_claim_alignment_human_gates"],
+        )
         notebook = next(check for check in report["checks"] if check["check_id"] == "notebook_template")
         self.assertEqual(
             notebook["evidence"]["manual_publication_claim_contract_status"],
