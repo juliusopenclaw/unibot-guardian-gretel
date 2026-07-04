@@ -15,6 +15,10 @@ from .decision_request import build_stakeholder_decision_request
 from .decision_journal import build_decision_journal_release_claim_alignment
 from .decision_state import build_external_decision_state_release_claim_alignment
 from .evaluation import build_evaluation_packet
+from .course_per_skill_action_router import (
+    build_course_per_skill_action_router_workspace_card_alignment,
+    synthetic_course_per_skill_action_router_inputs,
+)
 from .external_decision_journal import build_external_decision_record_journal_release_claim_alignment
 from .exam_packet_timeline import (
     build_exam_packet_timeline_workspace_card_alignment,
@@ -468,6 +472,10 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     timeline_review_packet_inputs = synthetic_timeline_export_review_packet_inputs()
     timeline_review_packet_alignment = build_timeline_export_review_packet_workspace_card_alignment(
         timeline_review_packet_inputs["review_packet"],
+    )
+    course_per_skill_action_router_inputs = synthetic_course_per_skill_action_router_inputs()
+    course_per_skill_action_router_alignment = build_course_per_skill_action_router_workspace_card_alignment(
+        course_per_skill_action_router_inputs["course_per_skill_action_router"],
     )
     routed_action_executor_inputs = synthetic_routed_action_executor_inputs()
     routed_action_executor_alignment = build_routed_action_executor_workspace_card_alignment(
@@ -4324,6 +4332,72 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                     "workspace_card_readiness_gate_claim_linked"
                 ],
                 "raw_workspace_card_returned": timeline_review_packet_alignment["raw_workspace_card_returned"],
+            },
+        },
+        {
+            "check_id": "course_per_skill_action_router",
+            "passed": course_per_skill_action_router_alignment["status"] == "ready"
+            and course_per_skill_action_router_alignment["alignment_public_safety_status"] == "pass"
+            and course_per_skill_action_router_alignment["failed_contract_ids"] == []
+            and course_per_skill_action_router_alignment["router_status"] == "course_per_skill_action_router_ready"
+            and course_per_skill_action_router_alignment["receipt_status"]
+            == "router_receipt_ready_not_exam_clearance"
+            and course_per_skill_action_router_alignment["route_id"] != "missing"
+            and course_per_skill_action_router_alignment["route_endpoint"] != ""
+            and course_per_skill_action_router_alignment["dry_run_by_default"] is True
+            and course_per_skill_action_router_alignment["requires_operator_confirmation_for_local_writes"] is True
+            and course_per_skill_action_router_alignment["route_count"] >= 1
+            and course_per_skill_action_router_alignment["exam_deployment_status"] == "not_cleared"
+            and course_per_skill_action_router_alignment["workspace_card_readiness_gate_linked"] is True
+            and course_per_skill_action_router_alignment["workspace_card_course_per_skill_router_gate_linked"] is True
+            and course_per_skill_action_router_alignment["raw_workspace_card_returned"] is False,
+            "evidence": {
+                "workspace_card_route_alignment_status": course_per_skill_action_router_alignment["status"],
+                "workspace_card_route_alignment_public_safety_status": course_per_skill_action_router_alignment[
+                    "alignment_public_safety_status"
+                ],
+                "router_status": course_per_skill_action_router_alignment["router_status"],
+                "receipt_status": course_per_skill_action_router_alignment["receipt_status"],
+                "skill_tag": course_per_skill_action_router_alignment["skill_tag"],
+                "route_id": course_per_skill_action_router_alignment["route_id"],
+                "route_endpoint": course_per_skill_action_router_alignment["route_endpoint"],
+                "dry_run_by_default": course_per_skill_action_router_alignment["dry_run_by_default"],
+                "requires_operator_confirmation_for_local_writes": course_per_skill_action_router_alignment[
+                    "requires_operator_confirmation_for_local_writes"
+                ],
+                "open_operator_confirmation_count": course_per_skill_action_router_alignment[
+                    "open_operator_confirmation_count"
+                ],
+                "open_operator_confirmation_route_count": course_per_skill_action_router_alignment[
+                    "open_operator_confirmation_route_count"
+                ],
+                "route_count": course_per_skill_action_router_alignment["route_count"],
+                "exam_deployment_status": course_per_skill_action_router_alignment["exam_deployment_status"],
+                "workspace_card_status": course_per_skill_action_router_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": course_per_skill_action_router_alignment[
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": course_per_skill_action_router_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": course_per_skill_action_router_alignment[
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": course_per_skill_action_router_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": course_per_skill_action_router_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_course_per_skill_router_gate_linked": course_per_skill_action_router_alignment[
+                    "workspace_card_course_per_skill_router_gate_linked"
+                ],
+                "workspace_card_readiness_gate_claim_linked": course_per_skill_action_router_alignment[
+                    "workspace_card_readiness_gate_claim_linked"
+                ],
+                "raw_workspace_card_returned": course_per_skill_action_router_alignment[
+                    "raw_workspace_card_returned"
+                ],
             },
         },
         {

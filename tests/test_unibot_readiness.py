@@ -783,6 +783,44 @@ class UniBotReadinessTests(unittest.TestCase):
         )
         self.assertTrue(timeline_review_packet["evidence"]["workspace_card_help_ledger_hash_present"])
         self.assertFalse(timeline_review_packet["evidence"]["raw_workspace_card_returned"])
+        course_per_skill_action_router = next(
+            check for check in report["checks"] if check["check_id"] == "course_per_skill_action_router"
+        )
+        self.assertEqual(
+            course_per_skill_action_router["evidence"]["workspace_card_route_alignment_status"],
+            "ready",
+        )
+        self.assertEqual(
+            course_per_skill_action_router["evidence"]["workspace_card_route_alignment_public_safety_status"],
+            "pass",
+        )
+        self.assertEqual(
+            course_per_skill_action_router["evidence"]["router_status"],
+            "course_per_skill_action_router_ready",
+        )
+        self.assertEqual(
+            course_per_skill_action_router["evidence"]["receipt_status"],
+            "router_receipt_ready_not_exam_clearance",
+        )
+        self.assertNotEqual(course_per_skill_action_router["evidence"]["route_id"], "missing")
+        self.assertNotEqual(course_per_skill_action_router["evidence"]["route_endpoint"], "")
+        self.assertTrue(course_per_skill_action_router["evidence"]["dry_run_by_default"])
+        self.assertTrue(
+            course_per_skill_action_router["evidence"]["requires_operator_confirmation_for_local_writes"]
+        )
+        self.assertGreaterEqual(course_per_skill_action_router["evidence"]["route_count"], 1)
+        self.assertEqual(course_per_skill_action_router["evidence"]["exam_deployment_status"], "not_cleared")
+        self.assertTrue(course_per_skill_action_router["evidence"]["workspace_card_readiness_gate_linked"])
+        self.assertTrue(
+            course_per_skill_action_router["evidence"]["workspace_card_course_per_skill_router_gate_linked"]
+        )
+        self.assertTrue(course_per_skill_action_router["evidence"]["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(
+            course_per_skill_action_router["evidence"]["workspace_card_help_ledger_status"],
+            "help_ledger_preview_ready",
+        )
+        self.assertTrue(course_per_skill_action_router["evidence"]["workspace_card_help_ledger_hash_present"])
+        self.assertFalse(course_per_skill_action_router["evidence"]["raw_workspace_card_returned"])
         routed_action_executor = next(
             check for check in report["checks"] if check["check_id"] == "routed_action_executor"
         )
