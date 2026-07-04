@@ -3457,7 +3457,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and release_runbook["release_evidence_alignment"]["public_safety_status"] == "pass"
             and release_runbook["release_evidence_alignment"]["unmapped_gate_ids"] == []
             and release_runbook["release_evidence_alignment"]["missing_review_board_thesis_evaluation_check_ids"] == []
-            and release_runbook["release_evidence_alignment"]["missing_review_board_thesis_evaluation_human_gates"] == [],
+            and release_runbook["release_evidence_alignment"]["missing_review_board_thesis_evaluation_human_gates"] == []
+            and release_runbook["release_evidence_alignment"]["workspace_card_release_runbook_gate_linked"] is True
+            and release_runbook["release_evidence_alignment"]["workspace_card_release_runbook_gate_issue"] == "",
             "evidence": {
                 "status": release_runbook["status"],
                 "public_safety_status": release_runbook["public_safety_status"],
@@ -3468,6 +3470,32 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "review_board_thesis_evaluation_claim_contract_status": release_runbook["release_evidence_alignment"][
                     "review_board_thesis_evaluation_claim_contract"
                 ]["required_status"],
+                "workspace_card_status": release_runbook["release_evidence_alignment"]["workspace_card_status"],
+                "workspace_card_selected_skill_tag": release_runbook["release_evidence_alignment"][
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": release_runbook["release_evidence_alignment"][
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": release_runbook["release_evidence_alignment"][
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": release_runbook["release_evidence_alignment"][
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": release_runbook["release_evidence_alignment"][
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_release_runbook_gate_linked": release_runbook["release_evidence_alignment"][
+                    "workspace_card_release_runbook_gate_linked"
+                ],
+                "workspace_card_readiness_gate_claim_linked": (
+                    "python_exam_local_cycle_operator_workspace_card"
+                    in release_runbook["release_evidence_alignment"]["unique_readiness_check_ids"]
+                ),
+                "workspace_card_release_runbook_gate_issue": release_runbook["release_evidence_alignment"][
+                    "workspace_card_release_runbook_gate_issue"
+                ],
                 "release_alignment_human_gates": release_runbook["release_evidence_alignment"]["required_human_gates"],
             },
         },

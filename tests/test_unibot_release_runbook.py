@@ -14,6 +14,9 @@ from unibot.release_runbook import (  # noqa: E402
     build_release_runbook,
     build_release_runbook_evidence_alignment,
     build_release_runbook_markdown,
+    release_runbook_evidence_hash,
+    release_runbook_gate_hash,
+    synthetic_release_runbook_workspace_card,
 )
 from unibot.server import route_request  # noqa: E402
 
@@ -33,6 +36,7 @@ class UniBotReleaseRunbookTests(unittest.TestCase):
         self.assertEqual(runbook["release_evidence_alignment"]["unmapped_gate_ids"], [])
         self.assertEqual(runbook["release_evidence_alignment"]["missing_review_board_thesis_evaluation_check_ids"], [])
         self.assertEqual(runbook["release_evidence_alignment"]["missing_review_board_thesis_evaluation_human_gates"], [])
+        self.assertTrue(runbook["release_evidence_alignment"]["workspace_card_release_runbook_gate_linked"])
 
     def test_release_runbook_evidence_alignment_maps_gates_to_review_contracts(self) -> None:
         runbook = build_release_runbook()
@@ -58,10 +62,45 @@ class UniBotReleaseRunbookTests(unittest.TestCase):
         self.assertIn("gretel_bachelor_thesis_package", by_gate["exam_authority_clearance"]["readiness_check_ids"])
         self.assertIn("evaluation_packet", alignment["review_board_thesis_evaluation_claim_contract"]["required_readiness_check_ids"])
         self.assertIn("adaptive_task_plan", alignment["review_board_thesis_evaluation_claim_contract"]["required_readiness_check_ids"])
+        self.assertIn(
+            "python_exam_local_cycle_operator_workspace_card",
+            alignment["review_board_thesis_evaluation_claim_contract"]["required_readiness_check_ids"],
+        )
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", by_gate["readiness_check"]["readiness_check_ids"])
         self.assertIn("github_issue_bundle", by_gate["github_issue_manual_review"]["readiness_check_ids"])
         self.assertIn("human_submission_review_required", alignment["required_human_gates"])
         self.assertIn("public_safety_required", alignment["required_human_gates"])
         self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertEqual(alignment["workspace_card_status"], "python_exam_local_cycle_operator_workspace_card_ready")
+        self.assertEqual(alignment["workspace_card_selected_skill_tag"], "pandas")
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_release_runbook_gate_linked"])
+
+    def test_release_runbook_hash_helpers_link_gates_and_evidence(self) -> None:
+        runbook = build_release_runbook()
+        alignment = runbook["release_evidence_alignment"]
+
+        self.assertTrue(release_runbook_gate_hash(runbook["release_gates"]))
+        self.assertTrue(release_runbook_evidence_hash(alignment["release_gates"]))
+        self.assertNotEqual(release_runbook_gate_hash(runbook["release_gates"]), release_runbook_evidence_hash(alignment["release_gates"]))
+
+    def test_release_runbook_evidence_alignment_rejects_unlinked_workspace_card_hashes(self) -> None:
+        runbook = build_release_runbook()
+        card = synthetic_release_runbook_workspace_card()
+        card["workspace_card_summary"]["checkpoint_hash"] = "wrong-release-gate-hash"
+        card["workspace_card_summary"]["task_hash"] = "wrong-release-evidence-hash"
+
+        alignment = build_release_runbook_evidence_alignment(runbook["release_gates"], card)
+
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertFalse(alignment["workspace_card_release_runbook_gate_linked"])
+        self.assertEqual(
+            alignment["workspace_card_release_runbook_gate_issue"],
+            "release runbook gate/evidence hashes are not linked to workspace-card readiness",
+        )
 
     def test_quickstart_and_contributor_rules_cover_public_workflow(self) -> None:
         runbook = build_release_runbook()

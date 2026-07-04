@@ -67,6 +67,14 @@ The Gretel/GLM proposal lane is ready only when it remains proposal-only,
 public-safe, no-provider-call by default, and blocked from autonomous apply,
 external actions, private context, or Final-Go decisions.
 
+The release runbook carries `unibot-release-runbook-evidence-alignment-v1`.
+This contract keeps release gates and release evidence tied to readiness
+checks, source cards, review-board contracts, manual GitHub/publication gates,
+and non-clearance language. Release-gate and release-evidence hashes are linked
+to the harnessed local-cycle operator workspace-card readiness gate without
+exposing raw private course text, contact data, local paths, autonomous public
+release, approval or exam-clearance claims, or the raw workspace card.
+
 The review board packet carries
 `unibot-review-board-release-claim-summary-alignment-v1`. This contract keeps
 reviewer packets and release-facing summaries tied to source cards, red-team

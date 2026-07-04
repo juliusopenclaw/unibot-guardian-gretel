@@ -4,13 +4,17 @@ import json
 from datetime import datetime, timezone
 from typing import Any
 
+from .materials import sha256_text
 from .public_safety import scan_text
 
 
 RELEASE_RUNBOOK_SCHEMA_VERSION = "unibot-release-runbook-v1"
 
 
-def build_release_runbook_evidence_alignment(release_gates: list[dict[str, Any]]) -> dict[str, Any]:
+def build_release_runbook_evidence_alignment(
+    release_gates: list[dict[str, Any]],
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     gate_ids = [str(gate["gate_id"]) for gate in release_gates]
     gate_map = {
         "public_safety_scan": {
@@ -29,7 +33,12 @@ def build_release_runbook_evidence_alignment(release_gates: list[dict[str, Any]]
             "human_gates": ["human_submission_review_required", "public_safety_required"],
         },
         "readiness_check": {
-            "readiness_check_ids": ["readiness_runtime_guard", "source_card_drift_guard", "gretel_autonomous_research_loop"],
+            "readiness_check_ids": [
+                "readiness_runtime_guard",
+                "source_card_drift_guard",
+                "gretel_autonomous_research_loop",
+                "python_exam_local_cycle_operator_workspace_card",
+            ],
             "source_card_ids": ["dfg-gwp", "eu-ai-act-2024"],
             "human_gates": ["human_review_required"],
         },
@@ -55,6 +64,22 @@ def build_release_runbook_evidence_alignment(release_gates: list[dict[str, Any]]
         }
         for gate_id in gate_ids
     ]
+    workspace_card = safe_release_runbook_workspace_card(
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else synthetic_release_runbook_workspace_card(),
+        release_gate_hash=release_runbook_gate_hash(release_gates),
+        release_evidence_hash=release_runbook_evidence_hash(gate_rows),
+    )
+    workspace_card_readiness_gate_linked = (
+        workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and workspace_card.get("help_ledger_preview_hash") != ""
+        and workspace_card.get("exam_deployment_status") == "not_cleared"
+        and workspace_card.get("not_cleared_receipt") is True
+        and workspace_card.get("raw_workspace_card_returned") is False
+    )
     alignment = {
         "schema_version": "unibot-release-runbook-evidence-alignment-v1",
         "status": "ready",
@@ -78,6 +103,7 @@ def build_release_runbook_evidence_alignment(release_gates: list[dict[str, Any]]
                 "gretel_bachelor_thesis_package",
                 "evaluation_packet",
                 "adaptive_task_plan",
+                "python_exam_local_cycle_operator_workspace_card",
             ],
             "required_human_gates": [
                 "human_submission_review_required",
@@ -96,8 +122,22 @@ def build_release_runbook_evidence_alignment(release_gates: list[dict[str, Any]]
         "unique_source_card_ids": sorted({source_id for row in gate_rows for source_id in row["source_card_ids"]}),
         "required_human_gates": sorted({gate for row in gate_rows for gate in row["human_gates"]}),
         "unmapped_gate_ids": sorted(gate_id for gate_id in gate_ids if gate_id not in gate_map),
+        "workspace_card_status": workspace_card["status"],
+        "workspace_card_selected_skill_tag": workspace_card["selected_skill_tag"],
+        "workspace_card_ready_for_operator_prefill": workspace_card["ready_for_operator_prefill"],
+        "workspace_card_help_ledger_status": workspace_card["help_ledger_preview_status"],
+        "workspace_card_help_ledger_hash_present": workspace_card["help_ledger_preview_hash"] != "",
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_release_runbook_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("checkpoint_hash") == release_runbook_gate_hash(release_gates)
+        and workspace_card.get("task_hash") == release_runbook_evidence_hash(gate_rows),
         "human_gate_reminder": "Release runbook alignment is not exam clearance, legal approval, provider approval, GitHub publication, or thesis submission approval.",
     }
+    if not alignment["workspace_card_release_runbook_gate_linked"]:
+        alignment["status"] = "blocked"
+        alignment["workspace_card_release_runbook_gate_issue"] = "release runbook gate/evidence hashes are not linked to workspace-card readiness"
+    else:
+        alignment["workspace_card_release_runbook_gate_issue"] = ""
     if alignment["unmapped_gate_ids"] or not all(row["manual_review_required"] for row in gate_rows):
         alignment["status"] = "blocked"
     if not set(alignment["review_board_thesis_evaluation_claim_contract"]["required_readiness_check_ids"]).issubset(
@@ -125,6 +165,106 @@ def build_release_runbook_evidence_alignment(release_gates: list[dict[str, Any]]
     if scan["status"] != "pass":
         alignment["status"] = "blocked"
     return alignment
+
+
+def synthetic_release_runbook_workspace_card() -> dict[str, Any]:
+    preview_hash = sha256_text("synthetic release runbook workspace card")
+    return {
+        "schema_version": "unibot-python-exam-local-cycle-operator-workspace-card-v1",
+        "artifact_type": "python_exam_local_cycle_operator_workspace_card",
+        "status": "python_exam_local_cycle_operator_workspace_card_ready",
+        "selected_skill_tag": "pandas",
+        "exam_deployment_status": "not_cleared",
+        "not_cleared_receipt": True,
+        "workspace_card_summary": {
+            "recommendation": "ready_for_operator_prefill",
+            "recommendation_reason": "synthetic release-runbook prerequisites are satisfied",
+            "ready_for_operator_prefill": True,
+            "help_ledger_preview_status": "help_ledger_preview_ready",
+            "selected_skill_tag": "pandas",
+            "next_safe_action": "review_release_runbook_before_workspace_prefill",
+            "next_safe_user_action": "review_hash_only_release_gates_before_manual_publication",
+            "operator_run_endpoint": "/api/unibot/exam-workspace/operator-run",
+            "operator_run_method": "POST",
+            "help_level": "A2",
+            "task_hash": "__RELEASE_RUNBOOK_EVIDENCE_HASH__",
+            "checkpoint_hash": "__RELEASE_RUNBOOK_GATE_HASH__",
+            "source_card_ids": ["dfg-gwp", "eu-ai-act-2024"],
+            "source_anchor_count": 2,
+            "help_ledger_preview_hash": preview_hash,
+        },
+        "help_ledger_preview": {
+            "status": "help_ledger_preview_ready",
+            "help_level": "A2",
+            "preview_hash": preview_hash,
+        },
+    }
+
+
+def release_runbook_gate_hash(release_gates: list[dict[str, Any]]) -> str:
+    return sha256_text(json.dumps(release_gates, sort_keys=True, ensure_ascii=False))
+
+
+def release_runbook_evidence_hash(gate_rows: list[dict[str, Any]]) -> str:
+    return sha256_text(
+        json.dumps(
+            {
+                "release_gates": gate_rows,
+                "manual_review_required": True,
+                "exam_deployment_status": "not_cleared",
+                "manual_publication_only": True,
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+    )
+
+
+def safe_release_runbook_workspace_card(
+    workspace_card: dict[str, Any],
+    *,
+    release_gate_hash: str = "",
+    release_evidence_hash: str = "",
+) -> dict[str, Any]:
+    summary = workspace_card.get("workspace_card_summary", {}) if isinstance(workspace_card.get("workspace_card_summary"), dict) else {}
+    review = workspace_card.get("readiness_review", {}) if isinstance(workspace_card.get("readiness_review"), dict) else {}
+    handoff = workspace_card.get("readiness_handoff", {}) if isinstance(workspace_card.get("readiness_handoff"), dict) else {}
+    ledger = workspace_card.get("help_ledger_preview", {}) if isinstance(workspace_card.get("help_ledger_preview"), dict) else {}
+    if not summary and (
+        workspace_card.get("help_ledger_preview_hash") is not None
+        or workspace_card.get("ready_for_operator_prefill") is not None
+        or workspace_card.get("help_ledger_preview_status") is not None
+    ):
+        summary = workspace_card
+    checkpoint_hash = str(summary.get("checkpoint_hash", ""))
+    task_hash = str(summary.get("task_hash", ""))
+    if release_gate_hash and checkpoint_hash == "__RELEASE_RUNBOOK_GATE_HASH__":
+        checkpoint_hash = release_gate_hash
+    if release_evidence_hash and task_hash == "__RELEASE_RUNBOOK_EVIDENCE_HASH__":
+        task_hash = release_evidence_hash
+    return {
+        "status": workspace_card.get("status", "missing"),
+        "selected_skill_tag": str(summary.get("selected_skill_tag", workspace_card.get("selected_skill_tag", ""))),
+        "recommendation": str(summary.get("recommendation", review.get("recommendation", "keep_blocked"))),
+        "recommendation_reason": str(
+            summary.get("recommendation_reason", review.get("recommendation_reason", "missing_release_runbook"))
+        ),
+        "ready_for_operator_prefill": bool(summary.get("ready_for_operator_prefill", False)),
+        "help_ledger_preview_status": str(summary.get("help_ledger_preview_status", ledger.get("status", "missing"))),
+        "next_safe_action": str(summary.get("next_safe_action", review.get("next_safe_action", ""))),
+        "next_safe_user_action": str(summary.get("next_safe_user_action", review.get("next_safe_user_action", ""))),
+        "operator_run_endpoint": str(summary.get("operator_run_endpoint", handoff.get("operator_run_endpoint", ""))),
+        "operator_run_method": str(summary.get("operator_run_method", handoff.get("operator_run_method", "POST"))),
+        "help_level": str(summary.get("help_level", ledger.get("help_level", "A2"))),
+        "task_hash": task_hash,
+        "checkpoint_hash": checkpoint_hash,
+        "source_card_ids": [str(item) for item in (summary.get("source_card_ids", []) or [])][:8],
+        "source_anchor_count": int(summary.get("source_anchor_count", 0) or 0),
+        "help_ledger_preview_hash": str(summary.get("help_ledger_preview_hash", ledger.get("preview_hash", ""))),
+        "not_cleared_receipt": bool(workspace_card.get("not_cleared_receipt", True)),
+        "exam_deployment_status": "not_cleared",
+        "raw_workspace_card_returned": False,
+    }
 
 
 def build_release_runbook() -> dict[str, Any]:
