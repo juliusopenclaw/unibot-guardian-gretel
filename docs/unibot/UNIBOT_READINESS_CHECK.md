@@ -36,6 +36,7 @@ It aggregates:
 - stakeholder decision request and receipt-boundary alignment
 - stakeholder decision journal and hash-only process-evidence alignment
 - external decision record journal and no-deployment-switch alignment
+- external decision state and no-silent-deployment alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -82,6 +83,13 @@ This contract keeps validated external decision records hash/status-only and
 proves that even accepted extraction, deferral, exam-clearance, or manual-go
 records do not store raw decisions, do not expose contact data, and do not
 switch deployment or clear exam use by themselves.
+
+The external decision state carries
+`unibot-external-decision-state-release-review-board-claim-alignment-v1`. This
+contract keeps derived gate state public-safe and hash-only: validated records
+may derive next gates, but the state still blocks raw decision storage,
+submission sends, legal-advice language, silent deployment switches, grading,
+proctoring, KI-detection evidence, and exam deployment by itself.
 
 ## Source-Card Drift Guard
 

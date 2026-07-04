@@ -66,6 +66,7 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertIn("stakeholder_decision_request", check_ids)
         self.assertIn("stakeholder_decision_journal", check_ids)
         self.assertIn("external_decision_record_journal", check_ids)
+        self.assertIn("external_decision_state", check_ids)
         self.assertIn("gretel_glm_evolve_lane", check_ids)
         self.assertIn("gretel_bachelor_thesis_package", check_ids)
         self.assertIn("gretel_autonomous_research_loop", check_ids)
@@ -209,6 +210,23 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertTrue(external_journal["evidence"]["raw_decision_storage_blocked"])
         self.assertTrue(external_journal["evidence"]["deployment_switch_blocked"])
         self.assertTrue(external_journal["evidence"]["exam_deployment_blocked"])
+        external_state = next(check for check in report["checks"] if check["check_id"] == "external_decision_state")
+        self.assertEqual(external_state["evidence"]["release_claim_alignment_status"], "ready")
+        self.assertEqual(external_state["evidence"]["release_claim_alignment_public_safety_status"], "pass")
+        self.assertEqual(
+            external_state["evidence"]["release_claim_alignment_contract_status"],
+            "unibot-external-decision-state-release-review-board-claim-alignment-v1",
+        )
+        self.assertTrue(external_state["evidence"]["decision_record_journal_claim_linked"])
+        self.assertTrue(external_state["evidence"]["data_protection_claim_linked"])
+        self.assertTrue(external_state["evidence"]["authority_handoff_claim_linked"])
+        self.assertTrue(external_state["evidence"]["exam_boundary_claim_linked"])
+        self.assertTrue(external_state["evidence"]["human_submission_gate_linked"])
+        self.assertTrue(external_state["evidence"]["datenschutz_gate_linked"])
+        self.assertTrue(external_state["evidence"]["written_clearance_gate_linked"])
+        self.assertTrue(external_state["evidence"]["raw_decision_storage_blocked"])
+        self.assertTrue(external_state["evidence"]["silent_deployment_switch_blocked"])
+        self.assertTrue(external_state["evidence"]["exam_deployment_blocked"])
         notebook = next(check for check in report["checks"] if check["check_id"] == "notebook_template")
         self.assertEqual(
             notebook["evidence"]["manual_publication_claim_contract_status"],

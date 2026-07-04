@@ -13,6 +13,7 @@ from .compliance import build_compliance_matrix
 from .demo import build_local_demo_run
 from .decision_request import build_stakeholder_decision_request
 from .decision_journal import build_decision_journal_release_claim_alignment
+from .decision_state import build_external_decision_state_release_claim_alignment
 from .evaluation import build_evaluation_packet
 from .external_decision_journal import build_external_decision_record_journal_release_claim_alignment
 from .feedback import demo_feedback_template, export_public_demo_feedback_summary, validate_demo_feedback
@@ -119,6 +120,7 @@ def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
         "stakeholder_decision_request",
         "stakeholder_decision_journal",
         "external_decision_record_journal",
+        "external_decision_state",
         "gretel_glm_evolve_lane",
         "gretel_bachelor_thesis_package",
         "gretel_autonomous_research_loop",
@@ -191,6 +193,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     stakeholder_decision_request = build_stakeholder_decision_request()
     stakeholder_decision_journal_alignment = build_decision_journal_release_claim_alignment()
     external_decision_record_journal_alignment = build_external_decision_record_journal_release_claim_alignment()
+    external_decision_state_alignment = build_external_decision_state_release_claim_alignment()
     notebook = generate_practice_notebook("UniBot readiness notebook smoke")
     source_cards = list_source_cards()
     source_card_drift = build_source_card_drift_report()
@@ -677,6 +680,51 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 in external_decision_record_journal_alignment["blocked_claims"],
                 "exam_deployment_blocked": "exam deployment"
                 in external_decision_record_journal_alignment["blocked_claims"],
+            },
+        },
+        {
+            "check_id": "external_decision_state",
+            "passed": external_decision_state_alignment["status"] == "ready"
+            and external_decision_state_alignment["public_safety_status"] == "pass"
+            and external_decision_state_alignment["missing_source_card_ids"] == []
+            and external_decision_state_alignment["failed_contract_ids"] == [],
+            "evidence": {
+                "release_claim_alignment_status": external_decision_state_alignment["status"],
+                "release_claim_alignment_public_safety_status": external_decision_state_alignment[
+                    "public_safety_status"
+                ],
+                "release_claim_alignment_contract_status": external_decision_state_alignment["schema_version"],
+                "release_claim_alignment_section_count": external_decision_state_alignment["section_count"],
+                "release_claim_alignment_human_gates": external_decision_state_alignment["required_human_gates"],
+                "decision_record_journal_claim_linked": (
+                    "external_decision_record_journal"
+                    in external_decision_state_alignment["required_readiness_check_ids"]
+                ),
+                "data_protection_claim_linked": (
+                    "data_protection_screening" in external_decision_state_alignment["required_readiness_check_ids"]
+                ),
+                "authority_handoff_claim_linked": (
+                    "authority_handoff" in external_decision_state_alignment["required_readiness_check_ids"]
+                ),
+                "exam_boundary_claim_linked": (
+                    "exam_boundary" in external_decision_state_alignment["required_readiness_check_ids"]
+                ),
+                "human_submission_gate_linked": (
+                    "human_submission_review_required" in external_decision_state_alignment["required_human_gates"]
+                ),
+                "datenschutz_gate_linked": (
+                    "datenschutz_review_required_before_real_pilot"
+                    in external_decision_state_alignment["required_human_gates"]
+                ),
+                "written_clearance_gate_linked": (
+                    "written_university_clearance_required_before_exam_use"
+                    in external_decision_state_alignment["required_human_gates"]
+                ),
+                "raw_decision_storage_blocked": "raw written decision storage"
+                in external_decision_state_alignment["blocked_claims"],
+                "silent_deployment_switch_blocked": "silent deployment switch"
+                in external_decision_state_alignment["blocked_claims"],
+                "exam_deployment_blocked": "exam deployment" in external_decision_state_alignment["blocked_claims"],
             },
         },
         {

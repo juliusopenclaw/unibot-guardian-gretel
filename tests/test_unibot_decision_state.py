@@ -9,7 +9,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.decision_state import build_external_decision_state  # noqa: E402
+from unibot.decision_state import (  # noqa: E402
+    build_external_decision_state,
+    build_external_decision_state_release_claim_alignment,
+)
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
 
@@ -64,6 +67,7 @@ class UniBotDecisionStateTests(unittest.TestCase):
         self.assertFalse(state["gate_summary"]["local_extraction_can_start"])
         self.assertFalse(state["gate_summary"]["exam_clearance_record_valid"])
         self.assertEqual(state["public_safety_status"], "pass")
+        self.assertEqual(state["release_claim_alignment"]["status"], "needs_review")
         self.assertEqual(scan_text(payload, "decision-state-default-test")["status"], "pass")
 
     def test_decision_state_validates_records_without_storing_raw_references(self) -> None:
@@ -87,6 +91,48 @@ class UniBotDecisionStateTests(unittest.TestCase):
         self.assertNotIn("synthetic written exam clearance", payload)
         self.assertNotIn("synthetic manual go reference", payload)
         self.assertEqual(state["public_safety_status"], "pass")
+        self.assertEqual(state["release_claim_alignment"]["status"], "ready")
+        self.assertEqual(state["release_claim_alignment"]["public_safety_status"], "pass")
+
+    def test_decision_state_release_claim_alignment_links_records_and_human_gates(self) -> None:
+        alignment = build_external_decision_state_release_claim_alignment()
+
+        self.assertEqual(
+            alignment["schema_version"],
+            "unibot-external-decision-state-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertIn("external_decision_state", alignment["required_readiness_check_ids"])
+        self.assertIn("external_decision_record_journal", alignment["required_readiness_check_ids"])
+        self.assertIn("data_protection_screening", alignment["required_readiness_check_ids"])
+        self.assertIn("authority_handoff", alignment["required_readiness_check_ids"])
+        self.assertIn("exam_boundary", alignment["required_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertIn("raw written decision storage", alignment["blocked_claims"])
+        self.assertIn("silent deployment switch", alignment["blocked_claims"])
+        self.assertIn("exam deployment", alignment["blocked_claims"])
+
+    def test_decision_state_release_claim_alignment_blocks_silent_deployment(self) -> None:
+        state = build_external_decision_state(
+            extraction_decision_record=valid_extraction_decision(),
+            exam_clearance_record=valid_exam_clearance(),
+            deployment_go_reference="synthetic manual go reference",
+        )
+        state["exam_deployment_status"] = "deployed"
+        state["exam_authority_decision"]["deployment_switch_status"] = "deployed"
+        state["gate_summary"]["exam_deployment_requires_manual_switch"] = False
+
+        alignment = build_external_decision_state_release_claim_alignment(state)
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertIn("exam_deployment_not_cleared", alignment["failed_contract_ids"])
+        self.assertIn("exam_authority_valid_hash_only_no_deploy", alignment["failed_contract_ids"])
+        self.assertIn("gate_summary_requires_manual_switch", alignment["failed_contract_ids"])
 
     def test_decision_state_api_route(self) -> None:
         status, state = route_request(
@@ -101,6 +147,7 @@ class UniBotDecisionStateTests(unittest.TestCase):
         self.assertEqual(state["artifact_type"], "unibot_external_decision_state")
         self.assertEqual(state["status"], "external_decisions_validated_for_next_gates")
         self.assertEqual(state["exam_deployment_status"], "not_cleared")
+        self.assertEqual(state["release_claim_alignment"]["status"], "needs_review")
 
 
 if __name__ == "__main__":
