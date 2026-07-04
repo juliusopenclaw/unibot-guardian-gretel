@@ -73,6 +73,10 @@ from .timeline_export_receipt_journal import (
     build_timeline_export_receipt_journal_workspace_card_alignment,
     synthetic_timeline_export_receipt_journal_inputs,
 )
+from .timeline_export_review_packet import (
+    build_timeline_export_review_packet_workspace_card_alignment,
+    synthetic_timeline_export_review_packet_inputs,
+)
 from .triage import build_feedback_triage
 from .review_board import build_review_board_packet
 
@@ -448,6 +452,10 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     timeline_receipt_journal_alignment = build_timeline_export_receipt_journal_workspace_card_alignment(
         timeline_export_receipt_journal_append=timeline_receipt_journal_inputs["append"],
         timeline_export_receipt_journal_summary=timeline_receipt_journal_inputs["summary"],
+    )
+    timeline_review_packet_inputs = synthetic_timeline_export_review_packet_inputs()
+    timeline_review_packet_alignment = build_timeline_export_review_packet_workspace_card_alignment(
+        timeline_review_packet_inputs["review_packet"],
     )
     handoff_validation = validate_chat_handoff(
         {
@@ -4233,6 +4241,65 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                     "workspace_card_readiness_gate_claim_linked"
                 ],
                 "raw_workspace_card_returned": timeline_receipt_journal_alignment["raw_workspace_card_returned"],
+            },
+        },
+        {
+            "check_id": "timeline_export_review_packet",
+            "passed": timeline_review_packet_alignment["status"] == "ready"
+            and timeline_review_packet_alignment["alignment_public_safety_status"] == "pass"
+            and timeline_review_packet_alignment["failed_contract_ids"] == []
+            and timeline_review_packet_alignment["review_packet_status"] == "timeline_export_review_packet_ready"
+            and timeline_review_packet_alignment["receipt_status"]
+            == "timeline_export_review_packet_receipt_ready_not_exam_clearance"
+            and timeline_review_packet_alignment["local_write_started"] is False
+            and timeline_review_packet_alignment["event_count"] >= 1
+            and timeline_review_packet_alignment["reviewer_question_count"] >= 1
+            and timeline_review_packet_alignment["exam_deployment_status"] == "not_cleared"
+            and timeline_review_packet_alignment["workspace_card_readiness_gate_linked"] is True
+            and timeline_review_packet_alignment["workspace_card_timeline_review_packet_gate_linked"] is True
+            and timeline_review_packet_alignment["raw_workspace_card_returned"] is False,
+            "evidence": {
+                "workspace_card_review_alignment_status": timeline_review_packet_alignment["status"],
+                "workspace_card_review_alignment_public_safety_status": timeline_review_packet_alignment[
+                    "alignment_public_safety_status"
+                ],
+                "review_packet_status": timeline_review_packet_alignment["review_packet_status"],
+                "receipt_status": timeline_review_packet_alignment["receipt_status"],
+                "local_write_started": timeline_review_packet_alignment["local_write_started"],
+                "operator_confirmation_required_for_write": timeline_review_packet_alignment[
+                    "operator_confirmation_required_for_write"
+                ],
+                "event_count": timeline_review_packet_alignment["event_count"],
+                "skill_count": timeline_review_packet_alignment["skill_count"],
+                "reviewer_question_count": timeline_review_packet_alignment["reviewer_question_count"],
+                "checkpoint_hash_count": timeline_review_packet_alignment["checkpoint_hash_count"],
+                "open_operator_confirmation_count": timeline_review_packet_alignment[
+                    "open_operator_confirmation_count"
+                ],
+                "exam_deployment_status": timeline_review_packet_alignment["exam_deployment_status"],
+                "workspace_card_status": timeline_review_packet_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": timeline_review_packet_alignment[
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": timeline_review_packet_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": timeline_review_packet_alignment[
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": timeline_review_packet_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": timeline_review_packet_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_timeline_review_packet_gate_linked": timeline_review_packet_alignment[
+                    "workspace_card_timeline_review_packet_gate_linked"
+                ],
+                "workspace_card_readiness_gate_claim_linked": timeline_review_packet_alignment[
+                    "workspace_card_readiness_gate_claim_linked"
+                ],
+                "raw_workspace_card_returned": timeline_review_packet_alignment["raw_workspace_card_returned"],
             },
         },
     ]

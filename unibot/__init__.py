@@ -184,7 +184,11 @@ from .timeline_export_receipt_journal import (
     summarize_timeline_export_receipt_journal,
     synthetic_timeline_export_receipt_journal_inputs,
 )
-from .timeline_export_review_packet import build_timeline_export_review_packet
+from .timeline_export_review_packet import (
+    build_timeline_export_review_packet,
+    build_timeline_export_review_packet_workspace_card_alignment,
+    synthetic_timeline_export_review_packet_inputs,
+)
 from .review_chain_integrity import build_review_chain_integrity_check
 from .tutor_index import build_private_index_tutor_response_dry_run, build_private_tutor_index_dry_run
 
@@ -330,6 +334,8 @@ __all__ = [
     "summarize_timeline_export_receipt_journal",
     "synthetic_timeline_export_receipt_journal_inputs",
     "build_timeline_export_review_packet",
+    "build_timeline_export_review_packet_workspace_card_alignment",
+    "synthetic_timeline_export_review_packet_inputs",
     "build_review_chain_integrity_check",
     "build_python_exam_cockpit_flow",
     "build_python_exam_confirmed_local_export_draft",

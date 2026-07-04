@@ -19,7 +19,13 @@ from unibot.materials import build_material_manifest, sha256_text  # noqa: E402
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.routed_action_executor import build_routed_action_executor  # noqa: E402
 from unibot.server import route_request  # noqa: E402
-from unibot.timeline_export_review_packet import build_timeline_export_review_packet  # noqa: E402
+from unibot.timeline_export_review_packet import (  # noqa: E402
+    build_timeline_export_review_packet,
+    build_timeline_export_review_packet_workspace_card_alignment,
+    synthetic_timeline_export_review_packet_workspace_card,
+    timeline_export_review_packet_hash,
+    timeline_export_review_packet_receipt_hash,
+)
 from unibot.tutor_index import build_private_tutor_index_dry_run  # noqa: E402
 
 
@@ -183,6 +189,46 @@ class UniBotTimelineExportReviewPacketTests(unittest.TestCase):
             self.assertNotIn("Week 01 Python", payload)
             self.assertNotIn(str(temp_dir), payload)
             self.assertEqual(scan_text(payload, "timeline-export-review-packet")["status"], "pass")
+            alignment = review_packet["workspace_card_review_alignment"]
+            self.assertEqual(
+                alignment["schema_version"],
+                "unibot-timeline-export-review-packet-workspace-card-review-alignment-v1",
+            )
+            self.assertEqual(alignment["status"], "ready")
+            self.assertEqual(alignment["alignment_public_safety_status"], "pass")
+            self.assertEqual(alignment["timeline_export_review_packet_hash"], timeline_export_review_packet_hash(review_packet))
+            self.assertEqual(
+                alignment["timeline_export_review_packet_receipt_hash"],
+                timeline_export_review_packet_receipt_hash(review_packet),
+            )
+            self.assertEqual(alignment["failed_contract_ids"], [])
+            self.assertFalse(alignment["local_write_started"])
+            self.assertTrue(alignment["operator_confirmation_required_for_write"])
+            self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+            self.assertTrue(alignment["workspace_card_timeline_review_packet_gate_linked"])
+            self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+            self.assertFalse(alignment["raw_workspace_card_returned"])
+
+    def test_workspace_card_alignment_blocks_broken_hash_link(self) -> None:
+        review_packet = build_timeline_export_review_packet(
+            selected_skill_tag="python_lists",
+            focus_query="Python Listen",
+            public_safe=True,
+        )
+        card = synthetic_timeline_export_review_packet_workspace_card()
+        card["workspace_card_summary"]["checkpoint_hash"] = "broken-review-hash"
+        card["workspace_card_summary"]["task_hash"] = "broken-receipt-hash"
+        alignment = build_timeline_export_review_packet_workspace_card_alignment(
+            review_packet,
+            python_exam_local_cycle_operator_workspace_card=card,
+        )
+
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertEqual(alignment["alignment_public_safety_status"], "pass")
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertFalse(alignment["workspace_card_timeline_review_packet_gate_linked"])
+        self.assertIn("workspace_card_timeline_review_packet_gate_linked", alignment["failed_contract_ids"])
+        self.assertFalse(alignment["raw_workspace_card_returned"])
 
     def test_export_review_api_route_builds_from_minimal_inputs(self) -> None:
         status, review_packet = route_request(
@@ -200,6 +246,10 @@ class UniBotTimelineExportReviewPacketTests(unittest.TestCase):
         self.assertEqual(review_packet["exam_deployment_status"], "not_cleared")
         self.assertFalse(review_packet["raw_text_returned"])
         self.assertFalse(review_packet["local_paths_returned"])
+        self.assertEqual(review_packet["workspace_card_review_alignment"]["status"], "ready")
+        self.assertTrue(
+            review_packet["workspace_card_review_alignment"]["workspace_card_timeline_review_packet_gate_linked"]
+        )
 
 
 if __name__ == "__main__":
