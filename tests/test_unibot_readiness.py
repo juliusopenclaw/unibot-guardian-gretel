@@ -81,6 +81,8 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertIn("study_session", check_ids)
         self.assertIn("notebook_checkpoint", check_ids)
         self.assertIn("exam_workspace_launch", check_ids)
+        self.assertIn("exam_workspace_run", check_ids)
+        self.assertIn("exam_workspace_run_history", check_ids)
         self.assertIn("gretel_glm_evolve_lane", check_ids)
         self.assertIn("gretel_bachelor_thesis_package", check_ids)
         self.assertIn("gretel_autonomous_research_loop", check_ids)
@@ -696,6 +698,37 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertTrue(run["evidence"]["export_not_cleared_receipt"])
         self.assertTrue(run["evidence"]["human_reviewable_independence_evidence"])
         self.assertTrue(run["evidence"]["workspace_card_readiness_gate_linked"])
+        history = next(check for check in report["checks"] if check["check_id"] == "exam_workspace_run_history")
+        self.assertEqual(history["evidence"]["release_claim_alignment_status"], "ready")
+        self.assertEqual(history["evidence"]["release_claim_alignment_public_safety_status"], "pass")
+        self.assertEqual(
+            history["evidence"]["release_claim_alignment_contract_status"],
+            "unibot-exam-workspace-run-history-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(history["evidence"]["history_status"], "exam_workspace_run_history_export_review_ready")
+        self.assertEqual(history["evidence"]["history_public_safety_status"], "pass")
+        self.assertEqual(history["evidence"]["waiting_public_safety_status"], "pass")
+        self.assertEqual(history["evidence"]["exam_deployment_status"], "not_cleared")
+        self.assertEqual(history["evidence"]["workspace_card_history_receipt_alignment_status"], "ready")
+        self.assertEqual(history["evidence"]["workspace_card_history_receipt_alignment_public_safety_status"], "pass")
+        self.assertEqual(
+            history["evidence"]["workspace_card_history_receipt_alignment_contract_status"],
+            "unibot-exam-workspace-run-history-workspace-card-history-receipt-alignment-v1",
+        )
+        self.assertTrue(history["evidence"]["history_hash_present"])
+        self.assertTrue(history["evidence"]["history_receipt_hash_present"])
+        self.assertTrue(history["evidence"]["waiting_history_receipt_hash_present"])
+        self.assertTrue(history["evidence"]["workspace_card_history_receipt_gate_linked"])
+        self.assertTrue(history["evidence"]["workspace_card_history_receipt_gate_linked_contract"])
+        self.assertTrue(history["evidence"]["history_export_review_ready"])
+        self.assertTrue(history["evidence"]["session_console_receipts_preserved"])
+        self.assertTrue(history["evidence"]["checkpoint_hashes_and_help_profile_preserved"])
+        self.assertTrue(history["evidence"]["reflection_review_status_preserved"])
+        self.assertTrue(history["evidence"]["export_receipt_reference_preserved"])
+        self.assertTrue(history["evidence"]["operator_confirmation_boundary_preserved"])
+        self.assertTrue(history["evidence"]["history_receipt_hashes_present_contract"])
+        self.assertTrue(history["evidence"]["history_waiting_mode_no_reviewable_export"])
+        self.assertTrue(history["evidence"]["workspace_card_readiness_gate_linked"])
         notebook = next(check for check in report["checks"] if check["check_id"] == "notebook_template")
         self.assertEqual(
             notebook["evidence"]["manual_publication_claim_contract_status"],

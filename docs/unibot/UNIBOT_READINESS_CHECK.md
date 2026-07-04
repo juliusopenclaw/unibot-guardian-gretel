@@ -49,6 +49,7 @@ It aggregates:
 - exam workspace launch and release-claim alignment
 - exam workspace run and release-claim alignment
 - exam workspace run-history and export-review alignment
+- exam workspace run-history workspace-card receipt alignment
 - exam workspace operator-run and confirmation-boundary alignment
 - exam workspace session-console and receipt alignment
 - Python exam local-cycle start-packet and confirmation-boundary alignment

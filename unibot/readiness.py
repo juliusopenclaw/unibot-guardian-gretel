@@ -53,7 +53,10 @@ from .exam_workspace_run import (
     build_exam_workspace_run_release_claim_alignment,
     build_exam_workspace_run_workspace_card_receipt_alignment,
 )
-from .exam_workspace_run_history import build_exam_workspace_run_history_release_claim_alignment
+from .exam_workspace_run_history import (
+    build_exam_workspace_run_history_release_claim_alignment,
+    build_exam_workspace_run_history_workspace_card_receipt_alignment,
+)
 from .exam_workspace_session_console import build_exam_workspace_session_console_release_claim_alignment
 from .extraction_completion import build_extraction_completion_release_claim_alignment
 from .extraction_human_review import build_extraction_human_review_release_claim_alignment
@@ -382,6 +385,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     exam_workspace_run_alignment = build_exam_workspace_run_release_claim_alignment()
     exam_workspace_run_workspace_alignment = build_exam_workspace_run_workspace_card_receipt_alignment()
     exam_workspace_run_history_alignment = build_exam_workspace_run_history_release_claim_alignment()
+    exam_workspace_run_history_workspace_alignment = (
+        build_exam_workspace_run_history_workspace_card_receipt_alignment()
+    )
     exam_workspace_operator_run_alignment = build_exam_workspace_operator_run_release_claim_alignment()
     exam_workspace_session_console_alignment = build_exam_workspace_session_console_release_claim_alignment()
     python_exam_local_cycle_start_packet_alignment = build_python_exam_local_cycle_start_packet_release_claim_alignment()
@@ -2545,7 +2551,10 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and exam_workspace_run_history_alignment["waiting_public_safety_status"] == "pass"
             and exam_workspace_run_history_alignment["exam_deployment_status"] == "not_cleared"
             and exam_workspace_run_history_alignment["missing_source_card_ids"] == []
-            and exam_workspace_run_history_alignment["failed_contract_ids"] == [],
+            and exam_workspace_run_history_alignment["failed_contract_ids"] == []
+            and exam_workspace_run_history_workspace_alignment["status"] == "ready"
+            and exam_workspace_run_history_workspace_alignment["public_safety_status"] == "pass"
+            and exam_workspace_run_history_workspace_alignment["failed_contract_ids"] == [],
             "evidence": {
                 "release_claim_alignment_status": exam_workspace_run_history_alignment["status"],
                 "release_claim_alignment_public_safety_status": exam_workspace_run_history_alignment[
@@ -2574,6 +2583,58 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "workspace_card_readiness_gate_linked": exam_workspace_run_history_alignment[
                     "workspace_card_readiness_gate_linked"
                 ],
+                "workspace_card_history_receipt_alignment_status": exam_workspace_run_history_workspace_alignment[
+                    "status"
+                ],
+                "workspace_card_history_receipt_alignment_public_safety_status": (
+                    exam_workspace_run_history_workspace_alignment["public_safety_status"]
+                ),
+                "workspace_card_history_receipt_alignment_contract_status": (
+                    exam_workspace_run_history_workspace_alignment["schema_version"]
+                ),
+                "history_hash_present": bool(exam_workspace_run_history_workspace_alignment["history_hash"]),
+                "history_receipt_hash_present": bool(
+                    exam_workspace_run_history_workspace_alignment["history_receipt_hash"]
+                ),
+                "waiting_history_receipt_hash_present": bool(
+                    exam_workspace_run_history_workspace_alignment["waiting_history_receipt_hash"]
+                ),
+                "workspace_card_history_receipt_gate_linked": (
+                    exam_workspace_run_history_workspace_alignment["workspace_card_history_receipt_gate_linked"]
+                ),
+                "workspace_card_history_receipt_gate_linked_contract": (
+                    exam_workspace_run_history_workspace_alignment["contracts"][
+                        "workspace_card_history_receipt_gate_linked"
+                    ]
+                ),
+                "history_export_review_ready": exam_workspace_run_history_workspace_alignment["contracts"][
+                    "history_export_review_ready"
+                ],
+                "session_console_receipts_preserved": exam_workspace_run_history_workspace_alignment["contracts"][
+                    "session_console_receipts_preserved"
+                ],
+                "checkpoint_hashes_and_help_profile_preserved": (
+                    exam_workspace_run_history_workspace_alignment["contracts"][
+                        "checkpoint_hashes_and_help_profile_preserved"
+                    ]
+                ),
+                "reflection_review_status_preserved": exam_workspace_run_history_workspace_alignment["contracts"][
+                    "reflection_review_status_preserved"
+                ],
+                "export_receipt_reference_preserved": exam_workspace_run_history_workspace_alignment["contracts"][
+                    "export_receipt_reference_preserved"
+                ],
+                "operator_confirmation_boundary_preserved": (
+                    exam_workspace_run_history_workspace_alignment["contracts"][
+                        "operator_confirmation_boundary_preserved"
+                    ]
+                ),
+                "history_receipt_hashes_present_contract": exam_workspace_run_history_workspace_alignment[
+                    "contracts"
+                ]["history_receipt_hashes_present"],
+                "history_waiting_mode_no_reviewable_export": exam_workspace_run_history_workspace_alignment[
+                    "contracts"
+                ]["waiting_mode_no_reviewable_export"],
                 "export_review_status": exam_workspace_run_history_alignment["export_review_status"],
                 "human_reviewable_independence_evidence": exam_workspace_run_history_alignment[
                     "human_reviewable_independence_evidence"
