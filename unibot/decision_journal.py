@@ -10,11 +10,165 @@ from .course_tutor import DEFAULT_COURSE_ID
 from .decision_request import build_stakeholder_decision_request, validate_decision_request_receipt
 from .materials import sha256_text
 from .public_safety import scan_text
+from .source_cards import get_source_card
 
 
 DECISION_JOURNAL_SCHEMA_VERSION = "unibot-stakeholder-decision-journal-v1"
+DECISION_JOURNAL_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-stakeholder-decision-journal-release-review-board-claim-alignment-v1"
+)
 DEFAULT_DECISION_JOURNAL_PATH = Path.home() / ".unibot_guardian" / "stakeholder_decision_journal.jsonl"
 ALLOWED_JOURNAL_EVENT_TYPES = {"decision_request_prepared", "decision_request_receipt_validated"}
+
+
+def build_decision_journal_release_claim_alignment(records: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    if records is None:
+        request = build_stakeholder_decision_request()
+        receipt = dict(request["receipt_template"])
+        receipt.update(
+            {
+                "manual_submission_status": "sent_for_human_review",
+                "channel": "synthetic manual review channel",
+                "submission_reference": "synthetic hash-only journal reference",
+            }
+        )
+        records = [
+            sanitize_decision_journal_event(
+                {
+                    "event_type": "decision_request_prepared",
+                    "request": request,
+                }
+            ),
+            sanitize_decision_journal_event(
+                {
+                    "event_type": "decision_request_receipt_validated",
+                    "receipt": receipt,
+                }
+            ),
+        ]
+
+    sections = [
+        {
+            "section_id": "journal_storage_boundary_trace",
+            "summary_claim": "decision journal stores local hash/status/lane metadata only, never raw request or written decision text",
+            "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024"],
+            "readiness_check_ids": ["stakeholder_decision_journal", "stakeholder_decision_request", "public_safety"],
+            "human_gates": ["human_submission_review_required", "datenschutz_review_required_before_real_pilot"],
+        },
+        {
+            "section_id": "prepared_request_trace",
+            "summary_claim": "prepared-request journal entries preserve request and markdown hashes without claiming external submission",
+            "source_card_ids": ["dfg-gwp"],
+            "readiness_check_ids": [
+                "stakeholder_decision_journal",
+                "stakeholder_decision_request",
+                "stakeholder_submission_bundle",
+            ],
+            "human_gates": ["human_submission_review_required"],
+        },
+        {
+            "section_id": "receipt_validation_trace",
+            "summary_claim": "receipt entries prove a receipt validation status while storing only hash-safe submission references",
+            "source_card_ids": ["gdpr-2016-679"],
+            "readiness_check_ids": ["stakeholder_decision_journal", "data_protection_screening", "public_safety"],
+            "human_gates": ["human_submission_review_required", "public_safety_required"],
+        },
+        {
+            "section_id": "gate_boundary_trace",
+            "summary_claim": "journal evidence is process continuity only and never authorizes extraction, exam deployment, grading, or proctoring",
+            "source_card_ids": ["hg-nrw-2025", "uoc-hilfsmittel", "uoc-ki-faq"],
+            "readiness_check_ids": ["stakeholder_decision_journal", "review_board_packet", "exam_boundary"],
+            "human_gates": ["written_university_clearance_required_before_exam_use", "human_submission_review_required"],
+        },
+    ]
+    required_source_card_ids = sorted({source_id for section in sections for source_id in section["source_card_ids"]})
+    missing_source_card_ids = sorted(source_id for source_id in required_source_card_ids if get_source_card(source_id) is None)
+
+    accepted_records = [record for record in records if record.get("status") == "accepted"]
+    events = [record.get("event", {}) for record in records]
+    event_types = {event.get("event_type") for event in events}
+    prepared_events = [event for event in events if event.get("event_type") == "decision_request_prepared"]
+    receipt_events = [event for event in events if event.get("event_type") == "decision_request_receipt_validated"]
+    storage_policies = " ".join(str(record.get("storage_policy", "")) for record in records)
+
+    contracts = {
+        "all_records_accepted_and_public_safe": len(accepted_records) == len(records)
+        and all(record.get("public_safety_status") == "pass" for record in records),
+        "records_use_decision_journal_schema": all(
+            record.get("schema_version") == DECISION_JOURNAL_SCHEMA_VERSION for record in records
+        ),
+        "records_store_no_raw_text_or_tool_send": all(
+            record.get("event", {}).get("raw_text_stored") is False
+            and record.get("event", {}).get("tool_sent_message") is False
+            for record in records
+        ),
+        "storage_policy_hash_status_lane_only": "stores hashes, statuses, and lane metadata only" in storage_policies
+        and "no raw messages or written decisions" in storage_policies,
+        "prepared_request_event_hash_only": bool(prepared_events)
+        and all(
+            event.get("request_status") == "ready_for_manual_review_not_sent"
+            and event.get("exam_deployment_status") == "not_cleared"
+            and event.get("manual_submission_status") == "draft_not_sent"
+            and bool(event.get("request_hash"))
+            for event in prepared_events
+        ),
+        "receipt_event_hash_only_no_gate_change": bool(receipt_events)
+        and all(
+            event.get("receipt_validation_status") in {"ok_manual_request_receipt", "draft_receipt_not_sent"}
+            and event.get("raw_submission_reference_stored") is False
+            and bool(event.get("validation_hash"))
+            and str(event.get("receipt_effect", "")).endswith("_no_decision_record_yet")
+            for event in receipt_events
+        ),
+        "prepared_and_receipt_events_present": {
+            "decision_request_prepared",
+            "decision_request_receipt_validated",
+        }.issubset(event_types),
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    payload = {
+        "sections": sections,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "blocked_claims": [
+            "raw request text storage",
+            "raw written decision storage",
+            "tool-sent stakeholder message",
+            "automatic gate change",
+            "extraction approval",
+            "exam clearance",
+            "official grading",
+            "proctoring",
+            "KI-detection evidence",
+        ],
+    }
+    scan = scan_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        "stakeholder-decision-journal-release-claim-alignment",
+    )
+    status = "ready" if not missing_source_card_ids and not failed_contract_ids and scan["status"] == "pass" else "needs_review"
+    return {
+        "schema_version": DECISION_JOURNAL_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "contracts": contracts,
+        "record_count": len(records),
+        "event_types": sorted(str(event_type) for event_type in event_types if event_type),
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "blocked_claims": payload["blocked_claims"],
+        "public_safety_status": scan["status"],
+        "policy": (
+            "Stakeholder decision journals are local process evidence only; they store hashes, statuses, "
+            "lane metadata, and validation hashes, not raw messages or written decisions, and never approve "
+            "extraction, exam deployment, grading, proctoring, KI detection, or gate changes by themselves."
+        ),
+    }
 
 
 def resolve_decision_journal_path(path: str | Path | None = None) -> Path:

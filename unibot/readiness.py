@@ -12,6 +12,7 @@ from .bachelor_thesis import build_bachelor_thesis_package
 from .compliance import build_compliance_matrix
 from .demo import build_local_demo_run
 from .decision_request import build_stakeholder_decision_request
+from .decision_journal import build_decision_journal_release_claim_alignment
 from .evaluation import build_evaluation_packet
 from .feedback import demo_feedback_template, export_public_demo_feedback_summary, validate_demo_feedback
 from .github_issues import build_github_issue_bundle
@@ -115,6 +116,7 @@ def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
         "review_board_packet",
         "stakeholder_submission_bundle",
         "stakeholder_decision_request",
+        "stakeholder_decision_journal",
         "gretel_glm_evolve_lane",
         "gretel_bachelor_thesis_package",
         "gretel_autonomous_research_loop",
@@ -124,7 +126,7 @@ def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
         {
             "check_id": check_id,
             "passed": bool(by_id[check_id]["passed"]),
-            "evidence_keys": sorted(by_id[check_id]["evidence"].keys()),
+            "evidence_key_count": len(by_id[check_id]["evidence"]),
         }
         for check_id in scientific_gate_ids
         if check_id in by_id
@@ -185,6 +187,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     handoff = build_authority_handoff_packet()
     stakeholder_submission = build_stakeholder_submission_bundle()
     stakeholder_decision_request = build_stakeholder_decision_request()
+    stakeholder_decision_journal_alignment = build_decision_journal_release_claim_alignment()
     notebook = generate_practice_notebook("UniBot readiness notebook smoke")
     source_cards = list_source_cards()
     source_card_drift = build_source_card_drift_report()
@@ -570,6 +573,54 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 in stakeholder_decision_request["release_claim_alignment"]["blocked_claims"],
                 "exam_clearance_blocked": "exam clearance"
                 in stakeholder_decision_request["release_claim_alignment"]["blocked_claims"],
+            },
+        },
+        {
+            "check_id": "stakeholder_decision_journal",
+            "passed": stakeholder_decision_journal_alignment["status"] == "ready"
+            and stakeholder_decision_journal_alignment["public_safety_status"] == "pass"
+            and stakeholder_decision_journal_alignment["missing_source_card_ids"] == []
+            and stakeholder_decision_journal_alignment["failed_contract_ids"] == [],
+            "evidence": {
+                "release_claim_alignment_status": stakeholder_decision_journal_alignment["status"],
+                "release_claim_alignment_public_safety_status": stakeholder_decision_journal_alignment[
+                    "public_safety_status"
+                ],
+                "release_claim_alignment_contract_status": stakeholder_decision_journal_alignment["schema_version"],
+                "release_claim_alignment_section_count": stakeholder_decision_journal_alignment["section_count"],
+                "record_count": stakeholder_decision_journal_alignment["record_count"],
+                "event_types": stakeholder_decision_journal_alignment["event_types"],
+                "release_claim_alignment_human_gates": stakeholder_decision_journal_alignment["required_human_gates"],
+                "decision_request_claim_linked": (
+                    "stakeholder_decision_request"
+                    in stakeholder_decision_journal_alignment["required_readiness_check_ids"]
+                ),
+                "submission_bundle_claim_linked": (
+                    "stakeholder_submission_bundle"
+                    in stakeholder_decision_journal_alignment["required_readiness_check_ids"]
+                ),
+                "data_protection_claim_linked": (
+                    "data_protection_screening"
+                    in stakeholder_decision_journal_alignment["required_readiness_check_ids"]
+                ),
+                "review_board_claim_linked": (
+                    "review_board_packet" in stakeholder_decision_journal_alignment["required_readiness_check_ids"]
+                ),
+                "human_submission_gate_linked": (
+                    "human_submission_review_required"
+                    in stakeholder_decision_journal_alignment["required_human_gates"]
+                ),
+                "datenschutz_gate_linked": (
+                    "datenschutz_review_required_before_real_pilot"
+                    in stakeholder_decision_journal_alignment["required_human_gates"]
+                ),
+                "raw_decision_storage_blocked": "raw written decision storage"
+                in stakeholder_decision_journal_alignment["blocked_claims"],
+                "tool_sent_message_blocked": "tool-sent stakeholder message"
+                in stakeholder_decision_journal_alignment["blocked_claims"],
+                "automatic_gate_change_blocked": "automatic gate change"
+                in stakeholder_decision_journal_alignment["blocked_claims"],
+                "exam_clearance_blocked": "exam clearance" in stakeholder_decision_journal_alignment["blocked_claims"],
             },
         },
         {

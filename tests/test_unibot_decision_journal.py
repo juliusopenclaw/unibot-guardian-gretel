@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT))
 from unibot.decision_journal import (  # noqa: E402
     append_decision_request_journal_event,
     append_prepared_request_to_journal,
+    build_decision_journal_release_claim_alignment,
     read_decision_journal,
     sanitize_decision_journal_event,
     summarize_decision_journal,
@@ -44,8 +45,52 @@ class UniBotDecisionJournalTests(unittest.TestCase):
         self.assertTrue(record["event"]["request_hash"])
         self.assertTrue(record["event"]["markdown_hash"])
         self.assertFalse(record["event"]["raw_text_stored"])
+        self.assertFalse(record["event"]["tool_sent_message"])
         self.assertNotIn(markdown, payload)
         self.assertEqual(scan_text(payload, "decision-journal-prepared-test")["status"], "pass")
+
+    def test_decision_journal_release_claim_alignment_is_hash_only_and_gate_bound(self) -> None:
+        alignment = build_decision_journal_release_claim_alignment()
+
+        self.assertEqual(
+            alignment["schema_version"],
+            "unibot-stakeholder-decision-journal-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertIn("decision_request_prepared", alignment["event_types"])
+        self.assertIn("decision_request_receipt_validated", alignment["event_types"])
+        self.assertIn("stakeholder_decision_journal", alignment["required_readiness_check_ids"])
+        self.assertIn("stakeholder_decision_request", alignment["required_readiness_check_ids"])
+        self.assertIn("stakeholder_submission_bundle", alignment["required_readiness_check_ids"])
+        self.assertIn("data_protection_screening", alignment["required_readiness_check_ids"])
+        self.assertIn("review_board_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertIn("raw written decision storage", alignment["blocked_claims"])
+        self.assertIn("tool-sent stakeholder message", alignment["blocked_claims"])
+        self.assertIn("automatic gate change", alignment["blocked_claims"])
+
+    def test_decision_journal_release_claim_alignment_blocks_raw_or_tool_sent_records(self) -> None:
+        request = build_stakeholder_decision_request()
+        record = sanitize_decision_journal_event(
+            {
+                "event_type": "decision_request_prepared",
+                "request": request,
+                "tool_sent_message": True,
+            }
+        )
+
+        alignment = build_decision_journal_release_claim_alignment([record])
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertIn("all_records_accepted_and_public_safe", alignment["failed_contract_ids"])
+        self.assertIn("records_store_no_raw_text_or_tool_send", alignment["failed_contract_ids"])
+        self.assertIn("receipt_event_hash_only_no_gate_change", alignment["failed_contract_ids"])
+        self.assertIn("prepared_and_receipt_events_present", alignment["failed_contract_ids"])
 
     def test_receipt_event_accepts_manual_receipt_and_blocks_tool_send(self) -> None:
         request = build_stakeholder_decision_request()

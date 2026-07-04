@@ -34,6 +34,7 @@ It aggregates:
 - review board packet
 - stakeholder submission bundle and release-claim alignment
 - stakeholder decision request and receipt-boundary alignment
+- stakeholder decision journal and hash-only process-evidence alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -66,6 +67,13 @@ This contract keeps a single request lane tied to the submission bundle,
 receipt template, review-board evidence, Datenschutz controls, public-safety,
 and human gates. It keeps the packet manual-review-only and blocks tool-sent
 messages, approval claims, raw written decision storage, and exam clearance.
+
+The stakeholder decision journal carries
+`unibot-stakeholder-decision-journal-release-review-board-claim-alignment-v1`.
+This contract keeps journal entries local and hash-only: request hashes,
+markdown hashes, receipt validation hashes, lane metadata, and statuses only.
+It blocks raw request text, raw written decision text, tool-sent stakeholder
+messages, automatic gate changes, extraction approval, and exam clearance.
 
 ## Source-Card Drift Guard
 
