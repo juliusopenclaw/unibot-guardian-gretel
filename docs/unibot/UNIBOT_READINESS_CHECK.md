@@ -35,6 +35,7 @@ It aggregates:
 - stakeholder submission bundle and release-claim alignment
 - stakeholder decision request and receipt-boundary alignment
 - stakeholder decision journal and hash-only process-evidence alignment
+- external decision record journal and no-deployment-switch alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -74,6 +75,13 @@ This contract keeps journal entries local and hash-only: request hashes,
 markdown hashes, receipt validation hashes, lane metadata, and statuses only.
 It blocks raw request text, raw written decision text, tool-sent stakeholder
 messages, automatic gate changes, extraction approval, and exam clearance.
+
+The external decision record journal carries
+`unibot-external-decision-record-journal-release-review-board-claim-alignment-v1`.
+This contract keeps validated external decision records hash/status-only and
+proves that even accepted extraction, deferral, exam-clearance, or manual-go
+records do not store raw decisions, do not expose contact data, and do not
+switch deployment or clear exam use by themselves.
 
 ## Source-Card Drift Guard
 

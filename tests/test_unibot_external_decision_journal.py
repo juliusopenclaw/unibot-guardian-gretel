@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT))
 
 from unibot.external_decision_journal import (  # noqa: E402
     append_external_decision_journal_record,
+    build_external_decision_record_journal_release_claim_alignment,
     read_external_decision_journal,
     sanitize_external_decision_journal_record,
     summarize_external_decision_journal,
@@ -74,6 +75,51 @@ class UniBotExternalDecisionJournalTests(unittest.TestCase):
         self.assertTrue(record["event"]["decision_reference_hash"])
         self.assertNotIn("synthetic written exam clearance for journal", payload)
         self.assertEqual(scan_text(payload, "external-decision-journal-test")["status"], "pass")
+
+    def test_external_decision_record_release_claim_alignment_is_hash_only_and_gate_bound(self) -> None:
+        alignment = build_external_decision_record_journal_release_claim_alignment()
+
+        self.assertEqual(
+            alignment["schema_version"],
+            "unibot-external-decision-record-journal-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertIn("local_extraction_decision", alignment["record_types"])
+        self.assertIn("exam_clearance", alignment["record_types"])
+        self.assertIn("extraction_deferral", alignment["record_types"])
+        self.assertIn("manual_deployment_go", alignment["record_types"])
+        self.assertIn("external_decision_record_journal", alignment["required_readiness_check_ids"])
+        self.assertIn("stakeholder_decision_journal", alignment["required_readiness_check_ids"])
+        self.assertIn("data_protection_screening", alignment["required_readiness_check_ids"])
+        self.assertIn("authority_handoff", alignment["required_readiness_check_ids"])
+        self.assertIn("exam_boundary", alignment["required_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertIn("raw written decision storage", alignment["blocked_claims"])
+        self.assertIn("deployment switch", alignment["blocked_claims"])
+        self.assertIn("exam deployment", alignment["blocked_claims"])
+
+    def test_external_decision_record_release_claim_alignment_blocks_raw_or_deploy_records(self) -> None:
+        record = sanitize_external_decision_journal_record(
+            record_type="manual_deployment_go",
+            deployment_go_reference="synthetic deployment go",
+        )
+        record["event"]["exam_deployment_status"] = "deployed"
+        record["event"]["deployment_effect"] = "deployed"
+        record["event"]["raw_deployment_go_reference_stored"] = True
+
+        alignment = build_external_decision_record_journal_release_claim_alignment([record])
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertIn("records_store_no_raw_decisions_or_deploy_text", alignment["failed_contract_ids"])
+        self.assertIn("local_extraction_record_hash_only", alignment["failed_contract_ids"])
+        self.assertIn("exam_clearance_record_hash_only_not_deployed", alignment["failed_contract_ids"])
+        self.assertIn("extraction_deferral_record_hash_only", alignment["failed_contract_ids"])
+        self.assertIn("manual_deployment_go_hash_only_no_switch", alignment["failed_contract_ids"])
 
     def test_invalid_record_is_blocked_and_not_stored(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

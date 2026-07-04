@@ -11,9 +11,13 @@ from .extraction_completion import validate_extraction_deferral_record
 from .extraction_decision import validate_extraction_decision_record
 from .materials import sha256_text
 from .public_safety import scan_text
+from .source_cards import get_source_card
 
 
 EXTERNAL_DECISION_JOURNAL_SCHEMA_VERSION = "unibot-external-decision-record-journal-v1"
+EXTERNAL_DECISION_JOURNAL_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-external-decision-record-journal-release-review-board-claim-alignment-v1"
+)
 DEFAULT_EXTERNAL_DECISION_JOURNAL_PATH = Path.home() / ".unibot_guardian" / "external_decision_records.jsonl"
 
 DECISION_RECORD_TYPES = {
@@ -22,6 +26,208 @@ DECISION_RECORD_TYPES = {
     "extraction_deferral",
     "manual_deployment_go",
 }
+
+
+def synthetic_local_extraction_decision_record() -> dict[str, Any]:
+    return {
+        "decision_status": "approved_for_local_extraction",
+        "scope": "local_private_course_extraction",
+        "allowed_job_types": ["ocr", "transcription"],
+        "storage_policy": "local_private_only",
+        "cloud_processing_allowed": False,
+        "raw_text_public_release_allowed": False,
+        "human_review_before_tutor_index": True,
+        "retention_decision": "delete local raw extraction artifacts after reviewed source-card metadata is accepted",
+        "access_roles": ["project_owner", "approved_reviewer"],
+        "reviewer_roles": ["Datenschutz", "Lehreinheit / Modulverantwortliche", "IT / SZI"],
+        "decision_reference": "synthetic hash-only local extraction decision reference",
+    }
+
+
+def synthetic_exam_clearance_record() -> dict[str, Any]:
+    return {
+        "clearance_scope": "exam_controlled_gateway",
+        "decision_status": "approved",
+        "reviewer_roles": [
+            "Pruefungsamt",
+            "Datenschutz",
+            "IT / SZI",
+            "Lehreinheit / Modulverantwortliche",
+            "Inklusionsbuero / Nachteilsausgleich",
+        ],
+        "decision_reference": "synthetic hash-only exam clearance decision reference",
+        "allowed_modes": ["exam_controlled_gateway", "controlled_notebook"],
+        "help_levels_allowed": ["A0", "A1", "A2"],
+        "no_proctoring": True,
+        "no_ai_detection": True,
+        "no_automatic_grading": True,
+        "human_review_required": True,
+        "raw_text_public_release_allowed": False,
+    }
+
+
+def synthetic_extraction_deferral_record() -> dict[str, Any]:
+    return {
+        "deferral_scope": "course_material_extraction",
+        "decision_status": "approved_deferral",
+        "deferred_job_types": ["ocr", "transcription"],
+        "deferral_reason": "synthetic hash-only extraction deferral reason",
+        "reviewer_roles": ["Datenschutz", "Lehreinheit / Modulverantwortliche", "IT / SZI"],
+        "decision_reference": "synthetic hash-only extraction deferral decision reference",
+        "human_review_before_future_tutor_use": True,
+        "raw_text_public_release_allowed": False,
+        "exam_deployment_status": "not_cleared",
+    }
+
+
+def build_external_decision_record_journal_release_claim_alignment(
+    records: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    if records is None:
+        records = [
+            sanitize_external_decision_journal_record(
+                record_type="local_extraction_decision",
+                record=synthetic_local_extraction_decision_record(),
+            ),
+            sanitize_external_decision_journal_record(
+                record_type="exam_clearance",
+                record=synthetic_exam_clearance_record(),
+            ),
+            sanitize_external_decision_journal_record(
+                record_type="extraction_deferral",
+                record=synthetic_extraction_deferral_record(),
+            ),
+            sanitize_external_decision_journal_record(
+                record_type="manual_deployment_go",
+                deployment_go_reference="synthetic hash-only deployment go reference",
+            ),
+        ]
+
+    sections = [
+        {
+            "section_id": "validated_record_storage_trace",
+            "summary_claim": "external decision journal stores validation status, scope metadata, hashes, and gate flags only",
+            "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024"],
+            "readiness_check_ids": ["external_decision_record_journal", "stakeholder_decision_journal", "public_safety"],
+            "human_gates": ["human_submission_review_required", "datenschutz_review_required_before_real_pilot"],
+        },
+        {
+            "section_id": "local_extraction_record_trace",
+            "summary_claim": "local extraction decision records can authorize only local private extraction, not public raw text release or cloud processing",
+            "source_card_ids": ["gdpr-2016-679", "dfg-gwp"],
+            "readiness_check_ids": [
+                "external_decision_record_journal",
+                "stakeholder_submission_bundle",
+                "data_protection_screening",
+            ],
+            "human_gates": ["datenschutz_review_required_before_real_pilot", "human_submission_review_required"],
+        },
+        {
+            "section_id": "exam_clearance_record_trace",
+            "summary_claim": "exam clearance records stay hash-only and do not switch exam deployment by themselves",
+            "source_card_ids": ["hg-nrw-2025", "hg-nrw-64", "uoc-hilfsmittel", "uoc-ki-faq"],
+            "readiness_check_ids": ["external_decision_record_journal", "authority_handoff", "exam_boundary"],
+            "human_gates": ["written_university_clearance_required_before_exam_use", "human_submission_review_required"],
+        },
+        {
+            "section_id": "manual_deployment_go_trace",
+            "summary_claim": "manual deployment-go references are recorded as hashes and explicitly do not deploy exam mode",
+            "source_card_ids": ["uoc-hilfsmittel", "uoc-ki-faq"],
+            "readiness_check_ids": ["external_decision_record_journal", "release_runbook", "exam_boundary"],
+            "human_gates": ["written_university_clearance_required_before_exam_use", "human_submission_review_required"],
+        },
+    ]
+    required_source_card_ids = sorted({source_id for section in sections for source_id in section["source_card_ids"]})
+    missing_source_card_ids = sorted(source_id for source_id in required_source_card_ids if get_source_card(source_id) is None)
+
+    events = [record.get("event", {}) for record in records if isinstance(record, dict)]
+    by_type = {event.get("record_type"): event for event in events}
+    summary = summarize_external_decision_records(records)
+    storage_policies = " ".join(str(record.get("storage_policy", "")) for record in records)
+
+    contracts = {
+        "all_records_accepted_and_public_safe": all(record.get("status") == "accepted" for record in records)
+        and all(record.get("public_safety_status") == "pass" for record in records),
+        "records_use_external_decision_schema": all(
+            record.get("schema_version") == EXTERNAL_DECISION_JOURNAL_SCHEMA_VERSION for record in records
+        ),
+        "records_store_no_raw_decisions_or_deploy_text": all(
+            record.get("event", {}).get("raw_record_stored") is False
+            and record.get("event", {}).get("raw_decision_reference_stored", False) is False
+            and record.get("event", {}).get("raw_deployment_go_reference_stored", False) is False
+            for record in records
+        ),
+        "storage_policy_hash_status_gate_flags_only": "stores validation status, scope metadata, hashes, and gate flags only"
+        in storage_policies
+        and "no raw written decisions" in storage_policies
+        and "no deployment switch" in storage_policies,
+        "local_extraction_record_hash_only": by_type.get("local_extraction_decision", {}).get("validation_status")
+        == "ok_authorizes_local_extraction"
+        and by_type.get("local_extraction_decision", {}).get("accepted_for_gate") is True
+        and bool(by_type.get("local_extraction_decision", {}).get("decision_reference_hash"))
+        and by_type.get("local_extraction_decision", {}).get("raw_decision_reference_stored") is False,
+        "exam_clearance_record_hash_only_not_deployed": by_type.get("exam_clearance", {}).get("validation_status")
+        == "ok_exam_controlled_gateway_clearance_record"
+        and by_type.get("exam_clearance", {}).get("accepted_for_gate") is True
+        and bool(by_type.get("exam_clearance", {}).get("decision_reference_hash"))
+        and by_type.get("exam_clearance", {}).get("exam_deployment_status") == "not_cleared",
+        "extraction_deferral_record_hash_only": by_type.get("extraction_deferral", {}).get("validation_status")
+        == "ok_extraction_deferral_record"
+        and by_type.get("extraction_deferral", {}).get("accepted_for_gate") is True
+        and bool(by_type.get("extraction_deferral", {}).get("decision_reference_hash"))
+        and by_type.get("extraction_deferral", {}).get("raw_deferral_reason_stored") is False,
+        "manual_deployment_go_hash_only_no_switch": by_type.get("manual_deployment_go", {}).get("validation_status")
+        == "ok_manual_deployment_go_reference"
+        and by_type.get("manual_deployment_go", {}).get("deployment_effect") == "manual_go_recorded_but_not_deployed"
+        and by_type.get("manual_deployment_go", {}).get("exam_deployment_status") == "not_cleared",
+        "summary_preserves_not_cleared_boundary": summary.get("public_safety_status") == "pass"
+        and summary.get("gate_summary", {}).get("exam_deployment_status") == "not_cleared"
+        and summary.get("gate_summary", {}).get("exam_deployment_requires_manual_switch") is True,
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    payload = {
+        "sections": sections,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "blocked_claims": [
+            "raw written decision storage",
+            "personal contact data storage",
+            "deployment switch",
+            "automatic gate change",
+            "public raw course text release",
+            "exam deployment",
+            "official grading",
+            "proctoring",
+            "KI-detection evidence",
+        ],
+    }
+    scan = scan_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        "external-decision-record-journal-release-claim-alignment",
+    )
+    status = "ready" if not missing_source_card_ids and not failed_contract_ids and scan["status"] == "pass" else "needs_review"
+    return {
+        "schema_version": EXTERNAL_DECISION_JOURNAL_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "contracts": contracts,
+        "record_count": len(records),
+        "record_types": sorted(str(event.get("record_type")) for event in events if event.get("record_type")),
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "blocked_claims": payload["blocked_claims"],
+        "public_safety_status": scan["status"],
+        "policy": (
+            "External decision record journals are local hash/status evidence only; validated records can inform "
+            "human review, but they do not store raw decisions, switch deployment, authorize grading/proctoring/KI "
+            "detection, or clear exam use by themselves."
+        ),
+    }
 
 
 def resolve_external_decision_journal_path(path: str | Path | None = None) -> Path:
