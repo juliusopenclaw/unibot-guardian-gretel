@@ -1459,7 +1459,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "stakeholder_decision_request_local_cycle_workspace_card_packet_link_alignment",
             "priority": 77,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link stakeholder decision request packet and receipt-template metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving request/packet hashes and workspace-card prefill evidence, no raw written-decision/contact data publication, no automatic external send or approval claim, no grading/proctoring/KI-detection, and no exam clearance claims.",
             "allowed_files": [
                 "unibot/decision_request.py",
@@ -1469,6 +1469,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_decision_request.py tests/test_unibot_readiness.py -q"],
             "review_gate": "stakeholder_decision_request_local_cycle_workspace_card_packet_link_traceability",
+            "closure_evidence": {
+                "commit": "2809248",
+                "summary": "Stakeholder decision request release-claim alignment now links request packet and receipt-template hashes to the harnessed local-cycle operator workspace-card readiness gate, preserves request/receipt-template and ready-for-prefill metadata, and blocks raw written-decision/contact data publication, automatic external sends or approval claims, grading, proctoring, KI-detection, and exam clearance claims.",
+            },
+        },
+        {
+            "work_id": "stakeholder_submission_bundle_local_cycle_workspace_card_lane_link_alignment",
+            "priority": 78,
+            "status": "ready",
+            "goal": "Link stakeholder submission bundle decision-lane and evidence-summary metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving lane/evidence hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no external send or approval claim, no grading/proctoring/KI-detection, and no exam clearance/deployment claims.",
+            "allowed_files": [
+                "unibot/submission.py",
+                "tests/test_unibot_submission.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_submission.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "stakeholder_submission_bundle_local_cycle_workspace_card_lane_link_traceability",
         },
     ]
 
