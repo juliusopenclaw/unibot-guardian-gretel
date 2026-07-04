@@ -57,16 +57,24 @@ contract change.
 
 ## Current Work Queue
 
-- `source_card_drift_guard_local_cycle_workspace_card_source_link_alignment` is
-  ready. It should link source-card drift-guard coverage and required
-  public-source metadata with the harnessed local-cycle operator workspace-card
-  readiness gate, preserving source-card/drift hashes and workspace-card
-  prefill evidence, no raw private course text/contact data/local path
-  publication, no provider call/autonomous publication, no legal/approval or
+- `readiness_evidence_snapshot_local_cycle_workspace_card_snapshot_link_alignment`
+  is ready. It should link readiness evidence snapshot status and
+  scientific-gate metadata with the harnessed local-cycle operator
+  workspace-card readiness gate, preserving snapshot/scientific-gate hashes and
+  workspace-card prefill evidence, no raw private course text/contact data/local
+  path publication, no provider call/autonomous publication, no approval or
   exam-clearance claim, no grading/proctoring/KI-detection, and no exam
   deployment claims.
 
 ## Closed Harnessed Work
+
+- `source_card_drift_guard_local_cycle_workspace_card_source_link_alignment`:
+  closed in `f2efef7` with source-card corpus and drift-report hashes linked to
+  the harnessed local-cycle operator workspace-card readiness gate,
+  source/drift and ready-for-prefill metadata, and blocked raw private course
+  text/contact data/local path publication, provider calls, autonomous
+  publication, legal/approval or exam-clearance claims, grading, proctoring,
+  KI-detection, and exam deployment claims.
 
 - `gretel_glm_evolve_lane_local_cycle_workspace_card_glm_link_alignment`:
   closed in `89b774a` with GLM proposal-packet and provider-lock hashes linked

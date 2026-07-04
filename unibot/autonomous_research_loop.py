@@ -1603,7 +1603,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "source_card_drift_guard_local_cycle_workspace_card_source_link_alignment",
             "priority": 85,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link source-card drift-guard coverage and required public-source metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving source-card/drift hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no provider call/autonomous publication, no legal/approval/exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/source_cards.py",
@@ -1613,6 +1613,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_source_cards.py tests/test_unibot_readiness.py -q"],
             "review_gate": "source_card_drift_guard_local_cycle_workspace_card_source_link_traceability",
+            "closure_evidence": {
+                "commit": "f2efef7",
+                "summary": "Source-card release-review-board claim alignment now links source-card corpus and drift-report hashes to the harnessed local-cycle operator workspace-card readiness gate, preserves source/drift and ready-for-prefill metadata, and blocks raw private course text/contact data/local path publication, provider calls, autonomous publication, legal/approval or exam-clearance claims, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "readiness_evidence_snapshot_local_cycle_workspace_card_snapshot_link_alignment",
+            "priority": 86,
+            "status": "ready",
+            "goal": "Link readiness evidence snapshot status and scientific-gate metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving snapshot/scientific-gate hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no provider call/autonomous publication, no approval/exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/readiness.py",
+                "tests/test_unibot_readiness.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "tests/test_unibot_autonomous_research_loop.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_readiness.py tests/test_unibot_autonomous_research_loop.py -q"],
+            "review_gate": "readiness_evidence_snapshot_local_cycle_workspace_card_snapshot_link_traceability",
         },
     ]
 
