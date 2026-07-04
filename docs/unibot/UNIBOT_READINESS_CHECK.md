@@ -175,8 +175,11 @@ deployment.
 The notebook-checkpoint gate carries
 `unibot-notebook-checkpoint-release-review-board-claim-alignment-v1`. It turns
 local notebook cell work into hash-only checkpoint evidence and can write a
-checkpoint journal event only with operator confirmation. It does not return
-raw cell text, notebook code, local paths, final solutions, grades, proctoring,
+checkpoint journal event only with operator confirmation. It now also links
+the checkpoint hash to the harnessed local-cycle operator workspace-card
+readiness gate, preserving ready-for-prefill metadata and Help-Ledger-preview
+hashes without exposing the raw workspace card. It does not return raw cell
+text, notebook code, local paths, final solutions, grades, proctoring,
 AI-detection evidence, Eigenleistung percentages, or exam clearance.
 
 The exam-workspace launch gate carries

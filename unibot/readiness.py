@@ -1472,6 +1472,25 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "exam_deployment_status": notebook_checkpoint_alignment["exam_deployment_status"],
                 "study_receipt_status": notebook_checkpoint_alignment["study_receipt_status"],
                 "checkpoint_hash_present": notebook_checkpoint_alignment["checkpoint_hash_present"],
+                "workspace_card_status": notebook_checkpoint_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": notebook_checkpoint_alignment[
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": notebook_checkpoint_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": notebook_checkpoint_alignment[
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": notebook_checkpoint_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": notebook_checkpoint_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_checkpoint_gate_linked": notebook_checkpoint_alignment[
+                    "workspace_card_checkpoint_gate_linked"
+                ],
                 "checkpoint_journal_status": notebook_checkpoint_alignment["checkpoint_journal_status"],
                 "checkpoint_journal_written": notebook_checkpoint_alignment["checkpoint_journal_written"],
                 "repeat_receipt_status": notebook_checkpoint_alignment["repeat_receipt_status"],
@@ -1479,6 +1498,10 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "release_claim_alignment_human_gates": notebook_checkpoint_alignment["required_human_gates"],
                 "study_session_claim_linked": (
                     "study_session" in notebook_checkpoint_alignment["required_readiness_check_ids"]
+                ),
+                "workspace_card_readiness_gate_claim_linked": (
+                    "python_exam_local_cycle_operator_workspace_card"
+                    in notebook_checkpoint_alignment["required_readiness_check_ids"]
                 ),
                 "private_tutor_use_flow_claim_linked": (
                     "private_tutor_use_flow" in notebook_checkpoint_alignment["required_readiness_check_ids"]
@@ -1514,6 +1537,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 ],
                 "a6_or_final_solution_forces_repeat": notebook_checkpoint_alignment["contracts"][
                     "a6_or_final_solution_forces_repeat"
+                ],
+                "workspace_card_checkpoint_gate_linked_contract": notebook_checkpoint_alignment["contracts"][
+                    "workspace_card_checkpoint_gate_linked"
                 ],
                 "public_outputs_hide_private_notebook_data": notebook_checkpoint_alignment["contracts"][
                     "public_outputs_hide_private_notebook_data"
