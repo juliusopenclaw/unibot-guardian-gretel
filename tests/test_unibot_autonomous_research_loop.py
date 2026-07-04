@@ -1216,7 +1216,13 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         )
         self.assertEqual(
             by_id["course_exam_coverage_dashboard_local_cycle_workspace_card_dashboard_link_alignment"]["status"],
-            "ready",
+            "closed_harnessed",
+        )
+        self.assertEqual(
+            by_id["course_exam_coverage_dashboard_local_cycle_workspace_card_dashboard_link_alignment"][
+                "closure_evidence"
+            ]["commit"],
+            "624fde3",
         )
         self.assertEqual(
             by_id["course_exam_coverage_dashboard_local_cycle_workspace_card_dashboard_link_alignment"]["review_gate"],
@@ -1227,10 +1233,22 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             by_id["course_exam_coverage_dashboard_local_cycle_workspace_card_dashboard_link_alignment"]["allowed_files"],
         )
         self.assertEqual(
-            loop["next_recommended_work_id"],
-            "course_exam_coverage_dashboard_local_cycle_workspace_card_dashboard_link_alignment",
+            by_id["material_coverage_run_local_cycle_workspace_card_coverage_link_alignment"]["status"],
+            "ready",
         )
-        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 97)
+        self.assertEqual(
+            by_id["material_coverage_run_local_cycle_workspace_card_coverage_link_alignment"]["review_gate"],
+            "material_coverage_run_local_cycle_workspace_card_coverage_link_traceability",
+        )
+        self.assertIn(
+            "unibot/material_coverage_run.py",
+            by_id["material_coverage_run_local_cycle_workspace_card_coverage_link_alignment"]["allowed_files"],
+        )
+        self.assertEqual(
+            loop["next_recommended_work_id"],
+            "material_coverage_run_local_cycle_workspace_card_coverage_link_alignment",
+        )
+        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 98)
         self.assertEqual(loop["receipt"]["ready_work_items"], 1)
         self.assertLessEqual(loop["budget_policy"]["cadence"]["max_active_work_item_per_run"], 1)
         for item in queue:
@@ -1247,9 +1265,9 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("Default reasoning effort: low", markdown)
         self.assertIn("Workspace-card gate linked: True", markdown)
         self.assertIn("Autonomous GitHub push: False", markdown)
-        self.assertIn("Closed harnessed items: 97", markdown)
+        self.assertIn("Closed harnessed items: 98", markdown)
         self.assertIn(
-            "Next recommended work: course_exam_coverage_dashboard_local_cycle_workspace_card_dashboard_link_alignment",
+            "Next recommended work: material_coverage_run_local_cycle_workspace_card_coverage_link_alignment",
             markdown,
         )
 

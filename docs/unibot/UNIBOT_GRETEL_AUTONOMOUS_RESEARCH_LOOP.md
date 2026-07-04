@@ -64,17 +64,27 @@ artifacts.
 
 ## Current Work Queue
 
-- `course_exam_coverage_dashboard_local_cycle_workspace_card_dashboard_link_alignment`
-  is ready. It should link UniBot course exam coverage dashboard skill
-  readiness rows, coverage receipt hashes, checkpoint/open-confirmation counts,
-  and no-clearance/local-write boundary with the harnessed local-cycle operator
-  workspace-card readiness gate, preserving dashboard/receipt hashes and
+- `material_coverage_run_local_cycle_workspace_card_coverage_link_alignment`
+  is ready. It should link UniBot material coverage run skill coverage rows,
+  coverage receipt hashes, source/notebook/OCR/video gap counts, and
+  no-clearance/local-write boundary with the harnessed local-cycle operator
+  workspace-card readiness gate, preserving coverage/receipt hashes and
   workspace-card prefill evidence, no raw private course text/contact data/local
   path publication, no provider call/autonomous publication, no approval or
   exam-clearance claim, no grading/proctoring/KI-detection, and no exam
   deployment claims.
 
 ## Closed Harnessed Work
+
+- `course_exam_coverage_dashboard_local_cycle_workspace_card_dashboard_link_alignment`:
+  closed in `624fde3` with UniBot course exam coverage dashboard skill
+  readiness rows, coverage receipt hashes, checkpoint/open-confirmation counts,
+  local-write boundary, and no-clearance deployment line linked to the
+  harnessed local-cycle operator workspace-card readiness gate,
+  dashboard/receipt and ready-for-prefill metadata, and blocked raw private
+  course text/contact data/local path publication, provider calls, autonomous
+  publication, approval or exam-clearance claims, grading, proctoring,
+  KI-detection, and exam deployment claims.
 
 - `course_per_skill_action_router_local_cycle_workspace_card_route_link_alignment`:
   closed in `e5e4e42` with UniBot per-skill action router selected route

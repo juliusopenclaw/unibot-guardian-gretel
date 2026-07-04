@@ -1852,7 +1852,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "course_exam_coverage_dashboard_local_cycle_workspace_card_dashboard_link_alignment",
             "priority": 98,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link UniBot course exam coverage dashboard skill readiness rows, coverage receipt hashes, checkpoint/open-confirmation counts, and no-clearance/local-write boundary with the harnessed local-cycle operator workspace-card readiness gate, preserving dashboard/receipt hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no provider call/autonomous publication, no approval or exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/course_exam_coverage_dashboard.py",
@@ -1864,6 +1864,26 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
                 "python3 -m pytest tests/test_unibot_course_exam_coverage_dashboard.py tests/test_unibot_readiness.py -q"
             ],
             "review_gate": "course_exam_coverage_dashboard_local_cycle_workspace_card_dashboard_link_traceability",
+            "closure_evidence": {
+                "commit": "624fde3",
+                "summary": "UniBot course exam coverage dashboard skill readiness rows, coverage receipt hashes, checkpoint/open-confirmation counts, local-write boundary, and no-clearance deployment line now link to the harnessed local-cycle operator workspace-card readiness gate, preserving dashboard/receipt and ready-for-prefill metadata, and blocking raw private course text/contact data/local path publication, provider calls, autonomous publication, approval or exam-clearance claims, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "material_coverage_run_local_cycle_workspace_card_coverage_link_alignment",
+            "priority": 99,
+            "status": "ready",
+            "goal": "Link UniBot material coverage run skill coverage rows, coverage receipt hashes, source/notebook/OCR/video gap counts, and no-clearance/local-write boundary with the harnessed local-cycle operator workspace-card readiness gate, preserving coverage/receipt hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no provider call/autonomous publication, no approval or exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/material_coverage_run.py",
+                "tests/test_unibot_material_coverage_run.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": [
+                "python3 -m pytest tests/test_unibot_material_coverage_run.py tests/test_unibot_readiness.py -q"
+            ],
+            "review_gate": "material_coverage_run_local_cycle_workspace_card_coverage_link_traceability",
         },
     ]
 
