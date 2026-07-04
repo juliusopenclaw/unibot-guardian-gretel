@@ -56,6 +56,7 @@ It aggregates:
 - Python exam local-cycle readiness-handoff and operator-prefill alignment
 - Python exam local-cycle operator workspace-card and help-ledger-preview alignment
 - Gretel/GLM proposal lane
+- Gretel autonomous research loop and workspace-card budget/receipt alignment
 - exam boundary check
 
 `public_draft_ready` means the separate UniBot package is suitable for public
@@ -72,6 +73,14 @@ exposing raw private course text, provider prompts, contact data, local paths,
 autonomous apply/publication, approval or exam-clearance claims, grading,
 proctoring, KI-detection evidence, exam deployment claims, or the raw workspace
 card.
+
+The Gretel autonomous research loop is ready only when it remains budgeted,
+local, public-safe, and no-provider-call by default. Its workspace-card budget
+alignment links budget/cadence and next-work receipt hashes to the harnessed
+local-cycle operator workspace-card readiness gate without exposing raw private
+course text, contact data, local paths, autonomous publication, provider calls,
+approval or exam-clearance claims, grading, proctoring, KI-detection evidence,
+exam deployment claims, or the raw workspace card.
 
 The Gretel bachelor-thesis package carries
 `unibot-gretel-thesis-evaluation-claim-alignment-v1`. This contract keeps

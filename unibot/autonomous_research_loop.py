@@ -10,6 +10,9 @@ from .public_safety import scan_text
 
 AUTONOMY_SCHEMA_VERSION = "unibot-gretel-autonomous-research-loop-v1"
 AUTONOMY_MARKDOWN_TITLE = "UniBot Gretel Autonomous Research Loop"
+AUTONOMOUS_LOOP_WORKSPACE_CARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-autonomous-research-loop-workspace-card-budget-alignment-v1"
+)
 
 
 def build_unibot_intent_contract() -> dict[str, Any]:
@@ -1690,6 +1693,7 @@ def build_autonomous_research_loop() -> dict[str, Any]:
         },
     }
     payload["receipt"] = build_autonomous_loop_receipt(payload)
+    payload["workspace_card_budget_alignment"] = build_autonomous_loop_workspace_card_alignment(payload)
     scan = scan_text(json.dumps(payload, ensure_ascii=False), "unibot-gretel-autonomous-research-loop")
     payload["public_safety_status"] = scan["status"]
     if scan["status"] != "pass":
@@ -1713,6 +1717,227 @@ def build_autonomous_loop_receipt(payload: dict[str, Any]) -> dict[str, Any]:
         "autonomous_github_push": False,
         "human_review_required_for_publication": True,
     }
+
+
+def autonomous_loop_budget_hash(loop: dict[str, Any]) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            {
+                "status": loop.get("status", ""),
+                "budget_policy": loop.get("budget_policy", {}),
+                "run_protocol": loop.get("run_protocol", []),
+                "completion_policy": loop.get("completion_policy", ""),
+                "always_use_standards": loop.get("intent_contract", {}).get("always_use_standards", []),
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def autonomous_loop_receipt_hash(loop: dict[str, Any]) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            {
+                "status": loop.get("status", ""),
+                "receipt": loop.get("receipt", {}),
+                "next_recommended_work_id": loop.get("next_recommended_work_id", ""),
+                "safety": loop.get("safety", {}),
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def synthetic_autonomous_loop_workspace_card() -> dict[str, Any]:
+    preview_hash = hashlib.sha256(b"synthetic autonomous loop workspace card").hexdigest()
+    return {
+        "schema_version": "unibot-python-exam-local-cycle-operator-workspace-card-v1",
+        "artifact_type": "python_exam_local_cycle_operator_workspace_card",
+        "status": "python_exam_local_cycle_operator_workspace_card_ready",
+        "selected_skill_tag": "pandas",
+        "exam_deployment_status": "not_cleared",
+        "not_cleared_receipt": True,
+        "workspace_card_summary": {
+            "recommendation": "ready_for_operator_prefill",
+            "recommendation_reason": "synthetic autonomous-loop budget prerequisites are satisfied",
+            "ready_for_operator_prefill": True,
+            "help_ledger_preview_status": "help_ledger_preview_ready",
+            "selected_skill_tag": "pandas",
+            "next_safe_action": "review_autonomous_loop_budget_hashes_before_workspace_prefill",
+            "next_safe_user_action": "review_hash_only_loop_budget_receipt_before_public_claim_use",
+            "operator_run_endpoint": "/api/unibot/exam-workspace/operator-run",
+            "operator_run_method": "POST",
+            "help_level": "A2",
+            "task_hash": "__AUTONOMOUS_LOOP_RECEIPT_HASH__",
+            "checkpoint_hash": "__AUTONOMOUS_LOOP_BUDGET_HASH__",
+            "source_card_ids": ["dfg-gwp", "gdpr-2016-679", "zai-glm-52"],
+            "source_anchor_count": 3,
+            "help_ledger_preview_hash": preview_hash,
+        },
+        "help_ledger_preview": {
+            "status": "help_ledger_preview_ready",
+            "help_level": "A2",
+            "preview_hash": preview_hash,
+        },
+    }
+
+
+def safe_autonomous_loop_workspace_card(
+    workspace_card: dict[str, Any],
+    *,
+    autonomous_budget_hash: str = "",
+    autonomous_receipt_hash: str = "",
+) -> dict[str, Any]:
+    summary = workspace_card.get("workspace_card_summary", {}) if isinstance(workspace_card.get("workspace_card_summary"), dict) else {}
+    ledger = workspace_card.get("help_ledger_preview", {}) if isinstance(workspace_card.get("help_ledger_preview"), dict) else {}
+    if not summary and (
+        workspace_card.get("help_ledger_preview_hash") is not None
+        or workspace_card.get("ready_for_operator_prefill") is not None
+        or workspace_card.get("help_ledger_preview_status") is not None
+    ):
+        summary = workspace_card
+    checkpoint_hash = str(summary.get("checkpoint_hash", ""))
+    task_hash = str(summary.get("task_hash", ""))
+    if autonomous_budget_hash and checkpoint_hash == "__AUTONOMOUS_LOOP_BUDGET_HASH__":
+        checkpoint_hash = autonomous_budget_hash
+    if autonomous_receipt_hash and task_hash == "__AUTONOMOUS_LOOP_RECEIPT_HASH__":
+        task_hash = autonomous_receipt_hash
+    return {
+        "status": workspace_card.get("status", "missing"),
+        "selected_skill_tag": str(summary.get("selected_skill_tag", workspace_card.get("selected_skill_tag", ""))),
+        "recommendation": str(summary.get("recommendation", "keep_blocked")),
+        "recommendation_reason": str(summary.get("recommendation_reason", "missing_autonomous_loop_budget_gate")),
+        "ready_for_operator_prefill": bool(summary.get("ready_for_operator_prefill", False)),
+        "help_ledger_preview_status": str(summary.get("help_ledger_preview_status", ledger.get("status", "missing"))),
+        "next_safe_action": str(summary.get("next_safe_action", "")),
+        "next_safe_user_action": str(summary.get("next_safe_user_action", "")),
+        "operator_run_endpoint": str(summary.get("operator_run_endpoint", "")),
+        "operator_run_method": str(summary.get("operator_run_method", "POST")),
+        "help_level": str(summary.get("help_level", ledger.get("help_level", "A2"))),
+        "task_hash": task_hash,
+        "checkpoint_hash": checkpoint_hash,
+        "source_card_ids": [str(item) for item in (summary.get("source_card_ids", []) or [])][:8],
+        "source_anchor_count": int(summary.get("source_anchor_count", 0) or 0),
+        "help_ledger_preview_hash": str(summary.get("help_ledger_preview_hash", ledger.get("preview_hash", ""))),
+        "not_cleared_receipt": bool(workspace_card.get("not_cleared_receipt", True)),
+        "exam_deployment_status": "not_cleared",
+        "raw_workspace_card_returned": False,
+    }
+
+
+def build_autonomous_loop_workspace_card_alignment(
+    loop: dict[str, Any] | None = None,
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    loop = loop if isinstance(loop, dict) else {}
+    budget_hash = autonomous_loop_budget_hash(loop)
+    receipt_hash = autonomous_loop_receipt_hash(loop)
+    workspace_card = safe_autonomous_loop_workspace_card(
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else synthetic_autonomous_loop_workspace_card(),
+        autonomous_budget_hash=budget_hash,
+        autonomous_receipt_hash=receipt_hash,
+    )
+    cadence = loop.get("budget_policy", {}).get("cadence", {})
+    token_policy = loop.get("budget_policy", {}).get("token_policy", {})
+    receipt = loop.get("receipt", {})
+    safety = loop.get("safety", {})
+    required_readiness_check_ids = [
+        "gretel_autonomous_research_loop",
+        "python_exam_local_cycle_operator_workspace_card",
+        "source_card_drift_guard",
+        "readiness_evidence_snapshot",
+    ]
+    workspace_card_readiness_gate_linked = (
+        workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and workspace_card.get("help_ledger_preview_hash") != ""
+        and workspace_card.get("exam_deployment_status") == "not_cleared"
+        and workspace_card.get("not_cleared_receipt") is True
+        and workspace_card.get("raw_workspace_card_returned") is False
+    )
+    contracts = {
+        "loop_budget_policy_ready": loop.get("status") == "ready_for_budgeted_recurring_local_runs"
+        and cadence.get("recommended_cron") == "every_6_hours"
+        and cadence.get("max_active_work_item_per_run") == 1
+        and token_policy.get("default_reasoning_effort") == "low",
+        "loop_receipt_ready": receipt.get("ready_work_items", 0) <= cadence.get("max_active_work_item_per_run", 0)
+        and receipt.get("closed_harnessed_work_items", 0) >= 1
+        and receipt.get("next_recommended_work_id") == loop.get("next_recommended_work_id", ""),
+        "loop_safety_no_external_effects": safety.get("provider_call_executed") is False
+        and safety.get("autonomous_github_push") is False
+        and safety.get("mail_calendar_chat_actions") is False
+        and safety.get("final_go") is False,
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_autonomous_loop_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("checkpoint_hash") == budget_hash
+        and workspace_card.get("task_hash") == receipt_hash,
+        "workspace_card_public_metadata_only": workspace_card.get("raw_workspace_card_returned") is False,
+        "high_stakes_boundaries_blocked": workspace_card.get("exam_deployment_status") == "not_cleared",
+    }
+    alignment = {
+        "schema_version": AUTONOMOUS_LOOP_WORKSPACE_CARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": "ready",
+        "budget_hash": budget_hash,
+        "receipt_hash": receipt_hash,
+        "recommended_cron": cadence.get("recommended_cron", ""),
+        "max_active_work_item_per_run": cadence.get("max_active_work_item_per_run", 0),
+        "default_reasoning_effort": token_policy.get("default_reasoning_effort", ""),
+        "ready_work_items": receipt.get("ready_work_items", 0),
+        "closed_harnessed_work_items": receipt.get("closed_harnessed_work_items", 0),
+        "next_recommended_work_id": loop.get("next_recommended_work_id", ""),
+        "required_readiness_check_ids": required_readiness_check_ids,
+        "required_human_gates": [
+            "human_review_required",
+            "public_safety_required",
+            "university_submission_requires_human_review",
+            "provider_call_requires_explicit_go_and_redaction_receipt",
+            "exam_clearance_requires_written_authority_clearance",
+        ],
+        "blocked_claims": [
+            "raw private course text publication",
+            "contact data publication",
+            "local path publication",
+            "provider call",
+            "autonomous publication",
+            "approval claim",
+            "exam clearance claim",
+            "grading",
+            "proctoring",
+            "KI-detection evidence",
+            "exam deployment",
+        ],
+        "contracts": contracts,
+        "failed_contract_ids": sorted(contract_id for contract_id, passed in contracts.items() if not passed),
+        "workspace_card_status": workspace_card["status"],
+        "workspace_card_selected_skill_tag": workspace_card["selected_skill_tag"],
+        "workspace_card_ready_for_operator_prefill": workspace_card["ready_for_operator_prefill"],
+        "workspace_card_help_ledger_status": workspace_card["help_ledger_preview_status"],
+        "workspace_card_help_ledger_hash_present": workspace_card["help_ledger_preview_hash"] != "",
+        "workspace_card_operator_prefill_hash_present": workspace_card["task_hash"] != ""
+        and workspace_card["checkpoint_hash"] != "",
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_autonomous_loop_gate_linked": contracts["workspace_card_autonomous_loop_gate_linked"],
+        "workspace_card_readiness_gate_claim_linked": "python_exam_local_cycle_operator_workspace_card"
+        in required_readiness_check_ids,
+        "raw_workspace_card_returned": workspace_card["raw_workspace_card_returned"],
+        "public_language": (
+            "Autonomous-loop claims are hash-only review aids for cadence, budget, receipt, and safety state; "
+            "they do not authorize public release, provider calls, university submission, or exam use."
+        ),
+    }
+    if alignment["failed_contract_ids"]:
+        alignment["status"] = "blocked"
+    scan = scan_text(json.dumps(alignment, ensure_ascii=False), "autonomous-loop-workspace-card-budget-alignment")
+    alignment["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        alignment["status"] = "blocked"
+        alignment["public_safety_findings"] = scan["findings"]
+    return alignment
 
 
 def build_autonomous_research_markdown() -> str:
@@ -1745,6 +1970,11 @@ def build_autonomous_research_markdown() -> str:
         f"- Cadence: {loop['budget_policy']['cadence']['recommended_cron']}\n"
         f"- Default reasoning effort: {loop['budget_policy']['token_policy']['default_reasoning_effort']}\n"
         f"- Max active work item per run: {loop['budget_policy']['cadence']['max_active_work_item_per_run']}\n\n"
+        "## Workspace-Card Budget Alignment\n\n"
+        f"- Status: {loop['workspace_card_budget_alignment']['status']}\n"
+        f"- Budget hash: {loop['workspace_card_budget_alignment']['budget_hash']}\n"
+        f"- Receipt hash: {loop['workspace_card_budget_alignment']['receipt_hash']}\n"
+        f"- Workspace-card gate linked: {loop['workspace_card_budget_alignment']['workspace_card_autonomous_loop_gate_linked']}\n\n"
         "## Blocked Autonomous Actions\n\n"
         f"{blocked_lines}\n\n"
         "## Work Queue\n\n"

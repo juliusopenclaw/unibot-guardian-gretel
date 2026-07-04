@@ -3936,22 +3936,68 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             "passed": autonomous_research_loop["status"] == "ready_for_budgeted_recurring_local_runs"
             and autonomous_research_loop["public_safety_status"] == "pass"
             and autonomous_research_loop_scan["status"] == "pass"
+            and autonomous_research_loop["workspace_card_budget_alignment"]["status"] == "ready"
+            and autonomous_research_loop["workspace_card_budget_alignment"]["public_safety_status"] == "pass"
+            and autonomous_research_loop["workspace_card_budget_alignment"]["failed_contract_ids"] == []
             and autonomous_research_loop["budget_policy"]["cadence"]["recommended_cron"] == "every_6_hours"
             and autonomous_research_loop["budget_policy"]["token_policy"]["default_reasoning_effort"] == "low"
             and autonomous_research_loop["budget_policy"]["cadence"]["max_active_work_item_per_run"] == 1
             and autonomous_research_loop["safety"]["provider_call_executed"] is False
             and autonomous_research_loop["safety"]["autonomous_github_push"] is False
             and autonomous_research_loop["safety"]["mail_calendar_chat_actions"] is False
-            and autonomous_research_loop["safety"]["final_go"] is False,
+            and autonomous_research_loop["safety"]["final_go"] is False
+            and autonomous_research_loop["workspace_card_budget_alignment"][
+                "workspace_card_readiness_gate_linked"
+            ]
+            is True
+            and autonomous_research_loop["workspace_card_budget_alignment"][
+                "workspace_card_autonomous_loop_gate_linked"
+            ]
+            is True
+            and autonomous_research_loop["workspace_card_budget_alignment"]["raw_workspace_card_returned"] is False,
             "evidence": {
                 "status": autonomous_research_loop["status"],
                 "public_safety_status": autonomous_research_loop["public_safety_status"],
                 "scan_status": autonomous_research_loop_scan["status"],
+                "workspace_card_budget_alignment_status": autonomous_research_loop[
+                    "workspace_card_budget_alignment"
+                ]["status"],
+                "workspace_card_budget_alignment_public_safety_status": autonomous_research_loop[
+                    "workspace_card_budget_alignment"
+                ]["public_safety_status"],
                 "recommended_cron": autonomous_research_loop["budget_policy"]["cadence"]["recommended_cron"],
                 "default_reasoning_effort": autonomous_research_loop["budget_policy"]["token_policy"]["default_reasoning_effort"],
                 "ready_work_items": autonomous_research_loop["receipt"]["ready_work_items"],
                 "candidate_work_items": autonomous_research_loop["receipt"]["candidate_work_items"],
+                "closed_harnessed_work_items": autonomous_research_loop["receipt"]["closed_harnessed_work_items"],
                 "autonomous_github_push": autonomous_research_loop["safety"]["autonomous_github_push"],
+                "workspace_card_status": autonomous_research_loop["workspace_card_budget_alignment"][
+                    "workspace_card_status"
+                ],
+                "workspace_card_selected_skill_tag": autonomous_research_loop["workspace_card_budget_alignment"][
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": autonomous_research_loop[
+                    "workspace_card_budget_alignment"
+                ]["workspace_card_ready_for_operator_prefill"],
+                "workspace_card_help_ledger_status": autonomous_research_loop["workspace_card_budget_alignment"][
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": autonomous_research_loop[
+                    "workspace_card_budget_alignment"
+                ]["workspace_card_help_ledger_hash_present"],
+                "workspace_card_readiness_gate_linked": autonomous_research_loop[
+                    "workspace_card_budget_alignment"
+                ]["workspace_card_readiness_gate_linked"],
+                "workspace_card_autonomous_loop_gate_linked": autonomous_research_loop[
+                    "workspace_card_budget_alignment"
+                ]["workspace_card_autonomous_loop_gate_linked"],
+                "workspace_card_readiness_gate_claim_linked": autonomous_research_loop[
+                    "workspace_card_budget_alignment"
+                ]["workspace_card_readiness_gate_claim_linked"],
+                "raw_workspace_card_returned": autonomous_research_loop["workspace_card_budget_alignment"][
+                    "raw_workspace_card_returned"
+                ],
             },
         },
         {

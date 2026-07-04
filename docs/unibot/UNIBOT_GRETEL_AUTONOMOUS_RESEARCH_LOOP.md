@@ -45,6 +45,13 @@ Default reasoning effort should stay low. Escalation is allowed only for a
 bounded failing test, a failing public-safety/readiness gate, or an API/release
 contract change.
 
+The loop also carries a workspace-card budget alignment. Budget/cadence,
+next-work receipt, safety flags, and the local-cycle operator workspace-card
+readiness gate are linked through hash-only metadata. This proves the recurring
+loop is bounded and ready for operator prefill without exposing raw workspace
+data, private course text, contact data, local paths, provider prompts, or exam
+artifacts.
+
 ## Blocked Autonomous Actions
 
 - No autonomous GitHub push or public release.

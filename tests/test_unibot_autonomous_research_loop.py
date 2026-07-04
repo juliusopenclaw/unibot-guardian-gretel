@@ -10,9 +10,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from unibot.autonomous_research_loop import (  # noqa: E402
+    autonomous_loop_budget_hash,
+    autonomous_loop_receipt_hash,
     build_autonomous_research_loop,
+    build_autonomous_loop_workspace_card_alignment,
     build_autonomous_research_markdown,
     build_unibot_intent_contract,
+    synthetic_autonomous_loop_workspace_card,
 )
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
@@ -50,6 +54,52 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("publish or push to GitHub without explicit human review", loop["budget_policy"]["blocked_autonomous_actions"])
         self.assertNotIn("/" + "Users/", payload)
         self.assertNotIn("api" + "_key", payload.lower())
+
+    def test_autonomous_loop_workspace_card_alignment_links_budget_and_receipt(self) -> None:
+        loop = build_autonomous_research_loop()
+        alignment = loop["workspace_card_budget_alignment"]
+
+        self.assertEqual(alignment["schema_version"], "unibot-autonomous-research-loop-workspace-card-budget-alignment-v1")
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertEqual(alignment["budget_hash"], autonomous_loop_budget_hash(loop))
+        self.assertEqual(alignment["receipt_hash"], autonomous_loop_receipt_hash(loop))
+        self.assertEqual(alignment["recommended_cron"], "every_6_hours")
+        self.assertEqual(alignment["max_active_work_item_per_run"], 1)
+        self.assertEqual(alignment["default_reasoning_effort"], "low")
+        self.assertEqual(alignment["ready_work_items"], 1)
+        self.assertGreaterEqual(alignment["closed_harnessed_work_items"], 1)
+        self.assertIn("gretel_autonomous_research_loop", alignment["required_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertTrue(alignment["workspace_card_operator_prefill_hash_present"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_autonomous_loop_gate_linked"])
+        self.assertFalse(alignment["raw_workspace_card_returned"])
+        self.assertIn("exam deployment", alignment["blocked_claims"])
+
+    def test_autonomous_loop_hash_helpers_separate_budget_and_receipt_state(self) -> None:
+        loop = build_autonomous_research_loop()
+
+        self.assertEqual(len(autonomous_loop_budget_hash(loop)), 64)
+        self.assertEqual(len(autonomous_loop_receipt_hash(loop)), 64)
+        self.assertNotEqual(autonomous_loop_budget_hash(loop), autonomous_loop_receipt_hash(loop))
+
+    def test_autonomous_loop_workspace_card_alignment_rejects_unlinked_hashes(self) -> None:
+        loop = build_autonomous_research_loop()
+        workspace_card = synthetic_autonomous_loop_workspace_card()
+        workspace_card["workspace_card_summary"]["checkpoint_hash"] = "wrong-budget-hash"
+        workspace_card["workspace_card_summary"]["task_hash"] = "wrong-receipt-hash"
+
+        alignment = build_autonomous_loop_workspace_card_alignment(loop, workspace_card)
+
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertIn("workspace_card_autonomous_loop_gate_linked", alignment["failed_contract_ids"])
+        self.assertFalse(alignment["workspace_card_autonomous_loop_gate_linked"])
+        self.assertFalse(alignment["raw_workspace_card_returned"])
 
     def test_work_queue_is_small_testable_and_harnessed(self) -> None:
         loop = build_autonomous_research_loop()
@@ -999,6 +1049,7 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("# UniBot Gretel Autonomous Research Loop", markdown)
         self.assertIn("Public safety: pass", markdown)
         self.assertIn("Default reasoning effort: low", markdown)
+        self.assertIn("Workspace-card gate linked: True", markdown)
         self.assertIn("Autonomous GitHub push: False", markdown)
         self.assertIn("Closed harnessed items: 86", markdown)
         self.assertIn(
