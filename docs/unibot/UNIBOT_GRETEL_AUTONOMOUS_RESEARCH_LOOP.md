@@ -57,11 +57,11 @@ contract change.
 
 ## Current Work Queue
 
-- `python_exam_local_cycle_operator_workspace_card_release_review_board_claim_alignment`
-  is ready. It should align the Python exam local-cycle operator workspace card
-  with readiness-review/handoff evidence, operator prefill metadata,
-  source-card/hash metadata, no raw notebook/query publication, no
-  grading/proctoring, no KI-detection, and no exam deployment claims.
+- `exam_workspace_session_console_local_cycle_workspace_card_readiness_link_alignment`
+  is ready. It should link the exam-workspace session console release alignment
+  to the now-harnessed local-cycle operator workspace-card readiness gate,
+  preserving receipt/hash-only evidence and no raw notebook/query, grading,
+  proctoring, KI-detection, or exam deployment claims.
 
 ## Closed Harnessed Work
 
@@ -273,6 +273,10 @@ contract change.
   closed in `31fc0c8` with operator-run prefill, manual handoff,
   attention-state blocking, hash/source-card metadata, dry-run boundaries, and
   no exam deployment claims.
+- `python_exam_local_cycle_operator_workspace_card_release_review_board_claim_alignment`:
+  closed in `87abb96` with readiness-review/handoff evidence, operator
+  prefill, Help-Ledger preview, attention-state blocking, hash/source-card
+  metadata, dry-run boundaries, and no exam deployment claims.
 
 ## Automation Rule
 
