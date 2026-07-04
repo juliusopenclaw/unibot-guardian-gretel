@@ -57,10 +57,10 @@ contract change.
 
 ## Current Work Queue
 
-- `extraction_human_review_release_review_board_claim_alignment` is ready. It
-  should align extraction human-review queues and decisions with completion
-  evidence, private artifacts, source-card review, no raw text/public release,
-  no tutor indexing by review alone, and no exam deployment claims.
+- `private_tutor_use_flow_release_review_board_claim_alignment` is ready. It
+  should align the private tutor-use flow with reviewed private manifest
+  evidence, learner-agency boundaries, no public raw course text, no cloud
+  processing, and no exam deployment claims.
 
 ## Closed Harnessed Work
 
@@ -225,6 +225,10 @@ contract change.
 - `extraction_completion_release_review_board_claim_alignment`: closed in
   `19f9bfe` with reviewed receipt coverage, intentional deferral evidence,
   public-safety checks, no manifest updates, and no exam deployment claims.
+- `extraction_human_review_release_review_board_claim_alignment`: closed in
+  `0cecaf4` with hash-only local review evidence, completion links, private
+  manifest-plan boundaries, no tutor indexing by review alone, and no exam
+  deployment claims.
 
 ## Automation Rule
 
