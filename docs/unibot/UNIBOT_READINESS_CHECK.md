@@ -39,6 +39,7 @@ It aggregates:
 - external decision state and no-silent-deployment alignment
 - extraction receipt journal and hash-only evidence-ledger alignment
 - extraction progress and manifest-boundary alignment
+- extraction manifest update and private-apply boundary alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -107,6 +108,14 @@ contract keeps progress reporting public-safe and metadata-only: it can expose
 receipt counts, review queues, and private manifest-update candidates, but it
 does not expose raw extracted text, local paths, private artifact references,
 cloud-processing approval, tutor retrieval, grading, proctoring,
+KI-detection evidence, or exam deployment.
+
+The extraction manifest update plan carries
+`unibot-extraction-manifest-update-release-review-board-claim-alignment-v1`.
+This contract keeps reviewed extraction updates plan-only and private: it can
+prepare hash-backed private metadata candidates, but it does not write manifest
+files by itself, expose raw OCR text, transcripts, local source paths, public
+release permission, cloud-processing approval, grading, proctoring,
 KI-detection evidence, or exam deployment.
 
 ## Source-Card Drift Guard

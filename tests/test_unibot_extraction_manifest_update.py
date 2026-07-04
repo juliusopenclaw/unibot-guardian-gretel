@@ -11,7 +11,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from unibot.extraction import build_course_extraction_queue  # noqa: E402
-from unibot.extraction_manifest_update import build_extraction_manifest_update_plan  # noqa: E402
+from unibot.extraction_manifest_update import (  # noqa: E402
+    build_extraction_manifest_update_plan,
+    build_extraction_manifest_update_release_claim_alignment,
+)
 from unibot.materials import sha256_text  # noqa: E402
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
@@ -102,6 +105,69 @@ class UniBotExtractionManifestUpdateTests(unittest.TestCase):
             self.assertFalse(candidate["local_path_stored"])
             self.assertNotIn("private manifest update artifact ref", payload)
             self.assertEqual(scan_text(payload, "manifest-update-ready-test")["status"], "pass")
+
+    def test_manifest_update_release_claim_alignment_links_private_metadata_boundaries(self) -> None:
+        alignment = build_extraction_manifest_update_release_claim_alignment()
+
+        self.assertEqual(
+            alignment["schema_version"],
+            "unibot-extraction-manifest-update-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["plan_public_safety_status"], "pass")
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertEqual(alignment["exam_deployment_status"], "not_cleared")
+        self.assertGreaterEqual(alignment["candidate_summary"]["candidate_count"], 1)
+        self.assertGreaterEqual(alignment["candidate_summary"]["ready_to_apply_private_count"], 1)
+        self.assertIn("extraction_manifest_update", alignment["required_readiness_check_ids"])
+        self.assertIn("extraction_progress", alignment["required_readiness_check_ids"])
+        self.assertIn("extraction_receipt_journal", alignment["required_readiness_check_ids"])
+        self.assertIn("course_material_policy", alignment["required_readiness_check_ids"])
+        self.assertIn("exam_boundary", alignment["required_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertTrue(alignment["contracts"]["execution_boundary_blocks_file_write_raw_and_paths"])
+        self.assertTrue(alignment["contracts"]["candidates_private_metadata_only"])
+        self.assertIn("manifest file write by planning", alignment["blocked_claims"])
+        self.assertIn("public release by manifest update plan", alignment["blocked_claims"])
+        self.assertIn("exam deployment", alignment["blocked_claims"])
+
+    def test_manifest_update_release_claim_alignment_blocks_public_release_or_apply_claims(self) -> None:
+        plan = build_extraction_manifest_update_plan(
+            decision_record=valid_decision(),
+            receipts=[{"job_id": "job-1", "material_id": "material-1", "job_type": "ocr"}],
+        )
+        plan["status"] = "ready_for_private_manifest_update"
+        plan["exam_deployment_status"] = "cleared"
+        plan["execution_boundary"] = "This plan writes manifest files and clears deployment."
+        plan["candidate_summary"] = {
+            "candidate_count": 1,
+            "blocked_candidate_count": 0,
+            "source_job_metadata_missing_count": 0,
+            "ready_to_apply_private_count": 1,
+        }
+        plan["manifest_update_candidates"] = [
+            {
+                "validation_status": "ok",
+                "tutor_usable_after_apply": True,
+                "public_release_allowed_after_apply": True,
+                "raw_text_stored": True,
+                "local_path_stored": True,
+                "publish_policy_after_review": "public_excerpt_allowed",
+                "permission_status_after_review": "owned_or_authorized",
+                "sha256_after_review": "d" * 64,
+            }
+        ]
+
+        alignment = build_extraction_manifest_update_release_claim_alignment(plan)
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertIn("exam_deployment_not_cleared", alignment["failed_contract_ids"])
+        self.assertIn("execution_boundary_blocks_file_write_raw_and_paths", alignment["failed_contract_ids"])
+        self.assertIn("candidates_private_metadata_only", alignment["failed_contract_ids"])
 
     def test_manifest_update_plan_waits_for_human_review(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
