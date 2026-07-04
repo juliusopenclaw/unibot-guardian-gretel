@@ -14,6 +14,7 @@ from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
 from unibot.study_session import (  # noqa: E402
     build_course_study_session_plan,
+    build_study_session_release_claim_alignment,
     build_study_session_review_report,
     validate_study_session_receipt,
 )
@@ -153,6 +154,75 @@ class UniBotStudySessionTests(unittest.TestCase):
             self.assertNotIn(str(fixture_root), payload)
             self.assertNotIn("DataFrames brauchen passende Spalten", payload)
             self.assertEqual(scan_text(payload, "study-review-report-test")["status"], "pass")
+
+    def test_study_session_release_claim_alignment_links_receipts_reflection_and_boundaries(self) -> None:
+        alignment = build_study_session_release_claim_alignment()
+
+        self.assertEqual(
+            alignment["schema_version"],
+            "unibot-study-session-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["review_public_safety_status"], "pass")
+        self.assertEqual(alignment["review_status"], "study_session_evidence_ready_for_human_review")
+        self.assertEqual(alignment["study_session_status"], "ready_for_course_bound_practice")
+        self.assertEqual(alignment["exam_deployment_status"], "not_cleared")
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertGreaterEqual(alignment["planned_task_count"], 1)
+        self.assertGreaterEqual(alignment["valid_receipt_count"], 1)
+        self.assertEqual(alignment["blocked_receipt_count"], 0)
+        self.assertEqual(alignment["repeat_task_required_count"], 0)
+        self.assertEqual(alignment["missing_planned_receipt_count"], 0)
+        self.assertEqual(alignment["repeat_validation_status"], "repeat_task_required")
+        self.assertTrue(alignment["repeat_task_required"])
+        self.assertEqual(alignment["repeat_validation_public_safety_status"], "pass")
+        self.assertIn("study_session", alignment["required_readiness_check_ids"])
+        self.assertIn("private_tutor_use_flow", alignment["required_readiness_check_ids"])
+        self.assertIn("evaluation_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("review_board_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("exam_boundary", alignment["required_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertTrue(alignment["contracts"]["study_plan_ready_for_course_bound_practice"])
+        self.assertTrue(alignment["contracts"]["hash_only_receipts_with_required_evidence"])
+        self.assertTrue(alignment["contracts"]["learner_agency_profile_complete"])
+        self.assertTrue(alignment["contracts"]["a6_or_final_solution_forces_repeat"])
+        self.assertTrue(alignment["contracts"]["non_grading_human_review_only"])
+        self.assertIn("raw reflection storage", alignment["blocked_claims"])
+        self.assertIn("final solution acceptance", alignment["blocked_claims"])
+        self.assertIn("Eigenleistung percentage claim", alignment["blocked_claims"])
+        self.assertIn("automatic grading", alignment["blocked_claims"])
+        self.assertIn("exam deployment", alignment["blocked_claims"])
+
+    def test_study_session_release_claim_alignment_blocks_grading_or_final_solution_claims(self) -> None:
+        report = build_study_session_review_report(study_receipts=[valid_study_receipt()])
+        report["status"] = "study_session_evidence_ready_for_human_review"
+        report["study_session_status"] = "ready_for_course_bound_practice"
+        report["exam_deployment_status"] = "cleared"
+        report["execution_boundary"] = "This review grades students and stores raw student text."
+        report["receipt_summary"]["valid_receipt_count"] = 0
+        report["receipt_summary"]["blocked_receipt_count"] = 1
+        report["review_policy"]["eigenleistung_claim"] = "Claim 90 percent Eigenleistung."
+        report["review_policy"]["not_allowed"] = []
+        report["validated_receipts"] = [
+            {
+                "status": "ok_study_session_receipt",
+                "raw_text_stored": True,
+                "reflection_stored": True,
+                "evidence": {},
+            }
+        ]
+        repeat = validate_study_session_receipt(valid_study_receipt(), expected_task_ids={"study-task"})
+
+        alignment = build_study_session_release_claim_alignment(report, repeat)
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertIn("hash_only_receipts_with_required_evidence", alignment["failed_contract_ids"])
+        self.assertIn("a6_or_final_solution_forces_repeat", alignment["failed_contract_ids"])
+        self.assertIn("non_grading_human_review_only", alignment["failed_contract_ids"])
 
     def test_study_session_api_route(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

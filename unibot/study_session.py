@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from .course_tutor import (
@@ -14,12 +16,16 @@ from .course_tutor import (
 from .guardian import normalize_help_level
 from .materials import sha256_text
 from .public_safety import scan_text
+from .source_cards import get_source_card
 from .tutor_coverage import build_course_tutor_coverage_plan
 
 
 STUDY_SESSION_SCHEMA_VERSION = "unibot-course-study-session-plan-v1"
 STUDY_SESSION_RECEIPT_SCHEMA_VERSION = "unibot-course-study-session-receipt-v1"
 STUDY_SESSION_REVIEW_SCHEMA_VERSION = "unibot-course-study-session-review-v1"
+STUDY_SESSION_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-study-session-release-review-board-claim-alignment-v1"
+)
 
 RECEIPT_TEXT_FIELDS = {
     "retrieval_response",
@@ -244,6 +250,179 @@ def build_study_session_review_report(
     return report
 
 
+def build_study_session_release_claim_alignment(
+    review_report: dict[str, Any] | None = None,
+    repeat_receipt_validation: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if review_report is None or repeat_receipt_validation is None:
+        with tempfile.TemporaryDirectory(prefix="unibot_study_session_alignment_") as temp_dir:
+            fixture_root = Path(temp_dir)
+            write_synthetic_study_session_fixture(fixture_root)
+            plan = build_course_study_session_plan(
+                base_path=str(fixture_root),
+                review_policy="local_private_tutor",
+                focus_query="pandas boxplot",
+                max_items=1,
+            )
+            task = (plan.get("tasks") or [{"task_id": "synthetic-study-task", "skill_tag": "pandas"}])[0]
+            receipt = synthetic_study_session_receipt(task)
+            if review_report is None:
+                review_report = build_study_session_review_report(
+                    base_path=str(fixture_root),
+                    review_policy="local_private_tutor",
+                    focus_query="pandas boxplot",
+                    max_items=1,
+                    study_receipts=[receipt],
+                )
+            if repeat_receipt_validation is None:
+                repeat_receipt = {
+                    **receipt,
+                    "help_level": "A6",
+                    "final_solution_seen": True,
+                }
+                repeat_receipt_validation = validate_study_session_receipt(
+                    repeat_receipt,
+                    expected_task_ids={str(task.get("task_id", ""))},
+                )
+
+    sections = [
+        {
+            "section_id": "course_bound_study_plan_trace",
+            "summary_claim": "study-session tasks are course-bound source-anchor practice, not answer outsourcing",
+            "source_card_ids": ["dfg-gwp", "uoc-ki-faq", "uoc-hilfsmittel"],
+            "readiness_check_ids": ["study_session", "private_tutor_use_flow", "evaluation_packet"],
+            "human_gates": ["human_submission_review_required", "written_university_clearance_required_before_exam_use"],
+        },
+        {
+            "section_id": "hash_only_receipt_trace",
+            "summary_claim": "study receipts retain hash-only evidence for prediction, retrieval, notebook action, source anchor, and reflection",
+            "source_card_ids": ["dfg-gwp", "gdpr-2016-679", "dsk-ai-privacy-2024"],
+            "readiness_check_ids": ["study_session", "private_tutor_use_flow", "review_board_packet"],
+            "human_gates": ["datenschutz_review_required_before_real_pilot", "human_submission_review_required"],
+        },
+        {
+            "section_id": "learner_agency_repeat_trace",
+            "summary_claim": "A6 or final-solution exposure forces repeat-task evidence instead of accepting the receipt",
+            "source_card_ids": ["dfg-gwp", "uoc-ki-faq", "uoc-hilfsmittel"],
+            "readiness_check_ids": ["study_session", "evaluation_packet", "exam_boundary"],
+            "human_gates": ["human_submission_review_required", "written_university_clearance_required_before_exam_use"],
+        },
+        {
+            "section_id": "not_authorized_trace",
+            "summary_claim": "study-session review does not grade, rank, proctor, detect AI use, publish raw text, or clear exam deployment",
+            "source_card_ids": ["eu-ai-act-2024", "uoc-ki-faq", "uoc-hilfsmittel"],
+            "readiness_check_ids": ["study_session", "external_decision_state", "exam_boundary"],
+            "human_gates": ["written_university_clearance_required_before_exam_use", "human_submission_review_required"],
+        },
+    ]
+    required_source_card_ids = sorted({source_id for section in sections for source_id in section["source_card_ids"]})
+    missing_source_card_ids = sorted(source_id for source_id in required_source_card_ids if get_source_card(source_id) is None)
+    receipt_summary = review_report.get("receipt_summary", {})
+    evidence_profile = review_report.get("evidence_profile", {})
+    review_policy = review_report.get("review_policy", {})
+    blocked_claims = [
+        "raw prediction storage",
+        "raw retrieval response storage",
+        "raw notebook action storage",
+        "raw reflection storage",
+        "raw private course text publication",
+        "final solution acceptance",
+        "complete code outsourcing",
+        "Eigenleistung percentage claim",
+        "automatic grading",
+        "ranking",
+        "proctoring",
+        "KI-detection evidence",
+        "cloud processing",
+        "exam deployment",
+    ]
+    boundary = str(review_report.get("execution_boundary", ""))
+    validations = [item for item in review_report.get("validated_receipts", []) if isinstance(item, dict)]
+    ok_validations = [item for item in validations if item.get("status") == "ok_study_session_receipt"]
+    contracts = {
+        "review_report_public_safe": review_report.get("public_safety_status") == "pass",
+        "study_plan_ready_for_course_bound_practice": review_report.get("study_session_status")
+        == "ready_for_course_bound_practice"
+        and review_report.get("planned_task_count", 0) >= 1,
+        "hash_only_receipts_with_required_evidence": receipt_summary.get("valid_receipt_count", 0) >= 1
+        and receipt_summary.get("blocked_receipt_count", 0) == 0
+        and receipt_summary.get("repeat_task_required_count", 0) == 0
+        and all(
+            item.get("raw_text_stored") is False
+            and item.get("reflection_stored") is False
+            and item.get("evidence", {}).get("prediction_present")
+            and item.get("evidence", {}).get("retrieval_response_present")
+            and item.get("evidence", {}).get("notebook_action_present")
+            and item.get("evidence", {}).get("source_anchor_present")
+            and item.get("evidence", {}).get("reflection_present")
+            for item in ok_validations
+        ),
+        "learner_agency_profile_complete": evidence_profile.get("prediction_present_count", 0) >= 1
+        and evidence_profile.get("retrieval_response_present_count", 0) >= 1
+        and evidence_profile.get("notebook_action_present_count", 0) >= 1
+        and evidence_profile.get("source_anchor_present_count", 0) >= 1
+        and evidence_profile.get("reflection_present_count", 0) >= 1
+        and "A2" in evidence_profile.get("by_help_level", {}),
+        "a6_or_final_solution_forces_repeat": repeat_receipt_validation.get("status") == "repeat_task_required"
+        and repeat_receipt_validation.get("repeat_task_required") is True
+        and "a6_or_final_solution_seen_repeat_task_required"
+        in repeat_receipt_validation.get("issues", []),
+        "non_grading_human_review_only": review_report.get("exam_deployment_status") == "not_cleared"
+        and "never claim a percentage" in str(review_policy.get("eigenleistung_claim", ""))
+        and "grade" in review_policy.get("not_allowed", [])
+        and "proctoring" in review_policy.get("not_allowed", [])
+        and "AI detection" in review_policy.get("not_allowed", [])
+        and "does not grade" in boundary
+        and "does not store raw student text" in boundary,
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    payload = {
+        "sections": sections,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "blocked_claims": blocked_claims,
+        "review_status": review_report.get("status"),
+    }
+    scan = scan_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        "study-session-release-claim-alignment",
+    )
+    status = "ready" if not missing_source_card_ids and not failed_contract_ids and scan["status"] == "pass" else "needs_review"
+    return {
+        "schema_version": STUDY_SESSION_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "review_status": review_report.get("status"),
+        "review_public_safety_status": review_report.get("public_safety_status"),
+        "study_session_status": review_report.get("study_session_status"),
+        "exam_deployment_status": review_report.get("exam_deployment_status"),
+        "planned_task_count": review_report.get("planned_task_count", 0),
+        "valid_receipt_count": receipt_summary.get("valid_receipt_count", 0),
+        "blocked_receipt_count": receipt_summary.get("blocked_receipt_count", 0),
+        "repeat_task_required_count": receipt_summary.get("repeat_task_required_count", 0),
+        "missing_planned_receipt_count": receipt_summary.get("missing_planned_receipt_count", 0),
+        "repeat_validation_status": repeat_receipt_validation.get("status"),
+        "repeat_validation_public_safety_status": repeat_receipt_validation.get("public_safety_status"),
+        "repeat_task_required": bool(repeat_receipt_validation.get("repeat_task_required", False)),
+        "evidence_profile": evidence_profile,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "blocked_claims": blocked_claims,
+        "public_safety_status": scan["status"],
+        "policy": (
+            "Study-session evidence is formative and hash-only. It proves that prediction, retrieval, notebook "
+            "action, source anchor, and reflection were present; it does not store raw student text, accept final "
+            "solutions, grade, rank, proctor, detect AI use, claim Eigenleistung percentages, or clear exams."
+        ),
+    }
+
+
 def ranked_study_skills(skills: list[dict[str, Any]], *, focus_query: str) -> list[dict[str, Any]]:
     query = str(focus_query or "").lower()
     ranked = []
@@ -466,3 +645,28 @@ def attach_public_scan(payload: dict[str, Any], *, public_safe: bool, source_nam
     if scan["status"] != "pass":
         payload["status"] = "blocked_public_safety"
         payload["public_safety_findings"] = scan["findings"]
+
+
+def write_synthetic_study_session_fixture(root: Path) -> None:
+    (root / "Week 1").mkdir(parents=True)
+    (root / "Week 1" / "pandas_intro.md").write_text(
+        "pandas DataFrame read_csv columns dtypes head groupby boxplot",
+        encoding="utf-8",
+    )
+    (root / "Week 1" / "debugging_notes.md").write_text(
+        "debugging traceback NameError TypeError smallest diagnostic check",
+        encoding="utf-8",
+    )
+
+
+def synthetic_study_session_receipt(task: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "task_id": task.get("task_id", "synthetic-study-task"),
+        "skill_tag": task.get("skill_tag", "pandas"),
+        "help_level": "A2",
+        "source_anchor_id": "synthetic-course-anchor-pandas",
+        "prediction": "I expect the column check to come before plotting.",
+        "retrieval_response": "From memory, DataFrame plots need suitable columns and dtypes.",
+        "notebook_action": "I run only df.dtypes and df.head as the smallest diagnostic step.",
+        "reflection": "My contribution was the prediction, the diagnostic action, and the source comparison.",
+    }

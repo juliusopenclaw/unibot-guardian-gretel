@@ -47,6 +47,7 @@ from .source_cards import (
     list_source_cards,
 )
 from .submission import build_stakeholder_submission_bundle
+from .study_session import build_study_session_release_claim_alignment
 from .triage import build_feedback_triage
 from .review_board import build_review_board_packet
 
@@ -135,6 +136,7 @@ def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
         "extraction_completion",
         "extraction_human_review",
         "private_tutor_use_flow",
+        "study_session",
         "gretel_glm_evolve_lane",
         "gretel_bachelor_thesis_package",
         "gretel_autonomous_research_loop",
@@ -215,6 +217,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     extraction_completion_alignment = build_extraction_completion_release_claim_alignment()
     extraction_human_review_alignment = build_extraction_human_review_release_claim_alignment()
     private_tutor_use_flow_alignment = build_private_tutor_use_flow_release_claim_alignment()
+    study_session_alignment = build_study_session_release_claim_alignment()
     notebook = generate_practice_notebook("UniBot readiness notebook smoke")
     source_cards = list_source_cards()
     source_card_drift = build_source_card_drift_report()
@@ -1317,6 +1320,90 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 in private_tutor_use_flow_alignment["blocked_claims"],
                 "exam_deployment_blocked": "exam deployment"
                 in private_tutor_use_flow_alignment["blocked_claims"],
+            },
+        },
+        {
+            "check_id": "study_session",
+            "passed": study_session_alignment["status"] == "ready"
+            and study_session_alignment["public_safety_status"] == "pass"
+            and study_session_alignment["review_public_safety_status"] == "pass"
+            and study_session_alignment["repeat_validation_public_safety_status"] == "pass"
+            and study_session_alignment["exam_deployment_status"] == "not_cleared"
+            and study_session_alignment["missing_source_card_ids"] == []
+            and study_session_alignment["failed_contract_ids"] == [],
+            "evidence": {
+                "release_claim_alignment_status": study_session_alignment["status"],
+                "release_claim_alignment_public_safety_status": study_session_alignment["public_safety_status"],
+                "release_claim_alignment_contract_status": study_session_alignment["schema_version"],
+                "release_claim_alignment_section_count": study_session_alignment["section_count"],
+                "review_status": study_session_alignment["review_status"],
+                "review_public_safety_status": study_session_alignment["review_public_safety_status"],
+                "study_session_status": study_session_alignment["study_session_status"],
+                "exam_deployment_status": study_session_alignment["exam_deployment_status"],
+                "planned_task_count": study_session_alignment["planned_task_count"],
+                "valid_receipt_count": study_session_alignment["valid_receipt_count"],
+                "blocked_receipt_count": study_session_alignment["blocked_receipt_count"],
+                "repeat_task_required_count": study_session_alignment["repeat_task_required_count"],
+                "missing_planned_receipt_count": study_session_alignment["missing_planned_receipt_count"],
+                "repeat_validation_status": study_session_alignment["repeat_validation_status"],
+                "repeat_validation_public_safety_status": study_session_alignment[
+                    "repeat_validation_public_safety_status"
+                ],
+                "repeat_task_required": study_session_alignment["repeat_task_required"],
+                "release_claim_alignment_human_gates": study_session_alignment["required_human_gates"],
+                "private_tutor_use_flow_claim_linked": (
+                    "private_tutor_use_flow" in study_session_alignment["required_readiness_check_ids"]
+                ),
+                "evaluation_claim_linked": (
+                    "evaluation_packet" in study_session_alignment["required_readiness_check_ids"]
+                ),
+                "review_board_claim_linked": (
+                    "review_board_packet" in study_session_alignment["required_readiness_check_ids"]
+                ),
+                "external_decision_state_claim_linked": (
+                    "external_decision_state" in study_session_alignment["required_readiness_check_ids"]
+                ),
+                "exam_boundary_claim_linked": (
+                    "exam_boundary" in study_session_alignment["required_readiness_check_ids"]
+                ),
+                "human_submission_gate_linked": (
+                    "human_submission_review_required" in study_session_alignment["required_human_gates"]
+                ),
+                "datenschutz_gate_linked": (
+                    "datenschutz_review_required_before_real_pilot"
+                    in study_session_alignment["required_human_gates"]
+                ),
+                "written_clearance_gate_linked": (
+                    "written_university_clearance_required_before_exam_use"
+                    in study_session_alignment["required_human_gates"]
+                ),
+                "study_plan_ready_for_course_bound_practice": study_session_alignment["contracts"][
+                    "study_plan_ready_for_course_bound_practice"
+                ],
+                "hash_only_receipts_with_required_evidence": study_session_alignment["contracts"][
+                    "hash_only_receipts_with_required_evidence"
+                ],
+                "learner_agency_profile_complete": study_session_alignment["contracts"][
+                    "learner_agency_profile_complete"
+                ],
+                "a6_or_final_solution_forces_repeat": study_session_alignment["contracts"][
+                    "a6_or_final_solution_forces_repeat"
+                ],
+                "non_grading_human_review_only": study_session_alignment["contracts"][
+                    "non_grading_human_review_only"
+                ],
+                "raw_reflection_storage_blocked": "raw reflection storage"
+                in study_session_alignment["blocked_claims"],
+                "final_solution_acceptance_blocked": "final solution acceptance"
+                in study_session_alignment["blocked_claims"],
+                "eigenleistung_percentage_claim_blocked": "Eigenleistung percentage claim"
+                in study_session_alignment["blocked_claims"],
+                "automatic_grading_blocked": "automatic grading" in study_session_alignment["blocked_claims"],
+                "proctoring_blocked": "proctoring" in study_session_alignment["blocked_claims"],
+                "ki_detection_evidence_blocked": "KI-detection evidence"
+                in study_session_alignment["blocked_claims"],
+                "cloud_processing_blocked": "cloud processing" in study_session_alignment["blocked_claims"],
+                "exam_deployment_blocked": "exam deployment" in study_session_alignment["blocked_claims"],
             },
         },
         {

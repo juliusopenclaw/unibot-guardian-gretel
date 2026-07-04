@@ -44,6 +44,7 @@ It aggregates:
 - extraction completion and intentional-deferral alignment
 - extraction human-review and private manifest-plan alignment
 - private tutor-use flow and learner-agency boundary alignment
+- study-session receipt and formative review alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -152,6 +153,14 @@ produce A0-A2 source-anchored help, and store hash-only Help-Ledger evidence
 only with operator confirmation. It does not expose raw text or paths, approve
 public release, approve cloud processing, grade, proctor, detect AI use, or
 clear exam deployment.
+
+The study-session gate carries
+`unibot-study-session-release-review-board-claim-alignment-v1`. It proves only
+formative, hash-only learning evidence: prediction, retrieval response,
+notebook action, source anchor, and reflection. A6 or final-solution exposure
+forces a repeat task. The report does not store raw student text, grade, rank,
+proctor, detect AI use, claim Eigenleistung percentages, or clear exam
+deployment.
 
 ## Source-Card Drift Guard
 
