@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -17,14 +18,21 @@ from .extraction_decision_context import (
     public_decision_context_view,
     resolve_extraction_decision_context,
 )
-from .extraction_manifest_update import build_extraction_manifest_update_plan
+from .extraction_manifest_update import (
+    build_extraction_manifest_update_plan,
+    synthetic_manifest_update_decision_record,
+)
 from .extraction_receipt_journal import extraction_receipts_for_progress
 from .materials import build_material_manifest, normalize_material_record, sha256_text
 from .public_safety import scan_text
+from .source_cards import get_source_card
 from .tutor_coverage import build_course_tutor_coverage_plan, scope_summary
 
 
 EXTRACTION_MANIFEST_APPLY_SCHEMA_VERSION = "unibot-private-manifest-apply-v1"
+EXTRACTION_MANIFEST_APPLY_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-extraction-manifest-apply-release-review-board-claim-alignment-v1"
+)
 DEFAULT_PRIVATE_MANIFEST_PATH = Path.home() / ".unibot_guardian" / "private_course_material_manifest.json"
 DEFAULT_MANIFEST_APPLY_JOURNAL_PATH = Path.home() / ".unibot_guardian" / "private_manifest_apply_journal.jsonl"
 
@@ -208,6 +216,187 @@ def build_private_manifest_apply_dry_run(
     }
     attach_public_scan(report, public_safe=public_safe)
     return report
+
+
+def build_private_manifest_apply_release_claim_alignment(
+    dry_run_report: dict[str, Any] | None = None,
+    confirmed_report: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if dry_run_report is None or confirmed_report is None:
+        decision_record = synthetic_manifest_update_decision_record()
+        receipt = synthetic_apply_receipt(decision_record)
+        with tempfile.TemporaryDirectory(prefix="unibot_manifest_apply_alignment_") as temp_dir:
+            private_manifest_path = Path(temp_dir) / "private_manifest.json"
+            journal_path = Path(temp_dir) / "apply_journal.jsonl"
+            if dry_run_report is None:
+                dry_run_report = build_private_manifest_apply_dry_run(
+                    decision_record=decision_record,
+                    receipts=[receipt],
+                    private_manifest_path=private_manifest_path,
+                    manifest_apply_journal_path=journal_path,
+                )
+            if confirmed_report is None:
+                confirmed_report = build_private_manifest_apply_dry_run(
+                    decision_record=decision_record,
+                    receipts=[receipt],
+                    private_manifest_path=private_manifest_path,
+                    manifest_apply_journal_path=journal_path,
+                    operator_confirmed_manifest_apply=True,
+                )
+
+    sections = [
+        {
+            "section_id": "dry_run_trace",
+            "summary_claim": "private manifest apply dry-runs preview metadata deltas without writing files, returning raw text, returning local paths, or starting tutor indexing",
+            "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024", "dfg-gwp"],
+            "readiness_check_ids": ["extraction_manifest_apply", "extraction_manifest_update", "extraction_progress"],
+            "human_gates": ["datenschutz_review_required_before_real_pilot", "human_submission_review_required"],
+        },
+        {
+            "section_id": "confirmed_private_write_trace",
+            "summary_claim": "confirmed apply writes only local-private metadata and hash-only journal records when the operator explicitly confirms",
+            "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024", "dfg-gwp"],
+            "readiness_check_ids": [
+                "extraction_manifest_apply",
+                "extraction_manifest_update",
+                "extraction_receipt_journal",
+                "data_protection_screening",
+            ],
+            "human_gates": ["datenschutz_review_required_before_real_pilot", "human_submission_review_required"],
+        },
+        {
+            "section_id": "tutor_index_boundary_trace",
+            "summary_claim": "manifest apply may improve projected coverage but still does not start tutor indexing or retrieval",
+            "source_card_ids": ["dfg-gwp"],
+            "readiness_check_ids": ["extraction_manifest_apply", "course_material_policy", "review_board_packet"],
+            "human_gates": ["human_submission_review_required", "public_safety_required"],
+        },
+        {
+            "section_id": "not_authorized_trace",
+            "summary_claim": "manifest apply does not clear public release, cloud processing, official grading, proctoring, KI-detection evidence, or exam deployment",
+            "source_card_ids": ["eu-ai-act-2024", "uoc-ki-faq", "uoc-hilfsmittel"],
+            "readiness_check_ids": ["extraction_manifest_apply", "external_decision_state", "exam_boundary"],
+            "human_gates": ["written_university_clearance_required_before_exam_use", "human_submission_review_required"],
+        },
+    ]
+    required_source_card_ids = sorted({source_id for section in sections for source_id in section["source_card_ids"]})
+    missing_source_card_ids = sorted(source_id for source_id in required_source_card_ids if get_source_card(source_id) is None)
+    blocked_claims = [
+        "raw extracted text returned",
+        "local path returned",
+        "private manifest path returned",
+        "private artifact reference exposure",
+        "tutor indexing started by apply",
+        "public raw course text release",
+        "cloud processing",
+        "exam deployment",
+        "official grading",
+        "proctoring",
+        "KI-detection evidence",
+    ]
+    dry_apply_result = dry_run_report.get("apply_result", {})
+    confirmed_apply_result = confirmed_report.get("apply_result", {})
+    contracts = {
+        "dry_run_public_safe": dry_run_report.get("public_safety_status") == "pass",
+        "confirmed_public_safe": confirmed_report.get("public_safety_status") == "pass",
+        "dry_run_does_not_write": dry_run_report.get("status") == "manifest_apply_dry_run_ready"
+        and dry_run_report.get("operator_confirmed_manifest_apply") is False
+        and dry_run_report.get("manifest_written") is False
+        and dry_run_report.get("manifest_apply_journal_written") is False
+        and dry_apply_result.get("manifest_written") is False
+        and dry_apply_result.get("journal_written") is False,
+        "confirmed_write_requires_operator_confirmation": confirmed_report.get("operator_confirmed_manifest_apply") is True
+        and confirmed_report.get("status") == "private_manifest_applied"
+        and confirmed_report.get("manifest_written") is True
+        and confirmed_report.get("manifest_apply_journal_written") is True
+        and confirmed_apply_result.get("manifest_written") is True
+        and confirmed_apply_result.get("journal_written") is True,
+        "public_outputs_hide_paths_and_raw_text": all(
+            report.get("raw_text_returned") is False
+            and report.get("local_paths_returned") is False
+            and report.get("private_manifest_path_returned") is False
+            and report.get("apply_result", {}).get("private_manifest_path_returned") is False
+            and report.get("apply_result", {}).get("journal_path_returned") is False
+            for report in [dry_run_report, confirmed_report]
+        ),
+        "tutor_indexing_never_started": dry_run_report.get("tutor_indexing_started") is False
+        and confirmed_report.get("tutor_indexing_started") is False,
+        "exam_deployment_not_cleared": dry_run_report.get("exam_deployment_status") == "not_cleared"
+        and confirmed_report.get("exam_deployment_status") == "not_cleared",
+        "candidate_delta_and_hashes_linked": dry_run_report.get("candidate_summary", {}).get("records_to_apply_count", 0) >= 1
+        and bool(dry_run_report.get("delta_preview", {}).get("delta_hash"))
+        and bool(confirmed_apply_result.get("new_manifest_hash"))
+        and bool(confirmed_apply_result.get("delta_hash")),
+        "projected_scope_preview_metadata_only": "projected_scope_summary" in dry_run_report.get("exam_scope_preview", {})
+        and "priority_skill_gaps" in dry_run_report.get("tutor_coverage_preview", {}),
+        "execution_boundary_blocks_raw_paths_indexing_exam": "never writes raw extracted text"
+        in dry_run_report.get("execution_boundary", "")
+        and "never exposes local paths" in dry_run_report.get("execution_boundary", "")
+        and "never starts tutor indexing" in dry_run_report.get("execution_boundary", "")
+        and "never clears exam deployment" in dry_run_report.get("execution_boundary", ""),
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    payload = {
+        "sections": sections,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "blocked_claims": blocked_claims,
+        "dry_run_status": dry_run_report.get("status"),
+        "confirmed_status": confirmed_report.get("status"),
+    }
+    scan = scan_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        "extraction-manifest-apply-release-claim-alignment",
+    )
+    status = "ready" if not missing_source_card_ids and not failed_contract_ids and scan["status"] == "pass" else "needs_review"
+    return {
+        "schema_version": EXTRACTION_MANIFEST_APPLY_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "dry_run_status": dry_run_report.get("status"),
+        "confirmed_status": confirmed_report.get("status"),
+        "dry_run_public_safety_status": dry_run_report.get("public_safety_status"),
+        "confirmed_public_safety_status": confirmed_report.get("public_safety_status"),
+        "dry_run_records_to_apply_count": dry_run_report.get("candidate_summary", {}).get("records_to_apply_count", 0),
+        "confirmed_applied_count": confirmed_apply_result.get("applied_count", 0),
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "blocked_claims": blocked_claims,
+        "public_safety_status": scan["status"],
+        "policy": (
+            "Private manifest apply is a controlled local metadata harness: dry-runs do not write, confirmed applies "
+            "require operator confirmation, public responses hide paths and raw text, tutor indexing remains off, and "
+            "exam deployment, grading, proctoring, KI detection, cloud processing, and public release remain blocked."
+        ),
+    }
+
+
+def synthetic_apply_receipt(decision_record: dict[str, Any]) -> dict[str, Any]:
+    jobs = build_extraction_manifest_update_plan(decision_record=decision_record).get("manifest_update_candidates", [])
+    job_id = "synthetic-apply-job-1"
+    material_id = "synthetic-apply-material-1"
+    job_type = "ocr"
+    if jobs:
+        job_id = str(jobs[0].get("job_id", job_id))
+        material_id = str(jobs[0].get("material_id", material_id))
+        job_type = str(jobs[0].get("job_type", job_type))
+    return {
+        "job_id": job_id,
+        "material_id": material_id,
+        "job_type": job_type,
+        "extraction_status": "extracted_private",
+        "raw_text_sha256": "f" * 64,
+        "extracted_text_char_count": 1500,
+        "private_artifact_reference": "synthetic local private manifest apply artifact reference",
+        "human_review_status": "reviewed_for_private_tutor",
+        "decision_reference_hash": sha256_text(str(decision_record["decision_reference"])),
+    }
 
 
 def read_private_manifest(path: Path) -> dict[str, Any]:

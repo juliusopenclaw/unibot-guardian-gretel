@@ -40,6 +40,7 @@ It aggregates:
 - extraction receipt journal and hash-only evidence-ledger alignment
 - extraction progress and manifest-boundary alignment
 - extraction manifest update and private-apply boundary alignment
+- private manifest apply and operator-confirmed write alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -117,6 +118,14 @@ prepare hash-backed private metadata candidates, but it does not write manifest
 files by itself, expose raw OCR text, transcripts, local source paths, public
 release permission, cloud-processing approval, grading, proctoring,
 KI-detection evidence, or exam deployment.
+
+The private manifest apply harness carries
+`unibot-extraction-manifest-apply-release-review-board-claim-alignment-v1`.
+This contract keeps dry-runs and confirmed private writes separate: dry-runs do
+not write, confirmed applies require an operator confirmation, public responses
+hide raw text and local paths, tutor indexing stays off, and public release,
+cloud processing, grading, proctoring, KI-detection evidence, and exam
+deployment remain blocked.
 
 ## Source-Card Drift Guard
 

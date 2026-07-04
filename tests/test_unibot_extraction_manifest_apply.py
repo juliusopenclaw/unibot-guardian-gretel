@@ -11,7 +11,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from unibot.extraction import build_course_extraction_queue  # noqa: E402
-from unibot.extraction_manifest_apply import build_private_manifest_apply_dry_run  # noqa: E402
+from unibot.extraction_manifest_apply import (  # noqa: E402
+    build_private_manifest_apply_dry_run,
+    build_private_manifest_apply_release_claim_alignment,
+)
 from unibot.extraction_receipt_journal import append_extraction_receipt_record  # noqa: E402
 from unibot.materials import sha256_text  # noqa: E402
 from unibot.public_safety import scan_text  # noqa: E402
@@ -163,6 +166,78 @@ class UniBotExtractionManifestApplyTests(unittest.TestCase):
             self.assertNotIn(str(fixture_root), manifest_text)
             self.assertEqual(scan_text(payload, "manifest-apply-confirmed-test")["status"], "pass")
             self.assertEqual(scan_text(manifest_text, "private-manifest-written-test")["status"], "pass")
+
+    def test_private_manifest_apply_release_claim_alignment_links_dry_run_and_confirmed_apply(self) -> None:
+        alignment = build_private_manifest_apply_release_claim_alignment()
+
+        self.assertEqual(
+            alignment["schema_version"],
+            "unibot-extraction-manifest-apply-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["dry_run_public_safety_status"], "pass")
+        self.assertEqual(alignment["confirmed_public_safety_status"], "pass")
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertEqual(alignment["dry_run_status"], "manifest_apply_dry_run_ready")
+        self.assertEqual(alignment["confirmed_status"], "private_manifest_applied")
+        self.assertGreaterEqual(alignment["dry_run_records_to_apply_count"], 1)
+        self.assertGreaterEqual(alignment["confirmed_applied_count"], 1)
+        self.assertIn("extraction_manifest_apply", alignment["required_readiness_check_ids"])
+        self.assertIn("extraction_manifest_update", alignment["required_readiness_check_ids"])
+        self.assertIn("extraction_receipt_journal", alignment["required_readiness_check_ids"])
+        self.assertIn("course_material_policy", alignment["required_readiness_check_ids"])
+        self.assertIn("exam_boundary", alignment["required_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertTrue(alignment["contracts"]["dry_run_does_not_write"])
+        self.assertTrue(alignment["contracts"]["confirmed_write_requires_operator_confirmation"])
+        self.assertTrue(alignment["contracts"]["public_outputs_hide_paths_and_raw_text"])
+        self.assertTrue(alignment["contracts"]["tutor_indexing_never_started"])
+        self.assertIn("raw extracted text returned", alignment["blocked_claims"])
+        self.assertIn("local path returned", alignment["blocked_claims"])
+        self.assertIn("tutor indexing started by apply", alignment["blocked_claims"])
+        self.assertIn("exam deployment", alignment["blocked_claims"])
+
+    def test_private_manifest_apply_release_claim_alignment_blocks_unsafe_output_claims(self) -> None:
+        dry_run = {
+            "status": "manifest_apply_dry_run_ready",
+            "public_safety_status": "pass",
+            "operator_confirmed_manifest_apply": False,
+            "manifest_written": True,
+            "manifest_apply_journal_written": True,
+            "apply_result": {
+                "manifest_written": True,
+                "journal_written": True,
+                "private_manifest_path_returned": True,
+                "journal_path_returned": True,
+            },
+            "raw_text_returned": True,
+            "local_paths_returned": True,
+            "private_manifest_path_returned": True,
+            "tutor_indexing_started": True,
+            "exam_deployment_status": "cleared",
+            "candidate_summary": {"records_to_apply_count": 1},
+            "delta_preview": {"delta_hash": "abc"},
+            "exam_scope_preview": {"projected_scope_summary": {}},
+            "tutor_coverage_preview": {"priority_skill_gaps": []},
+            "execution_boundary": "unsafe apply",
+        }
+        confirmed = {
+            **dry_run,
+            "status": "private_manifest_applied",
+            "operator_confirmed_manifest_apply": True,
+        }
+
+        alignment = build_private_manifest_apply_release_claim_alignment(dry_run, confirmed)
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertIn("dry_run_does_not_write", alignment["failed_contract_ids"])
+        self.assertIn("public_outputs_hide_paths_and_raw_text", alignment["failed_contract_ids"])
+        self.assertIn("tutor_indexing_never_started", alignment["failed_contract_ids"])
+        self.assertIn("exam_deployment_not_cleared", alignment["failed_contract_ids"])
 
 
 if __name__ == "__main__":
