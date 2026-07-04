@@ -131,7 +131,9 @@ This contract keeps reviewed extraction updates plan-only and private: it can
 prepare hash-backed private metadata candidates, but it does not write manifest
 files by itself, expose raw OCR text, transcripts, local source paths, public
 release permission, cloud-processing approval, grading, proctoring,
-KI-detection evidence, or exam deployment.
+KI-detection evidence, or exam deployment. Candidate and candidate-set hashes
+are now linked to the harnessed local-cycle operator workspace-card readiness
+gate without exposing raw candidate source text or the raw workspace card.
 
 The private manifest apply harness carries
 `unibot-extraction-manifest-apply-release-review-board-claim-alignment-v1`.

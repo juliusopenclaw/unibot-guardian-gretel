@@ -949,7 +949,30 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "manifest_update_candidate_count": extraction_manifest_update_alignment[
                     "manifest_update_candidate_count"
                 ],
+                "workspace_card_status": extraction_manifest_update_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": extraction_manifest_update_alignment[
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": extraction_manifest_update_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": extraction_manifest_update_alignment[
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": extraction_manifest_update_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": extraction_manifest_update_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_candidate_gate_linked": extraction_manifest_update_alignment[
+                    "workspace_card_candidate_gate_linked"
+                ],
                 "release_claim_alignment_human_gates": extraction_manifest_update_alignment["required_human_gates"],
+                "workspace_card_readiness_gate_claim_linked": (
+                    "python_exam_local_cycle_operator_workspace_card"
+                    in extraction_manifest_update_alignment["required_readiness_check_ids"]
+                ),
                 "progress_claim_linked": (
                     "extraction_progress" in extraction_manifest_update_alignment["required_readiness_check_ids"]
                 ),
@@ -988,6 +1011,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 ]["execution_boundary_blocks_file_write_raw_and_paths"],
                 "candidates_private_metadata_only": extraction_manifest_update_alignment["contracts"][
                     "candidates_private_metadata_only"
+                ],
+                "workspace_card_candidate_gate_linked_contract": extraction_manifest_update_alignment["contracts"][
+                    "workspace_card_candidate_gate_linked"
                 ],
                 "manifest_file_write_by_planning_blocked": "manifest file write by planning"
                 in extraction_manifest_update_alignment["blocked_claims"],

@@ -121,7 +121,15 @@ class UniBotExtractionManifestUpdateTests(unittest.TestCase):
         self.assertEqual(alignment["exam_deployment_status"], "not_cleared")
         self.assertGreaterEqual(alignment["candidate_summary"]["candidate_count"], 1)
         self.assertGreaterEqual(alignment["candidate_summary"]["ready_to_apply_private_count"], 1)
+        self.assertEqual(alignment["workspace_card_status"], "python_exam_local_cycle_operator_workspace_card_ready")
+        self.assertEqual(alignment["workspace_card_selected_skill_tag"], "pandas")
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_candidate_gate_linked"])
         self.assertIn("extraction_manifest_update", alignment["required_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
         self.assertIn("extraction_progress", alignment["required_readiness_check_ids"])
         self.assertIn("extraction_receipt_journal", alignment["required_readiness_check_ids"])
         self.assertIn("course_material_policy", alignment["required_readiness_check_ids"])
@@ -131,6 +139,7 @@ class UniBotExtractionManifestUpdateTests(unittest.TestCase):
         self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
         self.assertTrue(alignment["contracts"]["execution_boundary_blocks_file_write_raw_and_paths"])
         self.assertTrue(alignment["contracts"]["candidates_private_metadata_only"])
+        self.assertTrue(alignment["contracts"]["workspace_card_candidate_gate_linked"])
         self.assertIn("manifest file write by planning", alignment["blocked_claims"])
         self.assertIn("public release by manifest update plan", alignment["blocked_claims"])
         self.assertIn("exam deployment", alignment["blocked_claims"])
@@ -161,6 +170,17 @@ class UniBotExtractionManifestUpdateTests(unittest.TestCase):
                 "sha256_after_review": "d" * 64,
             }
         ]
+        plan["local_cycle_operator_workspace_card"] = {
+            "status": "python_exam_local_cycle_operator_workspace_card_ready",
+            "selected_skill_tag": "pandas",
+            "ready_for_operator_prefill": True,
+            "help_ledger_preview_status": "help_ledger_preview_ready",
+            "help_ledger_preview_hash": "x",
+            "checkpoint_hash": "x",
+            "task_hash": "x",
+            "not_cleared_receipt": True,
+            "raw_workspace_card_returned": False,
+        }
 
         alignment = build_extraction_manifest_update_release_claim_alignment(plan)
 
@@ -168,6 +188,7 @@ class UniBotExtractionManifestUpdateTests(unittest.TestCase):
         self.assertIn("exam_deployment_not_cleared", alignment["failed_contract_ids"])
         self.assertIn("execution_boundary_blocks_file_write_raw_and_paths", alignment["failed_contract_ids"])
         self.assertIn("candidates_private_metadata_only", alignment["failed_contract_ids"])
+        self.assertIn("workspace_card_candidate_gate_linked", alignment["failed_contract_ids"])
 
     def test_manifest_update_plan_waits_for_human_review(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

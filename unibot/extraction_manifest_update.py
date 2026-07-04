@@ -33,6 +33,7 @@ def build_extraction_manifest_update_plan(
     decision_record: dict[str, Any] | None = None,
     decision_record_journal_path: str | None = None,
     receipts: list[dict[str, Any]] | None = None,
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
     public_safe: bool = True,
 ) -> dict[str, Any]:
     decision_validation = resolve_extraction_decision_context(
@@ -73,6 +74,13 @@ def build_extraction_manifest_update_plan(
     eligible = [item for item in validations if item.get("eligible_for_private_tutor_index")]
     candidates = [manifest_update_candidate(item, job_by_id.get(str(item.get("job_id", "")))) for item in eligible]
     blocked_candidates = [item for item in candidates if item.get("validation_status") == "blocked"]
+    local_cycle_workspace_card = safe_local_cycle_workspace_card(
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else {},
+        candidate_hash=candidate_hash(candidates[0]) if candidates else "",
+        candidate_set_hash=candidate_set_hash(candidates),
+    )
     plan = {
         "schema_version": EXTRACTION_MANIFEST_UPDATE_SCHEMA_VERSION,
         "artifact_type": "course_extraction_manifest_update_plan",
@@ -98,6 +106,7 @@ def build_extraction_manifest_update_plan(
         },
         "manifest_update_candidates": candidates[:80],
         "candidate_output_truncated": len(candidates) > 80,
+        "local_cycle_operator_workspace_card": local_cycle_workspace_card,
         "manifest_update_contract": {
             "required_before_apply": [
                 "valid rights/privacy decision",
@@ -156,6 +165,7 @@ def build_extraction_manifest_update_release_claim_alignment(plan: dict[str, Any
         plan = build_extraction_manifest_update_plan(
             decision_record=decision_record,
             receipts=[receipt],
+            python_exam_local_cycle_operator_workspace_card=synthetic_manifest_update_workspace_card(),
         )
 
     sections = [
@@ -165,6 +175,7 @@ def build_extraction_manifest_update_release_claim_alignment(plan: dict[str, Any
             "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024", "dfg-gwp"],
             "readiness_check_ids": [
                 "extraction_manifest_update",
+                "python_exam_local_cycle_operator_workspace_card",
                 "extraction_progress",
                 "extraction_receipt_journal",
                 "data_protection_screening",
@@ -198,7 +209,17 @@ def build_extraction_manifest_update_release_claim_alignment(plan: dict[str, Any
     candidate_summary = plan.get("candidate_summary", {})
     contract = plan.get("manifest_update_contract", {})
     candidates = list(plan.get("manifest_update_candidates", []))
+    workspace_card = (
+        plan.get("local_cycle_operator_workspace_card", {})
+        if isinstance(plan.get("local_cycle_operator_workspace_card"), dict)
+        else {}
+    )
     execution_boundary = str(plan.get("execution_boundary", ""))
+    first_candidate_hash = candidate_hash(candidates[0]) if candidates else ""
+    all_candidate_hash = candidate_set_hash(candidates)
+    workspace_card_readiness_gate_linked = any(
+        "python_exam_local_cycle_operator_workspace_card" in section["readiness_check_ids"] for section in sections
+    )
     blocked_claims = [
         "manifest file write by planning",
         "raw OCR text storage",
@@ -249,6 +270,15 @@ def build_extraction_manifest_update_release_claim_alignment(plan: dict[str, Any
         "next_actions_keep_private_apply_separate": any(
             "Apply reviewed metadata privately" in str(action) for action in plan.get("next_actions", [])
         ),
+        "workspace_card_candidate_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and workspace_card.get("checkpoint_hash") == first_candidate_hash
+        and workspace_card.get("task_hash") == all_candidate_hash
+        and bool(workspace_card.get("help_ledger_preview_hash"))
+        and workspace_card.get("not_cleared_receipt") is True
+        and workspace_card.get("raw_workspace_card_returned") is False,
     }
     failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
     payload = {
@@ -273,6 +303,13 @@ def build_extraction_manifest_update_release_claim_alignment(plan: dict[str, Any
         "exam_deployment_status": plan.get("exam_deployment_status"),
         "candidate_summary": candidate_summary,
         "manifest_update_candidate_count": len(candidates),
+        "workspace_card_status": workspace_card.get("status"),
+        "workspace_card_selected_skill_tag": workspace_card.get("selected_skill_tag"),
+        "workspace_card_ready_for_operator_prefill": bool(workspace_card.get("ready_for_operator_prefill", False)),
+        "workspace_card_help_ledger_status": workspace_card.get("help_ledger_preview_status"),
+        "workspace_card_help_ledger_hash_present": bool(workspace_card.get("help_ledger_preview_hash")),
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_candidate_gate_linked": contracts["workspace_card_candidate_gate_linked"],
         "contracts": contracts,
         "missing_source_card_ids": missing_source_card_ids,
         "failed_contract_ids": failed_contract_ids,
@@ -303,6 +340,111 @@ def synthetic_manifest_update_decision_record() -> dict[str, Any]:
         "access_roles": ["project_owner", "approved_reviewer"],
         "reviewer_roles": ["Datenschutz", "Lehreinheit / Modulverantwortliche", "IT / SZI"],
         "decision_reference": "synthetic manifest update release alignment decision",
+    }
+
+
+def synthetic_manifest_update_workspace_card() -> dict[str, Any]:
+    preview_hash = sha256_text("synthetic manifest update workspace card")
+    return {
+        "schema_version": "unibot-python-exam-local-cycle-operator-workspace-card-v1",
+        "artifact_type": "python_exam_local_cycle_operator_workspace_card",
+        "status": "python_exam_local_cycle_operator_workspace_card_ready",
+        "selected_skill_tag": "pandas",
+        "exam_deployment_status": "not_cleared",
+        "not_cleared_receipt": True,
+        "workspace_card_summary": {
+            "recommendation": "ready_for_operator_prefill",
+            "recommendation_reason": "synthetic manifest update candidate prerequisites are satisfied",
+            "ready_for_operator_prefill": True,
+            "help_ledger_preview_status": "help_ledger_preview_ready",
+            "selected_skill_tag": "pandas",
+            "next_safe_action": "review_manifest_update_candidate_before_workspace_prefill",
+            "next_safe_user_action": "review_hash_only_manifest_update_candidates_before_private_apply",
+            "operator_run_endpoint": "/api/unibot/exam-workspace/operator-run",
+            "operator_run_method": "POST",
+            "help_level": "A2",
+            "task_hash": "__CANDIDATE_SET_HASH__",
+            "checkpoint_hash": "__CANDIDATE_HASH__",
+            "source_card_ids": ["dfg-gwp", "dsk-ai-privacy-2024"],
+            "source_anchor_count": 2,
+            "help_ledger_preview_hash": preview_hash,
+        },
+        "help_ledger_preview": {
+            "status": "help_ledger_preview_ready",
+            "help_level": "A2",
+            "preview_hash": preview_hash,
+        },
+    }
+
+
+def candidate_hash(candidate: dict[str, Any]) -> str:
+    if not isinstance(candidate, dict):
+        return ""
+    return sha256_text(
+        json.dumps(
+            {
+                "material_id": candidate.get("material_id", ""),
+                "job_id": candidate.get("job_id", ""),
+                "sha256_after_review": candidate.get("sha256_after_review", ""),
+                "review_status_after_review": candidate.get("review_status_after_review", ""),
+                "publish_policy_after_review": candidate.get("publish_policy_after_review", ""),
+                "permission_status_after_review": candidate.get("permission_status_after_review", ""),
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+    )
+
+
+def candidate_set_hash(candidates: list[dict[str, Any]]) -> str:
+    hashes = [candidate_hash(candidate) for candidate in candidates if isinstance(candidate, dict)]
+    return sha256_text(json.dumps(hashes, sort_keys=True, ensure_ascii=False)) if hashes else ""
+
+
+def safe_local_cycle_workspace_card(
+    workspace_card: dict[str, Any],
+    *,
+    candidate_hash: str = "",
+    candidate_set_hash: str = "",
+) -> dict[str, Any]:
+    summary = workspace_card.get("workspace_card_summary", {}) if isinstance(workspace_card.get("workspace_card_summary"), dict) else {}
+    review = workspace_card.get("readiness_review", {}) if isinstance(workspace_card.get("readiness_review"), dict) else {}
+    handoff = workspace_card.get("readiness_handoff", {}) if isinstance(workspace_card.get("readiness_handoff"), dict) else {}
+    ledger = workspace_card.get("help_ledger_preview", {}) if isinstance(workspace_card.get("help_ledger_preview"), dict) else {}
+    if not summary and (
+        workspace_card.get("help_ledger_preview_hash") is not None
+        or workspace_card.get("ready_for_operator_prefill") is not None
+        or workspace_card.get("help_ledger_preview_status") is not None
+    ):
+        summary = workspace_card
+    checkpoint_hash = str(summary.get("checkpoint_hash", ""))
+    task_hash = str(summary.get("task_hash", ""))
+    if candidate_hash and checkpoint_hash == "__CANDIDATE_HASH__":
+        checkpoint_hash = candidate_hash
+    if candidate_set_hash and task_hash == "__CANDIDATE_SET_HASH__":
+        task_hash = candidate_set_hash
+    return {
+        "status": workspace_card.get("status", "missing"),
+        "selected_skill_tag": str(summary.get("selected_skill_tag", workspace_card.get("selected_skill_tag", ""))),
+        "recommendation": str(summary.get("recommendation", review.get("recommendation", "keep_blocked"))),
+        "recommendation_reason": str(
+            summary.get("recommendation_reason", review.get("recommendation_reason", "missing_manifest_update_candidate"))
+        ),
+        "ready_for_operator_prefill": bool(summary.get("ready_for_operator_prefill", False)),
+        "help_ledger_preview_status": str(summary.get("help_ledger_preview_status", ledger.get("status", "missing"))),
+        "next_safe_action": str(summary.get("next_safe_action", review.get("next_safe_action", ""))),
+        "next_safe_user_action": str(summary.get("next_safe_user_action", review.get("next_safe_user_action", ""))),
+        "operator_run_endpoint": str(summary.get("operator_run_endpoint", handoff.get("operator_run_endpoint", ""))),
+        "operator_run_method": str(summary.get("operator_run_method", handoff.get("operator_run_method", "POST"))),
+        "help_level": str(summary.get("help_level", ledger.get("help_level", "A2"))),
+        "task_hash": task_hash,
+        "checkpoint_hash": checkpoint_hash,
+        "source_card_ids": [str(item) for item in (summary.get("source_card_ids", []) or [])][:8],
+        "source_anchor_count": int(summary.get("source_anchor_count", 0) or 0),
+        "help_ledger_preview_hash": str(summary.get("help_ledger_preview_hash", ledger.get("preview_hash", ""))),
+        "not_cleared_receipt": bool(workspace_card.get("not_cleared_receipt", True)),
+        "exam_deployment_status": "not_cleared",
+        "raw_workspace_card_returned": False,
     }
 
 
