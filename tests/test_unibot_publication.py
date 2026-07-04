@@ -13,6 +13,9 @@ from unibot.publication import (  # noqa: E402
     build_publication_markdown,
     build_publication_package,
     build_publication_reproducibility_alignment,
+    publication_release_gate_hash,
+    publication_reproducibility_hash,
+    synthetic_publication_workspace_card,
 )
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
@@ -50,6 +53,7 @@ class UniBotPublicationTests(unittest.TestCase):
         self.assertEqual(package["publication_reproducibility_alignment"]["public_safety_status"], "pass")
         self.assertEqual(package["publication_reproducibility_alignment"]["missing_release_review_board_claim_check_ids"], [])
         self.assertEqual(package["publication_reproducibility_alignment"]["missing_release_review_board_claim_human_gates"], [])
+        self.assertTrue(package["publication_reproducibility_alignment"]["workspace_card_publication_gate_linked"])
         self.assertIn("public draft", package["release_runbook_policy"])
         self.assertIn("not legal advice", package["compliance_matrix_policy"])
         self.assertIn("planning draft", package["pilot_protocol_policy"])
@@ -85,6 +89,7 @@ class UniBotPublicationTests(unittest.TestCase):
         self.assertEqual(alignment["failed_contract_ids"], [])
         self.assertEqual(alignment["failed_release_review_board_claim_trace_ids"], [])
         self.assertIn("publication_package", alignment["required_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
         self.assertIn("release_runbook", alignment["required_readiness_check_ids"])
         self.assertIn("review_board_packet", alignment["required_readiness_check_ids"])
         self.assertIn("pilot_protocol", alignment["required_readiness_check_ids"])
@@ -155,10 +160,37 @@ class UniBotPublicationTests(unittest.TestCase):
         self.assertTrue(alignment["contracts"]["data_protection_claim_contract_ready"])
         self.assertTrue(alignment["contracts"]["review_board_thesis_evaluation_claim_ready"])
         self.assertTrue(alignment["contracts"]["glm_provider_locked"])
+        self.assertTrue(alignment["contracts"]["workspace_card_publication_gate_linked"])
+        self.assertEqual(alignment["workspace_card_status"], "python_exam_local_cycle_operator_workspace_card_ready")
+        self.assertEqual(alignment["workspace_card_selected_skill_tag"], "pandas")
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_publication_gate_linked"])
         self.assertIn("pilot_protocol", by_section["release_review_board_claim_bundle"]["artifact_ids"])
         self.assertIn("data_protection_screening_ready", by_section["release_review_board_claim_bundle"]["release_gate_ids"])
         self.assertIn("gretel_bachelor_thesis_package", by_section["gretel_glm_thesis_bundle"]["artifact_ids"])
         self.assertIn("release_runbook_ready", by_section["manual_release_boundary"]["release_gate_ids"])
+
+    def test_publication_hash_helpers_link_reproducibility_and_release_gates(self) -> None:
+        package = build_publication_package()
+
+        self.assertTrue(publication_reproducibility_hash(package))
+        self.assertTrue(publication_release_gate_hash(package))
+        self.assertNotEqual(publication_reproducibility_hash(package), publication_release_gate_hash(package))
+
+    def test_publication_reproducibility_alignment_rejects_unlinked_workspace_card_hashes(self) -> None:
+        package = build_publication_package()
+        card = synthetic_publication_workspace_card()
+        card["workspace_card_summary"]["checkpoint_hash"] = "wrong-publication-reproducibility-hash"
+        card["workspace_card_summary"]["task_hash"] = "wrong-publication-release-gate-hash"
+
+        alignment = build_publication_reproducibility_alignment(package, card)
+
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertFalse(alignment["workspace_card_publication_gate_linked"])
+        self.assertIn("workspace_card_publication_gate_linked", alignment["failed_contract_ids"])
 
     def test_publication_package_excludes_private_and_exam_materials(self) -> None:
         package_text = json.dumps(build_publication_package(), ensure_ascii=False)

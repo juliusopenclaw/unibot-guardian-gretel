@@ -456,7 +456,8 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and publication["publication_reproducibility_alignment"][
                 "missing_release_review_board_claim_human_gates"
             ]
-            == [],
+            == []
+            and publication["publication_reproducibility_alignment"]["workspace_card_publication_gate_linked"] is True,
             "evidence": {
                 "status": publication["status"],
                 "release_ready": publication["release_gates"]["release_ready"],
@@ -467,6 +468,29 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                     "publication_reproducibility_alignment"
                 ]["publication_release_review_board_claim_contract"]["expected_schema_version"],
                 "reproducibility_alignment_section_count": publication["publication_reproducibility_alignment"]["section_count"],
+                "workspace_card_status": publication["publication_reproducibility_alignment"]["workspace_card_status"],
+                "workspace_card_selected_skill_tag": publication["publication_reproducibility_alignment"][
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": publication["publication_reproducibility_alignment"][
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": publication["publication_reproducibility_alignment"][
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": publication["publication_reproducibility_alignment"][
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": publication["publication_reproducibility_alignment"][
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_publication_gate_linked": publication["publication_reproducibility_alignment"][
+                    "workspace_card_publication_gate_linked"
+                ],
+                "workspace_card_readiness_gate_claim_linked": (
+                    "python_exam_local_cycle_operator_workspace_card"
+                    in publication["publication_reproducibility_alignment"]["required_readiness_check_ids"]
+                ),
                 "reproducibility_alignment_human_gates": publication["publication_reproducibility_alignment"]["required_human_gates"],
             },
         },

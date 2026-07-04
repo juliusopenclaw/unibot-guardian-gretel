@@ -14,7 +14,7 @@ from .feedback import demo_feedback_template, export_public_demo_feedback_summar
 from .github_issues import build_github_issue_bundle
 from .gretel_glm_evolve import build_glm_evolve_work_packet, build_glm_rsi_workboard
 from .handoff import build_authority_handoff_packet
-from .materials import build_demo_material_manifest, build_public_material_summary
+from .materials import build_demo_material_manifest, build_public_material_summary, sha256_text
 from .paperclip_evaluation_bridge import build_paperclip_evaluation_request
 from .pilot import build_pilot_protocol
 from .privacy import build_data_protection_screening
@@ -39,7 +39,13 @@ PUBLICATION_ALIGNMENT_SECTIONS = [
         "release_gate_ids": ["release_ready", "public_safety_required", "redteam_status", "evaluation_status"],
         "policy_keys": ["collaboration_note"],
         "source_card_ids": ["dfg-gwp", "openai-evals", "unesco-genai-2023"],
-        "readiness_check_ids": ["publication_package", "evaluation_packet", "redteam", "source_card_drift_guard"],
+        "readiness_check_ids": [
+            "publication_package",
+            "evaluation_packet",
+            "redteam",
+            "source_card_drift_guard",
+            "python_exam_local_cycle_operator_workspace_card",
+        ],
         "human_gates": ["human_submission_review_required"],
     },
     {
@@ -235,13 +241,34 @@ def build_limitations() -> list[dict[str, str]]:
     ]
 
 
-def build_publication_reproducibility_alignment(package: dict[str, Any] | None = None) -> dict[str, Any]:
+def build_publication_reproducibility_alignment(
+    package: dict[str, Any] | None = None,
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     publication = package or build_publication_package()
     artifact_ids = set(publication.get("included_artifacts", [])) | {
         key for key in publication.keys() if key not in {"generated_at_utc", "publication_reproducibility_alignment"}
     }
     release_gates = publication.get("release_gates", {})
     release_gate_ids = set(release_gates)
+    workspace_card = safe_publication_workspace_card(
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else synthetic_publication_workspace_card()
+        if publication.get("status") == "public_draft_not_exam_release"
+        else {},
+        publication_reproducibility_hash=publication_reproducibility_hash(publication),
+        publication_release_gate_hash=publication_release_gate_hash(publication),
+    )
+    workspace_card_readiness_gate_linked = (
+        workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and workspace_card.get("help_ledger_preview_hash") != ""
+        and workspace_card.get("exam_deployment_status") == "not_cleared"
+        and workspace_card.get("not_cleared_receipt") is True
+        and workspace_card.get("raw_workspace_card_returned") is False
+    )
     alignment_rows = []
     for section in PUBLICATION_ALIGNMENT_SECTIONS:
         missing_artifact_ids = sorted(artifact_id for artifact_id in section["artifact_ids"] if artifact_id not in artifact_ids)
@@ -344,6 +371,9 @@ def build_publication_reproducibility_alignment(package: dict[str, Any] | None =
             .get("required_status")
             == "ready"
         ),
+        "workspace_card_publication_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("checkpoint_hash") == publication_reproducibility_hash(publication)
+        and workspace_card.get("task_hash") == publication_release_gate_hash(publication),
     }
     release_review_board_claim_trace = [
         {
@@ -462,6 +492,7 @@ def build_publication_reproducibility_alignment(package: dict[str, Any] | None =
                 "evaluation_packet",
                 "adaptive_task_plan",
                 "public_safety",
+                "python_exam_local_cycle_operator_workspace_card",
             ],
             "required_human_gates": [
                 "datenschutz_review_required_before_real_pilot",
@@ -477,6 +508,13 @@ def build_publication_reproducibility_alignment(package: dict[str, Any] | None =
             {check_id for row in alignment_rows for check_id in row["readiness_check_ids"]}
         ),
         "required_human_gates": sorted({gate for row in alignment_rows for gate in row["human_gates"]}),
+        "workspace_card_status": workspace_card["status"],
+        "workspace_card_selected_skill_tag": workspace_card["selected_skill_tag"],
+        "workspace_card_ready_for_operator_prefill": workspace_card["ready_for_operator_prefill"],
+        "workspace_card_help_ledger_status": workspace_card["help_ledger_preview_status"],
+        "workspace_card_help_ledger_hash_present": workspace_card["help_ledger_preview_hash"] != "",
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_publication_gate_linked": contracts["workspace_card_publication_gate_linked"],
         "release_boundary": "public_draft_only_not_exam_deployment_not_university_submission",
         "policy": (
             "Publication reproducibility alignment is a review aid for the public package; it is not exam clearance, "
@@ -512,6 +550,118 @@ def build_publication_reproducibility_alignment(package: dict[str, Any] | None =
     if scan["status"] != "pass":
         alignment["status"] = "blocked_public_safety"
     return alignment
+
+
+def synthetic_publication_workspace_card() -> dict[str, Any]:
+    preview_hash = sha256_text("synthetic publication package workspace card")
+    return {
+        "schema_version": "unibot-python-exam-local-cycle-operator-workspace-card-v1",
+        "artifact_type": "python_exam_local_cycle_operator_workspace_card",
+        "status": "python_exam_local_cycle_operator_workspace_card_ready",
+        "selected_skill_tag": "pandas",
+        "exam_deployment_status": "not_cleared",
+        "not_cleared_receipt": True,
+        "workspace_card_summary": {
+            "recommendation": "ready_for_operator_prefill",
+            "recommendation_reason": "synthetic publication package prerequisites are satisfied",
+            "ready_for_operator_prefill": True,
+            "help_ledger_preview_status": "help_ledger_preview_ready",
+            "selected_skill_tag": "pandas",
+            "next_safe_action": "review_publication_package_before_workspace_prefill",
+            "next_safe_user_action": "review_hash_only_publication_package_before_manual_publication",
+            "operator_run_endpoint": "/api/unibot/exam-workspace/operator-run",
+            "operator_run_method": "POST",
+            "help_level": "A2",
+            "task_hash": "__PUBLICATION_RELEASE_GATE_HASH__",
+            "checkpoint_hash": "__PUBLICATION_REPRODUCIBILITY_HASH__",
+            "source_card_ids": ["dfg-gwp", "openai-evals", "unesco-genai-2023"],
+            "source_anchor_count": 3,
+            "help_ledger_preview_hash": preview_hash,
+        },
+        "help_ledger_preview": {
+            "status": "help_ledger_preview_ready",
+            "help_level": "A2",
+            "preview_hash": preview_hash,
+        },
+    }
+
+
+def publication_reproducibility_hash(publication: dict[str, Any]) -> str:
+    return sha256_text(
+        json.dumps(
+            {
+                "status": publication.get("status", ""),
+                "included_artifacts": publication.get("included_artifacts", []),
+                "excluded_file_groups": publication.get("excluded_file_groups", []),
+                "system_card": publication.get("system_card", {}),
+                "data_card": publication.get("data_card", {}),
+                "limitations": publication.get("limitations", []),
+                "policies": {
+                    key: publication.get(key, "")
+                    for key in [
+                        "collaboration_note",
+                        "github_issue_policy",
+                        "release_runbook_policy",
+                        "review_board_policy",
+                        "gretel_autonomy_policy",
+                    ]
+                },
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+    )
+
+
+def publication_release_gate_hash(publication: dict[str, Any]) -> str:
+    return sha256_text(json.dumps(publication.get("release_gates", {}), sort_keys=True, ensure_ascii=False))
+
+
+def safe_publication_workspace_card(
+    workspace_card: dict[str, Any],
+    *,
+    publication_reproducibility_hash: str = "",
+    publication_release_gate_hash: str = "",
+) -> dict[str, Any]:
+    summary = workspace_card.get("workspace_card_summary", {}) if isinstance(workspace_card.get("workspace_card_summary"), dict) else {}
+    review = workspace_card.get("readiness_review", {}) if isinstance(workspace_card.get("readiness_review"), dict) else {}
+    handoff = workspace_card.get("readiness_handoff", {}) if isinstance(workspace_card.get("readiness_handoff"), dict) else {}
+    ledger = workspace_card.get("help_ledger_preview", {}) if isinstance(workspace_card.get("help_ledger_preview"), dict) else {}
+    if not summary and (
+        workspace_card.get("help_ledger_preview_hash") is not None
+        or workspace_card.get("ready_for_operator_prefill") is not None
+        or workspace_card.get("help_ledger_preview_status") is not None
+    ):
+        summary = workspace_card
+    checkpoint_hash = str(summary.get("checkpoint_hash", ""))
+    task_hash = str(summary.get("task_hash", ""))
+    if publication_reproducibility_hash and checkpoint_hash == "__PUBLICATION_REPRODUCIBILITY_HASH__":
+        checkpoint_hash = publication_reproducibility_hash
+    if publication_release_gate_hash and task_hash == "__PUBLICATION_RELEASE_GATE_HASH__":
+        task_hash = publication_release_gate_hash
+    return {
+        "status": workspace_card.get("status", "missing"),
+        "selected_skill_tag": str(summary.get("selected_skill_tag", workspace_card.get("selected_skill_tag", ""))),
+        "recommendation": str(summary.get("recommendation", review.get("recommendation", "keep_blocked"))),
+        "recommendation_reason": str(
+            summary.get("recommendation_reason", review.get("recommendation_reason", "missing_publication_package"))
+        ),
+        "ready_for_operator_prefill": bool(summary.get("ready_for_operator_prefill", False)),
+        "help_ledger_preview_status": str(summary.get("help_ledger_preview_status", ledger.get("status", "missing"))),
+        "next_safe_action": str(summary.get("next_safe_action", review.get("next_safe_action", ""))),
+        "next_safe_user_action": str(summary.get("next_safe_user_action", review.get("next_safe_user_action", ""))),
+        "operator_run_endpoint": str(summary.get("operator_run_endpoint", handoff.get("operator_run_endpoint", ""))),
+        "operator_run_method": str(summary.get("operator_run_method", handoff.get("operator_run_method", "POST"))),
+        "help_level": str(summary.get("help_level", ledger.get("help_level", "A2"))),
+        "task_hash": task_hash,
+        "checkpoint_hash": checkpoint_hash,
+        "source_card_ids": [str(item) for item in (summary.get("source_card_ids", []) or [])][:8],
+        "source_anchor_count": int(summary.get("source_anchor_count", 0) or 0),
+        "help_ledger_preview_hash": str(summary.get("help_ledger_preview_hash", ledger.get("preview_hash", ""))),
+        "not_cleared_receipt": bool(workspace_card.get("not_cleared_receipt", True)),
+        "exam_deployment_status": "not_cleared",
+        "raw_workspace_card_returned": False,
+    }
 
 
 def build_publication_package() -> dict[str, Any]:
