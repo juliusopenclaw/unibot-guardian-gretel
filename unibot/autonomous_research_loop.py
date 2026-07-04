@@ -1385,7 +1385,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "extraction_receipt_journal_local_cycle_workspace_card_receipt_link_alignment",
             "priority": 73,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link extraction receipt journal hash-only receipt metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving receipt/journal hashes and workspace-card prefill evidence, no raw extracted text/local path/private artifact publication, no manifest writes/tutor retrieval, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/extraction_receipt_journal.py",
@@ -1395,6 +1395,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_extraction_receipt_journal.py tests/test_unibot_readiness.py -q"],
             "review_gate": "extraction_receipt_journal_local_cycle_workspace_card_receipt_link_traceability",
+            "closure_evidence": {
+                "commit": "942a59b",
+                "summary": "Extraction receipt journal release-claim alignment now links receipt journal and progress-receipt hashes to the harnessed local-cycle operator workspace-card readiness gate, preserves hash-only receipt and ready-for-prefill metadata, and blocks raw extracted text/local paths/private artifact publication, manifest writes or tutor retrieval, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "external_decision_state_local_cycle_workspace_card_gate_link_alignment",
+            "priority": 74,
+            "status": "ready",
+            "goal": "Link external decision state gate summaries and hash-only decision metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving local-extraction/exam-authority gate hashes and workspace-card prefill evidence, no raw written decisions/contact data/public raw course text publication, no silent deployment switch, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/decision_state.py",
+                "tests/test_unibot_decision_state.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_decision_state.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "external_decision_state_local_cycle_workspace_card_gate_link_traceability",
         },
     ]
 
