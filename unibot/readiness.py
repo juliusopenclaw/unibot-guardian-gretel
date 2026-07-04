@@ -710,9 +710,32 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "release_claim_alignment_section_count": external_decision_record_journal_alignment["section_count"],
                 "record_count": external_decision_record_journal_alignment["record_count"],
                 "record_types": external_decision_record_journal_alignment["record_types"],
+                "workspace_card_status": external_decision_record_journal_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": external_decision_record_journal_alignment[
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": external_decision_record_journal_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": external_decision_record_journal_alignment[
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": external_decision_record_journal_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": external_decision_record_journal_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_decision_record_gate_linked": external_decision_record_journal_alignment[
+                    "workspace_card_decision_record_gate_linked"
+                ],
                 "release_claim_alignment_human_gates": external_decision_record_journal_alignment[
                     "required_human_gates"
                 ],
+                "workspace_card_readiness_gate_claim_linked": (
+                    "python_exam_local_cycle_operator_workspace_card"
+                    in external_decision_record_journal_alignment["required_readiness_check_ids"]
+                ),
                 "decision_journal_claim_linked": (
                     "stakeholder_decision_journal"
                     in external_decision_record_journal_alignment["required_readiness_check_ids"]
@@ -740,6 +763,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                     "written_university_clearance_required_before_exam_use"
                     in external_decision_record_journal_alignment["required_human_gates"]
                 ),
+                "workspace_card_decision_record_gate_contract": external_decision_record_journal_alignment["contracts"][
+                    "workspace_card_decision_record_gate_linked"
+                ],
                 "raw_decision_storage_blocked": "raw written decision storage"
                 in external_decision_record_journal_alignment["blocked_claims"],
                 "deployment_switch_blocked": "deployment switch"

@@ -13,9 +13,13 @@ sys.path.insert(0, str(ROOT))
 from unibot.external_decision_journal import (  # noqa: E402
     append_external_decision_journal_record,
     build_external_decision_record_journal_release_claim_alignment,
+    external_decision_record_gate_hash,
+    external_decision_record_journal_hash,
     read_external_decision_journal,
     sanitize_external_decision_journal_record,
     summarize_external_decision_journal,
+    summarize_external_decision_records,
+    synthetic_external_decision_record_journal_workspace_card,
 )
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
@@ -92,6 +96,7 @@ class UniBotExternalDecisionJournalTests(unittest.TestCase):
         self.assertIn("extraction_deferral", alignment["record_types"])
         self.assertIn("manual_deployment_go", alignment["record_types"])
         self.assertIn("external_decision_record_journal", alignment["required_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
         self.assertIn("stakeholder_decision_journal", alignment["required_readiness_check_ids"])
         self.assertIn("data_protection_screening", alignment["required_readiness_check_ids"])
         self.assertIn("authority_handoff", alignment["required_readiness_check_ids"])
@@ -99,9 +104,58 @@ class UniBotExternalDecisionJournalTests(unittest.TestCase):
         self.assertIn("human_submission_review_required", alignment["required_human_gates"])
         self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
         self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertTrue(alignment["contracts"]["workspace_card_decision_record_gate_linked"])
+        self.assertEqual(alignment["workspace_card_status"], "python_exam_local_cycle_operator_workspace_card_ready")
+        self.assertEqual(alignment["workspace_card_selected_skill_tag"], "pandas")
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_decision_record_gate_linked"])
         self.assertIn("raw written decision storage", alignment["blocked_claims"])
         self.assertIn("deployment switch", alignment["blocked_claims"])
         self.assertIn("exam deployment", alignment["blocked_claims"])
+
+    def test_external_decision_record_hash_helpers_link_records_and_gates(self) -> None:
+        records = [
+            sanitize_external_decision_journal_record(
+                record_type="exam_clearance",
+                record=valid_exam_clearance(),
+            ),
+            sanitize_external_decision_journal_record(
+                record_type="extraction_deferral",
+                record=valid_extraction_deferral(),
+            ),
+        ]
+        summary = summarize_external_decision_records(records)
+
+        self.assertTrue(external_decision_record_journal_hash(records))
+        self.assertTrue(external_decision_record_gate_hash(summary))
+        self.assertNotEqual(external_decision_record_journal_hash(records), external_decision_record_gate_hash(summary))
+
+    def test_external_decision_record_release_claim_alignment_rejects_unlinked_workspace_card_hashes(self) -> None:
+        records = [
+            sanitize_external_decision_journal_record(
+                record_type="exam_clearance",
+                record=valid_exam_clearance(),
+            ),
+            sanitize_external_decision_journal_record(
+                record_type="extraction_deferral",
+                record=valid_extraction_deferral(),
+            ),
+        ]
+        card = synthetic_external_decision_record_journal_workspace_card()
+        card["workspace_card_summary"]["checkpoint_hash"] = "x"
+        card["workspace_card_summary"]["task_hash"] = "x"
+
+        alignment = build_external_decision_record_journal_release_claim_alignment(
+            records,
+            python_exam_local_cycle_operator_workspace_card=card,
+        )
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertFalse(alignment["workspace_card_decision_record_gate_linked"])
+        self.assertIn("workspace_card_decision_record_gate_linked", alignment["failed_contract_ids"])
 
     def test_external_decision_record_release_claim_alignment_blocks_raw_or_deploy_records(self) -> None:
         record = sanitize_external_decision_journal_record(

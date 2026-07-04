@@ -100,7 +100,10 @@ The external decision record journal carries
 This contract keeps validated external decision records hash/status-only and
 proves that even accepted extraction, deferral, exam-clearance, or manual-go
 records do not store raw decisions, do not expose contact data, and do not
-switch deployment or clear exam use by themselves.
+switch deployment or clear exam use by themselves. Decision-record journal and
+gate-summary hashes are now linked to the harnessed local-cycle operator
+workspace-card readiness gate without exposing raw written decisions, contact
+data, public raw course text, deployment text, or the raw workspace card.
 
 The external decision state carries
 `unibot-external-decision-state-release-review-board-claim-alignment-v1`. This
