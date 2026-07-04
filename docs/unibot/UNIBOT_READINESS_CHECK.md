@@ -46,6 +46,7 @@ It aggregates:
 - private tutor-use flow and learner-agency boundary alignment
 - study-session receipt and formative review alignment
 - notebook checkpoint and hash-only local cell evidence alignment
+- exam workspace launch and release-claim alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -169,6 +170,14 @@ local notebook cell work into hash-only checkpoint evidence and can write a
 checkpoint journal event only with operator confirmation. It does not return
 raw cell text, notebook code, local paths, final solutions, grades, proctoring,
 AI-detection evidence, Eigenleistung percentages, or exam clearance.
+
+The exam-workspace launch gate carries
+`unibot-exam-workspace-launch-release-review-board-claim-alignment-v1`. It
+connects the coverage-selected start point, private tutor-use flow, study
+receipt, and notebook checkpoint into a dry-run launch receipt. It stays
+operator-reviewed, hash-only, and not cleared for real exams; it does not
+return raw notebook code or private text, grade, proctor, detect AI use, claim
+Eigenleistung percentages, or clear exam deployment.
 
 ## Source-Card Drift Guard
 

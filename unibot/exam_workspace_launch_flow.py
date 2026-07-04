@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -9,11 +10,16 @@ from .course_tutor import DEFAULT_COURSE_ID, safe_course_id
 from .exam_notebook_checkpoint import build_exam_notebook_checkpoint_adapter_dry_run
 from .exam_workspace_run import build_exam_workspace_run_dry_run
 from .material_coverage_run import build_course_material_coverage_run
-from .materials import sha256_text
+from .materials import build_material_manifest, sha256_text
 from .public_safety import scan_text
+from .source_cards import get_source_card
+from .tutor_index import build_private_tutor_index_dry_run
 
 
 EXAM_WORKSPACE_LAUNCH_FLOW_SCHEMA_VERSION = "unibot-exam-workspace-launch-flow-v1"
+EXAM_WORKSPACE_LAUNCH_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-exam-workspace-launch-release-review-board-claim-alignment-v1"
+)
 LAUNCH_ENDPOINT = "/api/unibot/exam-workspace/launch-flow/dry-run"
 WORKSPACE_RUN_ENDPOINT = "/api/unibot/exam-workspace/run-dry-run"
 ALLOWED_LAUNCH_HELP_LEVELS = {"A0", "A1", "A2"}
@@ -262,12 +268,265 @@ def build_exam_workspace_launch_flow_dry_run(
     return report
 
 
+def build_exam_workspace_launch_release_claim_alignment(
+    launch_report: dict[str, Any] | None = None,
+    blocked_report: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if launch_report is None or blocked_report is None:
+        with tempfile.TemporaryDirectory(prefix="unibot_exam_workspace_launch_alignment_") as temp_dir:
+            temp_root = Path(temp_dir)
+            materials_root = temp_root / "materials"
+            materials_root.mkdir(parents=True)
+            (materials_root / "pandas_intro.md").write_text(
+                "pandas DataFrame read_csv columns dtypes debugging boxplot",
+                encoding="utf-8",
+            )
+            manifest_path = temp_root / "private_manifest.json"
+            tutor_index_path = temp_root / "private_tutor_index.json"
+            tutor_index_journal_path = temp_root / "private_tutor_index_journal.jsonl"
+            manifest = build_material_manifest([synthetic_launch_manifest_record()])
+            manifest["artifact_type"] = "course_private_material_manifest"
+            manifest["exam_deployment_status"] = "not_cleared"
+            manifest["storage_policy"] = "hash-only private material metadata; no raw text or local paths"
+            manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, sort_keys=True), encoding="utf-8")
+            build_private_tutor_index_dry_run(
+                private_manifest_path=manifest_path,
+                tutor_index_path=tutor_index_path,
+                tutor_index_journal_path=tutor_index_journal_path,
+                operator_confirmed_tutor_index_build=True,
+            )
+            common_kwargs = {
+                "course_id": "exam-workspace-launch-alignment",
+                "base_path": str(materials_root),
+                "review_policy": "local_private_tutor",
+                "decision_record": synthetic_launch_decision_record(),
+                "private_manifest_path": manifest_path,
+                "tutor_index_path": tutor_index_path,
+                "tutor_index_journal_path": tutor_index_journal_path,
+                "focus_query": "pandas boxplot",
+                "query": "synthetic private launch query",
+                "student_reflection": "I checked my own prediction before asking for source-anchored help.",
+                "study_receipt": {
+                    "prediction_present": True,
+                    "notebook_action_present": True,
+                    "reflection_present": True,
+                },
+                "public_safe": True,
+            }
+            launch_report = launch_report or build_exam_workspace_launch_flow_dry_run(
+                **common_kwargs,
+                requested_help_level="A2",
+                cell_source="own_frame_shape = (3, 2)\n",
+                cell_index=1,
+                cell_id="synthetic-private-launch-cell",
+            )
+            blocked_report = blocked_report or build_exam_workspace_launch_flow_dry_run(
+                **common_kwargs,
+                requested_help_level="A2",
+                cell_source="# final answer: complete solution\n",
+                cell_index=2,
+                cell_id="synthetic-private-repeat-cell",
+            )
+
+    sections = [
+        {
+            "section_id": "notebook_checkpoint_trace",
+            "summary_claim": "launch flow starts from a coverage-selected skill and links only hash-only notebook checkpoint evidence",
+            "source_card_ids": ["dfg-gwp", "gdpr-2016-679", "dsk-ai-privacy-2024"],
+            "readiness_check_ids": ["exam_workspace_launch", "notebook_checkpoint", "study_session"],
+            "human_gates": ["datenschutz_review_required_before_real_pilot", "human_submission_review_required"],
+        },
+        {
+            "section_id": "private_tutor_use_trace",
+            "summary_claim": "launch flow stays within private tutor use, study receipts, and source-anchored A0-A2 help",
+            "source_card_ids": ["dfg-gwp", "dsk-ai-privacy-2024"],
+            "readiness_check_ids": ["exam_workspace_launch", "private_tutor_use_flow", "evaluation_packet"],
+            "human_gates": ["human_submission_review_required", "public_safety_required"],
+        },
+        {
+            "section_id": "dry_run_boundary_trace",
+            "summary_claim": "launch flow defaults to dry-run and requires operator review before local writes or any real exam posture",
+            "source_card_ids": ["dfg-gwp", "uoc-ki-faq", "uoc-hilfsmittel"],
+            "readiness_check_ids": ["exam_workspace_launch", "review_board_packet", "exam_boundary"],
+            "human_gates": ["human_submission_review_required", "written_university_clearance_required_before_exam_use"],
+        },
+        {
+            "section_id": "not_authorized_trace",
+            "summary_claim": "launch flow does not publish raw code, grade, proctor, detect AI use, or clear exam deployment",
+            "source_card_ids": ["eu-ai-act-2024", "uoc-ki-faq", "uoc-hilfsmittel"],
+            "readiness_check_ids": ["exam_workspace_launch", "external_decision_state", "exam_boundary"],
+            "human_gates": ["written_university_clearance_required_before_exam_use", "human_submission_review_required"],
+        },
+    ]
+    required_source_card_ids = sorted({source_id for section in sections for source_id in section["source_card_ids"]})
+    missing_source_card_ids = sorted(source_id for source_id in required_source_card_ids if get_source_card(source_id) is None)
+    launch_config = launch_report.get("launch_configuration", {}) if isinstance(launch_report.get("launch_configuration"), dict) else {}
+    notebook_checkpoint = (
+        launch_config.get("notebook_cell_checkpoint", {})
+        if isinstance(launch_config.get("notebook_cell_checkpoint"), dict)
+        else {}
+    )
+    local_checkpoint = (
+        launch_report.get("local_notebook_checkpoint", {})
+        if isinstance(launch_report.get("local_notebook_checkpoint"), dict)
+        else {}
+    )
+    workspace_summary = (
+        launch_report.get("exam_workspace_run_summary", {})
+        if isinstance(launch_report.get("exam_workspace_run_summary"), dict)
+        else {}
+    )
+    help_preview = (
+        launch_report.get("help_ledger_preview", {})
+        if isinstance(launch_report.get("help_ledger_preview"), dict)
+        else {}
+    )
+    blocked_checkpoint = (
+        blocked_report.get("local_notebook_checkpoint", {})
+        if isinstance(blocked_report.get("local_notebook_checkpoint"), dict)
+        else {}
+    )
+    blocked_claims = [
+        "raw notebook code returned",
+        "raw cell text returned",
+        "raw notebook returned",
+        "local path returned",
+        "final solution acceptance",
+        "complete code outsourcing",
+        "inserted values",
+        "final interpretation",
+        "automatic grading",
+        "proctoring",
+        "KI-detection evidence",
+        "Eigenleistung percentage claim",
+        "cloud processing",
+        "exam deployment",
+        "exam clearance",
+    ]
+    boundary = str(launch_report.get("execution_boundary", ""))
+    contracts = {
+        "launch_public_safe": launch_report.get("public_safety_status") == "pass",
+        "blocked_launch_public_safe": blocked_report.get("public_safety_status") == "pass",
+        "notebook_checkpoint_linked_hash_only": launch_report.get("status") == "exam_workspace_launch_dry_run_ready"
+        and local_checkpoint.get("status") == "notebook_checkpoint_ready"
+        and bool(local_checkpoint.get("notebook_work_sha256"))
+        and bool(notebook_checkpoint.get("notebook_work_sha256"))
+        and notebook_checkpoint.get("raw_notebook_returned") is False
+        and notebook_checkpoint.get("notebook_code_returned") is False
+        and notebook_checkpoint.get("local_path_returned") is False,
+        "private_tutor_use_and_study_receipt_linked": workspace_summary.get("tutor_status") == "allowed"
+        and workspace_summary.get("study_receipt_status") == "ok_study_session_receipt"
+        and help_preview.get("status") == "preview_ready"
+        and help_preview.get("general_help_ledger_written") is False
+        and help_preview.get("exam_ledger_written") is False,
+        "dry_run_operator_boundaries_hold": launch_config.get("requires_operator_confirmation_for_writes") is True
+        and launch_report.get("exam_deployment_status") == "not_cleared"
+        and launch_report.get("export_receipt", {}).get("not_cleared_receipt") is True
+        and "Standard is dry-run" in boundary,
+        "blocked_checkpoint_stops_launch": blocked_report.get("status")
+        == "exam_workspace_launch_notebook_checkpoint_repeat_task_required"
+        and blocked_report.get("exam_workspace_run_summary", {}).get("status") == "not_started_checkpoint_not_ready"
+        and blocked_checkpoint.get("solution_marker_detected") is True,
+        "public_outputs_hide_private_data": launch_report.get("raw_query_returned") is False
+        and launch_report.get("raw_text_returned") is False
+        and launch_report.get("raw_cell_returned") is False
+        and launch_report.get("raw_notebook_returned") is False
+        and launch_report.get("notebook_code_returned") is False
+        and launch_report.get("local_paths_returned") is False,
+        "high_stakes_actions_not_started": launch_report.get("automatic_grading_started") is False
+        and launch_report.get("proctoring_started") is False
+        and launch_report.get("ai_detection_started") is False
+        and launch_report.get("exam_clearance_claimed") is False
+        and launch_report.get("exam_deployment_status") == "not_cleared",
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    payload = {
+        "sections": sections,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "blocked_claims": blocked_claims,
+        "launch_status": launch_report.get("status"),
+        "blocked_status": blocked_report.get("status"),
+    }
+    scan = scan_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        "exam-workspace-launch-release-claim-alignment",
+    )
+    status = "ready" if not missing_source_card_ids and not failed_contract_ids and scan["status"] == "pass" else "needs_review"
+    return {
+        "schema_version": EXAM_WORKSPACE_LAUNCH_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "launch_status": launch_report.get("status"),
+        "launch_public_safety_status": launch_report.get("public_safety_status"),
+        "launch_workspace_status": workspace_summary.get("status"),
+        "blocked_launch_status": blocked_report.get("status"),
+        "blocked_public_safety_status": blocked_report.get("public_safety_status"),
+        "exam_deployment_status": launch_report.get("exam_deployment_status"),
+        "checkpoint_status": local_checkpoint.get("status"),
+        "checkpoint_hash_present": bool(local_checkpoint.get("notebook_work_sha256")),
+        "study_receipt_status": workspace_summary.get("study_receipt_status"),
+        "tutor_status": workspace_summary.get("tutor_status"),
+        "help_ledger_preview_status": help_preview.get("status"),
+        "general_help_ledger_written": bool(help_preview.get("general_help_ledger_written", False)),
+        "exam_ledger_written": bool(help_preview.get("exam_ledger_written", False)),
+        "repeat_task_required": bool(blocked_checkpoint.get("solution_marker_detected", False)),
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "blocked_claims": blocked_claims,
+        "public_safety_status": scan["status"],
+        "policy": (
+            "Exam workspace launch is a source-anchored dry-run entry point. It may prepare a private tutor session, "
+            "hash-only notebook checkpoint, study receipt, and export receipt, but it does not return raw private data, "
+            "grade, proctor, detect AI use, claim Eigenleistung percentages, or clear exams."
+        ),
+    }
+
+
 def selected_skill_row(coverage: dict[str, Any], start_point: dict[str, Any]) -> dict[str, Any]:
     skill_tag = str(start_point.get("skill_tag", ""))
     for row in coverage.get("skill_coverage", []) or []:
         if isinstance(row, dict) and row.get("skill_tag") == skill_tag:
             return row
     return {}
+
+
+def synthetic_launch_manifest_record() -> dict[str, Any]:
+    return {
+        "material_id": "synthetic-launch-notebook",
+        "title": "Synthetic launch notebook",
+        "source_kind": "notebook",
+        "permission_status": "private_course_use_only",
+        "publish_policy": "private_only",
+        "extraction_status": "text_extracted",
+        "review_status": "reviewed_for_private_tutor",
+        "skill_tags": ["pandas", "boxplots", "debugging"],
+        "source_card_ids": ["dfg-gwp", "vanlehn-2011"],
+        "page_or_timestamp": "synthetic week 01",
+        "sha256": sha256_text("synthetic launch notebook reviewed locally"),
+    }
+
+
+def synthetic_launch_decision_record() -> dict[str, Any]:
+    return {
+        "decision_status": "approved_for_local_extraction",
+        "scope": "local_private_course_extraction",
+        "allowed_job_types": ["ocr", "transcription"],
+        "storage_policy": "local_private_only",
+        "cloud_processing_allowed": False,
+        "raw_text_public_release_allowed": False,
+        "human_review_before_tutor_index": True,
+        "retention_decision": "delete private extraction artifacts after reviewed metadata is accepted",
+        "access_roles": ["project_owner", "approved_reviewer"],
+        "reviewer_roles": ["Datenschutz", "Lehreinheit / Modulverantwortliche", "IT / SZI"],
+        "decision_reference": "synthetic launch flow decision",
+    }
 
 
 def launch_coverage_summary(

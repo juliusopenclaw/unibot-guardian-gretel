@@ -12,7 +12,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.exam_workspace_launch_flow import build_exam_workspace_launch_flow_dry_run  # noqa: E402
+from unibot.exam_workspace_launch_flow import (  # noqa: E402
+    build_exam_workspace_launch_flow_dry_run,
+    build_exam_workspace_launch_release_claim_alignment,
+)
 from unibot.materials import build_material_manifest, sha256_text  # noqa: E402
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
@@ -254,6 +257,123 @@ class UniBotExamWorkspaceLaunchFlowTests(unittest.TestCase):
             self.assertNotIn("complete solution", payload.lower())
             self.assertNotIn(str(temp_dir), payload)
             self.assertEqual(scan_text(payload, "launch-flow-repeat")["status"], "pass")
+
+    def test_launch_release_claim_alignment_links_review_board_claims(self) -> None:
+        alignment = build_exam_workspace_launch_release_claim_alignment()
+        payload = json.dumps(alignment, ensure_ascii=False)
+
+        self.assertEqual(
+            alignment["schema_version"],
+            "unibot-exam-workspace-launch-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["launch_status"], "exam_workspace_launch_dry_run_ready")
+        self.assertEqual(alignment["launch_public_safety_status"], "pass")
+        self.assertEqual(alignment["blocked_public_safety_status"], "pass")
+        self.assertEqual(
+            alignment["blocked_launch_status"],
+            "exam_workspace_launch_notebook_checkpoint_repeat_task_required",
+        )
+        self.assertEqual(alignment["exam_deployment_status"], "not_cleared")
+        self.assertEqual(alignment["checkpoint_status"], "notebook_checkpoint_ready")
+        self.assertTrue(alignment["checkpoint_hash_present"])
+        self.assertEqual(alignment["study_receipt_status"], "ok_study_session_receipt")
+        self.assertEqual(alignment["tutor_status"], "allowed")
+        self.assertEqual(alignment["help_ledger_preview_status"], "preview_ready")
+        self.assertFalse(alignment["general_help_ledger_written"])
+        self.assertFalse(alignment["exam_ledger_written"])
+        self.assertTrue(alignment["repeat_task_required"])
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertIn("exam_workspace_launch", alignment["required_readiness_check_ids"])
+        self.assertIn("notebook_checkpoint", alignment["required_readiness_check_ids"])
+        self.assertIn("study_session", alignment["required_readiness_check_ids"])
+        self.assertIn("private_tutor_use_flow", alignment["required_readiness_check_ids"])
+        self.assertIn("evaluation_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("review_board_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("external_decision_state", alignment["required_readiness_check_ids"])
+        self.assertIn("exam_boundary", alignment["required_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertTrue(alignment["contracts"]["launch_public_safe"])
+        self.assertTrue(alignment["contracts"]["blocked_launch_public_safe"])
+        self.assertTrue(alignment["contracts"]["notebook_checkpoint_linked_hash_only"])
+        self.assertTrue(alignment["contracts"]["private_tutor_use_and_study_receipt_linked"])
+        self.assertTrue(alignment["contracts"]["dry_run_operator_boundaries_hold"])
+        self.assertTrue(alignment["contracts"]["blocked_checkpoint_stops_launch"])
+        self.assertTrue(alignment["contracts"]["public_outputs_hide_private_data"])
+        self.assertTrue(alignment["contracts"]["high_stakes_actions_not_started"])
+        self.assertIn("raw notebook code returned", alignment["blocked_claims"])
+        self.assertIn("raw cell text returned", alignment["blocked_claims"])
+        self.assertIn("final solution acceptance", alignment["blocked_claims"])
+        self.assertIn("automatic grading", alignment["blocked_claims"])
+        self.assertIn("proctoring", alignment["blocked_claims"])
+        self.assertIn("KI-detection evidence", alignment["blocked_claims"])
+        self.assertIn("exam deployment", alignment["blocked_claims"])
+        self.assertIn("exam clearance", alignment["blocked_claims"])
+        self.assertEqual(scan_text(payload, "launch-alignment")["status"], "pass")
+
+    def test_launch_release_claim_alignment_blocks_overstated_launch_claims(self) -> None:
+        unsafe_launch_report = {
+            "status": "exam_workspace_launch_dry_run_ready",
+            "public_safety_status": "pass",
+            "exam_deployment_status": "cleared",
+            "execution_boundary": "Launch flow.",
+            "launch_configuration": {
+                "requires_operator_confirmation_for_writes": False,
+                "notebook_cell_checkpoint": {
+                    "notebook_work_sha256": sha256_text("synthetic"),
+                    "raw_notebook_returned": True,
+                    "notebook_code_returned": True,
+                    "local_path_returned": True,
+                },
+            },
+            "local_notebook_checkpoint": {
+                "status": "notebook_checkpoint_ready",
+                "notebook_work_sha256": sha256_text("synthetic"),
+            },
+            "exam_workspace_run_summary": {
+                "status": "exam_workspace_dry_run_ready",
+                "tutor_status": "allowed",
+                "study_receipt_status": "ok_study_session_receipt",
+            },
+            "help_ledger_preview": {
+                "status": "preview_ready",
+                "general_help_ledger_written": True,
+                "exam_ledger_written": True,
+            },
+            "export_receipt": {"not_cleared_receipt": False},
+            "raw_query_returned": True,
+            "raw_text_returned": True,
+            "raw_cell_returned": True,
+            "raw_notebook_returned": True,
+            "notebook_code_returned": True,
+            "local_paths_returned": True,
+            "automatic_grading_started": True,
+            "proctoring_started": True,
+            "ai_detection_started": True,
+            "exam_clearance_claimed": True,
+        }
+        blocked_report = {
+            "status": "exam_workspace_launch_notebook_checkpoint_repeat_task_required",
+            "public_safety_status": "pass",
+            "local_notebook_checkpoint": {"solution_marker_detected": True},
+            "exam_workspace_run_summary": {"status": "not_started_checkpoint_not_ready"},
+        }
+
+        alignment = build_exam_workspace_launch_release_claim_alignment(
+            launch_report=unsafe_launch_report,
+            blocked_report=blocked_report,
+        )
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertIn("notebook_checkpoint_linked_hash_only", alignment["failed_contract_ids"])
+        self.assertIn("private_tutor_use_and_study_receipt_linked", alignment["failed_contract_ids"])
+        self.assertIn("dry_run_operator_boundaries_hold", alignment["failed_contract_ids"])
+        self.assertIn("public_outputs_hide_private_data", alignment["failed_contract_ids"])
+        self.assertIn("high_stakes_actions_not_started", alignment["failed_contract_ids"])
 
 
 if __name__ == "__main__":
