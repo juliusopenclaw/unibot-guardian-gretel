@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT))
 
 from unibot.extraction_human_review import (  # noqa: E402
     build_extraction_human_review_apply_plan,
+    build_extraction_human_review_release_claim_alignment,
     validate_extraction_human_review_decision,
 )
 from unibot.extraction_receipt_journal import read_extraction_receipt_journal  # noqa: E402
@@ -173,6 +174,63 @@ class UniBotExtractionHumanReviewTests(unittest.TestCase):
             self.assertNotIn("synthetic note hashed by the harness", payload)
             self.assertNotIn("local private artifact handle", payload)
             self.assertEqual(scan_text(payload, "human-review-apply-test")["status"], "pass")
+
+    def test_human_review_release_claim_alignment_links_review_completion_and_boundaries(self) -> None:
+        alignment = build_extraction_human_review_release_claim_alignment()
+
+        self.assertEqual(
+            alignment["schema_version"],
+            "unibot-extraction-human-review-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["plan_public_safety_status"], "pass")
+        self.assertEqual(alignment["exam_deployment_status"], "not_cleared")
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertEqual(alignment["plan_status"], "review_decisions_recorded_manifest_apply_plan_ready")
+        self.assertGreaterEqual(alignment["stored_review_decision_count"], 1)
+        self.assertEqual(alignment["invalid_review_decision_count"], 0)
+        self.assertGreaterEqual(alignment["appended_review_receipt_count"], 1)
+        self.assertGreaterEqual(alignment["appended_review_record_count"], 1)
+        self.assertGreaterEqual(alignment["post_reviewed_for_private_tutor_count"], alignment["appended_review_receipt_count"])
+        self.assertGreaterEqual(alignment["ready_to_apply_private_count"], alignment["appended_review_receipt_count"])
+        self.assertIn("extraction_human_review", alignment["required_readiness_check_ids"])
+        self.assertIn("extraction_completion", alignment["required_readiness_check_ids"])
+        self.assertIn("extraction_manifest_update", alignment["required_readiness_check_ids"])
+        self.assertIn("extraction_manifest_apply", alignment["required_readiness_check_ids"])
+        self.assertIn("exam_boundary", alignment["required_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertTrue(alignment["contracts"]["review_decisions_recorded_hash_only"])
+        self.assertTrue(alignment["contracts"]["local_private_artifact_review_required"])
+        self.assertTrue(alignment["contracts"]["private_manifest_plan_only"])
+        self.assertTrue(alignment["contracts"]["completion_evidence_linked"])
+        self.assertIn("raw review notes storage", alignment["blocked_claims"])
+        self.assertIn("manifest write by human review alone", alignment["blocked_claims"])
+        self.assertIn("tutor indexing by human review alone", alignment["blocked_claims"])
+        self.assertIn("exam deployment", alignment["blocked_claims"])
+
+    def test_human_review_release_claim_alignment_blocks_manifest_or_exam_claims(self) -> None:
+        plan = build_extraction_human_review_apply_plan(
+            decision_record=valid_decision(),
+            receipts=[valid_pending_receipt()],
+            review_decisions=[valid_review_decision(str(valid_pending_receipt()["job_id"]))],
+        )
+        plan["exam_deployment_status"] = "cleared"
+        plan["execution_boundary"] = "Human review writes manifests and starts tutor indexing."
+        plan["manifest_written"] = True
+        plan["tutor_indexing_started"] = True
+        plan["raw_text_returned"] = True
+        plan["review_decision_summary"]["invalid_review_decision_count"] = 1
+
+        alignment = build_extraction_human_review_release_claim_alignment(plan)
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertIn("review_decisions_recorded_hash_only", alignment["failed_contract_ids"])
+        self.assertIn("private_manifest_plan_only", alignment["failed_contract_ids"])
+        self.assertIn("exam_deployment_not_cleared", alignment["failed_contract_ids"])
 
     def test_ocr_first_operator_receipts_flow_into_human_review_apply_plan(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

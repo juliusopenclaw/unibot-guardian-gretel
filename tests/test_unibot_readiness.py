@@ -72,6 +72,7 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertIn("extraction_manifest_update", check_ids)
         self.assertIn("extraction_manifest_apply", check_ids)
         self.assertIn("extraction_completion", check_ids)
+        self.assertIn("extraction_human_review", check_ids)
         self.assertIn("gretel_glm_evolve_lane", check_ids)
         self.assertIn("gretel_bachelor_thesis_package", check_ids)
         self.assertIn("gretel_autonomous_research_loop", check_ids)
@@ -375,6 +376,48 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertTrue(completion["evidence"]["tutor_indexing_by_completion_report_blocked"])
         self.assertTrue(completion["evidence"]["cloud_processing_blocked"])
         self.assertTrue(completion["evidence"]["exam_deployment_blocked"])
+        human_review = next(check for check in report["checks"] if check["check_id"] == "extraction_human_review")
+        self.assertEqual(human_review["evidence"]["release_claim_alignment_status"], "ready")
+        self.assertEqual(human_review["evidence"]["release_claim_alignment_public_safety_status"], "pass")
+        self.assertEqual(
+            human_review["evidence"]["release_claim_alignment_contract_status"],
+            "unibot-extraction-human-review-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(human_review["evidence"]["plan_public_safety_status"], "pass")
+        self.assertEqual(human_review["evidence"]["exam_deployment_status"], "not_cleared")
+        self.assertEqual(human_review["evidence"]["plan_status"], "review_decisions_recorded_manifest_apply_plan_ready")
+        self.assertGreaterEqual(human_review["evidence"]["stored_review_decision_count"], 1)
+        self.assertEqual(human_review["evidence"]["invalid_review_decision_count"], 0)
+        self.assertGreaterEqual(human_review["evidence"]["appended_review_receipt_count"], 1)
+        self.assertGreaterEqual(human_review["evidence"]["appended_review_record_count"], 1)
+        self.assertGreaterEqual(
+            human_review["evidence"]["post_reviewed_for_private_tutor_count"],
+            human_review["evidence"]["appended_review_receipt_count"],
+        )
+        self.assertGreaterEqual(
+            human_review["evidence"]["ready_to_apply_private_count"],
+            human_review["evidence"]["appended_review_receipt_count"],
+        )
+        self.assertTrue(human_review["evidence"]["receipt_journal_claim_linked"])
+        self.assertTrue(human_review["evidence"]["progress_claim_linked"])
+        self.assertTrue(human_review["evidence"]["completion_claim_linked"])
+        self.assertTrue(human_review["evidence"]["manifest_update_claim_linked"])
+        self.assertTrue(human_review["evidence"]["manifest_apply_claim_linked"])
+        self.assertTrue(human_review["evidence"]["external_decision_state_claim_linked"])
+        self.assertTrue(human_review["evidence"]["exam_boundary_claim_linked"])
+        self.assertTrue(human_review["evidence"]["human_submission_gate_linked"])
+        self.assertTrue(human_review["evidence"]["datenschutz_gate_linked"])
+        self.assertTrue(human_review["evidence"]["written_clearance_gate_linked"])
+        self.assertTrue(human_review["evidence"]["review_decisions_recorded_hash_only"])
+        self.assertTrue(human_review["evidence"]["local_private_artifact_review_required"])
+        self.assertTrue(human_review["evidence"]["private_manifest_plan_only"])
+        self.assertTrue(human_review["evidence"]["completion_evidence_linked"])
+        self.assertTrue(human_review["evidence"]["raw_review_notes_storage_blocked"])
+        self.assertTrue(human_review["evidence"]["raw_text_returned_blocked"])
+        self.assertTrue(human_review["evidence"]["manifest_write_by_human_review_alone_blocked"])
+        self.assertTrue(human_review["evidence"]["tutor_indexing_by_human_review_alone_blocked"])
+        self.assertTrue(human_review["evidence"]["cloud_processing_blocked"])
+        self.assertTrue(human_review["evidence"]["exam_deployment_blocked"])
         notebook = next(check for check in report["checks"] if check["check_id"] == "notebook_template")
         self.assertEqual(
             notebook["evidence"]["manual_publication_claim_contract_status"],

@@ -3,11 +3,13 @@ from __future__ import annotations
 import json
 import os
 import re
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from .course_tutor import DEFAULT_COURSE_ID, safe_course_id
+from .extraction_batches import build_all_jobs
 from .extraction_decision_context import (
     decision_context_authorizes,
     public_decision_context_view,
@@ -25,10 +27,14 @@ from .extraction_receipt_journal import (
 )
 from .materials import sha256_text
 from .public_safety import scan_text
+from .source_cards import get_source_card
 from .tutor_coverage import build_course_tutor_coverage_plan
 
 
 EXTRACTION_HUMAN_REVIEW_SCHEMA_VERSION = "unibot-extraction-human-review-v1"
+EXTRACTION_HUMAN_REVIEW_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-extraction-human-review-release-review-board-claim-alignment-v1"
+)
 DEFAULT_EXTRACTION_HUMAN_REVIEW_JOURNAL_PATH = Path.home() / ".unibot_guardian" / "extraction_human_reviews.jsonl"
 
 SHA256_RE = re.compile(r"^[a-f0-9]{64}$", re.I)
@@ -418,6 +424,167 @@ def build_extraction_human_review_apply_plan(
     return plan
 
 
+def build_extraction_human_review_release_claim_alignment(
+    apply_plan: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if apply_plan is None:
+        decision_record = synthetic_human_review_decision_record()
+        decision_reference_hash = sha256_text(str(decision_record["decision_reference"]))
+        with tempfile.TemporaryDirectory(prefix="unibot_human_review_alignment_") as temp_dir:
+            fixture_root = Path(temp_dir)
+            (fixture_root / "Week 1").mkdir(parents=True)
+            (fixture_root / "Week 1" / "lecture.pdf").write_bytes(b"%PDF-1.4\nfixture")
+            jobs = build_all_jobs(
+                DEFAULT_COURSE_ID,
+                base_path=str(fixture_root),
+                max_files=260,
+                review_policy="staged",
+                authorized=True,
+                rights_hash=decision_reference_hash,
+            )
+            receipts = [
+                synthetic_human_review_pending_receipt(job, decision_reference_hash=decision_reference_hash)
+                for job in jobs
+            ]
+            review_decisions = [
+                synthetic_human_review_decision(str(receipt.get("job_id", "")))
+                for receipt in receipts
+            ]
+            apply_plan = build_extraction_human_review_apply_plan(
+                base_path=str(fixture_root),
+                decision_record=decision_record,
+                receipts=receipts,
+                review_decisions=review_decisions,
+            )
+
+    sections = [
+        {
+            "section_id": "human_review_decision_trace",
+            "summary_claim": "human review decisions are hash-only local review evidence tied to extraction receipts",
+            "source_card_ids": ["dfg-gwp", "gdpr-2016-679"],
+            "readiness_check_ids": ["extraction_human_review", "extraction_receipt_journal", "extraction_progress"],
+            "human_gates": ["human_submission_review_required", "datenschutz_review_required_before_real_pilot"],
+        },
+        {
+            "section_id": "completion_evidence_trace",
+            "summary_claim": "human review advances completion evidence only after private local artifact review and reviewed receipt coverage",
+            "source_card_ids": ["dfg-gwp", "dsk-ai-privacy-2024"],
+            "readiness_check_ids": ["extraction_human_review", "extraction_completion", "extraction_manifest_update"],
+            "human_gates": ["human_submission_review_required", "public_safety_required"],
+        },
+        {
+            "section_id": "private_manifest_plan_boundary",
+            "summary_claim": "human review can prepare a private manifest apply plan but does not write manifests or start tutor indexing",
+            "source_card_ids": ["dsk-ai-privacy-2024", "gdpr-2016-679"],
+            "readiness_check_ids": ["extraction_human_review", "extraction_manifest_update", "extraction_manifest_apply"],
+            "human_gates": ["datenschutz_review_required_before_real_pilot", "human_submission_review_required"],
+        },
+        {
+            "section_id": "not_authorized_trace",
+            "summary_claim": "human review does not clear public release, cloud processing, official grading, proctoring, KI-detection evidence, or exam deployment",
+            "source_card_ids": ["eu-ai-act-2024", "uoc-ki-faq", "uoc-hilfsmittel"],
+            "readiness_check_ids": ["extraction_human_review", "external_decision_state", "exam_boundary"],
+            "human_gates": ["written_university_clearance_required_before_exam_use", "human_submission_review_required"],
+        },
+    ]
+    required_source_card_ids = sorted({source_id for section in sections for source_id in section["source_card_ids"]})
+    missing_source_card_ids = sorted(source_id for source_id in required_source_card_ids if get_source_card(source_id) is None)
+    decision_summary = apply_plan.get("review_decision_summary", {})
+    review_queue_summary = apply_plan.get("review_queue_summary", {})
+    manifest_apply_plan = apply_plan.get("manifest_apply_plan", {})
+    manifest_summary = manifest_apply_plan.get("candidate_summary", {})
+    post_review_reports = apply_plan.get("post_review_reports", {})
+    blocked_claims = [
+        "raw review reference storage",
+        "raw review notes storage",
+        "raw extracted text returned",
+        "local path returned",
+        "private artifact reference returned",
+        "manifest write by human review alone",
+        "tutor indexing by human review alone",
+        "public raw course text release",
+        "cloud processing",
+        "exam deployment",
+        "official grading",
+        "proctoring",
+        "KI-detection evidence",
+    ]
+    boundary = str(apply_plan.get("execution_boundary", ""))
+    contracts = {
+        "apply_plan_public_safe": apply_plan.get("public_safety_status") == "pass",
+        "review_decisions_recorded_hash_only": decision_summary.get("stored_review_decision_count", 0) >= 1
+        and decision_summary.get("invalid_review_decision_count", 0) == 0
+        and apply_plan.get("raw_review_reference_returned") is False
+        and apply_plan.get("raw_review_notes_returned") is False
+        and apply_plan.get("raw_text_returned") is False
+        and apply_plan.get("local_paths_returned") is False
+        and apply_plan.get("private_artifact_reference_returned") is False,
+        "local_private_artifact_review_required": all(
+            bool(item.get("review_reference_hash"))
+            and item.get("status") == "stored"
+            and item.get("raw_text_returned") is False
+            and item.get("local_paths_returned") is False
+            for item in apply_plan.get("review_results", [])
+        )
+        and decision_summary.get("stored_review_decision_count", 0) >= 1,
+        "private_manifest_plan_only": apply_plan.get("manifest_written") is False
+        and apply_plan.get("tutor_indexing_started") is False
+        and manifest_summary.get("ready_to_apply_private_count", 0) >= decision_summary.get("appended_review_receipt_count", 0)
+        and "does not expose raw course text" in boundary
+        and "write material manifests" in boundary
+        and "run tutor indexing" in boundary,
+        "completion_evidence_linked": review_queue_summary.get("post_reviewed_for_private_tutor_count", 0)
+        >= decision_summary.get("appended_review_receipt_count", 0)
+        and str(post_review_reports.get("progress", {}).get("status", "")).startswith("receipts_reviewed"),
+        "exam_deployment_not_cleared": apply_plan.get("exam_deployment_status") == "not_cleared",
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    payload = {
+        "sections": sections,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "blocked_claims": blocked_claims,
+        "plan_status": apply_plan.get("status"),
+    }
+    scan = scan_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        "extraction-human-review-release-claim-alignment",
+    )
+    status = "ready" if not missing_source_card_ids and not failed_contract_ids and scan["status"] == "pass" else "needs_review"
+    return {
+        "schema_version": EXTRACTION_HUMAN_REVIEW_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "plan_status": apply_plan.get("status"),
+        "plan_public_safety_status": apply_plan.get("public_safety_status"),
+        "exam_deployment_status": apply_plan.get("exam_deployment_status"),
+        "pre_review_ready_count": review_queue_summary.get("pre_review_ready_count", 0),
+        "post_review_ready_count": review_queue_summary.get("post_review_ready_count", 0),
+        "post_reviewed_for_private_tutor_count": review_queue_summary.get("post_reviewed_for_private_tutor_count", 0),
+        "stored_review_decision_count": decision_summary.get("stored_review_decision_count", 0),
+        "invalid_review_decision_count": decision_summary.get("invalid_review_decision_count", 0),
+        "appended_review_receipt_count": decision_summary.get("appended_review_receipt_count", 0),
+        "appended_review_record_count": decision_summary.get("appended_review_record_count", 0),
+        "manifest_candidate_count": manifest_summary.get("candidate_count", 0),
+        "ready_to_apply_private_count": manifest_summary.get("ready_to_apply_private_count", 0),
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "blocked_claims": blocked_claims,
+        "public_safety_status": scan["status"],
+        "policy": (
+            "Extraction human review is a hash-only local evidence gate. It can mark private receipts as reviewed "
+            "and prepare private manifest candidates, but it does not return raw text or paths, write manifests, "
+            "start tutor indexing, authorize public release, approve cloud processing, or clear exam use."
+        ),
+    }
+
+
 def append_extraction_human_review_record(
     validation: dict[str, Any],
     *,
@@ -692,3 +859,49 @@ def attach_public_scan(payload: dict[str, Any], *, public_safe: bool) -> None:
     if scan["status"] != "pass":
         payload["status"] = "blocked_public_safety"
         payload["public_safety_findings"] = scan["findings"]
+
+
+def synthetic_human_review_decision_record() -> dict[str, Any]:
+    return {
+        "decision_status": "approved_for_local_extraction",
+        "scope": "local_private_course_extraction",
+        "allowed_job_types": ["ocr", "transcription"],
+        "storage_policy": "local_private_only",
+        "cloud_processing_allowed": False,
+        "raw_text_public_release_allowed": False,
+        "human_review_before_tutor_index": True,
+        "retention_decision": "delete private extraction artifacts after reviewed metadata is accepted",
+        "access_roles": ["project_owner", "approved_reviewer"],
+        "reviewer_roles": ["Datenschutz", "Lehreinheit / Modulverantwortliche", "IT / SZI"],
+        "decision_reference": "synthetic extraction human review release alignment decision",
+    }
+
+
+def synthetic_human_review_pending_receipt(
+    job: dict[str, Any],
+    *,
+    decision_reference_hash: str,
+) -> dict[str, Any]:
+    return {
+        "job_id": job.get("job_id", "synthetic-human-review-job"),
+        "material_id": job.get("material_id", "synthetic-human-review-material"),
+        "job_type": job.get("job_type", "ocr"),
+        "extraction_status": "extracted_private",
+        "raw_text_sha256": "b" * 64,
+        "extracted_text_char_count": 880,
+        "private_artifact_reference": "synthetic local private human review artifact reference",
+        "human_review_status": "pending_review",
+        "decision_reference_hash": decision_reference_hash,
+    }
+
+
+def synthetic_human_review_decision(job_id: str) -> dict[str, Any]:
+    return {
+        "job_id": job_id,
+        "review_decision": "accepted_for_private_tutor",
+        "reviewer_roles": ["approved_reviewer"],
+        "review_reference": "synthetic extraction human review checklist reference",
+        "review_notes": "synthetic human review notes hashed by the harness",
+        "raw_text_reviewed_locally": True,
+        "source_card_ids": ["dfg-gwp", "gdpr-2016-679"],
+    }

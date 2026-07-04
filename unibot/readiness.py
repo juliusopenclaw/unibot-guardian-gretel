@@ -17,6 +17,7 @@ from .decision_state import build_external_decision_state_release_claim_alignmen
 from .evaluation import build_evaluation_packet
 from .external_decision_journal import build_external_decision_record_journal_release_claim_alignment
 from .extraction_completion import build_extraction_completion_release_claim_alignment
+from .extraction_human_review import build_extraction_human_review_release_claim_alignment
 from .extraction_manifest_apply import build_private_manifest_apply_release_claim_alignment
 from .extraction_manifest_update import build_extraction_manifest_update_release_claim_alignment
 from .extraction_progress import build_extraction_progress_release_claim_alignment
@@ -131,6 +132,7 @@ def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
         "extraction_manifest_update",
         "extraction_manifest_apply",
         "extraction_completion",
+        "extraction_human_review",
         "gretel_glm_evolve_lane",
         "gretel_bachelor_thesis_package",
         "gretel_autonomous_research_loop",
@@ -209,6 +211,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     extraction_manifest_update_alignment = build_extraction_manifest_update_release_claim_alignment()
     extraction_manifest_apply_alignment = build_private_manifest_apply_release_claim_alignment()
     extraction_completion_alignment = build_extraction_completion_release_claim_alignment()
+    extraction_human_review_alignment = build_extraction_human_review_release_claim_alignment()
     notebook = generate_practice_notebook("UniBot readiness notebook smoke")
     source_cards = list_source_cards()
     source_card_drift = build_source_card_drift_report()
@@ -1118,6 +1121,96 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 in extraction_completion_alignment["blocked_claims"],
                 "cloud_processing_blocked": "cloud processing" in extraction_completion_alignment["blocked_claims"],
                 "exam_deployment_blocked": "exam deployment" in extraction_completion_alignment["blocked_claims"],
+            },
+        },
+        {
+            "check_id": "extraction_human_review",
+            "passed": extraction_human_review_alignment["status"] == "ready"
+            and extraction_human_review_alignment["public_safety_status"] == "pass"
+            and extraction_human_review_alignment["plan_public_safety_status"] == "pass"
+            and extraction_human_review_alignment["exam_deployment_status"] == "not_cleared"
+            and extraction_human_review_alignment["missing_source_card_ids"] == []
+            and extraction_human_review_alignment["failed_contract_ids"] == [],
+            "evidence": {
+                "release_claim_alignment_status": extraction_human_review_alignment["status"],
+                "release_claim_alignment_public_safety_status": extraction_human_review_alignment[
+                    "public_safety_status"
+                ],
+                "release_claim_alignment_contract_status": extraction_human_review_alignment["schema_version"],
+                "release_claim_alignment_section_count": extraction_human_review_alignment["section_count"],
+                "plan_status": extraction_human_review_alignment["plan_status"],
+                "plan_public_safety_status": extraction_human_review_alignment["plan_public_safety_status"],
+                "exam_deployment_status": extraction_human_review_alignment["exam_deployment_status"],
+                "pre_review_ready_count": extraction_human_review_alignment["pre_review_ready_count"],
+                "post_review_ready_count": extraction_human_review_alignment["post_review_ready_count"],
+                "post_reviewed_for_private_tutor_count": extraction_human_review_alignment[
+                    "post_reviewed_for_private_tutor_count"
+                ],
+                "stored_review_decision_count": extraction_human_review_alignment["stored_review_decision_count"],
+                "invalid_review_decision_count": extraction_human_review_alignment["invalid_review_decision_count"],
+                "appended_review_receipt_count": extraction_human_review_alignment["appended_review_receipt_count"],
+                "appended_review_record_count": extraction_human_review_alignment["appended_review_record_count"],
+                "manifest_candidate_count": extraction_human_review_alignment["manifest_candidate_count"],
+                "ready_to_apply_private_count": extraction_human_review_alignment["ready_to_apply_private_count"],
+                "release_claim_alignment_human_gates": extraction_human_review_alignment["required_human_gates"],
+                "receipt_journal_claim_linked": (
+                    "extraction_receipt_journal"
+                    in extraction_human_review_alignment["required_readiness_check_ids"]
+                ),
+                "progress_claim_linked": (
+                    "extraction_progress" in extraction_human_review_alignment["required_readiness_check_ids"]
+                ),
+                "completion_claim_linked": (
+                    "extraction_completion" in extraction_human_review_alignment["required_readiness_check_ids"]
+                ),
+                "manifest_update_claim_linked": (
+                    "extraction_manifest_update"
+                    in extraction_human_review_alignment["required_readiness_check_ids"]
+                ),
+                "manifest_apply_claim_linked": (
+                    "extraction_manifest_apply"
+                    in extraction_human_review_alignment["required_readiness_check_ids"]
+                ),
+                "external_decision_state_claim_linked": (
+                    "external_decision_state"
+                    in extraction_human_review_alignment["required_readiness_check_ids"]
+                ),
+                "exam_boundary_claim_linked": (
+                    "exam_boundary" in extraction_human_review_alignment["required_readiness_check_ids"]
+                ),
+                "human_submission_gate_linked": (
+                    "human_submission_review_required" in extraction_human_review_alignment["required_human_gates"]
+                ),
+                "datenschutz_gate_linked": (
+                    "datenschutz_review_required_before_real_pilot"
+                    in extraction_human_review_alignment["required_human_gates"]
+                ),
+                "written_clearance_gate_linked": (
+                    "written_university_clearance_required_before_exam_use"
+                    in extraction_human_review_alignment["required_human_gates"]
+                ),
+                "review_decisions_recorded_hash_only": extraction_human_review_alignment["contracts"][
+                    "review_decisions_recorded_hash_only"
+                ],
+                "local_private_artifact_review_required": extraction_human_review_alignment["contracts"][
+                    "local_private_artifact_review_required"
+                ],
+                "private_manifest_plan_only": extraction_human_review_alignment["contracts"][
+                    "private_manifest_plan_only"
+                ],
+                "completion_evidence_linked": extraction_human_review_alignment["contracts"][
+                    "completion_evidence_linked"
+                ],
+                "raw_review_notes_storage_blocked": "raw review notes storage"
+                in extraction_human_review_alignment["blocked_claims"],
+                "raw_text_returned_blocked": "raw extracted text returned"
+                in extraction_human_review_alignment["blocked_claims"],
+                "manifest_write_by_human_review_alone_blocked": "manifest write by human review alone"
+                in extraction_human_review_alignment["blocked_claims"],
+                "tutor_indexing_by_human_review_alone_blocked": "tutor indexing by human review alone"
+                in extraction_human_review_alignment["blocked_claims"],
+                "cloud_processing_blocked": "cloud processing" in extraction_human_review_alignment["blocked_claims"],
+                "exam_deployment_blocked": "exam deployment" in extraction_human_review_alignment["blocked_claims"],
             },
         },
         {
