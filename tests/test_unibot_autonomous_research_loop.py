@@ -880,7 +880,13 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         )
         self.assertEqual(
             by_id["publication_package_local_cycle_workspace_card_publication_link_alignment"]["status"],
-            "ready",
+            "closed_harnessed",
+        )
+        self.assertEqual(
+            by_id["publication_package_local_cycle_workspace_card_publication_link_alignment"]["closure_evidence"][
+                "commit"
+            ],
+            "7dee620",
         )
         self.assertEqual(
             by_id["publication_package_local_cycle_workspace_card_publication_link_alignment"]["review_gate"],
@@ -891,10 +897,22 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             by_id["publication_package_local_cycle_workspace_card_publication_link_alignment"]["allowed_files"],
         )
         self.assertEqual(
-            loop["next_recommended_work_id"],
-            "publication_package_local_cycle_workspace_card_publication_link_alignment",
+            by_id["bachelor_thesis_package_local_cycle_workspace_card_thesis_link_alignment"]["status"],
+            "ready",
         )
-        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 81)
+        self.assertEqual(
+            by_id["bachelor_thesis_package_local_cycle_workspace_card_thesis_link_alignment"]["review_gate"],
+            "bachelor_thesis_package_local_cycle_workspace_card_thesis_link_traceability",
+        )
+        self.assertIn(
+            "unibot/bachelor_thesis.py",
+            by_id["bachelor_thesis_package_local_cycle_workspace_card_thesis_link_alignment"]["allowed_files"],
+        )
+        self.assertEqual(
+            loop["next_recommended_work_id"],
+            "bachelor_thesis_package_local_cycle_workspace_card_thesis_link_alignment",
+        )
+        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 82)
         self.assertEqual(loop["receipt"]["ready_work_items"], 1)
         self.assertLessEqual(loop["budget_policy"]["cadence"]["max_active_work_item_per_run"], 1)
         for item in queue:
@@ -910,9 +928,9 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("Public safety: pass", markdown)
         self.assertIn("Default reasoning effort: low", markdown)
         self.assertIn("Autonomous GitHub push: False", markdown)
-        self.assertIn("Closed harnessed items: 81", markdown)
+        self.assertIn("Closed harnessed items: 82", markdown)
         self.assertIn(
-            "Next recommended work: publication_package_local_cycle_workspace_card_publication_link_alignment",
+            "Next recommended work: bachelor_thesis_package_local_cycle_workspace_card_thesis_link_alignment",
             markdown,
         )
 

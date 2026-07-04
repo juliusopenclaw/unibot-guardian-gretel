@@ -1549,7 +1549,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "publication_package_local_cycle_workspace_card_publication_link_alignment",
             "priority": 82,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link publication-package reproducibility and release-gate metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving publication/evidence hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no autonomous public release, no approval/exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/publication.py",
@@ -1559,6 +1559,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_publication.py tests/test_unibot_readiness.py -q"],
             "review_gate": "publication_package_local_cycle_workspace_card_publication_link_traceability",
+            "closure_evidence": {
+                "commit": "7dee620",
+                "summary": "Publication-package reproducibility alignment now links publication-reproducibility and release-gate hashes to the harnessed local-cycle operator workspace-card readiness gate, preserves publication/evidence and ready-for-prefill metadata, and blocks raw private course text/contact data/local path publication, autonomous public release, approval or exam-clearance claims, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "bachelor_thesis_package_local_cycle_workspace_card_thesis_link_alignment",
+            "priority": 83,
+            "status": "ready",
+            "goal": "Link Gretel bachelor-thesis package authorship/evidence and GLM-method metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving thesis/evidence hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no autonomous university submission, no approval/exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/bachelor_thesis.py",
+                "tests/test_unibot_bachelor_thesis.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_bachelor_thesis.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "bachelor_thesis_package_local_cycle_workspace_card_thesis_link_traceability",
         },
     ]
 
