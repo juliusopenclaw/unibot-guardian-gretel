@@ -57,6 +57,7 @@ It aggregates:
 - Python exam local-cycle operator workspace-card and help-ledger-preview alignment
 - Gretel/GLM proposal lane
 - Gretel autonomous research loop and workspace-card budget/receipt alignment
+- Paperclip evaluation bridge and workspace-card control/receipt alignment
 - exam boundary check
 
 `public_draft_ready` means the separate UniBot package is suitable for public
@@ -81,6 +82,15 @@ local-cycle operator workspace-card readiness gate without exposing raw private
 course text, contact data, local paths, autonomous publication, provider calls,
 approval or exam-clearance claims, grading, proctoring, KI-detection evidence,
 exam deployment claims, or the raw workspace card.
+
+The Paperclip evaluation bridge is ready only when Paperclip remains optional,
+non-critical, no-runtime, and no-provider-call by default. Its workspace-card
+control alignment links optional control-plane status and request/receipt hashes
+to the harnessed local-cycle operator workspace-card readiness gate without
+exposing raw private course text, contact data, local paths, provider prompts,
+runtime activation data, autonomous publication, approval or exam-clearance
+claims, grading, proctoring, KI-detection evidence, exam deployment claims, or
+the raw workspace card.
 
 The Gretel bachelor-thesis package carries
 `unibot-gretel-thesis-evaluation-claim-alignment-v1`. This contract keeps

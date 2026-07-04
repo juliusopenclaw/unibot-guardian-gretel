@@ -50,6 +50,13 @@ Output:
 - safety flags proving no provider call, no autonomous apply, no private raw
   context, no external action, and no Final-Go.
 
+The bridge also carries a workspace-card control alignment. Optional
+control-plane status and request/receipt metadata are linked to the harnessed
+local-cycle operator workspace-card readiness gate through hashes only. The
+alignment preserves operator-prefill evidence but never exposes raw workspace
+data, private course text, contact data, local paths, provider prompts, runtime
+activation data, or exam artifacts.
+
 ## Blockers
 
 The bridge blocks requests that make Paperclip a critical path, request browser

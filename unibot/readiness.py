@@ -39,7 +39,11 @@ from .handoff import build_authority_handoff_packet
 from .materials import build_demo_material_manifest, build_public_material_summary
 from .notebooks import generate_practice_notebook
 from .orchestration import build_unibot_command_center, validate_chat_handoff
-from .paperclip_evaluation_bridge import build_paperclip_evaluation_request, paperclip_status
+from .paperclip_evaluation_bridge import (
+    build_paperclip_evaluation_request,
+    build_paperclip_workspace_card_control_alignment,
+    paperclip_status,
+)
 from .pilot import build_pilot_protocol
 from .privacy import build_data_protection_screening
 from .private_tutor_use_flow import build_private_tutor_use_flow_release_claim_alignment
@@ -415,6 +419,10 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     )
     paperclip_status_payload = paperclip_status()
     paperclip_bridge = build_paperclip_evaluation_request()
+    paperclip_workspace_card_alignment = build_paperclip_workspace_card_control_alignment(
+        paperclip_bridge,
+        paperclip_status_payload,
+    )
     paperclip_bridge_scan = scan_text(json.dumps(paperclip_bridge, ensure_ascii=False), "unibot-paperclip-evaluation-readiness")
     command_center = build_unibot_command_center()
     command_center_scan = scan_text(json.dumps(command_center, ensure_ascii=False), "unibot-command-center-readiness")
@@ -4006,21 +4014,54 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and paperclip_bridge["status"] == "needs_codex_review"
             and paperclip_bridge["public_safety_status"] == "pass"
             and paperclip_bridge_scan["status"] == "pass"
+            and paperclip_workspace_card_alignment["status"] == "ready"
+            and paperclip_workspace_card_alignment["public_safety_status"] == "pass"
+            and paperclip_workspace_card_alignment["failed_contract_ids"] == []
             and paperclip_bridge["critical_path"] is False
             and paperclip_bridge["chrome_extension_dependency"] is False
             and paperclip_bridge["provider_call_executed"] is False
             and paperclip_bridge["paperclip_execution_requested"] is False
             and paperclip_bridge["raw_private_context_shared"] is False
             and paperclip_bridge["autonomous_apply"] is False
-            and paperclip_bridge["receipt"]["status"] in {"proposal_ready", "blocked", "needs_codex_review", "discarded"},
+            and paperclip_bridge["receipt"]["status"] in {"proposal_ready", "blocked", "needs_codex_review", "discarded"}
+            and paperclip_workspace_card_alignment["workspace_card_readiness_gate_linked"] is True
+            and paperclip_workspace_card_alignment["workspace_card_paperclip_gate_linked"] is True
+            and paperclip_workspace_card_alignment["raw_workspace_card_returned"] is False,
             "evidence": {
                 "status": paperclip_bridge["status"],
                 "paperclip_status": paperclip_status_payload["status"],
                 "public_safety_status": paperclip_bridge["public_safety_status"],
+                "workspace_card_control_alignment_status": paperclip_workspace_card_alignment["status"],
+                "workspace_card_control_alignment_public_safety_status": paperclip_workspace_card_alignment[
+                    "public_safety_status"
+                ],
                 "critical_path": paperclip_bridge["critical_path"],
                 "chrome_extension_dependency": paperclip_bridge["chrome_extension_dependency"],
                 "provider_call_executed": paperclip_bridge["provider_call_executed"],
                 "ticket_status": paperclip_bridge["receipt"]["status"],
+                "workspace_card_status": paperclip_workspace_card_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": paperclip_workspace_card_alignment[
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": paperclip_workspace_card_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": paperclip_workspace_card_alignment[
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": paperclip_workspace_card_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": paperclip_workspace_card_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_paperclip_gate_linked": paperclip_workspace_card_alignment[
+                    "workspace_card_paperclip_gate_linked"
+                ],
+                "workspace_card_readiness_gate_claim_linked": paperclip_workspace_card_alignment[
+                    "workspace_card_readiness_gate_claim_linked"
+                ],
+                "raw_workspace_card_returned": paperclip_workspace_card_alignment["raw_workspace_card_returned"],
             },
         },
     ]
