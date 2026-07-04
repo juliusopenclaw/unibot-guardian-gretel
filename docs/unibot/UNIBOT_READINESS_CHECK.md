@@ -41,6 +41,7 @@ It aggregates:
 - extraction progress and manifest-boundary alignment
 - extraction manifest update and private-apply boundary alignment
 - private manifest apply and operator-confirmed write alignment
+- extraction completion and intentional-deferral alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -126,6 +127,14 @@ not write, confirmed applies require an operator confirmation, public responses
 hide raw text and local paths, tutor indexing stays off, and public release,
 cloud processing, grading, proctoring, KI-detection evidence, and exam
 deployment remain blocked.
+
+The extraction completion report carries
+`unibot-extraction-completion-release-review-board-claim-alignment-v1`. This
+contract treats completion as classification evidence only: extraction can be
+complete through reviewed receipts or a valid intentional deferral, but the
+report does not run extraction, store raw deferral text, update manifests,
+start tutor indexing, authorize public release, approve cloud processing, or
+clear exam deployment.
 
 ## Source-Card Drift Guard
 

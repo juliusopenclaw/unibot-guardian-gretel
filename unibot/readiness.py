@@ -16,6 +16,7 @@ from .decision_journal import build_decision_journal_release_claim_alignment
 from .decision_state import build_external_decision_state_release_claim_alignment
 from .evaluation import build_evaluation_packet
 from .external_decision_journal import build_external_decision_record_journal_release_claim_alignment
+from .extraction_completion import build_extraction_completion_release_claim_alignment
 from .extraction_manifest_apply import build_private_manifest_apply_release_claim_alignment
 from .extraction_manifest_update import build_extraction_manifest_update_release_claim_alignment
 from .extraction_progress import build_extraction_progress_release_claim_alignment
@@ -129,6 +130,7 @@ def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
         "extraction_progress",
         "extraction_manifest_update",
         "extraction_manifest_apply",
+        "extraction_completion",
         "gretel_glm_evolve_lane",
         "gretel_bachelor_thesis_package",
         "gretel_autonomous_research_loop",
@@ -206,6 +208,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     extraction_progress_alignment = build_extraction_progress_release_claim_alignment()
     extraction_manifest_update_alignment = build_extraction_manifest_update_release_claim_alignment()
     extraction_manifest_apply_alignment = build_private_manifest_apply_release_claim_alignment()
+    extraction_completion_alignment = build_extraction_completion_release_claim_alignment()
     notebook = generate_practice_notebook("UniBot readiness notebook smoke")
     source_cards = list_source_cards()
     source_card_drift = build_source_card_drift_report()
@@ -1034,6 +1037,87 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 in extraction_manifest_apply_alignment["blocked_claims"],
                 "exam_deployment_blocked": "exam deployment"
                 in extraction_manifest_apply_alignment["blocked_claims"],
+            },
+        },
+        {
+            "check_id": "extraction_completion",
+            "passed": extraction_completion_alignment["status"] == "ready"
+            and extraction_completion_alignment["public_safety_status"] == "pass"
+            and extraction_completion_alignment["receipt_completion_public_safety_status"] == "pass"
+            and extraction_completion_alignment["deferral_completion_public_safety_status"] == "pass"
+            and extraction_completion_alignment["missing_source_card_ids"] == []
+            and extraction_completion_alignment["failed_contract_ids"] == [],
+            "evidence": {
+                "release_claim_alignment_status": extraction_completion_alignment["status"],
+                "release_claim_alignment_public_safety_status": extraction_completion_alignment["public_safety_status"],
+                "release_claim_alignment_contract_status": extraction_completion_alignment["schema_version"],
+                "release_claim_alignment_section_count": extraction_completion_alignment["section_count"],
+                "receipt_completion_status": extraction_completion_alignment["receipt_completion_status"],
+                "deferral_completion_status": extraction_completion_alignment["deferral_completion_status"],
+                "receipt_completion_public_safety_status": extraction_completion_alignment[
+                    "receipt_completion_public_safety_status"
+                ],
+                "deferral_completion_public_safety_status": extraction_completion_alignment[
+                    "deferral_completion_public_safety_status"
+                ],
+                "receipt_open_job_count": extraction_completion_alignment["receipt_open_job_count"],
+                "receipt_completed_job_count": extraction_completion_alignment["receipt_completed_job_count"],
+                "deferral_open_job_count": extraction_completion_alignment["deferral_open_job_count"],
+                "deferral_deferred_job_count": extraction_completion_alignment["deferral_deferred_job_count"],
+                "release_claim_alignment_human_gates": extraction_completion_alignment["required_human_gates"],
+                "receipt_journal_claim_linked": (
+                    "extraction_receipt_journal"
+                    in extraction_completion_alignment["required_readiness_check_ids"]
+                ),
+                "progress_claim_linked": (
+                    "extraction_progress" in extraction_completion_alignment["required_readiness_check_ids"]
+                ),
+                "manifest_update_claim_linked": (
+                    "extraction_manifest_update"
+                    in extraction_completion_alignment["required_readiness_check_ids"]
+                ),
+                "manifest_apply_claim_linked": (
+                    "extraction_manifest_apply"
+                    in extraction_completion_alignment["required_readiness_check_ids"]
+                ),
+                "data_protection_claim_linked": (
+                    "data_protection_screening"
+                    in extraction_completion_alignment["required_readiness_check_ids"]
+                ),
+                "external_decision_state_claim_linked": (
+                    "external_decision_state" in extraction_completion_alignment["required_readiness_check_ids"]
+                ),
+                "exam_boundary_claim_linked": (
+                    "exam_boundary" in extraction_completion_alignment["required_readiness_check_ids"]
+                ),
+                "human_submission_gate_linked": (
+                    "human_submission_review_required" in extraction_completion_alignment["required_human_gates"]
+                ),
+                "datenschutz_gate_linked": (
+                    "datenschutz_review_required_before_real_pilot"
+                    in extraction_completion_alignment["required_human_gates"]
+                ),
+                "written_clearance_gate_linked": (
+                    "written_university_clearance_required_before_exam_use"
+                    in extraction_completion_alignment["required_human_gates"]
+                ),
+                "receipt_completion_covers_all_jobs": extraction_completion_alignment["contracts"][
+                    "receipt_completion_covers_all_jobs"
+                ],
+                "deferral_completion_covers_all_jobs_hash_only": extraction_completion_alignment["contracts"][
+                    "deferral_completion_covers_all_jobs_hash_only"
+                ],
+                "completion_boundaries_block_execution_manifest_and_exam": extraction_completion_alignment[
+                    "contracts"
+                ]["completion_boundaries_block_execution_manifest_and_exam"],
+                "raw_deferral_reason_storage_blocked": "raw deferral reason storage"
+                in extraction_completion_alignment["blocked_claims"],
+                "manifest_update_by_completion_report_blocked": "manifest update by completion report"
+                in extraction_completion_alignment["blocked_claims"],
+                "tutor_indexing_by_completion_report_blocked": "tutor indexing by completion report"
+                in extraction_completion_alignment["blocked_claims"],
+                "cloud_processing_blocked": "cloud processing" in extraction_completion_alignment["blocked_claims"],
+                "exam_deployment_blocked": "exam deployment" in extraction_completion_alignment["blocked_claims"],
             },
         },
         {
