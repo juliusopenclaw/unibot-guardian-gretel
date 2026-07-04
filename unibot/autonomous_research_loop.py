@@ -773,7 +773,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "stakeholder_submission_release_review_board_claim_alignment",
             "priority": 39,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align stakeholder submission bundle lanes with review-board summaries, authority handoff, source cards, extraction/privacy decisions, public language controls, and human gates.",
             "allowed_files": [
                 "unibot/submission.py",
@@ -783,6 +783,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_submission.py tests/test_unibot_readiness.py -q"],
             "review_gate": "stakeholder_submission_release_review_board_claim_traceability",
+            "closure_evidence": {
+                "commit": "408debe",
+                "summary": "Stakeholder submission release-claim alignment added with review-board, authority-handoff, source-card, privacy/extraction, public language, and human-gate links.",
+            },
+        },
+        {
+            "work_id": "stakeholder_decision_request_release_review_board_claim_alignment",
+            "priority": 40,
+            "status": "ready",
+            "goal": "Align single-lane stakeholder decision requests with submission-bundle evidence, receipt boundaries, review-board summaries, public language controls, and human gates.",
+            "allowed_files": [
+                "unibot/decision_request.py",
+                "tests/test_unibot_decision_request.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_decision_request.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "stakeholder_decision_request_release_review_board_claim_traceability",
         },
     ]
 
