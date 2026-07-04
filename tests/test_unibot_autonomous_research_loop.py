@@ -500,7 +500,11 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             "unibot/python_exam_local_cycle_readiness_review.py",
             by_id["python_exam_local_cycle_readiness_review_release_review_board_claim_alignment"]["allowed_files"],
         )
-        self.assertEqual(by_id["python_exam_local_cycle_readiness_handoff_release_review_board_claim_alignment"]["status"], "ready")
+        self.assertEqual(by_id["python_exam_local_cycle_readiness_handoff_release_review_board_claim_alignment"]["status"], "closed_harnessed")
+        self.assertEqual(
+            by_id["python_exam_local_cycle_readiness_handoff_release_review_board_claim_alignment"]["closure_evidence"]["commit"],
+            "31fc0c8",
+        )
         self.assertEqual(
             by_id["python_exam_local_cycle_readiness_handoff_release_review_board_claim_alignment"]["review_gate"],
             "python_exam_local_cycle_readiness_handoff_release_review_board_claim_traceability",
@@ -509,8 +513,17 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             "unibot/python_exam_local_cycle_readiness_handoff.py",
             by_id["python_exam_local_cycle_readiness_handoff_release_review_board_claim_alignment"]["allowed_files"],
         )
-        self.assertEqual(loop["next_recommended_work_id"], "python_exam_local_cycle_readiness_handoff_release_review_board_claim_alignment")
-        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 59)
+        self.assertEqual(by_id["python_exam_local_cycle_operator_workspace_card_release_review_board_claim_alignment"]["status"], "ready")
+        self.assertEqual(
+            by_id["python_exam_local_cycle_operator_workspace_card_release_review_board_claim_alignment"]["review_gate"],
+            "python_exam_local_cycle_operator_workspace_card_release_review_board_claim_traceability",
+        )
+        self.assertIn(
+            "unibot/python_exam_local_cycle_operator_workspace_card.py",
+            by_id["python_exam_local_cycle_operator_workspace_card_release_review_board_claim_alignment"]["allowed_files"],
+        )
+        self.assertEqual(loop["next_recommended_work_id"], "python_exam_local_cycle_operator_workspace_card_release_review_board_claim_alignment")
+        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 60)
         self.assertEqual(loop["receipt"]["ready_work_items"], 1)
         self.assertLessEqual(loop["budget_policy"]["cadence"]["max_active_work_item_per_run"], 1)
         for item in queue:
@@ -526,8 +539,8 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("Public safety: pass", markdown)
         self.assertIn("Default reasoning effort: low", markdown)
         self.assertIn("Autonomous GitHub push: False", markdown)
-        self.assertIn("Closed harnessed items: 59", markdown)
-        self.assertIn("Next recommended work: python_exam_local_cycle_readiness_handoff_release_review_board_claim_alignment", markdown)
+        self.assertIn("Closed harnessed items: 60", markdown)
+        self.assertIn("Next recommended work: python_exam_local_cycle_operator_workspace_card_release_review_board_claim_alignment", markdown)
 
         status, loop = route_request("/api/unibot/autonomous-research-loop", {})
         self.assertEqual(status, 200)
