@@ -3715,7 +3715,10 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and glm_provider_redaction_alignment["failed_contract_ids"] == []
             and glm_provider_redaction_alignment["missing_packet_keys"] == []
             and glm_provider_redaction_alignment["missing_workboard_keys"] == []
-            and glm_provider_redaction_alignment["missing_source_card_ids"] == [],
+            and glm_provider_redaction_alignment["missing_source_card_ids"] == []
+            and glm_provider_redaction_alignment["workspace_card_readiness_gate_linked"] is True
+            and glm_provider_redaction_alignment["workspace_card_glm_gate_linked"] is True
+            and glm_provider_redaction_alignment["raw_workspace_card_returned"] is False,
             "evidence": {
                 "status": glm_evolve_packet["status"],
                 "public_safety_status": glm_evolve_packet["public_safety_status"],
@@ -3727,6 +3730,29 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "provider_redaction_alignment_status": glm_provider_redaction_alignment["status"],
                 "provider_redaction_alignment_section_count": glm_provider_redaction_alignment["section_count"],
                 "provider_redaction_alignment_human_gates": glm_provider_redaction_alignment["required_human_gates"],
+                "workspace_card_status": glm_provider_redaction_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": glm_provider_redaction_alignment[
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": glm_provider_redaction_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": glm_provider_redaction_alignment[
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": glm_provider_redaction_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": glm_provider_redaction_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_glm_gate_linked": glm_provider_redaction_alignment[
+                    "workspace_card_glm_gate_linked"
+                ],
+                "workspace_card_readiness_gate_claim_linked": glm_provider_redaction_alignment[
+                    "workspace_card_readiness_gate_claim_linked"
+                ],
+                "raw_workspace_card_returned": glm_provider_redaction_alignment["raw_workspace_card_returned"],
             },
         },
         {

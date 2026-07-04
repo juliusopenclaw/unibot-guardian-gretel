@@ -15,6 +15,9 @@ from unibot.gretel_glm_evolve import (  # noqa: E402
     build_glm_provider_redaction_alignment,
     build_glm_rsi_workboard,
     build_public_knowledge_inventory,
+    glm_evolve_proposal_packet_hash,
+    glm_evolve_provider_lock_hash,
+    synthetic_glm_evolve_workspace_card,
     validate_glm_evolve_proposal,
 )
 from unibot.public_safety import scan_text  # noqa: E402
@@ -72,10 +75,48 @@ class UniBotGretelGlmEvolveTests(unittest.TestCase):
         self.assertTrue(alignment["contracts"]["proposal_only_route"])
         self.assertTrue(alignment["contracts"]["external_actions_locked"])
         self.assertTrue(alignment["contracts"]["final_go_locked"])
+        self.assertTrue(alignment["contracts"]["workspace_card_glm_gate_linked"])
         self.assertIn("provider_call_requires_explicit_go_and_redaction_receipt", alignment["required_human_gates"])
         self.assertIn("gretel_glm_rsi_visibility_workboard", alignment["required_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
+        self.assertEqual(alignment["workspace_card_status"], "python_exam_local_cycle_operator_workspace_card_ready")
+        self.assertEqual(alignment["workspace_card_selected_skill_tag"], "pandas")
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_glm_gate_linked"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_claim_linked"])
+        self.assertFalse(alignment["raw_workspace_card_returned"])
+        self.assertEqual(alignment["proposal_hash"], glm_evolve_proposal_packet_hash(packet))
+        self.assertEqual(alignment["provider_lock_hash"], glm_evolve_provider_lock_hash(packet, workboard))
         self.assertIn("zai-glm-52", by_section["glm_source_basis"]["source_card_ids"])
         self.assertIn("blocked_context", by_section["redaction_receipt"]["packet_keys"])
+        self.assertIn(
+            "python_exam_local_cycle_operator_workspace_card",
+            by_section["workspace_card_glm_hash_trace"]["readiness_check_ids"],
+        )
+
+    def test_glm_hash_helpers_link_proposal_packet_and_provider_lock(self) -> None:
+        packet = build_glm_evolve_work_packet()
+        workboard = build_glm_rsi_workboard()
+
+        self.assertTrue(glm_evolve_proposal_packet_hash(packet))
+        self.assertTrue(glm_evolve_provider_lock_hash(packet, workboard))
+        self.assertNotEqual(glm_evolve_proposal_packet_hash(packet), glm_evolve_provider_lock_hash(packet, workboard))
+
+    def test_provider_redaction_alignment_rejects_unlinked_workspace_card_hashes(self) -> None:
+        packet = build_glm_evolve_work_packet()
+        workboard = build_glm_rsi_workboard()
+        card = synthetic_glm_evolve_workspace_card()
+        card["workspace_card_summary"]["checkpoint_hash"] = "wrong-glm-proposal-hash"
+        card["workspace_card_summary"]["task_hash"] = "wrong-glm-provider-lock-hash"
+
+        alignment = build_glm_provider_redaction_alignment(packet, workboard, card)
+
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertFalse(alignment["workspace_card_glm_gate_linked"])
+        self.assertIn("workspace_card_glm_gate_linked", alignment["failed_contract_ids"])
 
     def test_validator_accepts_safe_proposal_and_blocks_unsafe_proposal(self) -> None:
         safe = {

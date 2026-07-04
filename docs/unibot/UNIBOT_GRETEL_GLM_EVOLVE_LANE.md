@@ -55,6 +55,12 @@ source basis, redaction receipt, provider-call lock, proposal validation, and
 apply/publish/Final-Go boundary to source cards, readiness checks, and human
 review gates.
 
+Proposal-packet and provider-lock hashes are also linked to the harnessed
+local-cycle operator workspace-card readiness gate. The public alignment keeps
+only metadata, hashes, source-card IDs, readiness state, and human gates; it
+does not return raw workspace-card data, raw private context, provider prompts,
+contact data, local paths, or exam artifacts.
+
 The alignment must remain `ready` before any public draft can describe the lane
 as GLM-ready. It is still only a review aid: it does not authorize a provider
 call, publish action, external send, code application, university submission, or

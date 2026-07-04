@@ -689,6 +689,9 @@ class UniBotReadinessTests(unittest.TestCase):
             "provider_call_requires_explicit_go_and_redaction_receipt",
             glm["evidence"]["provider_redaction_alignment_human_gates"],
         )
+        self.assertTrue(glm["evidence"]["workspace_card_readiness_gate_linked"])
+        self.assertTrue(glm["evidence"]["workspace_card_glm_gate_linked"])
+        self.assertFalse(glm["evidence"]["raw_workspace_card_returned"])
         self.assertEqual(report["evidence_snapshot"]["status"], "ready")
         self.assertEqual(report["evidence_snapshot"]["public_safety_status"], "pass")
         self.assertEqual(report["evidence_snapshot"]["failed_check_ids"], [])

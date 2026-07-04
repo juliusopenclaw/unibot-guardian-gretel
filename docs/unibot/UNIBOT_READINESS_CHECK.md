@@ -66,6 +66,12 @@ clearance.
 The Gretel/GLM proposal lane is ready only when it remains proposal-only,
 public-safe, no-provider-call by default, and blocked from autonomous apply,
 external actions, private context, or Final-Go decisions.
+Its provider-redaction alignment links proposal-packet and provider-lock hashes
+to the harnessed local-cycle operator workspace-card readiness gate without
+exposing raw private course text, provider prompts, contact data, local paths,
+autonomous apply/publication, approval or exam-clearance claims, grading,
+proctoring, KI-detection evidence, exam deployment claims, or the raw workspace
+card.
 
 The Gretel bachelor-thesis package carries
 `unibot-gretel-thesis-evaluation-claim-alignment-v1`. This contract keeps

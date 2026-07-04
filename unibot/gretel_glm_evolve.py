@@ -55,6 +55,14 @@ GLM_PROVIDER_ALIGNMENT_SECTIONS = [
         "readiness_check_ids": ["gretel_glm_evolve_lane", "publication_package", "release_runbook"],
         "human_gates": ["human_submission_review_required", "human_review_required", "written_university_clearance_required_before_exam_use"],
     },
+    {
+        "section_id": "workspace_card_glm_hash_trace",
+        "packet_keys": ["receipt", "provider_call_executed", "raw_private_context_shared", "autonomous_apply"],
+        "workboard_keys": ["source_packet_hash", "safety", "privacy"],
+        "source_card_ids": ["dfg-gwp", "zai-glm-52"],
+        "readiness_check_ids": ["gretel_glm_evolve_lane", "python_exam_local_cycle_operator_workspace_card"],
+        "human_gates": ["provider_call_requires_explicit_go_and_redaction_receipt", "human_submission_review_required"],
+    },
 ]
 
 
@@ -249,9 +257,28 @@ def build_glm_evolve_receipt(packet: dict[str, Any], *, outcome: str = "prepared
 def build_glm_provider_redaction_alignment(
     packet: dict[str, Any] | None = None,
     workboard: dict[str, Any] | None = None,
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     work_packet = packet or build_glm_evolve_work_packet()
     rsi_workboard = workboard or build_glm_rsi_workboard()
+    proposal_hash = glm_evolve_proposal_packet_hash(work_packet)
+    provider_lock_hash = glm_evolve_provider_lock_hash(work_packet, rsi_workboard)
+    workspace_card = safe_glm_evolve_workspace_card(
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else synthetic_glm_evolve_workspace_card(),
+        proposal_hash=proposal_hash,
+        provider_lock_hash=provider_lock_hash,
+    )
+    workspace_card_readiness_gate_linked = (
+        workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and workspace_card.get("help_ledger_preview_hash") != ""
+        and workspace_card.get("exam_deployment_status") == "not_cleared"
+        and workspace_card.get("not_cleared_receipt") is True
+        and workspace_card.get("raw_workspace_card_returned") is False
+    )
     alignment_rows = []
     for section in GLM_PROVIDER_ALIGNMENT_SECTIONS:
         missing_packet_keys = sorted(key for key in section["packet_keys"] if key not in work_packet)
@@ -296,6 +323,9 @@ def build_glm_provider_redaction_alignment(
             and rsi_workboard.get("safety", {}).get("github_publish") is False
         ),
         "final_go_locked": rsi_workboard.get("safety", {}).get("final_go") is False,
+        "workspace_card_glm_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("checkpoint_hash") == proposal_hash
+        and workspace_card.get("task_hash") == provider_lock_hash,
     }
     alignment = {
         "schema_version": GLM_PROVIDER_REDACTION_ALIGNMENT_SCHEMA_VERSION,
@@ -313,6 +343,18 @@ def build_glm_provider_redaction_alignment(
             {check_id for row in alignment_rows for check_id in row["readiness_check_ids"]}
         ),
         "required_human_gates": sorted({gate for row in alignment_rows for gate in row["human_gates"]}),
+        "workspace_card_status": workspace_card["status"],
+        "workspace_card_selected_skill_tag": workspace_card["selected_skill_tag"],
+        "workspace_card_ready_for_operator_prefill": workspace_card["ready_for_operator_prefill"],
+        "workspace_card_help_ledger_status": workspace_card["help_ledger_preview_status"],
+        "workspace_card_help_ledger_hash_present": workspace_card["help_ledger_preview_hash"] != "",
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_glm_gate_linked": contracts["workspace_card_glm_gate_linked"],
+        "workspace_card_readiness_gate_claim_linked": "python_exam_local_cycle_operator_workspace_card"
+        in sorted({check_id for row in alignment_rows for check_id in row["readiness_check_ids"]}),
+        "raw_workspace_card_returned": workspace_card["raw_workspace_card_returned"],
+        "proposal_hash": proposal_hash,
+        "provider_lock_hash": provider_lock_hash,
         "provider_call_policy": "blocked_until_explicit_go_and_redaction_receipt",
         "redaction_receipt_policy": "public_safe_metadata_only_before_any_provider_call",
         "human_review_policy": "GLM may propose only; Codex and human review remain apply, publish, release, and Final-Go gates.",
@@ -329,6 +371,138 @@ def build_glm_provider_redaction_alignment(
     if scan["status"] != "pass":
         alignment["status"] = "blocked_public_safety"
     return alignment
+
+
+def glm_evolve_proposal_packet_hash(packet: dict[str, Any]) -> str:
+    receipt = packet.get("receipt", {}) if isinstance(packet.get("receipt"), dict) else {}
+    if receipt.get("packet_hash"):
+        return str(receipt["packet_hash"])
+    return hashlib.sha256(
+        json.dumps(
+            {
+                key: packet.get(key)
+                for key in [
+                    "schema_version",
+                    "work_id",
+                    "domain",
+                    "task_kind",
+                    "status",
+                    "route",
+                    "model_hint",
+                    "redaction_level",
+                    "allowed_context",
+                    "blocked_context",
+                    "knowledge_inventory",
+                    "request_to_gretel_glm",
+                    "next_safe_chunks",
+                ]
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def glm_evolve_provider_lock_hash(packet: dict[str, Any], workboard: dict[str, Any]) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            {
+                "packet_provider_lock": {
+                    "provider_call_executed": packet.get("provider_call_executed", None),
+                    "raw_private_context_shared": packet.get("raw_private_context_shared", None),
+                    "autonomous_apply": packet.get("autonomous_apply", None),
+                    "external_actions_allowed": packet.get("external_actions_allowed", None),
+                    "route": packet.get("route", ""),
+                    "blocked_context": packet.get("blocked_context", []),
+                },
+                "workboard_provider_lock": {
+                    "source_packet_hash": workboard.get("source_packet_hash", ""),
+                    "safety": workboard.get("safety", {}),
+                    "privacy": workboard.get("privacy", {}),
+                    "policy": workboard.get("policy", ""),
+                },
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def synthetic_glm_evolve_workspace_card() -> dict[str, Any]:
+    preview_hash = hashlib.sha256(b"synthetic glm evolve workspace card").hexdigest()
+    return {
+        "schema_version": "unibot-python-exam-local-cycle-operator-workspace-card-v1",
+        "artifact_type": "python_exam_local_cycle_operator_workspace_card",
+        "status": "python_exam_local_cycle_operator_workspace_card_ready",
+        "selected_skill_tag": "pandas",
+        "exam_deployment_status": "not_cleared",
+        "not_cleared_receipt": True,
+        "workspace_card_summary": {
+            "recommendation": "ready_for_operator_prefill",
+            "recommendation_reason": "synthetic GLM proposal-lane prerequisites are satisfied",
+            "ready_for_operator_prefill": True,
+            "help_ledger_preview_status": "help_ledger_preview_ready",
+            "selected_skill_tag": "pandas",
+            "next_safe_action": "review_glm_proposal_hashes_before_workspace_prefill",
+            "next_safe_user_action": "review_hash_only_glm_lane_before_any_provider_call_or_apply",
+            "operator_run_endpoint": "/api/unibot/exam-workspace/operator-run",
+            "operator_run_method": "POST",
+            "help_level": "A2",
+            "task_hash": "__GLM_PROVIDER_LOCK_HASH__",
+            "checkpoint_hash": "__GLM_PROPOSAL_HASH__",
+            "source_card_ids": ["dfg-gwp", "zai-glm-52"],
+            "source_anchor_count": 2,
+            "help_ledger_preview_hash": preview_hash,
+        },
+        "help_ledger_preview": {
+            "status": "help_ledger_preview_ready",
+            "help_level": "A2",
+            "preview_hash": preview_hash,
+        },
+    }
+
+
+def safe_glm_evolve_workspace_card(
+    workspace_card: dict[str, Any],
+    *,
+    proposal_hash: str = "",
+    provider_lock_hash: str = "",
+) -> dict[str, Any]:
+    summary = workspace_card.get("workspace_card_summary", {}) if isinstance(workspace_card.get("workspace_card_summary"), dict) else {}
+    ledger = workspace_card.get("help_ledger_preview", {}) if isinstance(workspace_card.get("help_ledger_preview"), dict) else {}
+    if not summary and (
+        workspace_card.get("help_ledger_preview_hash") is not None
+        or workspace_card.get("ready_for_operator_prefill") is not None
+        or workspace_card.get("help_ledger_preview_status") is not None
+    ):
+        summary = workspace_card
+    checkpoint_hash = str(summary.get("checkpoint_hash", ""))
+    task_hash = str(summary.get("task_hash", ""))
+    if proposal_hash and checkpoint_hash == "__GLM_PROPOSAL_HASH__":
+        checkpoint_hash = proposal_hash
+    if provider_lock_hash and task_hash == "__GLM_PROVIDER_LOCK_HASH__":
+        task_hash = provider_lock_hash
+    return {
+        "status": workspace_card.get("status", "missing"),
+        "selected_skill_tag": str(summary.get("selected_skill_tag", workspace_card.get("selected_skill_tag", ""))),
+        "recommendation": str(summary.get("recommendation", "keep_blocked")),
+        "recommendation_reason": str(summary.get("recommendation_reason", "missing_glm_evolve_lane")),
+        "ready_for_operator_prefill": bool(summary.get("ready_for_operator_prefill", False)),
+        "help_ledger_preview_status": str(summary.get("help_ledger_preview_status", ledger.get("status", "missing"))),
+        "next_safe_action": str(summary.get("next_safe_action", "")),
+        "next_safe_user_action": str(summary.get("next_safe_user_action", "")),
+        "operator_run_endpoint": str(summary.get("operator_run_endpoint", "")),
+        "operator_run_method": str(summary.get("operator_run_method", "POST")),
+        "help_level": str(summary.get("help_level", ledger.get("help_level", "A2"))),
+        "task_hash": task_hash,
+        "checkpoint_hash": checkpoint_hash,
+        "source_card_ids": [str(item) for item in (summary.get("source_card_ids", []) or [])][:8],
+        "source_anchor_count": int(summary.get("source_anchor_count", 0) or 0),
+        "help_ledger_preview_hash": str(summary.get("help_ledger_preview_hash", ledger.get("preview_hash", ""))),
+        "not_cleared_receipt": bool(workspace_card.get("not_cleared_receipt", True)),
+        "exam_deployment_status": "not_cleared",
+        "raw_workspace_card_returned": False,
+    }
 
 
 def validate_glm_evolve_proposal(proposal: dict[str, Any]) -> dict[str, Any]:
