@@ -554,9 +554,32 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "release_claim_alignment_section_count": stakeholder_submission["release_claim_alignment"][
                     "section_count"
                 ],
+                "workspace_card_status": stakeholder_submission["release_claim_alignment"]["workspace_card_status"],
+                "workspace_card_selected_skill_tag": stakeholder_submission["release_claim_alignment"][
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": stakeholder_submission["release_claim_alignment"][
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": stakeholder_submission["release_claim_alignment"][
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": stakeholder_submission["release_claim_alignment"][
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": stakeholder_submission["release_claim_alignment"][
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_submission_lane_gate_linked": stakeholder_submission["release_claim_alignment"][
+                    "workspace_card_submission_lane_gate_linked"
+                ],
                 "release_claim_alignment_human_gates": stakeholder_submission["release_claim_alignment"][
                     "required_human_gates"
                 ],
+                "workspace_card_readiness_gate_claim_linked": (
+                    "python_exam_local_cycle_operator_workspace_card"
+                    in stakeholder_submission["release_claim_alignment"]["required_readiness_check_ids"]
+                ),
                 "review_board_claim_linked": (
                     "review_board_packet"
                     in stakeholder_submission["release_claim_alignment"]["required_readiness_check_ids"]
@@ -585,6 +608,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 in stakeholder_submission["release_claim_alignment"]["blocked_claims"],
                 "automatic_submission_blocked": "automatic submission"
                 in stakeholder_submission["release_claim_alignment"]["blocked_claims"],
+                "workspace_card_submission_lane_gate_contract": stakeholder_submission["release_claim_alignment"][
+                    "contracts"
+                ]["workspace_card_submission_lane_gate_linked"],
             },
         },
         {

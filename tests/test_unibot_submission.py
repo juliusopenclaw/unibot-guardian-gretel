@@ -16,6 +16,9 @@ from unibot.submission import (  # noqa: E402
     build_stakeholder_submission_bundle,
     build_stakeholder_submission_markdown,
     build_stakeholder_submission_release_claim_alignment,
+    stakeholder_submission_evidence_summary_hash,
+    stakeholder_submission_lanes_hash,
+    synthetic_submission_workspace_card,
 )
 
 
@@ -71,6 +74,7 @@ class UniBotStakeholderSubmissionTests(unittest.TestCase):
         self.assertIn("data_protection_screening", alignment["required_readiness_check_ids"])
         self.assertIn("compliance_matrix", alignment["required_readiness_check_ids"])
         self.assertIn("source_card_drift_guard", alignment["required_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
         self.assertIn("human_submission_review_required", alignment["required_human_gates"])
         self.assertIn("public_safety_required", alignment["required_human_gates"])
         self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
@@ -78,6 +82,33 @@ class UniBotStakeholderSubmissionTests(unittest.TestCase):
         self.assertIn("automatic submission", alignment["blocked_claims"])
         self.assertIn("exam clearance", alignment["blocked_claims"])
         self.assertIn("public raw course text release", alignment["blocked_claims"])
+        self.assertTrue(alignment["contracts"]["workspace_card_submission_lane_gate_linked"])
+        self.assertEqual(alignment["workspace_card_status"], "python_exam_local_cycle_operator_workspace_card_ready")
+        self.assertEqual(alignment["workspace_card_selected_skill_tag"], "pandas")
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_submission_lane_gate_linked"])
+
+    def test_submission_hash_helpers_link_lanes_and_evidence_summary(self) -> None:
+        bundle = build_stakeholder_submission_bundle()
+
+        self.assertTrue(stakeholder_submission_lanes_hash(bundle))
+        self.assertTrue(stakeholder_submission_evidence_summary_hash(bundle))
+        self.assertNotEqual(stakeholder_submission_lanes_hash(bundle), stakeholder_submission_evidence_summary_hash(bundle))
+
+    def test_submission_release_claim_alignment_rejects_unlinked_workspace_card_hashes(self) -> None:
+        bundle = build_stakeholder_submission_bundle()
+        card = synthetic_submission_workspace_card()
+        card["workspace_card_summary"]["checkpoint_hash"] = "wrong-lane-hash"
+        card["workspace_card_summary"]["task_hash"] = "wrong-evidence-hash"
+
+        alignment = build_stakeholder_submission_release_claim_alignment(bundle, card)
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertFalse(alignment["workspace_card_submission_lane_gate_linked"])
+        self.assertIn("workspace_card_submission_lane_gate_linked", alignment["failed_contract_ids"])
 
     def test_submission_release_claim_alignment_blocks_send_or_clearance_claims(self) -> None:
         bundle = build_stakeholder_submission_bundle()

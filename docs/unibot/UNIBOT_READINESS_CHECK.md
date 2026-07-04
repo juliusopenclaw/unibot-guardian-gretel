@@ -79,7 +79,11 @@ The stakeholder submission bundle carries
 contract keeps the rights/privacy extraction lane and exam-authority lane tied
 to review-board, authority-handoff, source-card, Datenschutz, public-safety, and
 human-gate evidence. It does not send messages, approve processing, clear exam
-use, or authorize public release of private course material.
+use, or authorize public release of private course material. Decision-lane and
+combined-evidence hashes are linked to the harnessed local-cycle operator
+workspace-card readiness gate without exposing raw private course text, contact
+data, local paths, automatic external sends, approval claims, or the raw
+workspace card.
 
 The stakeholder decision request carries
 `unibot-stakeholder-decision-request-release-review-board-claim-alignment-v1`.
