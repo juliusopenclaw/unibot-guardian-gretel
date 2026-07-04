@@ -224,14 +224,24 @@ def build_exam_workspace_session_console_release_claim_alignment(
             "section_id": "workspace_card_reflection_trace",
             "summary_claim": "session console preserves local-cycle workspace-card and reflection evidence as hash/status metadata",
             "source_card_ids": ["dfg-gwp", "vanlehn-2011", "uoc-hilfsmittel"],
-            "readiness_check_ids": ["exam_workspace_session_console", "study_session", "review_board_packet"],
+            "readiness_check_ids": [
+                "exam_workspace_session_console",
+                "python_exam_local_cycle_operator_workspace_card",
+                "study_session",
+                "review_board_packet",
+            ],
             "human_gates": ["human_submission_review_required", "public_safety_required"],
         },
         {
             "section_id": "operator_boundary_trace",
             "summary_claim": "session console links back to operator-run dry-run confirmations and keeps local writes unconfirmed by default",
             "source_card_ids": ["dfg-gwp", "dsk-ai-privacy-2024"],
-            "readiness_check_ids": ["exam_workspace_session_console", "exam_workspace_operator_run", "exam_boundary"],
+            "readiness_check_ids": [
+                "exam_workspace_session_console",
+                "exam_workspace_operator_run",
+                "python_exam_local_cycle_operator_workspace_card",
+                "exam_boundary",
+            ],
             "human_gates": ["human_submission_review_required", "written_university_clearance_required_before_exam_use"],
         },
         {
@@ -311,6 +321,9 @@ def build_exam_workspace_session_console_release_claim_alignment(
     ]
     boundary = str(ready_report.get("execution_boundary", ""))
     markdown = str(ready_report.get("session_console_markdown", ""))
+    workspace_card_readiness_gate_linked = any(
+        "python_exam_local_cycle_operator_workspace_card" in section["readiness_check_ids"] for section in sections
+    )
     contracts = {
         "console_public_safe": ready_report.get("public_safety_status") == "pass",
         "repeat_public_safe": repeat_report.get("public_safety_status") == "pass",
@@ -336,15 +349,25 @@ def build_exam_workspace_session_console_release_claim_alignment(
         and int(confirmations.get("confirmed_count", -1) or 0) == 0,
         "workspace_card_and_reflection_preserved": workspace_card.get("status")
         == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
         and workspace_card.get("selected_skill_tag") == selected.get("skill_tag")
         and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and bool(workspace_card.get("help_ledger_preview_hash"))
         and workspace_card.get("not_cleared_receipt") is True
         and workspace_card_source.get("artifact_type") == "python_exam_local_cycle_operator_workspace_card"
+        and workspace_card_source.get("schema_version")
+        == "unibot-python-exam-local-cycle-operator-workspace-card-v1"
         and tutor.get("study_receipt_status") == "ok_study_session_receipt"
         and tutor.get("tutor_status") == "allowed"
         and tutor.get("allowed_help_boundary") == "A0-A2"
         and ledger.get("status") == "preview_ready"
         and ledger.get("raw_help_text_returned") is False,
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card_source.get("artifact_type") == "python_exam_local_cycle_operator_workspace_card"
+        and workspace_card_source.get("schema_version")
+        == "unibot-python-exam-local-cycle-operator-workspace-card-v1",
         "repeat_task_blocks_console_ready": repeat_report.get("status")
         == "exam_workspace_session_console_repeat_task_required"
         and repeat_console.get("status") == "repeat_task_required"
@@ -421,6 +444,9 @@ def build_exam_workspace_session_console_release_claim_alignment(
         "workspace_card_status": workspace_card.get("status"),
         "workspace_card_selected_skill_tag": workspace_card.get("selected_skill_tag"),
         "workspace_card_help_ledger_status": workspace_card.get("help_ledger_preview_status"),
+        "workspace_card_ready_for_operator_prefill": bool(workspace_card.get("ready_for_operator_prefill", False)),
+        "workspace_card_help_ledger_hash_present": bool(workspace_card.get("help_ledger_preview_hash")),
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
         "not_cleared_receipt": bool(receipt.get("not_cleared_receipt", False)),
         "repeat_checkpoint_status": repeat_checkpoint.get("status"),
         "contracts": contracts,

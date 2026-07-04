@@ -2061,6 +2061,15 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "workspace_card_help_ledger_status": exam_workspace_session_console_alignment[
                     "workspace_card_help_ledger_status"
                 ],
+                "workspace_card_ready_for_operator_prefill": exam_workspace_session_console_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_hash_present": exam_workspace_session_console_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": exam_workspace_session_console_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
                 "repeat_checkpoint_status": exam_workspace_session_console_alignment["repeat_checkpoint_status"],
                 "release_claim_alignment_human_gates": exam_workspace_session_console_alignment[
                     "required_human_gates"
@@ -2071,6 +2080,10 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 ),
                 "run_history_claim_linked": (
                     "exam_workspace_run_history"
+                    in exam_workspace_session_console_alignment["required_readiness_check_ids"]
+                ),
+                "workspace_card_readiness_gate_claim_linked": (
+                    "python_exam_local_cycle_operator_workspace_card"
                     in exam_workspace_session_console_alignment["required_readiness_check_ids"]
                 ),
                 "study_session_claim_linked": (
@@ -2099,6 +2112,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 ],
                 "workspace_card_and_reflection_preserved": exam_workspace_session_console_alignment["contracts"][
                     "workspace_card_and_reflection_preserved"
+                ],
+                "workspace_card_readiness_gate_contract": exam_workspace_session_console_alignment["contracts"][
+                    "workspace_card_readiness_gate_linked"
                 ],
                 "repeat_task_blocks_console_ready": exam_workspace_session_console_alignment["contracts"][
                     "repeat_task_blocks_console_ready"

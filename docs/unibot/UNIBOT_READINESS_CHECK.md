@@ -215,8 +215,9 @@ Eigenleistung percentages, or exam clearance.
 The exam-workspace session-console gate carries
 `unibot-exam-workspace-session-console-release-review-board-claim-alignment-v1`.
 It links the selected skill, operator-run receipt, run-history context,
-workspace-card status, reflection receipt, and hash-only notebook checkpoint
-into a repeated dry-run console. It remains a Gretel-made scientific
+workspace-card status, the harnessed local-cycle operator workspace-card
+readiness gate, reflection receipt, and hash-only notebook checkpoint into a
+repeated dry-run console. It remains a Gretel-made scientific
 documentation surface, not a Julius-authored exam clearance system: no raw
 notebook/query/history publication, unconfirmed local writes, grading,
 proctoring, KI-detection evidence, Eigenleistung percentage, cloud-processing
