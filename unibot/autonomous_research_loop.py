@@ -1892,7 +1892,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "private_tutor_use_flow_local_cycle_workspace_card_private_use_link_alignment",
             "priority": 100,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link UniBot private tutor use flow private-manifest/index dry-run metadata, receipt hashes, local-private/no-publication boundary, and no-clearance/local-write boundary with the harnessed local-cycle operator workspace-card readiness gate, preserving flow/receipt hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no provider call/autonomous publication, no approval or exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/private_tutor_use_flow.py",
@@ -1904,6 +1904,26 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
                 "python3 -m pytest tests/test_unibot_private_tutor_use_flow.py tests/test_unibot_readiness.py -q"
             ],
             "review_gate": "private_tutor_use_flow_local_cycle_workspace_card_private_use_link_traceability",
+            "closure_evidence": {
+                "commit": "8142628",
+                "summary": "UniBot private tutor use flow private-manifest/index dry-run metadata, flow/receipt hashes, local-private/no-publication boundary, local-write boundary, and no-clearance deployment line now link to the harnessed local-cycle operator workspace-card readiness gate, preserving flow/receipt and ready-for-prefill metadata, and blocking raw private course text/contact data/local path publication, provider calls, autonomous publication, approval or exam-clearance claims, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "study_session_local_cycle_workspace_card_study_link_alignment",
+            "priority": 101,
+            "status": "ready",
+            "goal": "Link UniBot study-session formative learning evidence, study receipt hashes, private tutor flow references, reflection/repeat-task boundary, and no-clearance/local-write boundary with the harnessed local-cycle operator workspace-card readiness gate, preserving study/receipt hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no provider call/autonomous publication, no approval or exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/study_session.py",
+                "tests/test_unibot_study_session.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": [
+                "python3 -m pytest tests/test_unibot_study_session.py tests/test_unibot_readiness.py -q"
+            ],
+            "review_gate": "study_session_local_cycle_workspace_card_study_link_traceability",
         },
     ]
 
