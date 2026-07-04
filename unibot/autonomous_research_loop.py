@@ -1349,7 +1349,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "extraction_manifest_update_local_cycle_workspace_card_candidate_link_alignment",
             "priority": 71,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link extraction manifest-update candidate metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving reviewed-candidate hashes and workspace-card prefill evidence, no raw OCR/transcript/local path publication, no manifest writes by update alone, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/extraction_manifest_update.py",
@@ -1359,6 +1359,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_extraction_manifest_update.py tests/test_unibot_readiness.py -q"],
             "review_gate": "extraction_manifest_update_local_cycle_workspace_card_candidate_link_traceability",
+            "closure_evidence": {
+                "commit": "97b8634",
+                "summary": "Extraction manifest-update release-claim alignment now links reviewed candidate and candidate-set hashes to the harnessed local-cycle operator workspace-card readiness gate, preserves candidate and ready-for-prefill metadata, and blocks raw OCR/transcript/local paths, manifest writes by update alone, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "extraction_progress_local_cycle_workspace_card_queue_link_alignment",
+            "priority": 72,
+            "status": "ready",
+            "goal": "Link extraction progress review queues and receipt metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving progress/queue hashes and workspace-card prefill evidence, no raw extracted text/local path/private artifact publication, no manifest writes or tutor retrieval, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/extraction_progress.py",
+                "tests/test_unibot_extraction_progress.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_extraction_progress.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "extraction_progress_local_cycle_workspace_card_queue_link_traceability",
         },
     ]
 
