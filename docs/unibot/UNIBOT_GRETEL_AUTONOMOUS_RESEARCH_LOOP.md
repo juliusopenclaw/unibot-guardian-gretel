@@ -57,13 +57,20 @@ contract change.
 
 ## Current Work Queue
 
-- `exam_workspace_session_console_local_cycle_workspace_card_readiness_link_alignment`
-  is ready. It should link the exam-workspace session console release alignment
-  to the now-harnessed local-cycle operator workspace-card readiness gate,
-  preserving receipt/hash-only evidence and no raw notebook/query, grading,
-  proctoring, KI-detection, or exam deployment claims.
+- `exam_workspace_run_history_local_cycle_workspace_card_review_link_alignment`
+  is ready. It should link exam-workspace run history/export review with the
+  harnessed local-cycle operator workspace-card readiness gate, preserving
+  session-console receipt hashes, workspace-card metadata, reflection evidence,
+  no raw notebook/query publication, no grading/proctoring/KI-detection, and no
+  exam deployment claims.
 
 ## Closed Harnessed Work
+
+- `exam_workspace_session_console_local_cycle_workspace_card_readiness_link_alignment`:
+  closed in `4543a62` with session-console release-claim links to the harnessed
+  local-cycle operator workspace-card readiness gate, ready-for-prefill and
+  Help-Ledger hash evidence, and blocked raw notebook/query, grading,
+  proctoring, KI-detection, and exam deployment claims.
 
 - `intent_contract_regression_pack`: closed in `fa942b0` with autonomous loop,
   intent contract, budget policy, API routes, docs, and tests.

@@ -1187,7 +1187,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "exam_workspace_session_console_local_cycle_workspace_card_readiness_link_alignment",
             "priority": 62,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link the exam-workspace session console release alignment to the now-harnessed local-cycle operator workspace-card readiness gate, preserving receipt/hash-only evidence and no raw notebook/query, grading, proctoring, KI-detection, or exam deployment claims.",
             "allowed_files": [
                 "unibot/exam_workspace_session_console.py",
@@ -1197,6 +1197,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_exam_workspace_session_console.py tests/test_unibot_readiness.py -q"],
             "review_gate": "exam_workspace_session_console_local_cycle_workspace_card_readiness_link_traceability",
+            "closure_evidence": {
+                "commit": "4543a62",
+                "summary": "Exam-workspace session-console release-claim alignment now links the harnessed local-cycle operator workspace-card readiness gate, preserves ready-for-prefill and Help-Ledger hash evidence, and keeps raw notebook/query, grading, proctoring, KI-detection, and exam deployment claims blocked.",
+            },
+        },
+        {
+            "work_id": "exam_workspace_run_history_local_cycle_workspace_card_review_link_alignment",
+            "priority": 63,
+            "status": "ready",
+            "goal": "Link exam-workspace run history/export review with the harnessed local-cycle operator workspace-card readiness gate, preserving session-console receipt hashes, workspace-card metadata, reflection evidence, no raw notebook/query publication, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/exam_workspace_run_history.py",
+                "tests/test_unibot_exam_workspace_run_history.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_exam_workspace_run_history.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "exam_workspace_run_history_local_cycle_workspace_card_review_link_traceability",
         },
     ]
 
