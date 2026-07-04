@@ -1531,7 +1531,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "release_runbook_local_cycle_workspace_card_release_link_alignment",
             "priority": 81,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link release-runbook gate and release-evidence metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving release/evidence hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no autonomous public release, no approval/exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/release_runbook.py",
@@ -1541,6 +1541,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_release_runbook.py tests/test_unibot_readiness.py -q"],
             "review_gate": "release_runbook_local_cycle_workspace_card_release_link_traceability",
+            "closure_evidence": {
+                "commit": "74b9311",
+                "summary": "Release-runbook evidence alignment now links release-gate and release-evidence hashes to the harnessed local-cycle operator workspace-card readiness gate, preserves release/evidence and ready-for-prefill metadata, and blocks raw private course text/contact data/local path publication, autonomous public release, approval or exam-clearance claims, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "publication_package_local_cycle_workspace_card_publication_link_alignment",
+            "priority": 82,
+            "status": "ready",
+            "goal": "Link publication-package reproducibility and release-gate metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving publication/evidence hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no autonomous public release, no approval/exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/publication.py",
+                "tests/test_unibot_publication.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_publication.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "publication_package_local_cycle_workspace_card_publication_link_traceability",
         },
     ]
 
