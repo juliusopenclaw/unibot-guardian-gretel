@@ -57,14 +57,21 @@ contract change.
 
 ## Current Work Queue
 
-- `notebook_checkpoint_local_cycle_workspace_card_checkpoint_link_alignment`
-  is ready. It should link notebook-checkpoint hash-only local cell evidence
+- `study_session_local_cycle_workspace_card_reflection_link_alignment` is
+  ready. It should link study-session formative review/reflection evidence
   with the harnessed local-cycle operator workspace-card readiness gate,
-  preserving checkpoint hashes, study receipt metadata, workspace-card prefill
-  evidence, no raw cell/notebook/query publication, no
+  preserving prediction/notebook-action/reflection metadata, workspace-card
+  prefill evidence, no raw learner/private text publication, no
   grading/proctoring/KI-detection, and no exam deployment claims.
 
 ## Closed Harnessed Work
+
+- `notebook_checkpoint_local_cycle_workspace_card_checkpoint_link_alignment`:
+  closed in `988cf65` with notebook-checkpoint release-claim links from
+  hash-only local cell evidence to the harnessed local-cycle operator
+  workspace-card readiness gate, checkpoint and Help-Ledger-preview hashes,
+  prefill metadata, and blocked raw cell/notebook/query, grading, proctoring,
+  KI-detection, and exam deployment claims.
 
 - `exam_workspace_run_local_cycle_workspace_card_execution_link_alignment`:
   closed in `20eb12b` with exam-workspace run release-claim links to the

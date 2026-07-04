@@ -1277,7 +1277,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "notebook_checkpoint_local_cycle_workspace_card_checkpoint_link_alignment",
             "priority": 67,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link notebook-checkpoint hash-only local cell evidence with the harnessed local-cycle operator workspace-card readiness gate, preserving checkpoint hashes, study receipt metadata, workspace-card prefill evidence, no raw cell/notebook/query publication, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/exam_notebook_checkpoint.py",
@@ -1287,6 +1287,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_exam_notebook_checkpoint.py tests/test_unibot_readiness.py -q"],
             "review_gate": "notebook_checkpoint_local_cycle_workspace_card_checkpoint_link_traceability",
+            "closure_evidence": {
+                "commit": "988cf65",
+                "summary": "Notebook-checkpoint release-claim alignment now links hash-only local cell evidence to the harnessed local-cycle operator workspace-card readiness gate, preserves checkpoint and Help-Ledger-preview hashes plus prefill metadata, and blocks raw cell/notebook/query, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "study_session_local_cycle_workspace_card_reflection_link_alignment",
+            "priority": 68,
+            "status": "ready",
+            "goal": "Link study-session formative review/reflection evidence with the harnessed local-cycle operator workspace-card readiness gate, preserving prediction/notebook-action/reflection metadata, workspace-card prefill evidence, no raw learner/private text publication, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/study_session.py",
+                "tests/test_unibot_study_session.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_study_session.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "study_session_local_cycle_workspace_card_reflection_link_traceability",
         },
     ]
 
