@@ -737,7 +737,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "review_board_packet_release_claim_summary_alignment",
             "priority": 37,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align review-board packet summaries with source cards, threat model, red-team, publication, public language controls, and human gates.",
             "allowed_files": [
                 "unibot/review_board.py",
@@ -747,6 +747,10 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_review_board.py tests/test_unibot_readiness.py -q"],
             "review_gate": "review_board_packet_release_claim_summary_traceability",
+            "closure_evidence": {
+                "commit": "bf2c654",
+                "summary": "Review-board release-claim summaries aligned with source cards, threat model, red-team, publication, public language controls, and human gates.",
+            },
         },
     ]
 

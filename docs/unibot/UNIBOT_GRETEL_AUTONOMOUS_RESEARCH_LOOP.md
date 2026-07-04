@@ -57,9 +57,9 @@ contract change.
 
 ## Current Work Queue
 
-1. `review_board_packet_release_claim_summary_alignment`: align review-board
-   packet summaries with source cards, threat model, red-team, publication,
-   public language controls, and human gates.
+No ready work item is currently queued. The next autonomous cycle should inspect
+the public-safe repository state and add one bounded candidate only if it
+advances the Socratic integrity layer without changing the project boundaries.
 
 ## Closed Harnessed Work
 
@@ -178,6 +178,9 @@ contract change.
 - `threat_model_release_review_board_claim_alignment`: closed in `fb2c4e9`
   with source-card, red-team, publication, release-runbook, review-board,
   readiness, and human-gate links for threat-model risk language.
+- `review_board_packet_release_claim_summary_alignment`: closed in `bf2c654`
+  with review-board release-claim summaries aligned to source cards, threat
+  model, red-team, publication, public language controls, and human gates.
 
 ## Automation Rule
 
