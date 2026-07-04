@@ -21,6 +21,7 @@ from .exam_workspace_launch_flow import build_exam_workspace_launch_release_clai
 from .exam_workspace_operator_run import build_exam_workspace_operator_run_release_claim_alignment
 from .exam_workspace_run import build_exam_workspace_run_release_claim_alignment
 from .exam_workspace_run_history import build_exam_workspace_run_history_release_claim_alignment
+from .exam_workspace_session_console import build_exam_workspace_session_console_release_claim_alignment
 from .extraction_completion import build_extraction_completion_release_claim_alignment
 from .extraction_human_review import build_extraction_human_review_release_claim_alignment
 from .extraction_manifest_apply import build_private_manifest_apply_release_claim_alignment
@@ -147,6 +148,7 @@ def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
         "exam_workspace_run",
         "exam_workspace_run_history",
         "exam_workspace_operator_run",
+        "exam_workspace_session_console",
         "gretel_glm_evolve_lane",
         "gretel_bachelor_thesis_package",
         "gretel_autonomous_research_loop",
@@ -233,6 +235,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     exam_workspace_run_alignment = build_exam_workspace_run_release_claim_alignment()
     exam_workspace_run_history_alignment = build_exam_workspace_run_history_release_claim_alignment()
     exam_workspace_operator_run_alignment = build_exam_workspace_operator_run_release_claim_alignment()
+    exam_workspace_session_console_alignment = build_exam_workspace_session_console_release_claim_alignment()
     notebook = generate_practice_notebook("UniBot readiness notebook smoke")
     source_cards = list_source_cards()
     source_card_drift = build_source_card_drift_report()
@@ -1978,6 +1981,127 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "cloud_processing_blocked": "cloud processing" in exam_workspace_operator_run_alignment["blocked_claims"],
                 "exam_deployment_blocked": "exam deployment" in exam_workspace_operator_run_alignment["blocked_claims"],
                 "exam_clearance_blocked": "exam clearance" in exam_workspace_operator_run_alignment["blocked_claims"],
+            },
+        },
+        {
+            "check_id": "exam_workspace_session_console",
+            "passed": exam_workspace_session_console_alignment["status"] == "ready"
+            and exam_workspace_session_console_alignment["public_safety_status"] == "pass"
+            and exam_workspace_session_console_alignment["console_public_safety_status"] == "pass"
+            and exam_workspace_session_console_alignment["repeat_public_safety_status"] == "pass"
+            and exam_workspace_session_console_alignment["exam_deployment_status"] == "not_cleared"
+            and exam_workspace_session_console_alignment["missing_source_card_ids"] == []
+            and exam_workspace_session_console_alignment["failed_contract_ids"] == [],
+            "evidence": {
+                "release_claim_alignment_status": exam_workspace_session_console_alignment["status"],
+                "release_claim_alignment_public_safety_status": exam_workspace_session_console_alignment[
+                    "public_safety_status"
+                ],
+                "release_claim_alignment_contract_status": exam_workspace_session_console_alignment[
+                    "schema_version"
+                ],
+                "release_claim_alignment_section_count": exam_workspace_session_console_alignment["section_count"],
+                "console_status": exam_workspace_session_console_alignment["console_status"],
+                "console_public_safety_status": exam_workspace_session_console_alignment[
+                    "console_public_safety_status"
+                ],
+                "repeat_status": exam_workspace_session_console_alignment["repeat_status"],
+                "repeat_public_safety_status": exam_workspace_session_console_alignment[
+                    "repeat_public_safety_status"
+                ],
+                "exam_deployment_status": exam_workspace_session_console_alignment["exam_deployment_status"],
+                "session_console_status": exam_workspace_session_console_alignment["session_console_status"],
+                "selected_skill_tag": exam_workspace_session_console_alignment["selected_skill_tag"],
+                "workspace_status": exam_workspace_session_console_alignment["workspace_status"],
+                "operator_status": exam_workspace_session_console_alignment["operator_status"],
+                "operator_receipt_id_present": bool(exam_workspace_session_console_alignment["operator_receipt_id"]),
+                "receipt_status": exam_workspace_session_console_alignment["receipt_status"],
+                "receipt_not_cleared": exam_workspace_session_console_alignment["receipt_not_cleared"],
+                "receipt_hash_present": exam_workspace_session_console_alignment["receipt_hash_present"],
+                "checkpoint_status": exam_workspace_session_console_alignment["checkpoint_status"],
+                "checkpoint_hash_present": exam_workspace_session_console_alignment["checkpoint_hash_present"],
+                "tutor_status": exam_workspace_session_console_alignment["tutor_status"],
+                "study_receipt_status": exam_workspace_session_console_alignment["study_receipt_status"],
+                "help_ledger_preview_status": exam_workspace_session_console_alignment["help_ledger_preview_status"],
+                "export_status": exam_workspace_session_console_alignment["export_status"],
+                "export_not_cleared_receipt": exam_workspace_session_console_alignment["export_not_cleared_receipt"],
+                "confirmation_status": exam_workspace_session_console_alignment["confirmation_status"],
+                "confirmed_count": exam_workspace_session_console_alignment["confirmed_count"],
+                "write_step_count": exam_workspace_session_console_alignment["write_step_count"],
+                "local_writes_requested": exam_workspace_session_console_alignment["local_writes_requested"],
+                "reflection_status": exam_workspace_session_console_alignment["reflection_status"],
+                "workspace_card_status": exam_workspace_session_console_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": exam_workspace_session_console_alignment[
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_help_ledger_status": exam_workspace_session_console_alignment[
+                    "workspace_card_help_ledger_status"
+                ],
+                "repeat_checkpoint_status": exam_workspace_session_console_alignment["repeat_checkpoint_status"],
+                "release_claim_alignment_human_gates": exam_workspace_session_console_alignment[
+                    "required_human_gates"
+                ],
+                "operator_run_claim_linked": (
+                    "exam_workspace_operator_run"
+                    in exam_workspace_session_console_alignment["required_readiness_check_ids"]
+                ),
+                "run_history_claim_linked": (
+                    "exam_workspace_run_history"
+                    in exam_workspace_session_console_alignment["required_readiness_check_ids"]
+                ),
+                "study_session_claim_linked": (
+                    "study_session" in exam_workspace_session_console_alignment["required_readiness_check_ids"]
+                ),
+                "review_board_claim_linked": (
+                    "review_board_packet" in exam_workspace_session_console_alignment["required_readiness_check_ids"]
+                ),
+                "external_decision_state_claim_linked": (
+                    "external_decision_state"
+                    in exam_workspace_session_console_alignment["required_readiness_check_ids"]
+                ),
+                "evaluation_packet_claim_linked": (
+                    "evaluation_packet" in exam_workspace_session_console_alignment["required_readiness_check_ids"]
+                ),
+                "exam_boundary_claim_linked": (
+                    "exam_boundary" in exam_workspace_session_console_alignment["required_readiness_check_ids"]
+                ),
+                "console_public_safe": exam_workspace_session_console_alignment["contracts"]["console_public_safe"],
+                "repeat_public_safe": exam_workspace_session_console_alignment["contracts"]["repeat_public_safe"],
+                "session_console_receipt_hash_only_ready": exam_workspace_session_console_alignment["contracts"][
+                    "session_console_receipt_hash_only_ready"
+                ],
+                "operator_run_receipt_linked": exam_workspace_session_console_alignment["contracts"][
+                    "operator_run_receipt_linked"
+                ],
+                "workspace_card_and_reflection_preserved": exam_workspace_session_console_alignment["contracts"][
+                    "workspace_card_and_reflection_preserved"
+                ],
+                "repeat_task_blocks_console_ready": exam_workspace_session_console_alignment["contracts"][
+                    "repeat_task_blocks_console_ready"
+                ],
+                "public_outputs_hide_private_console_data": exam_workspace_session_console_alignment["contracts"][
+                    "public_outputs_hide_private_console_data"
+                ],
+                "high_stakes_actions_not_started": exam_workspace_session_console_alignment["contracts"][
+                    "high_stakes_actions_not_started"
+                ],
+                "not_cleared_receipt_present": exam_workspace_session_console_alignment["contracts"][
+                    "not_cleared_receipt_present"
+                ],
+                "raw_run_history_returned_blocked": "raw run history returned"
+                in exam_workspace_session_console_alignment["blocked_claims"],
+                "raw_notebook_code_returned_blocked": "raw notebook code returned"
+                in exam_workspace_session_console_alignment["blocked_claims"],
+                "unconfirmed_local_write_blocked": "unconfirmed local write"
+                in exam_workspace_session_console_alignment["blocked_claims"],
+                "automatic_grading_blocked": "automatic grading"
+                in exam_workspace_session_console_alignment["blocked_claims"],
+                "proctoring_blocked": "proctoring" in exam_workspace_session_console_alignment["blocked_claims"],
+                "ki_detection_evidence_blocked": "KI-detection evidence"
+                in exam_workspace_session_console_alignment["blocked_claims"],
+                "exam_deployment_blocked": "exam deployment"
+                in exam_workspace_session_console_alignment["blocked_claims"],
+                "exam_clearance_blocked": "exam clearance" in exam_workspace_session_console_alignment["blocked_claims"],
             },
         },
         {

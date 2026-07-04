@@ -50,6 +50,7 @@ It aggregates:
 - exam workspace run and release-claim alignment
 - exam workspace run-history and export-review alignment
 - exam workspace operator-run and confirmation-boundary alignment
+- exam workspace session-console and receipt alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -206,6 +207,16 @@ keeps every local write behind an individual operator confirmation. The default
 state is dry-run and not-cleared; it does not expose raw queries, raw cells,
 notebook code, local paths, grades, proctoring, AI-detection evidence,
 Eigenleistung percentages, or exam clearance.
+
+The exam-workspace session-console gate carries
+`unibot-exam-workspace-session-console-release-review-board-claim-alignment-v1`.
+It links the selected skill, operator-run receipt, run-history context,
+workspace-card status, reflection receipt, and hash-only notebook checkpoint
+into a repeated dry-run console. It remains a Gretel-made scientific
+documentation surface, not a Julius-authored exam clearance system: no raw
+notebook/query/history publication, unconfirmed local writes, grading,
+proctoring, KI-detection evidence, Eigenleistung percentage, cloud-processing
+approval, or exam deployment claim is allowed.
 
 ## Source-Card Drift Guard
 

@@ -12,7 +12,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.exam_workspace_session_console import build_exam_workspace_session_console  # noqa: E402
+from unibot.exam_workspace_session_console import (  # noqa: E402
+    build_exam_workspace_session_console,
+    build_exam_workspace_session_console_release_claim_alignment,
+)
 from unibot.materials import build_material_manifest, sha256_text  # noqa: E402
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
@@ -297,6 +300,157 @@ class UniBotExamWorkspaceSessionConsoleTests(unittest.TestCase):
                 )
                 self.assertIn("Local Cycle Workspace Card", report["session_console_markdown"])
                 self.assertFalse(report["session_console_receipt"]["workspace_card_hash"] == "")
+
+    def test_session_console_release_claim_alignment_links_review_board_claims(self) -> None:
+        alignment = build_exam_workspace_session_console_release_claim_alignment()
+        payload = json.dumps(alignment, ensure_ascii=False)
+
+        self.assertEqual(
+            alignment["schema_version"],
+            "unibot-exam-workspace-session-console-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["console_status"], "exam_workspace_session_console_ready")
+        self.assertEqual(alignment["console_public_safety_status"], "pass")
+        self.assertEqual(alignment["repeat_status"], "exam_workspace_session_console_repeat_task_required")
+        self.assertEqual(alignment["repeat_public_safety_status"], "pass")
+        self.assertEqual(alignment["exam_deployment_status"], "not_cleared")
+        self.assertEqual(alignment["session_console_status"], "ready_dry_run")
+        self.assertEqual(alignment["selected_skill_tag"], "pandas")
+        self.assertEqual(alignment["workspace_status"], "exam_workspace_dry_run_ready")
+        self.assertEqual(alignment["operator_status"], "exam_workspace_operator_dry_run_ready")
+        self.assertTrue(alignment["operator_receipt_id"])
+        self.assertEqual(alignment["receipt_status"], "session_console_receipt_ready_not_exam_clearance")
+        self.assertTrue(alignment["receipt_not_cleared"])
+        self.assertTrue(alignment["receipt_hash_present"])
+        self.assertEqual(alignment["checkpoint_status"], "notebook_checkpoint_ready")
+        self.assertTrue(alignment["checkpoint_hash_present"])
+        self.assertEqual(alignment["tutor_status"], "allowed")
+        self.assertEqual(alignment["study_receipt_status"], "ok_study_session_receipt")
+        self.assertEqual(alignment["help_ledger_preview_status"], "preview_ready")
+        self.assertTrue(alignment["export_not_cleared_receipt"])
+        self.assertEqual(alignment["confirmation_status"], "all_steps_dry_run")
+        self.assertEqual(alignment["confirmed_count"], 0)
+        self.assertEqual(alignment["write_step_count"], 6)
+        self.assertFalse(alignment["local_writes_requested"])
+        self.assertEqual(alignment["reflection_status"], "ok_study_session_receipt")
+        self.assertEqual(alignment["workspace_card_status"], "python_exam_local_cycle_operator_workspace_card_ready")
+        self.assertEqual(alignment["workspace_card_selected_skill_tag"], "pandas")
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["not_cleared_receipt"])
+        self.assertEqual(alignment["repeat_checkpoint_status"], "notebook_checkpoint_repeat_task_required")
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertIn("exam_workspace_session_console", alignment["required_readiness_check_ids"])
+        self.assertIn("exam_workspace_operator_run", alignment["required_readiness_check_ids"])
+        self.assertIn("exam_workspace_run_history", alignment["required_readiness_check_ids"])
+        self.assertIn("review_board_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("study_session", alignment["required_readiness_check_ids"])
+        self.assertIn("external_decision_state", alignment["required_readiness_check_ids"])
+        self.assertIn("evaluation_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("exam_boundary", alignment["required_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertTrue(alignment["contracts"]["console_public_safe"])
+        self.assertTrue(alignment["contracts"]["repeat_public_safe"])
+        self.assertTrue(alignment["contracts"]["session_console_receipt_hash_only_ready"])
+        self.assertTrue(alignment["contracts"]["operator_run_receipt_linked"])
+        self.assertTrue(alignment["contracts"]["workspace_card_and_reflection_preserved"])
+        self.assertTrue(alignment["contracts"]["repeat_task_blocks_console_ready"])
+        self.assertTrue(alignment["contracts"]["public_outputs_hide_private_console_data"])
+        self.assertTrue(alignment["contracts"]["high_stakes_actions_not_started"])
+        self.assertTrue(alignment["contracts"]["not_cleared_receipt_present"])
+        self.assertIn("raw notebook code returned", alignment["blocked_claims"])
+        self.assertIn("raw run history returned", alignment["blocked_claims"])
+        self.assertIn("automatic grading", alignment["blocked_claims"])
+        self.assertIn("proctoring", alignment["blocked_claims"])
+        self.assertIn("KI-detection evidence", alignment["blocked_claims"])
+        self.assertIn("exam deployment", alignment["blocked_claims"])
+        self.assertNotIn("synthetic private session-console question", payload)
+        self.assertNotIn("own_groupby_checkpoint", payload)
+        self.assertEqual(scan_text(payload, "session-console-alignment")["status"], "pass")
+
+    def test_session_console_release_claim_alignment_flags_overstated_claims(self) -> None:
+        unsafe_ready = {
+            "status": "exam_workspace_session_console_ready",
+            "public_safety_status": "pass",
+            "exam_deployment_status": "cleared",
+            "execution_boundary": "returns everything",
+            "session_console_markdown": "# unsafe",
+            "session_console": {
+                "status": "ready_dry_run",
+                "selected_skill": {"skill_tag": "pandas", "raw_source_text_returned": True},
+                "workspace_status": {
+                    "workspace_run_status": "exam_workspace_dry_run_ready",
+                    "exam_deployment_status": "cleared",
+                    "tutor_status": "allowed",
+                },
+                "notebook_checkpoint": {"status": "notebook_checkpoint_ready"},
+                "tutor_state": {"study_receipt_status": "missing", "allowed_help_boundary": "A0-A2"},
+                "help_ledger_preview": {"status": "written", "raw_help_text_returned": True},
+                "export_receipt": {"not_cleared_receipt": False, "raw_export_returned": True},
+                "operator_confirmations": {
+                    "status": "operator_confirmations_present",
+                    "confirmed_count": 2,
+                    "write_step_count": 6,
+                    "local_writes_requested": True,
+                },
+            },
+            "session_console_receipt": {
+                "status": "session_console_receipt_ready_not_exam_clearance",
+                "receipt_hash": "",
+                "operator_receipt_id": "",
+                "not_cleared_receipt": False,
+                "raw_query_returned": True,
+                "raw_text_returned": True,
+                "raw_cell_returned": True,
+                "notebook_code_returned": True,
+                "local_paths_returned": True,
+            },
+            "operator_summary": {
+                "artifact_type": "exam_workspace_operator_run_dry_run",
+                "status": "exam_workspace_operator_dry_run_ready",
+                "receipt_id": "different",
+                "not_cleared_receipt": False,
+            },
+            "local_cycle_operator_workspace_card": {"status": "missing"},
+            "local_cycle_operator_workspace_card_source": {"artifact_type": "missing"},
+            "raw_query_returned": True,
+            "raw_text_returned": True,
+            "raw_cell_returned": True,
+            "raw_notebook_returned": True,
+            "notebook_code_returned": True,
+            "local_paths_returned": True,
+            "automatic_grading_started": True,
+            "proctoring_started": True,
+            "ai_detection_started": True,
+            "exam_clearance_claimed": True,
+        }
+        repeat_report = {
+            "status": "exam_workspace_session_console_ready",
+            "public_safety_status": "pass",
+            "session_console": {
+                "status": "ready_dry_run",
+                "notebook_checkpoint": {"status": "notebook_checkpoint_ready"},
+            },
+        }
+
+        alignment = build_exam_workspace_session_console_release_claim_alignment(
+            ready_report=unsafe_ready,
+            repeat_report=repeat_report,
+            workspace_card_report={"status": "missing"},
+        )
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertIn("session_console_receipt_hash_only_ready", alignment["failed_contract_ids"])
+        self.assertIn("operator_run_receipt_linked", alignment["failed_contract_ids"])
+        self.assertIn("workspace_card_and_reflection_preserved", alignment["failed_contract_ids"])
+        self.assertIn("repeat_task_blocks_console_ready", alignment["failed_contract_ids"])
+        self.assertIn("public_outputs_hide_private_console_data", alignment["failed_contract_ids"])
+        self.assertIn("high_stakes_actions_not_started", alignment["failed_contract_ids"])
+        self.assertIn("not_cleared_receipt_present", alignment["failed_contract_ids"])
 
 
 if __name__ == "__main__":
