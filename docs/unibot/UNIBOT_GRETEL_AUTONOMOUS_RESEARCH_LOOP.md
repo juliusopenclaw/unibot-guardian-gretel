@@ -57,10 +57,10 @@ contract change.
 
 ## Current Work Queue
 
-- `exam_workspace_launch_release_review_board_claim_alignment` is ready. It
-  should align the exam-workspace launch flow with notebook checkpoints, study
-  receipts, private tutor-use evidence, dry-run boundaries, no raw code
-  publication, no grading, and no exam deployment claims.
+- `exam_workspace_run_release_review_board_claim_alignment` is ready. It should
+  align the controlled exam-workspace run packet with launch, checkpoint,
+  study, tutor, dry-run/operator boundaries, no raw code publication, no
+  grading, no proctoring, no KI-detection, and no exam deployment claims.
 
 ## Closed Harnessed Work
 
@@ -241,6 +241,9 @@ contract change.
   `fb0b59e` with hash-only local cell evidence, operator-confirmed checkpoint
   journal writes, A6 repeat-task enforcement, raw-code suppression, and no exam
   deployment claims.
+- `exam_workspace_launch_release_review_board_claim_alignment`: closed in
+  `0a3d05f` with notebook checkpoint, private tutor-use, study receipt,
+  dry-run, raw-code suppression, and no exam deployment claim checks.
 
 ## Automation Rule
 
