@@ -64,16 +64,26 @@ artifacts.
 
 ## Current Work Queue
 
-- `exam_packet_timeline_local_cycle_workspace_card_timeline_link_alignment`
-  is ready. It should link UniBot exam packet timeline events, receipt
-  references, checkpoint hash counts, and no-clearance/local-write boundary
-  with the harnessed local-cycle operator workspace-card readiness gate,
-  preserving timeline/receipt hashes and workspace-card prefill evidence, no
-  raw private course text/contact data/local path publication, no provider
-  call/autonomous publication, no approval or exam-clearance claim, no
-  grading/proctoring/KI-detection, and no exam deployment claims.
+- `exam_run_packet_local_cycle_workspace_card_packet_link_alignment`
+  is ready. It should link UniBot exam run packet selected skill packet, route
+  execution metadata, packet receipt, local-cycle chain snapshot, and
+  no-clearance/local-write boundary with the harnessed local-cycle operator
+  workspace-card readiness gate, preserving packet/receipt hashes and
+  workspace-card prefill evidence, no raw private course text/contact data/local
+  path publication, no provider call/autonomous publication, no approval or
+  exam-clearance claim, no grading/proctoring/KI-detection, and no exam
+  deployment claims.
 
 ## Closed Harnessed Work
+
+- `exam_packet_timeline_local_cycle_workspace_card_timeline_link_alignment`:
+  closed in `58c8882` with UniBot exam packet timeline events, packet receipt
+  references, checkpoint hash counts, export-review preview, and no-clearance
+  deployment line linked to the harnessed local-cycle operator workspace-card
+  readiness gate, timeline/receipt and ready-for-prefill metadata, and blocked
+  raw private course text/contact data/local path publication, provider calls,
+  autonomous publication, approval or exam-clearance claims, grading,
+  proctoring, KI-detection, and exam deployment claims.
 
 - `timeline_export_review_packet_local_cycle_workspace_card_review_link_alignment`:
   closed in `338f1b6` with UniBot timeline export review packet summary
