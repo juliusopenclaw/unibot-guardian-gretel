@@ -67,6 +67,15 @@ The Gretel/GLM proposal lane is ready only when it remains proposal-only,
 public-safe, no-provider-call by default, and blocked from autonomous apply,
 external actions, private context, or Final-Go decisions.
 
+The review board packet carries
+`unibot-review-board-release-claim-summary-alignment-v1`. This contract keeps
+reviewer packets and release-facing summaries tied to source cards, red-team
+evidence, publication boundaries, human gates, and non-clearance language.
+Reviewer-packet and release-summary hashes are linked to the harnessed
+local-cycle operator workspace-card readiness gate without exposing raw private
+course text, contact data, local paths, external sends, approval or
+exam-clearance claims, or the raw workspace card.
+
 The authority handoff carries
 `unibot-authority-handoff-release-review-board-claim-alignment-v1`. This
 contract keeps university-facing handoff language source-bound, public-safe,

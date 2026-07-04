@@ -3573,7 +3573,11 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and review_board_packet["thesis_evaluation_claim_alignment"]["public_safety_status"] == "pass"
             and review_board_packet["thesis_evaluation_claim_alignment"]["missing_source_card_ids"] == []
             and review_board_packet["thesis_evaluation_claim_alignment"]["failed_reviewer_ids"] == []
-            and review_board_packet["thesis_evaluation_claim_alignment"]["failed_contract_ids"] == [],
+            and review_board_packet["thesis_evaluation_claim_alignment"]["failed_contract_ids"] == []
+            and review_board_packet["release_claim_summary_alignment"]["status"] == "ready"
+            and review_board_packet["release_claim_summary_alignment"]["public_safety_status"] == "pass"
+            and review_board_packet["release_claim_summary_alignment"]["missing_source_card_ids"] == []
+            and review_board_packet["release_claim_summary_alignment"]["failed_contract_ids"] == [],
             "evidence": {
                 "status": review_board_packet["status"],
                 "public_safety_status": review_board_packet["public_safety_status"],
@@ -3588,6 +3592,39 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "thesis_evaluation_claim_alignment_status": review_board_packet["thesis_evaluation_claim_alignment"]["status"],
                 "thesis_evaluation_claim_alignment_section_count": review_board_packet["thesis_evaluation_claim_alignment"]["section_count"],
                 "thesis_evaluation_claim_alignment_human_gates": review_board_packet["thesis_evaluation_claim_alignment"]["required_human_gates"],
+                "release_claim_summary_alignment_status": review_board_packet["release_claim_summary_alignment"]["status"],
+                "release_claim_summary_alignment_public_safety_status": review_board_packet[
+                    "release_claim_summary_alignment"
+                ]["public_safety_status"],
+                "release_claim_summary_alignment_section_count": review_board_packet["release_claim_summary_alignment"][
+                    "section_count"
+                ],
+                "workspace_card_status": review_board_packet["release_claim_summary_alignment"]["workspace_card_status"],
+                "workspace_card_selected_skill_tag": review_board_packet["release_claim_summary_alignment"][
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": review_board_packet["release_claim_summary_alignment"][
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": review_board_packet["release_claim_summary_alignment"][
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": review_board_packet["release_claim_summary_alignment"][
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": review_board_packet["release_claim_summary_alignment"][
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_review_board_gate_linked": review_board_packet["release_claim_summary_alignment"][
+                    "workspace_card_review_board_gate_linked"
+                ],
+                "workspace_card_readiness_gate_claim_linked": (
+                    "python_exam_local_cycle_operator_workspace_card"
+                    in review_board_packet["release_claim_summary_alignment"]["required_readiness_check_ids"]
+                ),
+                "workspace_card_review_board_gate_contract": review_board_packet["release_claim_summary_alignment"][
+                    "contracts"
+                ]["workspace_card_review_board_gate_linked"],
             },
         },
         {

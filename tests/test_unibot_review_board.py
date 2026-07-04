@@ -15,6 +15,9 @@ from unibot.review_board import (  # noqa: E402
     build_review_board_packet_markdown,
     build_review_board_release_claim_summary_alignment,
     build_review_board_thesis_evaluation_claim_alignment,
+    review_board_release_summary_hash,
+    review_board_reviewer_packet_hash,
+    synthetic_review_board_workspace_card,
 )
 from unibot.server import route_request  # noqa: E402
 from unibot.python_exam_local_cycle_operator_workspace_card import build_python_exam_local_cycle_operator_workspace_card  # noqa: E402
@@ -58,6 +61,7 @@ class UniBotReviewBoardTests(unittest.TestCase):
         self.assertEqual(packet["release_claim_summary_alignment"]["public_safety_status"], "pass")
         self.assertEqual(packet["release_claim_summary_alignment"]["missing_source_card_ids"], [])
         self.assertEqual(packet["release_claim_summary_alignment"]["failed_contract_ids"], [])
+        self.assertTrue(packet["release_claim_summary_alignment"]["workspace_card_review_board_gate_linked"])
 
     def test_review_board_evidence_alignment_maps_reviewers_to_readiness_gates(self) -> None:
         packet = build_review_board_packet()
@@ -136,9 +140,37 @@ class UniBotReviewBoardTests(unittest.TestCase):
         self.assertIn("redteam", alignment["required_readiness_check_ids"])
         self.assertIn("publication_package", alignment["required_readiness_check_ids"])
         self.assertIn("review_board_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
         self.assertIn("human_submission_review_required", alignment["required_human_gates"])
         self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
         self.assertIn("exam clearance", alignment["blocked_claims"])
+        self.assertTrue(alignment["contracts"]["workspace_card_review_board_gate_linked"])
+        self.assertEqual(alignment["workspace_card_status"], "python_exam_local_cycle_operator_workspace_card_ready")
+        self.assertEqual(alignment["workspace_card_selected_skill_tag"], "pandas")
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_review_board_gate_linked"])
+
+    def test_review_board_hash_helpers_link_reviewer_packet_and_release_summary(self) -> None:
+        packet = build_review_board_packet()
+
+        self.assertTrue(review_board_reviewer_packet_hash(packet))
+        self.assertTrue(review_board_release_summary_hash(packet))
+        self.assertNotEqual(review_board_reviewer_packet_hash(packet), review_board_release_summary_hash(packet))
+
+    def test_review_board_release_claim_summary_alignment_rejects_unlinked_workspace_card_hashes(self) -> None:
+        packet = build_review_board_packet()
+        card = synthetic_review_board_workspace_card()
+        card["workspace_card_summary"]["checkpoint_hash"] = "wrong-reviewer-packet-hash"
+        card["workspace_card_summary"]["task_hash"] = "wrong-release-summary-hash"
+
+        alignment = build_review_board_release_claim_summary_alignment(packet, card)
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertFalse(alignment["workspace_card_review_board_gate_linked"])
+        self.assertIn("workspace_card_review_board_gate_linked", alignment["failed_contract_ids"])
 
     def test_review_board_release_claim_summary_alignment_blocks_weakened_public_language(self) -> None:
         packet = build_review_board_packet()
