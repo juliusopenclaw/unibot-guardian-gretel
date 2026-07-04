@@ -57,10 +57,10 @@ contract change.
 
 ## Current Work Queue
 
-- `notebook_checkpoint_release_review_board_claim_alignment` is ready. It
-  should align notebook checkpoints with study-session receipts, source
-  anchors, learner reflection, no raw code publication, no final-answer
-  outsourcing, no grading, and no exam deployment claims.
+- `exam_workspace_launch_release_review_board_claim_alignment` is ready. It
+  should align the exam-workspace launch flow with notebook checkpoints, study
+  receipts, private tutor-use evidence, dry-run boundaries, no raw code
+  publication, no grading, and no exam deployment claims.
 
 ## Closed Harnessed Work
 
@@ -236,6 +236,10 @@ contract change.
 - `study_session_release_review_board_claim_alignment`: closed in `934f817`
   with hash-only learning receipts, source anchors, reflection evidence, A6
   repeat-task enforcement, no Eigenleistung percentage claims, and no exam
+  deployment claims.
+- `notebook_checkpoint_release_review_board_claim_alignment`: closed in
+  `fb0b59e` with hash-only local cell evidence, operator-confirmed checkpoint
+  journal writes, A6 repeat-task enforcement, raw-code suppression, and no exam
   deployment claims.
 
 ## Automation Rule

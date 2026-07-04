@@ -1007,7 +1007,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "notebook_checkpoint_release_review_board_claim_alignment",
             "priority": 52,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align notebook checkpoints with study-session receipts, source anchors, learner reflection, no raw code publication, no final-answer outsourcing, no grading, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/exam_notebook_checkpoint.py",
@@ -1017,6 +1017,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_exam_notebook_checkpoint.py tests/test_unibot_readiness.py -q"],
             "review_gate": "notebook_checkpoint_release_review_board_claim_traceability",
+            "closure_evidence": {
+                "commit": "fb0b59e",
+                "summary": "Notebook checkpoint release-claim alignment added with hash-only local cell evidence, operator-confirmed checkpoint journal writes, A6 repeat-task enforcement, raw-code suppression, and no exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "exam_workspace_launch_release_review_board_claim_alignment",
+            "priority": 53,
+            "status": "ready",
+            "goal": "Align the exam-workspace launch flow with notebook checkpoints, study receipts, private tutor-use evidence, dry-run boundaries, no raw code publication, no grading, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/exam_workspace_launch_flow.py",
+                "tests/test_unibot_exam_workspace_launch_flow.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_exam_workspace_launch_flow.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "exam_workspace_launch_release_review_board_claim_traceability",
         },
     ]
 
