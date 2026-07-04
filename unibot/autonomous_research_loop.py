@@ -1585,7 +1585,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "gretel_glm_evolve_lane_local_cycle_workspace_card_glm_link_alignment",
             "priority": 84,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link Gretel/GLM proposal-lane redaction/provider-lock and work-packet metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving GLM proposal/evidence hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no provider call/autonomous apply/publication, no approval/exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/gretel_glm_evolve.py",
@@ -1595,6 +1595,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_gretel_glm_evolve.py tests/test_unibot_readiness.py -q"],
             "review_gate": "gretel_glm_evolve_lane_local_cycle_workspace_card_glm_link_traceability",
+            "closure_evidence": {
+                "commit": "89b774a",
+                "summary": "Gretel/GLM provider-redaction alignment now links proposal-packet and provider-lock hashes to the harnessed local-cycle operator workspace-card readiness gate, preserves GLM proposal/evidence and ready-for-prefill metadata, and blocks raw private course text/contact data/local path publication, provider calls, autonomous apply/publication, approval or exam-clearance claims, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "source_card_drift_guard_local_cycle_workspace_card_source_link_alignment",
+            "priority": 85,
+            "status": "ready",
+            "goal": "Link source-card drift-guard coverage and required public-source metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving source-card/drift hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no provider call/autonomous publication, no legal/approval/exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/source_cards.py",
+                "tests/test_unibot_source_cards.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_source_cards.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "source_card_drift_guard_local_cycle_workspace_card_source_link_traceability",
         },
     ]
 

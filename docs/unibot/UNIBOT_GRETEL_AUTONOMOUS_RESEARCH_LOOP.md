@@ -57,16 +57,24 @@ contract change.
 
 ## Current Work Queue
 
-- `gretel_glm_evolve_lane_local_cycle_workspace_card_glm_link_alignment` is
-  ready. It should link Gretel/GLM proposal-lane redaction/provider-lock and
-  work-packet metadata with the harnessed local-cycle operator workspace-card
-  readiness gate, preserving GLM proposal/evidence hashes and workspace-card
+- `source_card_drift_guard_local_cycle_workspace_card_source_link_alignment` is
+  ready. It should link source-card drift-guard coverage and required
+  public-source metadata with the harnessed local-cycle operator workspace-card
+  readiness gate, preserving source-card/drift hashes and workspace-card
   prefill evidence, no raw private course text/contact data/local path
-  publication, no provider call/autonomous apply/publication, no
-  approval/exam-clearance claim, no grading/proctoring/KI-detection, and no
-  exam deployment claims.
+  publication, no provider call/autonomous publication, no legal/approval or
+  exam-clearance claim, no grading/proctoring/KI-detection, and no exam
+  deployment claims.
 
 ## Closed Harnessed Work
+
+- `gretel_glm_evolve_lane_local_cycle_workspace_card_glm_link_alignment`:
+  closed in `89b774a` with GLM proposal-packet and provider-lock hashes linked
+  to the harnessed local-cycle operator workspace-card readiness gate, GLM
+  proposal/evidence and ready-for-prefill metadata, and blocked raw private
+  course text/contact data/local path publication, provider calls, autonomous
+  apply/publication, approval or exam-clearance claims, grading, proctoring,
+  KI-detection, and exam deployment claims.
 
 - `bachelor_thesis_package_local_cycle_workspace_card_thesis_link_alignment`:
   closed in `49c1da7` with Gretel bachelor-thesis authorship/evidence and
