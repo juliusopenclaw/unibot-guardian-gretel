@@ -57,15 +57,23 @@ contract change.
 
 ## Current Work Queue
 
-- `external_decision_record_journal_local_cycle_workspace_card_record_link_alignment`
-  is ready. It should link external decision record journal hash-only records
-  with the harnessed local-cycle operator workspace-card readiness gate,
-  preserving record/journal hashes and workspace-card prefill evidence, no raw
-  written decisions/contact data/public raw course text publication, no
-  deployment switch, no grading/proctoring/KI-detection, and no exam deployment
-  claims.
+- `stakeholder_decision_journal_local_cycle_workspace_card_request_link_alignment`
+  is ready. It should link stakeholder decision journal hash-only
+  request/receipt metadata with the harnessed local-cycle operator
+  workspace-card readiness gate, preserving request/journal hashes and
+  workspace-card prefill evidence, no raw request or written-decision
+  text/contact data publication, no automatic gate changes, no
+  grading/proctoring/KI-detection, and no exam clearance claims.
 
 ## Closed Harnessed Work
+
+- `external_decision_record_journal_local_cycle_workspace_card_record_link_alignment`:
+  closed in `59be092` with external decision record journal release-claim links
+  from decision-record journal and gate-summary hashes to the harnessed
+  local-cycle operator workspace-card readiness gate, hash-only record and
+  ready-for-prefill metadata, and blocked raw written decisions/contact
+  data/public raw course text publication, deployment switches, grading,
+  proctoring, KI-detection, and exam deployment claims.
 
 - `external_decision_state_local_cycle_workspace_card_gate_link_alignment`:
   closed in `dcebb68` with external decision state release-claim links from
