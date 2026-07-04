@@ -1495,7 +1495,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "authority_handoff_local_cycle_workspace_card_authority_link_alignment",
             "priority": 79,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link authority handoff reviewer-packet and public-language metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving authority/evidence hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no external send, no legal/approval/exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/handoff.py",
@@ -1505,6 +1505,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_handoff.py tests/test_unibot_readiness.py -q"],
             "review_gate": "authority_handoff_local_cycle_workspace_card_authority_link_traceability",
+            "closure_evidence": {
+                "commit": "9e4b6b9",
+                "summary": "Authority handoff release-claim alignment now links reviewer-packet and public-language hashes to the harnessed local-cycle operator workspace-card readiness gate, preserves authority/evidence and ready-for-prefill metadata, and blocks raw private course text/contact data/local path publication, external sends, legal or approval claims, exam clearance, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "review_board_packet_local_cycle_workspace_card_review_link_alignment",
+            "priority": 80,
+            "status": "ready",
+            "goal": "Link review-board reviewer-packet and release-claim summary metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving review/evidence hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no external send, no approval/exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/review_board.py",
+                "tests/test_unibot_review_board.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_review_board.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "review_board_packet_local_cycle_workspace_card_review_link_traceability",
         },
     ]
 
