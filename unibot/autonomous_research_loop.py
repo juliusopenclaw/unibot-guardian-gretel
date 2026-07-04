@@ -1133,7 +1133,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "python_exam_local_cycle_readiness_review_release_review_board_claim_alignment",
             "priority": 59,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align the Python exam local-cycle readiness review with start-packet evidence, operator confirmations, source-card/hash metadata, no raw notebook/query publication, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/python_exam_local_cycle_readiness_review.py",
@@ -1143,6 +1143,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_python_exam_local_cycle_readiness_review.py tests/test_unibot_readiness.py -q"],
             "review_gate": "python_exam_local_cycle_readiness_review_release_review_board_claim_traceability",
+            "closure_evidence": {
+                "commit": "c0511e5",
+                "summary": "Python exam local-cycle readiness-review release-claim alignment added with open-confirmation, fully-confirmed, and missing-packet review recommendations, hash/source-card evidence, read-only dry-run boundary, and no exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "python_exam_local_cycle_readiness_handoff_release_review_board_claim_alignment",
+            "priority": 60,
+            "status": "ready",
+            "goal": "Align the Python exam local-cycle readiness handoff with readiness-review recommendations, start-packet hashes, source-card metadata, no raw notebook/query publication, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/python_exam_local_cycle_readiness_handoff.py",
+                "tests/test_unibot_python_exam_local_cycle_readiness_handoff.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_python_exam_local_cycle_readiness_handoff.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "python_exam_local_cycle_readiness_handoff_release_review_board_claim_traceability",
         },
     ]
 
