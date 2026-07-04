@@ -1567,7 +1567,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "bachelor_thesis_package_local_cycle_workspace_card_thesis_link_alignment",
             "priority": 83,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link Gretel bachelor-thesis package authorship/evidence and GLM-method metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving thesis/evidence hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no autonomous university submission, no approval/exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/bachelor_thesis.py",
@@ -1577,6 +1577,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_bachelor_thesis.py tests/test_unibot_readiness.py -q"],
             "review_gate": "bachelor_thesis_package_local_cycle_workspace_card_thesis_link_traceability",
+            "closure_evidence": {
+                "commit": "49c1da7",
+                "summary": "Gretel bachelor-thesis evaluation alignment now links authorship/evidence and GLM-method hashes to the harnessed local-cycle operator workspace-card readiness gate, preserves thesis/evidence and ready-for-prefill metadata, and blocks raw private course text/contact data/local path publication, autonomous university submission, approval or exam-clearance claims, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "gretel_glm_evolve_lane_local_cycle_workspace_card_glm_link_alignment",
+            "priority": 84,
+            "status": "ready",
+            "goal": "Link Gretel/GLM proposal-lane redaction/provider-lock and work-packet metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving GLM proposal/evidence hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no provider call/autonomous apply/publication, no approval/exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/gretel_glm_evolve.py",
+                "tests/test_unibot_gretel_glm_evolve.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_gretel_glm_evolve.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "gretel_glm_evolve_lane_local_cycle_workspace_card_glm_link_traceability",
         },
     ]
 

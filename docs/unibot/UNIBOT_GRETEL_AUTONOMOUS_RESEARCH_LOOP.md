@@ -57,15 +57,24 @@ contract change.
 
 ## Current Work Queue
 
-- `bachelor_thesis_package_local_cycle_workspace_card_thesis_link_alignment` is
-  ready. It should link Gretel bachelor-thesis package authorship/evidence and
-  GLM-method metadata with the harnessed local-cycle operator workspace-card
-  readiness gate, preserving thesis/evidence hashes and workspace-card prefill
-  evidence, no raw private course text/contact data/local path publication, no
-  autonomous university submission, no approval/exam-clearance claim, no
-  grading/proctoring/KI-detection, and no exam deployment claims.
+- `gretel_glm_evolve_lane_local_cycle_workspace_card_glm_link_alignment` is
+  ready. It should link Gretel/GLM proposal-lane redaction/provider-lock and
+  work-packet metadata with the harnessed local-cycle operator workspace-card
+  readiness gate, preserving GLM proposal/evidence hashes and workspace-card
+  prefill evidence, no raw private course text/contact data/local path
+  publication, no provider call/autonomous apply/publication, no
+  approval/exam-clearance claim, no grading/proctoring/KI-detection, and no
+  exam deployment claims.
 
 ## Closed Harnessed Work
+
+- `bachelor_thesis_package_local_cycle_workspace_card_thesis_link_alignment`:
+  closed in `49c1da7` with Gretel bachelor-thesis authorship/evidence and
+  GLM-method hashes linked to the harnessed local-cycle operator workspace-card
+  readiness gate, thesis/evidence and ready-for-prefill metadata, and blocked
+  raw private course text/contact data/local path publication, autonomous
+  university submission, approval or exam-clearance claims, grading,
+  proctoring, KI-detection, and exam deployment claims.
 
 - `publication_package_local_cycle_workspace_card_publication_link_alignment`:
   closed in `7dee620` with publication-package reproducibility links from
