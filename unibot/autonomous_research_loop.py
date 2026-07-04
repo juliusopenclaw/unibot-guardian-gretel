@@ -989,7 +989,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "study_session_release_review_board_claim_alignment",
             "priority": 51,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align study-session plans and receipts with learner reflection, source anchors, private tutor-use evidence, no final-answer outsourcing, no grading, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/study_session.py",
@@ -999,6 +999,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_study_session.py tests/test_unibot_readiness.py -q"],
             "review_gate": "study_session_release_review_board_claim_traceability",
+            "closure_evidence": {
+                "commit": "934f817",
+                "summary": "Study-session release-claim alignment added with hash-only learning receipts, source anchors, reflection evidence, A6 repeat-task enforcement, no Eigenleistung percentage claims, and no exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "notebook_checkpoint_release_review_board_claim_alignment",
+            "priority": 52,
+            "status": "ready",
+            "goal": "Align notebook checkpoints with study-session receipts, source anchors, learner reflection, no raw code publication, no final-answer outsourcing, no grading, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/exam_notebook_checkpoint.py",
+                "tests/test_unibot_exam_notebook_checkpoint.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_exam_notebook_checkpoint.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "notebook_checkpoint_release_review_board_claim_traceability",
         },
     ]
 

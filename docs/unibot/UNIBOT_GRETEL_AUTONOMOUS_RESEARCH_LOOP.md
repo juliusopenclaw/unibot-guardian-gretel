@@ -57,10 +57,10 @@ contract change.
 
 ## Current Work Queue
 
-- `study_session_release_review_board_claim_alignment` is ready. It should
-  align study-session plans and receipts with learner reflection, source
-  anchors, private tutor-use evidence, no final-answer outsourcing, no grading,
-  and no exam deployment claims.
+- `notebook_checkpoint_release_review_board_claim_alignment` is ready. It
+  should align notebook checkpoints with study-session receipts, source
+  anchors, learner reflection, no raw code publication, no final-answer
+  outsourcing, no grading, and no exam deployment claims.
 
 ## Closed Harnessed Work
 
@@ -233,6 +233,10 @@ contract change.
   `d850fa2` with reviewed private manifest evidence, operator-confirmed
   hash-only tutor index, A0-A2 learner-agency boundaries, Help-Ledger evidence,
   and no exam deployment claims.
+- `study_session_release_review_board_claim_alignment`: closed in `934f817`
+  with hash-only learning receipts, source anchors, reflection evidence, A6
+  repeat-task enforcement, no Eigenleistung percentage claims, and no exam
+  deployment claims.
 
 ## Automation Rule
 
