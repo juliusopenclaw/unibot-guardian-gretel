@@ -160,9 +160,12 @@ The private tutor-use flow carries
 `unibot-private-tutor-use-flow-release-review-board-claim-alignment-v1`. It may
 apply reviewed private manifest metadata, build a hash-only local tutor index,
 produce A0-A2 source-anchored help, and store hash-only Help-Ledger evidence
-only with operator confirmation. It does not expose raw text or paths, approve
-public release, approve cloud processing, grade, proctor, detect AI use, or
-clear exam deployment.
+only with operator confirmation. It now also links the confirmed Help-Ledger
+event hash to the harnessed local-cycle operator workspace-card readiness gate,
+preserving ready-for-prefill metadata without exposing raw queries, course
+text, local paths, or the raw workspace card. It does not approve public
+release, approve cloud processing, grade, proctor, detect AI use, or clear exam
+deployment.
 
 The study-session gate carries
 `unibot-study-session-release-review-board-claim-alignment-v1`. It proves only

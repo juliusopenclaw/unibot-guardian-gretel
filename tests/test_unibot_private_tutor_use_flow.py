@@ -181,8 +181,16 @@ class UniBotPrivateTutorUseFlowTests(unittest.TestCase):
         self.assertGreaterEqual(alignment["source_anchor_count"], 1)
         self.assertEqual(alignment["ledger_status"], "stored")
         self.assertTrue(alignment["ledger_written"])
+        self.assertEqual(alignment["workspace_card_status"], "python_exam_local_cycle_operator_workspace_card_ready")
+        self.assertEqual(alignment["workspace_card_selected_skill_tag"], "pandas")
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_help_ledger_gate_linked"])
         self.assertEqual(alignment["study_receipt_status"], "ok_study_session_receipt")
         self.assertIn("private_tutor_use_flow", alignment["required_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
         self.assertIn("extraction_human_review", alignment["required_readiness_check_ids"])
         self.assertIn("extraction_manifest_apply", alignment["required_readiness_check_ids"])
         self.assertIn("evaluation_packet", alignment["required_readiness_check_ids"])
@@ -194,6 +202,7 @@ class UniBotPrivateTutorUseFlowTests(unittest.TestCase):
         self.assertTrue(alignment["contracts"]["hash_only_tutor_index_operator_confirmed"])
         self.assertTrue(alignment["contracts"]["learner_agency_a0_a2_source_anchored"])
         self.assertTrue(alignment["contracts"]["help_ledger_operator_confirmed_hash_only"])
+        self.assertTrue(alignment["contracts"]["workspace_card_help_ledger_gate_linked"])
         self.assertTrue(alignment["contracts"]["public_outputs_hide_private_data"])
         self.assertTrue(alignment["contracts"]["high_stakes_actions_not_started"])
         self.assertIn("private manifest apply without operator confirmation", alignment["blocked_claims"])
@@ -227,6 +236,17 @@ class UniBotPrivateTutorUseFlowTests(unittest.TestCase):
                 "raw_query_returned": True,
             },
             "ledger_append_summary": {"status": "stored", "ledger_written": True, "path_returned": True, "event_hash": ""},
+            "local_cycle_operator_workspace_card": {
+                "status": "python_exam_local_cycle_operator_workspace_card_ready",
+                "selected_skill_tag": "pandas",
+                "ready_for_operator_prefill": True,
+                "help_ledger_preview_status": "help_ledger_preview_ready",
+                "help_ledger_preview_hash": "x",
+                "checkpoint_hash": "x",
+                "help_level": "A2",
+                "not_cleared_receipt": True,
+                "raw_workspace_card_returned": False,
+            },
             "study_receipt_validation": {"status": "blocked"},
             "operator_confirmed_manifest_apply": False,
             "operator_confirmed_tutor_index_build": False,
@@ -249,6 +269,7 @@ class UniBotPrivateTutorUseFlowTests(unittest.TestCase):
         self.assertIn("hash_only_tutor_index_operator_confirmed", alignment["failed_contract_ids"])
         self.assertIn("learner_agency_a0_a2_source_anchored", alignment["failed_contract_ids"])
         self.assertIn("help_ledger_operator_confirmed_hash_only", alignment["failed_contract_ids"])
+        self.assertIn("workspace_card_help_ledger_gate_linked", alignment["failed_contract_ids"])
         self.assertIn("public_outputs_hide_private_data", alignment["failed_contract_ids"])
         self.assertIn("high_stakes_actions_not_started", alignment["failed_contract_ids"])
 

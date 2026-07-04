@@ -1289,8 +1289,31 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "source_anchor_count": private_tutor_use_flow_alignment["source_anchor_count"],
                 "ledger_status": private_tutor_use_flow_alignment["ledger_status"],
                 "ledger_written": private_tutor_use_flow_alignment["ledger_written"],
+                "workspace_card_status": private_tutor_use_flow_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": private_tutor_use_flow_alignment[
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": private_tutor_use_flow_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": private_tutor_use_flow_alignment[
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": private_tutor_use_flow_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": private_tutor_use_flow_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_help_ledger_gate_linked": private_tutor_use_flow_alignment[
+                    "workspace_card_help_ledger_gate_linked"
+                ],
                 "study_receipt_status": private_tutor_use_flow_alignment["study_receipt_status"],
                 "release_claim_alignment_human_gates": private_tutor_use_flow_alignment["required_human_gates"],
+                "workspace_card_readiness_gate_claim_linked": (
+                    "python_exam_local_cycle_operator_workspace_card"
+                    in private_tutor_use_flow_alignment["required_readiness_check_ids"]
+                ),
                 "human_review_claim_linked": (
                     "extraction_human_review"
                     in private_tutor_use_flow_alignment["required_readiness_check_ids"]
@@ -1341,6 +1364,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 ],
                 "help_ledger_operator_confirmed_hash_only": private_tutor_use_flow_alignment["contracts"][
                     "help_ledger_operator_confirmed_hash_only"
+                ],
+                "workspace_card_help_ledger_gate_linked_contract": private_tutor_use_flow_alignment["contracts"][
+                    "workspace_card_help_ledger_gate_linked"
                 ],
                 "public_outputs_hide_private_data": private_tutor_use_flow_alignment["contracts"][
                     "public_outputs_hide_private_data"
