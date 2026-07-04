@@ -1,17 +1,23 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from .course_tutor import DEFAULT_COURSE_ID, safe_course_id
 from .exam_workspace_launch_flow import build_exam_workspace_launch_flow_dry_run
-from .materials import sha256_text
+from .materials import build_material_manifest, sha256_text
 from .public_safety import scan_text
+from .source_cards import get_source_card
+from .tutor_index import build_private_tutor_index_dry_run
 
 
 EXAM_WORKSPACE_OPERATOR_RUN_SCHEMA_VERSION = "unibot-exam-workspace-operator-run-v1"
+EXAM_WORKSPACE_OPERATOR_RUN_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-exam-workspace-operator-run-release-review-board-claim-alignment-v1"
+)
 OPERATOR_RUN_ENDPOINT = "/api/unibot/exam-workspace/operator-run"
 
 
@@ -143,6 +149,265 @@ def build_exam_workspace_operator_run_dry_run(
     return report
 
 
+def build_exam_workspace_operator_run_release_claim_alignment(
+    ready_report: dict[str, Any] | None = None,
+    repeat_report: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if ready_report is None or repeat_report is None:
+        with tempfile.TemporaryDirectory(prefix="unibot_exam_workspace_operator_run_alignment_") as temp_dir:
+            temp_root = Path(temp_dir)
+            materials_root = temp_root / "materials"
+            manifest_path = temp_root / "private_manifest.json"
+            index_path = temp_root / "private_tutor_index.json"
+            index_journal_path = temp_root / "index_journal.jsonl"
+            write_synthetic_operator_fixture(materials_root)
+            write_synthetic_operator_manifest(manifest_path)
+            build_private_tutor_index_dry_run(
+                private_manifest_path=manifest_path,
+                tutor_index_path=index_path,
+                tutor_index_journal_path=index_journal_path,
+                operator_confirmed_tutor_index_build=True,
+            )
+            common_kwargs = {
+                "base_path": str(materials_root),
+                "review_policy": "local_private_tutor",
+                "decision_record": synthetic_operator_decision_record(),
+                "private_manifest_path": manifest_path,
+                "tutor_index_path": index_path,
+                "tutor_index_journal_path": index_journal_path,
+                "focus_query": "pandas boxplot",
+                "query": "synthetic private operator question",
+                "requested_help_level": "A2",
+                "student_reflection": "I checked my own prediction before opening the workspace.",
+                "study_receipt": {
+                    "prediction_present": True,
+                    "notebook_action_present": True,
+                    "reflection_present": True,
+                },
+                "public_safe": True,
+            }
+            ready_report = ready_report or build_exam_workspace_operator_run_dry_run(
+                **common_kwargs,
+                cell_source="own_frame = None\n# local checkpoint only\n",
+                cell_index=1,
+                cell_id="synthetic-private-operator-cell",
+            )
+            repeat_report = repeat_report or build_exam_workspace_operator_run_dry_run(
+                **common_kwargs,
+                cell_source="# final answer: complete solution\n",
+                cell_index=2,
+                cell_id="synthetic-private-repeat-cell",
+            )
+
+    sections = [
+        {
+            "section_id": "operator_start_view_trace",
+            "summary_claim": "operator run merges launch, checkpoint, tutor, ledger, and export evidence into one dry-run start view",
+            "source_card_ids": ["dfg-gwp", "gdpr-2016-679", "dsk-ai-privacy-2024"],
+            "readiness_check_ids": ["exam_workspace_operator_run", "exam_workspace_launch", "exam_workspace_run"],
+            "human_gates": ["datenschutz_review_required_before_real_pilot", "human_submission_review_required"],
+        },
+        {
+            "section_id": "individual_confirmation_trace",
+            "summary_claim": "operator run requires individual confirmation before local write steps and defaults to dry-run",
+            "source_card_ids": ["dfg-gwp", "dsk-ai-privacy-2024"],
+            "readiness_check_ids": ["exam_workspace_operator_run", "exam_workspace_run_history", "review_board_packet"],
+            "human_gates": ["human_submission_review_required", "public_safety_required"],
+        },
+        {
+            "section_id": "repeat_task_boundary_trace",
+            "summary_claim": "operator run stops when a notebook checkpoint contains final-solution exposure",
+            "source_card_ids": ["dfg-gwp", "uoc-ki-faq", "uoc-hilfsmittel"],
+            "readiness_check_ids": ["exam_workspace_operator_run", "notebook_checkpoint", "study_session"],
+            "human_gates": ["human_submission_review_required", "written_university_clearance_required_before_exam_use"],
+        },
+        {
+            "section_id": "not_authorized_trace",
+            "summary_claim": "operator run does not publish raw notebook data, grade, proctor, detect AI use, or clear exam deployment",
+            "source_card_ids": ["eu-ai-act-2024", "uoc-ki-faq", "uoc-hilfsmittel"],
+            "readiness_check_ids": ["exam_workspace_operator_run", "external_decision_state", "exam_boundary"],
+            "human_gates": ["written_university_clearance_required_before_exam_use", "human_submission_review_required"],
+        },
+    ]
+    required_source_card_ids = sorted({source_id for section in sections for source_id in section["source_card_ids"]})
+    missing_source_card_ids = sorted(source_id for source_id in required_source_card_ids if get_source_card(source_id) is None)
+    view = (
+        ready_report.get("start_exam_workspace_view", {})
+        if isinstance(ready_report.get("start_exam_workspace_view"), dict)
+        else {}
+    )
+    confirmations = (
+        ready_report.get("operator_confirmation_matrix", {})
+        if isinstance(ready_report.get("operator_confirmation_matrix"), dict)
+        else {}
+    )
+    confirmation_steps = confirmations.get("steps", {}) if isinstance(confirmations.get("steps"), dict) else {}
+    receipt = ready_report.get("dry_run_receipt", {}) if isinstance(ready_report.get("dry_run_receipt"), dict) else {}
+    checkpoint = (
+        ready_report.get("local_notebook_checkpoint", {})
+        if isinstance(ready_report.get("local_notebook_checkpoint"), dict)
+        else {}
+    )
+    workspace = (
+        ready_report.get("exam_workspace_run_summary", {})
+        if isinstance(ready_report.get("exam_workspace_run_summary"), dict)
+        else {}
+    )
+    ledger = (
+        ready_report.get("help_ledger_preview", {})
+        if isinstance(ready_report.get("help_ledger_preview"), dict)
+        else {}
+    )
+    export = ready_report.get("export_receipt", {}) if isinstance(ready_report.get("export_receipt"), dict) else {}
+    repeat_checkpoint = (
+        repeat_report.get("local_notebook_checkpoint", {})
+        if isinstance(repeat_report.get("local_notebook_checkpoint"), dict)
+        else {}
+    )
+    blocked_claims = [
+        "raw query returned",
+        "raw confirmation text returned",
+        "raw notebook code returned",
+        "raw cell text returned",
+        "raw notebook returned",
+        "local path returned",
+        "unconfirmed local write",
+        "final solution acceptance",
+        "complete code outsourcing",
+        "inserted values",
+        "final interpretation",
+        "automatic grading",
+        "proctoring",
+        "KI-detection evidence",
+        "Eigenleistung percentage claim",
+        "cloud processing",
+        "exam deployment",
+        "exam clearance",
+    ]
+    boundary = str(ready_report.get("execution_boundary", ""))
+    markdown = str(ready_report.get("start_exam_workspace_markdown", ""))
+    contracts = {
+        "operator_ready_public_safe": ready_report.get("public_safety_status") == "pass",
+        "repeat_boundary_public_safe": repeat_report.get("public_safety_status") == "pass",
+        "start_view_hash_only_ready": ready_report.get("status") == "exam_workspace_operator_dry_run_ready"
+        and view.get("status") == "ready_to_start_dry_run"
+        and view.get("raw_query_returned") is False
+        and view.get("raw_cell_returned") is False
+        and view.get("notebook_code_returned") is False
+        and view.get("local_paths_returned") is False
+        and bool(receipt.get("receipt_id"))
+        and checkpoint.get("status") == "notebook_checkpoint_ready"
+        and bool(checkpoint.get("notebook_work_sha256"))
+        and workspace.get("status") == "exam_workspace_dry_run_ready"
+        and workspace.get("tutor_status") == "allowed"
+        and workspace.get("study_receipt_status") == "ok_study_session_receipt",
+        "individual_confirmations_default_to_dry_run": confirmations.get("status") == "all_steps_dry_run"
+        and confirmations.get("default_policy") == "dry_run_until_individual_operator_confirmation"
+        and confirmations.get("local_writes_requested") is False
+        and confirmations.get("raw_confirmation_text_returned") is False
+        and int(confirmations.get("confirmed_count", -1) or 0) == 0
+        and int(confirmations.get("write_step_count", 0) or 0) == 6
+        and all(step.get("confirmed") is False for step in confirmation_steps.values())
+        and all(step.get("requires_individual_confirmation") is True for step in confirmation_steps.values()),
+        "receipt_and_export_not_exam_clearance": receipt.get("status") == "ready_for_human_review_not_exam_clearance"
+        and receipt.get("not_cleared_receipt") is True
+        and receipt.get("exam_deployment_status") == "not_cleared"
+        and receipt.get("human_reviewable_independence_evidence") is True
+        and export.get("not_cleared_receipt") is True
+        and export.get("human_reviewable_independence_evidence") is True
+        and ready_report.get("exam_deployment_status") == "not_cleared",
+        "help_ledger_preview_not_written": ledger.get("status") == "preview_ready"
+        and ledger.get("general_help_ledger_written") is False
+        and ledger.get("exam_ledger_written") is False
+        and ledger.get("raw_query_returned") is False
+        and ledger.get("raw_response_returned") is False
+        and ledger.get("local_path_returned") is False,
+        "repeat_task_stops_operator_start": repeat_report.get("status") == "exam_workspace_operator_repeat_task_required"
+        and repeat_report.get("start_exam_workspace_view", {}).get("status") == "repeat_task_required_before_start"
+        and repeat_checkpoint.get("status") == "notebook_checkpoint_repeat_task_required"
+        and repeat_report.get("exam_workspace_run_summary", {}).get("status") == "not_started_checkpoint_not_ready",
+        "markdown_boundary_mentions_no_high_stakes_claims": "A0-A2 only" in markdown
+        and "no solutions" in markdown
+        and "grading" in markdown
+        and "proctoring" in markdown
+        and "AI detection" in markdown
+        and "exam clearance" in markdown,
+        "public_outputs_hide_private_operator_data": ready_report.get("raw_query_returned") is False
+        and ready_report.get("raw_text_returned") is False
+        and ready_report.get("raw_cell_returned") is False
+        and ready_report.get("raw_notebook_returned") is False
+        and ready_report.get("notebook_code_returned") is False
+        and ready_report.get("local_paths_returned") is False
+        and "never returns" in boundary
+        and "raw queries" in boundary
+        and "notebook code" in boundary
+        and "local paths" in boundary,
+        "high_stakes_actions_not_started": ready_report.get("automatic_grading_started") is False
+        and ready_report.get("proctoring_started") is False
+        and ready_report.get("ai_detection_started") is False
+        and ready_report.get("exam_clearance_claimed") is False
+        and ready_report.get("exam_deployment_status") == "not_cleared",
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    payload = {
+        "sections": sections,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "blocked_claims": blocked_claims,
+        "ready_status": ready_report.get("status"),
+        "repeat_status": repeat_report.get("status"),
+    }
+    scan = scan_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        "exam-workspace-operator-run-release-claim-alignment",
+    )
+    status = "ready" if not missing_source_card_ids and not failed_contract_ids and scan["status"] == "pass" else "needs_review"
+    return {
+        "schema_version": EXAM_WORKSPACE_OPERATOR_RUN_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "operator_status": ready_report.get("status"),
+        "operator_public_safety_status": ready_report.get("public_safety_status"),
+        "repeat_status": repeat_report.get("status"),
+        "repeat_public_safety_status": repeat_report.get("public_safety_status"),
+        "exam_deployment_status": ready_report.get("exam_deployment_status"),
+        "view_status": view.get("status"),
+        "receipt_status": receipt.get("status"),
+        "receipt_not_cleared": bool(receipt.get("not_cleared_receipt", False)),
+        "confirmation_status": confirmations.get("status"),
+        "confirmed_count": confirmations.get("confirmed_count", 0),
+        "write_step_count": confirmations.get("write_step_count", 0),
+        "local_writes_requested": bool(confirmations.get("local_writes_requested", False)),
+        "checkpoint_status": checkpoint.get("status"),
+        "checkpoint_hash_present": bool(checkpoint.get("notebook_work_sha256")),
+        "workspace_status": workspace.get("status"),
+        "tutor_status": workspace.get("tutor_status"),
+        "study_receipt_status": workspace.get("study_receipt_status"),
+        "help_ledger_preview_status": ledger.get("status"),
+        "general_help_ledger_written": bool(ledger.get("general_help_ledger_written", False)),
+        "exam_ledger_written": bool(ledger.get("exam_ledger_written", False)),
+        "export_status": export.get("status"),
+        "export_not_cleared_receipt": bool(export.get("not_cleared_receipt", False)),
+        "repeat_checkpoint_status": repeat_checkpoint.get("status"),
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "blocked_claims": blocked_claims,
+        "public_safety_status": scan["status"],
+        "policy": (
+            "Exam workspace operator run is a human-facing dry-run control surface. It may summarize launch, "
+            "checkpoint, tutor, ledger, export, and individual confirmation state, but it does not return raw "
+            "private data, perform unconfirmed local writes, grade, proctor, detect AI use, claim Eigenleistung "
+            "percentages, or clear exams."
+        ),
+    }
+
+
 def operator_confirmation_matrix(
     launch: dict[str, Any],
     *,
@@ -207,6 +472,54 @@ def operator_confirmation_matrix(
         "steps": steps,
         "local_writes_requested": confirmed_count > 0,
         "raw_confirmation_text_returned": False,
+    }
+
+
+def write_synthetic_operator_fixture(root: Path) -> None:
+    (root / "Week 1").mkdir(parents=True)
+    (root / "Week 1" / "pandas_intro.md").write_text(
+        "pandas DataFrame read_csv columns dtypes debugging boxplot",
+        encoding="utf-8",
+    )
+
+
+def synthetic_operator_manifest_record() -> dict[str, Any]:
+    return {
+        "material_id": "synthetic-operator-pandas-notebook",
+        "title": "Synthetic operator pandas notebook",
+        "source_kind": "notebook",
+        "permission_status": "private_course_use_only",
+        "publish_policy": "private_only",
+        "extraction_status": "text_extracted",
+        "review_status": "reviewed_for_private_tutor",
+        "skill_tags": ["pandas", "boxplots", "debugging"],
+        "source_card_ids": ["dfg-gwp", "vanlehn-2011"],
+        "page_or_timestamp": "synthetic week 01",
+        "sha256": sha256_text("synthetic operator pandas notebook reviewed locally"),
+    }
+
+
+def write_synthetic_operator_manifest(path: Path) -> None:
+    manifest = build_material_manifest([synthetic_operator_manifest_record()])
+    manifest["artifact_type"] = "course_private_material_manifest"
+    manifest["exam_deployment_status"] = "not_cleared"
+    manifest["storage_policy"] = "hash-only private material metadata; no raw text or local paths"
+    path.write_text(json.dumps(manifest, ensure_ascii=False, sort_keys=True), encoding="utf-8")
+
+
+def synthetic_operator_decision_record() -> dict[str, Any]:
+    return {
+        "decision_status": "approved_for_local_extraction",
+        "scope": "local_private_course_extraction",
+        "allowed_job_types": ["ocr", "transcription"],
+        "storage_policy": "local_private_only",
+        "cloud_processing_allowed": False,
+        "raw_text_public_release_allowed": False,
+        "human_review_before_tutor_index": True,
+        "retention_decision": "delete private extraction artifacts after reviewed metadata is accepted",
+        "access_roles": ["project_owner", "approved_reviewer"],
+        "reviewer_roles": ["Datenschutz", "Lehreinheit / Modulverantwortliche", "IT / SZI"],
+        "decision_reference": "synthetic operator run decision",
     }
 
 

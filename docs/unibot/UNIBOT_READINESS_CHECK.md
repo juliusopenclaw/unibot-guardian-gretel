@@ -49,6 +49,7 @@ It aggregates:
 - exam workspace launch and release-claim alignment
 - exam workspace run and release-claim alignment
 - exam workspace run-history and export-review alignment
+- exam workspace operator-run and confirmation-boundary alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -197,6 +198,14 @@ profiles, blockers, operator-confirmation state, reflection status, and
 not-cleared export receipts into a human-review surface. It does not publish raw
 history, raw queries, notebook code, local paths, grades, proctoring,
 AI-detection evidence, Eigenleistung percentages, or exam clearance.
+
+The exam-workspace operator-run gate carries
+`unibot-exam-workspace-operator-run-release-review-board-claim-alignment-v1`.
+It turns launch/run evidence into the human-facing Start Exam Workspace view and
+keeps every local write behind an individual operator confirmation. The default
+state is dry-run and not-cleared; it does not expose raw queries, raw cells,
+notebook code, local paths, grades, proctoring, AI-detection evidence,
+Eigenleistung percentages, or exam clearance.
 
 ## Source-Card Drift Guard
 
