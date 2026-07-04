@@ -1241,7 +1241,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "exam_workspace_launch_local_cycle_workspace_card_gate_link_alignment",
             "priority": 65,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link exam-workspace launch dry-run evidence with the harnessed local-cycle operator workspace-card readiness gate, preserving launch/checkpoint/tutor/export metadata, workspace-card prefill evidence, no raw notebook/query publication, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/exam_workspace_launch_flow.py",
@@ -1251,6 +1251,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_exam_workspace_launch_flow.py tests/test_unibot_readiness.py -q"],
             "review_gate": "exam_workspace_launch_local_cycle_workspace_card_gate_link_traceability",
+            "closure_evidence": {
+                "commit": "d06c1b9",
+                "summary": "Exam-workspace launch release-claim alignment now links the harnessed local-cycle operator workspace-card readiness gate, preserves launch/checkpoint/tutor/export metadata plus workspace-card prefill and Help-Ledger hash evidence, and blocks raw notebook/query, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "exam_workspace_run_local_cycle_workspace_card_execution_link_alignment",
+            "priority": 66,
+            "status": "ready",
+            "goal": "Link exam-workspace run dry-run evidence with the harnessed local-cycle operator workspace-card readiness gate, preserving tutor sidecar, study receipt, notebook checkpoint, export metadata, workspace-card prefill evidence, no raw notebook/query publication, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/exam_workspace_run.py",
+                "tests/test_unibot_exam_workspace_run.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_exam_workspace_run.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "exam_workspace_run_local_cycle_workspace_card_execution_link_traceability",
         },
     ]
 

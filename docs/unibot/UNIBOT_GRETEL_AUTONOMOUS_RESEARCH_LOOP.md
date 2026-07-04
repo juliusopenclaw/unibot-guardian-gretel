@@ -57,14 +57,21 @@ contract change.
 
 ## Current Work Queue
 
-- `exam_workspace_launch_local_cycle_workspace_card_gate_link_alignment`
-  is ready. It should link exam-workspace launch dry-run evidence with the
-  harnessed local-cycle operator workspace-card readiness gate, preserving
-  launch/checkpoint/tutor/export metadata, workspace-card prefill evidence, no
-  raw notebook/query publication, no grading/proctoring/KI-detection, and no
-  exam deployment claims.
+- `exam_workspace_run_local_cycle_workspace_card_execution_link_alignment`
+  is ready. It should link exam-workspace run dry-run evidence with the
+  harnessed local-cycle operator workspace-card readiness gate, preserving tutor
+  sidecar, study receipt, notebook checkpoint, export metadata, workspace-card
+  prefill evidence, no raw notebook/query publication, no
+  grading/proctoring/KI-detection, and no exam deployment claims.
 
 ## Closed Harnessed Work
+
+- `exam_workspace_launch_local_cycle_workspace_card_gate_link_alignment`:
+  closed in `d06c1b9` with launch release-claim links to the harnessed
+  local-cycle operator workspace-card readiness gate, launch/checkpoint/tutor/
+  export metadata, workspace-card prefill and Help-Ledger hash evidence, and
+  blocked raw notebook/query, grading, proctoring, KI-detection, and exam
+  deployment claims.
 
 - `exam_workspace_operator_run_local_cycle_workspace_card_start_view_link_alignment`:
   closed in `1064cda` with Start Exam Workspace links to the harnessed
