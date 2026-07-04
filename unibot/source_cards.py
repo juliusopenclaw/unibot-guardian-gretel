@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+import hashlib
 import json
 from datetime import date
 from typing import Any
@@ -23,6 +24,7 @@ SOURCE_CARD_RELEASE_REVIEW_BOARD_READINESS_CHECK_IDS = [
     "review_board_packet",
     "gretel_bachelor_thesis_package",
     "public_safety",
+    "python_exam_local_cycle_operator_workspace_card",
 ]
 
 SOURCE_CARD_RELEASE_REVIEW_BOARD_HUMAN_GATES = [
@@ -403,9 +405,28 @@ def build_source_card_drift_report(*, as_of: str | None = None, max_age_days: in
 
 def build_source_card_release_review_board_claim_alignment(
     drift_report: dict[str, Any] | None = None,
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     cards = list_source_cards()
     drift_report = drift_report or build_source_card_drift_report()
+    corpus_hash = source_card_corpus_hash(cards)
+    drift_hash = source_card_drift_report_hash(drift_report)
+    workspace_card = safe_source_card_workspace_card(
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else synthetic_source_card_workspace_card(),
+        source_card_corpus_hash=corpus_hash,
+        source_card_drift_hash=drift_hash,
+    )
+    workspace_card_readiness_gate_linked = (
+        workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and workspace_card.get("help_ledger_preview_hash") != ""
+        and workspace_card.get("exam_deployment_status") == "not_cleared"
+        and workspace_card.get("not_cleared_receipt") is True
+        and workspace_card.get("raw_workspace_card_returned") is False
+    )
     card_rows = [
         {
             "source_id": card["source_id"],
@@ -424,6 +445,11 @@ def build_source_card_release_review_board_claim_alignment(
     required_id_set = set(required_ids)
     present_ids = {card["source_id"] for card in cards}
     high_risk_ids = {card["source_id"] for card in cards if card["risk_level"] == "high"}
+    contracts = {
+        "workspace_card_source_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("checkpoint_hash") == corpus_hash
+        and workspace_card.get("task_hash") == drift_hash,
+    }
     alignment = {
         "schema_version": "unibot-source-card-claim-alignment-v1",
         "status": "ready" if cards and drift_report.get("status") == "pass" else "blocked",
@@ -457,6 +483,20 @@ def build_source_card_release_review_board_claim_alignment(
         "unlisted_high_risk_source_card_ids": drift_report.get("unlisted_high_risk_source_card_ids", []),
         "drift_status": drift_report.get("status", "unknown"),
         "drift_public_safety_status": drift_report.get("public_safety_status", "unknown"),
+        "failed_contract_ids": sorted(contract_id for contract_id, passed in contracts.items() if not passed),
+        "contracts": contracts,
+        "workspace_card_status": workspace_card["status"],
+        "workspace_card_selected_skill_tag": workspace_card["selected_skill_tag"],
+        "workspace_card_ready_for_operator_prefill": workspace_card["ready_for_operator_prefill"],
+        "workspace_card_help_ledger_status": workspace_card["help_ledger_preview_status"],
+        "workspace_card_help_ledger_hash_present": workspace_card["help_ledger_preview_hash"] != "",
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_source_gate_linked": contracts["workspace_card_source_gate_linked"],
+        "workspace_card_readiness_gate_claim_linked": "python_exam_local_cycle_operator_workspace_card"
+        in sorted({check_id for row in card_rows for check_id in row["readiness_check_ids"]}),
+        "raw_workspace_card_returned": workspace_card["raw_workspace_card_returned"],
+        "source_card_corpus_hash": corpus_hash,
+        "source_card_drift_hash": drift_hash,
         "blocked_claims": ["exam clearance", "official grading", "proctoring", "KI-detection evidence"],
         "public_language": "Public claims must cite source-card IDs and keep legal, exam, privacy, and institutional decisions human-reviewed.",
     }
@@ -475,6 +515,7 @@ def build_source_card_release_review_board_claim_alignment(
         or not alignment["all_cards_have_product_rules"]
         or alignment["missing_release_review_board_claim_check_ids"]
         or alignment["missing_release_review_board_claim_human_gates"]
+        or alignment["failed_contract_ids"]
     ):
         alignment["status"] = "blocked"
     scan = scan_text(json.dumps(alignment, ensure_ascii=False), "source-card-claim-alignment")
@@ -483,3 +524,108 @@ def build_source_card_release_review_board_claim_alignment(
         alignment["status"] = "blocked"
         alignment["public_safety_findings"] = scan["findings"]
     return alignment
+
+
+def source_card_corpus_hash(cards: list[dict[str, Any]] | None = None) -> str:
+    public_cards = cards if isinstance(cards, list) else list_source_cards()
+    return hashlib.sha256(
+        json.dumps(
+            {
+                "required_source_card_ids": required_source_card_ids(),
+                "cards": sorted(public_cards, key=lambda card: str(card.get("source_id", ""))),
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def source_card_drift_report_hash(drift_report: dict[str, Any]) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            {
+                key: value
+                for key, value in drift_report.items()
+                if key not in {"public_safety_findings"}
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def synthetic_source_card_workspace_card() -> dict[str, Any]:
+    preview_hash = hashlib.sha256(b"synthetic source card workspace card").hexdigest()
+    return {
+        "schema_version": "unibot-python-exam-local-cycle-operator-workspace-card-v1",
+        "artifact_type": "python_exam_local_cycle_operator_workspace_card",
+        "status": "python_exam_local_cycle_operator_workspace_card_ready",
+        "selected_skill_tag": "pandas",
+        "exam_deployment_status": "not_cleared",
+        "not_cleared_receipt": True,
+        "workspace_card_summary": {
+            "recommendation": "ready_for_operator_prefill",
+            "recommendation_reason": "synthetic source-card drift-guard prerequisites are satisfied",
+            "ready_for_operator_prefill": True,
+            "help_ledger_preview_status": "help_ledger_preview_ready",
+            "selected_skill_tag": "pandas",
+            "next_safe_action": "review_source_card_hashes_before_workspace_prefill",
+            "next_safe_user_action": "review_hash_only_source_card_drift_before_public_claim_use",
+            "operator_run_endpoint": "/api/unibot/exam-workspace/operator-run",
+            "operator_run_method": "POST",
+            "help_level": "A2",
+            "task_hash": "__SOURCE_CARD_DRIFT_HASH__",
+            "checkpoint_hash": "__SOURCE_CARD_CORPUS_HASH__",
+            "source_card_ids": ["dfg-gwp", "gdpr-2016-679", "zai-glm-52"],
+            "source_anchor_count": 3,
+            "help_ledger_preview_hash": preview_hash,
+        },
+        "help_ledger_preview": {
+            "status": "help_ledger_preview_ready",
+            "help_level": "A2",
+            "preview_hash": preview_hash,
+        },
+    }
+
+
+def safe_source_card_workspace_card(
+    workspace_card: dict[str, Any],
+    *,
+    source_card_corpus_hash: str = "",
+    source_card_drift_hash: str = "",
+) -> dict[str, Any]:
+    summary = workspace_card.get("workspace_card_summary", {}) if isinstance(workspace_card.get("workspace_card_summary"), dict) else {}
+    ledger = workspace_card.get("help_ledger_preview", {}) if isinstance(workspace_card.get("help_ledger_preview"), dict) else {}
+    if not summary and (
+        workspace_card.get("help_ledger_preview_hash") is not None
+        or workspace_card.get("ready_for_operator_prefill") is not None
+        or workspace_card.get("help_ledger_preview_status") is not None
+    ):
+        summary = workspace_card
+    checkpoint_hash = str(summary.get("checkpoint_hash", ""))
+    task_hash = str(summary.get("task_hash", ""))
+    if source_card_corpus_hash and checkpoint_hash == "__SOURCE_CARD_CORPUS_HASH__":
+        checkpoint_hash = source_card_corpus_hash
+    if source_card_drift_hash and task_hash == "__SOURCE_CARD_DRIFT_HASH__":
+        task_hash = source_card_drift_hash
+    return {
+        "status": workspace_card.get("status", "missing"),
+        "selected_skill_tag": str(summary.get("selected_skill_tag", workspace_card.get("selected_skill_tag", ""))),
+        "recommendation": str(summary.get("recommendation", "keep_blocked")),
+        "recommendation_reason": str(summary.get("recommendation_reason", "missing_source_card_drift_guard")),
+        "ready_for_operator_prefill": bool(summary.get("ready_for_operator_prefill", False)),
+        "help_ledger_preview_status": str(summary.get("help_ledger_preview_status", ledger.get("status", "missing"))),
+        "next_safe_action": str(summary.get("next_safe_action", "")),
+        "next_safe_user_action": str(summary.get("next_safe_user_action", "")),
+        "operator_run_endpoint": str(summary.get("operator_run_endpoint", "")),
+        "operator_run_method": str(summary.get("operator_run_method", "POST")),
+        "help_level": str(summary.get("help_level", ledger.get("help_level", "A2"))),
+        "task_hash": task_hash,
+        "checkpoint_hash": checkpoint_hash,
+        "source_card_ids": [str(item) for item in (summary.get("source_card_ids", []) or [])][:8],
+        "source_anchor_count": int(summary.get("source_anchor_count", 0) or 0),
+        "help_ledger_preview_hash": str(summary.get("help_ledger_preview_hash", ledger.get("preview_hash", ""))),
+        "not_cleared_receipt": bool(workspace_card.get("not_cleared_receipt", True)),
+        "exam_deployment_status": "not_cleared",
+        "raw_workspace_card_returned": False,
+    }

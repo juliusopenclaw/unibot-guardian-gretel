@@ -16,6 +16,9 @@ from unibot.source_cards import (  # noqa: E402
     get_source_card,
     list_source_cards,
     required_source_card_ids,
+    source_card_corpus_hash,
+    source_card_drift_report_hash,
+    synthetic_source_card_workspace_card,
 )
 from unibot.public_safety import scan_text  # noqa: E402
 
@@ -49,6 +52,7 @@ class UniBotSourceCardTests(unittest.TestCase):
         )
         self.assertIn("source_cards", alignment["unique_readiness_check_ids"])
         self.assertIn("source_card_drift_guard", alignment["unique_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["unique_readiness_check_ids"])
         self.assertIn("redteam", alignment["unique_readiness_check_ids"])
         self.assertIn("notebook_template", alignment["unique_readiness_check_ids"])
         self.assertIn("publication_package", alignment["unique_readiness_check_ids"])
@@ -57,8 +61,40 @@ class UniBotSourceCardTests(unittest.TestCase):
         self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
         self.assertEqual(alignment["missing_release_review_board_claim_check_ids"], [])
         self.assertEqual(alignment["missing_release_review_board_claim_human_gates"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertTrue(alignment["contracts"]["workspace_card_source_gate_linked"])
+        self.assertEqual(alignment["workspace_card_status"], "python_exam_local_cycle_operator_workspace_card_ready")
+        self.assertEqual(alignment["workspace_card_selected_skill_tag"], "pandas")
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_source_gate_linked"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_claim_linked"])
+        self.assertFalse(alignment["raw_workspace_card_returned"])
+        self.assertEqual(alignment["source_card_corpus_hash"], source_card_corpus_hash())
+        self.assertEqual(alignment["source_card_drift_hash"], source_card_drift_report_hash(drift))
         self.assertIn("exam clearance", alignment["blocked_claims"])
         self.assertEqual(scan_text(json.dumps(alignment, ensure_ascii=False), "source-card-alignment")["status"], "pass")
+
+    def test_source_card_hash_helpers_link_corpus_and_drift_report(self) -> None:
+        drift = build_source_card_drift_report(as_of="2026-07-03")
+
+        self.assertTrue(source_card_corpus_hash())
+        self.assertTrue(source_card_drift_report_hash(drift))
+        self.assertNotEqual(source_card_corpus_hash(), source_card_drift_report_hash(drift))
+
+    def test_source_card_claim_alignment_rejects_unlinked_workspace_card_hashes(self) -> None:
+        drift = build_source_card_drift_report(as_of="2026-07-03")
+        card = synthetic_source_card_workspace_card()
+        card["workspace_card_summary"]["checkpoint_hash"] = "wrong-source-card-corpus-hash"
+        card["workspace_card_summary"]["task_hash"] = "wrong-source-card-drift-hash"
+
+        alignment = build_source_card_release_review_board_claim_alignment(drift, card)
+
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertFalse(alignment["workspace_card_source_gate_linked"])
+        self.assertIn("workspace_card_source_gate_linked", alignment["failed_contract_ids"])
 
     def test_source_card_claim_alignment_blocks_failed_drift_report(self) -> None:
         drift = build_source_card_drift_report(as_of="2026-07-03")

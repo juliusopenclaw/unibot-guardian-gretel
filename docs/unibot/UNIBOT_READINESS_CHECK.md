@@ -358,6 +358,12 @@ using HTTPS, product rules are empty, risk labels are unknown, public status
 changes away from `public-link-only`, or review dates become stale. This keeps
 UniBot's scientific and university-facing claims tied to named public sources
 instead of drifting into unsupported assertions.
+The release-review-board claim alignment also links the source-card corpus hash
+and drift-report hash to the harnessed local-cycle operator workspace-card
+readiness gate without exposing raw private course text, contact data, local
+paths, provider prompts, autonomous publication, legal advice, approval or
+exam-clearance claims, grading, proctoring, KI-detection evidence, exam
+deployment claims, or the raw workspace card.
 
 ## Evidence Snapshot
 

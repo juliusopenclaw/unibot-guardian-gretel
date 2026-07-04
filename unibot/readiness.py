@@ -3262,7 +3262,11 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and source_card_drift["duplicate_source_ids"] == []
             and source_card_drift["stale_source_card_ids"] == []
             and source_card_claim_alignment["missing_release_review_board_claim_check_ids"] == []
-            and source_card_claim_alignment["missing_release_review_board_claim_human_gates"] == [],
+            and source_card_claim_alignment["missing_release_review_board_claim_human_gates"] == []
+            and source_card_claim_alignment["failed_contract_ids"] == []
+            and source_card_claim_alignment["workspace_card_readiness_gate_linked"] is True
+            and source_card_claim_alignment["workspace_card_source_gate_linked"] is True
+            and source_card_claim_alignment["raw_workspace_card_returned"] is False,
             "evidence": {
                 "status": source_card_drift["status"],
                 "public_safety_status": source_card_drift["public_safety_status"],
@@ -3279,6 +3283,23 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 ),
                 "publication_claim_linked": "publication_package" in source_card_claim_alignment["unique_readiness_check_ids"],
                 "review_board_claim_linked": "review_board_packet" in source_card_claim_alignment["unique_readiness_check_ids"],
+                "workspace_card_status": source_card_claim_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": source_card_claim_alignment["workspace_card_selected_skill_tag"],
+                "workspace_card_ready_for_operator_prefill": source_card_claim_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": source_card_claim_alignment["workspace_card_help_ledger_status"],
+                "workspace_card_help_ledger_hash_present": source_card_claim_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": source_card_claim_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_source_gate_linked": source_card_claim_alignment["workspace_card_source_gate_linked"],
+                "workspace_card_readiness_gate_claim_linked": source_card_claim_alignment[
+                    "workspace_card_readiness_gate_claim_linked"
+                ],
+                "raw_workspace_card_returned": source_card_claim_alignment["raw_workspace_card_returned"],
                 "human_submission_gate_linked": (
                     "human_submission_review_required" in source_card_claim_alignment["required_human_gates"]
                 ),

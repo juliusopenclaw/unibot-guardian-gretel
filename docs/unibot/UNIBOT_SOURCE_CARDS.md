@@ -14,6 +14,9 @@ It keeps public scientific, legal, privacy, technical, and pedagogical claims
 anchored to public-link-only source IDs, product rules, drift checks, red-team
 evidence, notebook handoff, publication package, release runbook, review-board
 packet, bachelor thesis package, public-safety gate, and human submission gates.
+It also links the source-card corpus hash and source-card drift-report hash to
+the harnessed local-cycle operator workspace-card readiness gate, while keeping
+the public claim alignment metadata-only.
 
 Source cards do not approve publication, institutional submission, provider
 calls, exam use, official grading, proctoring, or KI-detection claims. They are
