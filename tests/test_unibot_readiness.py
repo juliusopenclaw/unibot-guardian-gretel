@@ -665,6 +665,37 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertTrue(launch["evidence"]["cloud_processing_blocked"])
         self.assertTrue(launch["evidence"]["exam_deployment_blocked"])
         self.assertTrue(launch["evidence"]["exam_clearance_blocked"])
+        run = next(check for check in report["checks"] if check["check_id"] == "exam_workspace_run")
+        self.assertEqual(run["evidence"]["release_claim_alignment_status"], "ready")
+        self.assertEqual(run["evidence"]["release_claim_alignment_public_safety_status"], "pass")
+        self.assertEqual(
+            run["evidence"]["release_claim_alignment_contract_status"],
+            "unibot-exam-workspace-run-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(run["evidence"]["run_status"], "exam_workspace_ready_with_exam_ledger")
+        self.assertEqual(run["evidence"]["run_public_safety_status"], "pass")
+        self.assertEqual(run["evidence"]["waiting_public_safety_status"], "pass")
+        self.assertEqual(run["evidence"]["exam_deployment_status"], "not_cleared")
+        self.assertEqual(run["evidence"]["workspace_card_run_receipt_alignment_status"], "ready")
+        self.assertEqual(run["evidence"]["workspace_card_run_receipt_alignment_public_safety_status"], "pass")
+        self.assertEqual(
+            run["evidence"]["workspace_card_run_receipt_alignment_contract_status"],
+            "unibot-exam-workspace-run-workspace-card-run-receipt-alignment-v1",
+        )
+        self.assertTrue(run["evidence"]["run_hash_present"])
+        self.assertTrue(run["evidence"]["run_receipt_hash_present"])
+        self.assertTrue(run["evidence"]["waiting_run_receipt_hash_present"])
+        self.assertTrue(run["evidence"]["workspace_card_run_receipt_gate_linked"])
+        self.assertTrue(run["evidence"]["workspace_card_run_receipt_gate_linked_contract"])
+        self.assertTrue(run["evidence"]["run_ready_with_receipts"])
+        self.assertTrue(run["evidence"]["run_private_tutor_study_ledger_references_preserved"])
+        self.assertTrue(run["evidence"]["run_notebook_checkpoint_hash_only_preserved"])
+        self.assertTrue(run["evidence"]["run_receipt_hashes_present_contract"])
+        self.assertTrue(run["evidence"]["run_operator_confirmed_local_write_boundary_preserved"])
+        self.assertTrue(run["evidence"]["run_waiting_mode_no_write_boundary_preserved"])
+        self.assertTrue(run["evidence"]["export_not_cleared_receipt"])
+        self.assertTrue(run["evidence"]["human_reviewable_independence_evidence"])
+        self.assertTrue(run["evidence"]["workspace_card_readiness_gate_linked"])
         notebook = next(check for check in report["checks"] if check["check_id"] == "notebook_template")
         self.assertEqual(
             notebook["evidence"]["manual_publication_claim_contract_status"],

@@ -459,6 +459,17 @@ Operator-confirmed local writes stay local and hash-oriented; the public report
 still does not return raw queries, raw notebook code, local paths, grades,
 proctoring, AI-detection evidence, Eigenleistung percentages, or exam clearance.
 
+Its workspace-card run receipt bridge carries
+`unibot-exam-workspace-run-workspace-card-run-receipt-alignment-v1`. This
+contract links the controlled run hash, run receipt hash, private tutor
+sidecar, study receipt, Help-Ledger and exam-ledger receipt hashes, export
+receipt, operator-confirmed local-write boundary, waiting-mode no-write
+boundary, and no-clearance boundary to the local-cycle operator workspace-card
+readiness gate without exposing raw private course text, contact data, local
+paths, notebook code, provider calls, autonomous publication, approval or
+exam-clearance claims, grading, proctoring, KI-detection evidence, exam
+deployment claims, or the raw workspace card.
+
 The exam-workspace run-history gate carries
 `unibot-exam-workspace-run-history-release-review-board-claim-alignment-v1`.
 It aggregates session-console receipt ids, checkpoint hashes, help-level

@@ -139,6 +139,12 @@ from .exam_workspace_launch_flow import (
     exam_workspace_launch_hash,
     exam_workspace_launch_receipt_hash,
 )
+from .exam_workspace_run import (
+    build_exam_workspace_run_dry_run,
+    build_exam_workspace_run_workspace_card_receipt_alignment,
+    exam_workspace_run_hash,
+    exam_workspace_run_receipt_hash,
+)
 from .exam_workspace_operator_run import build_exam_workspace_operator_run_dry_run
 from .exam_workspace_run_history import build_exam_workspace_run_history_export_review
 from .exam_workspace_session_console import build_exam_workspace_session_console
@@ -449,6 +455,10 @@ __all__ = [
     "build_exam_workspace_launch_workspace_card_receipt_alignment",
     "exam_workspace_launch_hash",
     "exam_workspace_launch_receipt_hash",
+    "build_exam_workspace_run_dry_run",
+    "build_exam_workspace_run_workspace_card_receipt_alignment",
+    "exam_workspace_run_hash",
+    "exam_workspace_run_receipt_hash",
     "build_exam_workspace_operator_run_dry_run",
     "build_exam_workspace_run_history_export_review",
     "build_exam_workspace_session_console",

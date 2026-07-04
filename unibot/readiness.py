@@ -49,7 +49,10 @@ from .exam_workspace_launch_flow import (
     build_exam_workspace_launch_workspace_card_receipt_alignment,
 )
 from .exam_workspace_operator_run import build_exam_workspace_operator_run_release_claim_alignment
-from .exam_workspace_run import build_exam_workspace_run_release_claim_alignment
+from .exam_workspace_run import (
+    build_exam_workspace_run_release_claim_alignment,
+    build_exam_workspace_run_workspace_card_receipt_alignment,
+)
 from .exam_workspace_run_history import build_exam_workspace_run_history_release_claim_alignment
 from .exam_workspace_session_console import build_exam_workspace_session_console_release_claim_alignment
 from .extraction_completion import build_extraction_completion_release_claim_alignment
@@ -377,6 +380,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     exam_workspace_launch_alignment = build_exam_workspace_launch_release_claim_alignment()
     exam_workspace_launch_workspace_alignment = build_exam_workspace_launch_workspace_card_receipt_alignment()
     exam_workspace_run_alignment = build_exam_workspace_run_release_claim_alignment()
+    exam_workspace_run_workspace_alignment = build_exam_workspace_run_workspace_card_receipt_alignment()
     exam_workspace_run_history_alignment = build_exam_workspace_run_history_release_claim_alignment()
     exam_workspace_operator_run_alignment = build_exam_workspace_operator_run_release_claim_alignment()
     exam_workspace_session_console_alignment = build_exam_workspace_session_console_release_claim_alignment()
@@ -2354,7 +2358,13 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and exam_workspace_run_alignment["waiting_public_safety_status"] == "pass"
             and exam_workspace_run_alignment["exam_deployment_status"] == "not_cleared"
             and exam_workspace_run_alignment["missing_source_card_ids"] == []
-            and exam_workspace_run_alignment["failed_contract_ids"] == [],
+            and exam_workspace_run_alignment["failed_contract_ids"] == []
+            and exam_workspace_run_workspace_alignment["status"] == "ready"
+            and exam_workspace_run_workspace_alignment["public_safety_status"] == "pass"
+            and exam_workspace_run_workspace_alignment["run_public_safety_status"] == "pass"
+            and exam_workspace_run_workspace_alignment["waiting_public_safety_status"] == "pass"
+            and exam_workspace_run_workspace_alignment["exam_deployment_status"] == "not_cleared"
+            and exam_workspace_run_workspace_alignment["failed_contract_ids"] == [],
             "evidence": {
                 "release_claim_alignment_status": exam_workspace_run_alignment["status"],
                 "release_claim_alignment_public_safety_status": exam_workspace_run_alignment[
@@ -2389,6 +2399,46 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "workspace_card_readiness_gate_linked": exam_workspace_run_alignment[
                     "workspace_card_readiness_gate_linked"
                 ],
+                "workspace_card_run_receipt_alignment_status": exam_workspace_run_workspace_alignment["status"],
+                "workspace_card_run_receipt_alignment_public_safety_status": (
+                    exam_workspace_run_workspace_alignment["public_safety_status"]
+                ),
+                "workspace_card_run_receipt_alignment_contract_status": (
+                    exam_workspace_run_workspace_alignment["schema_version"]
+                ),
+                "run_hash_present": bool(exam_workspace_run_workspace_alignment["run_hash"]),
+                "run_receipt_hash_present": bool(exam_workspace_run_workspace_alignment["run_receipt_hash"]),
+                "waiting_run_receipt_hash_present": bool(
+                    exam_workspace_run_workspace_alignment["waiting_run_receipt_hash"]
+                ),
+                "workspace_card_run_receipt_gate_linked": exam_workspace_run_workspace_alignment[
+                    "workspace_card_run_receipt_gate_linked"
+                ],
+                "workspace_card_run_receipt_gate_linked_contract": (
+                    exam_workspace_run_workspace_alignment["contracts"]["workspace_card_run_receipt_gate_linked"]
+                ),
+                "run_ready_with_receipts": exam_workspace_run_workspace_alignment["contracts"][
+                    "run_ready_with_receipts"
+                ],
+                "run_private_tutor_study_ledger_references_preserved": (
+                    exam_workspace_run_workspace_alignment["contracts"][
+                        "private_tutor_study_ledger_references_preserved"
+                    ]
+                ),
+                "run_notebook_checkpoint_hash_only_preserved": exam_workspace_run_workspace_alignment[
+                    "contracts"
+                ]["notebook_checkpoint_hash_only_preserved"],
+                "run_receipt_hashes_present_contract": exam_workspace_run_workspace_alignment["contracts"][
+                    "run_receipt_hashes_present"
+                ],
+                "run_operator_confirmed_local_write_boundary_preserved": (
+                    exam_workspace_run_workspace_alignment["contracts"][
+                        "operator_confirmed_local_write_boundary_preserved"
+                    ]
+                ),
+                "run_waiting_mode_no_write_boundary_preserved": exam_workspace_run_workspace_alignment[
+                    "contracts"
+                ]["waiting_mode_no_write_boundary_preserved"],
                 "private_tutor_use_flow_status": exam_workspace_run_alignment["private_tutor_use_flow_status"],
                 "study_receipt_status": exam_workspace_run_alignment["study_receipt_status"],
                 "general_help_ledger_status": exam_workspace_run_alignment["general_help_ledger_status"],

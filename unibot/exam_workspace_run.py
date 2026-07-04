@@ -21,6 +21,9 @@ EXAM_WORKSPACE_RUN_SCHEMA_VERSION = "unibot-exam-workspace-run-v1"
 EXAM_WORKSPACE_RUN_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
     "unibot-exam-workspace-run-release-review-board-claim-alignment-v1"
 )
+EXAM_WORKSPACE_RUN_WORKSPACE_CARD_RECEIPT_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-exam-workspace-run-workspace-card-run-receipt-alignment-v1"
+)
 SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
 
 
@@ -60,6 +63,7 @@ def build_exam_workspace_run_dry_run(
     operator_confirmed_help_ledger_append: bool = False,
     operator_confirmed_exam_ledger_append: bool = False,
     public_safe: bool = True,
+    attach_workspace_card_alignment: bool = True,
 ) -> dict[str, Any]:
     safe_id = safe_course_id(course_id)
     local_cycle_workspace_card = safe_local_cycle_workspace_card(
@@ -247,6 +251,11 @@ def build_exam_workspace_run_dry_run(
         "next_actions": exam_workspace_next_actions(tutor_flow=tutor_flow, sidecar_response=sidecar_response, exam_ledger=exam_ledger),
     }
     attach_public_scan(report, public_safe=public_safe)
+    if attach_workspace_card_alignment:
+        report["workspace_card_run_receipt_alignment"] = build_exam_workspace_run_workspace_card_receipt_alignment(
+            report
+        )
+        attach_public_scan(report, public_safe=public_safe)
     return report
 
 
@@ -304,6 +313,7 @@ def build_exam_workspace_run_release_claim_alignment(
                         operator_confirmed_tutor_index_build=True,
                         operator_confirmed_help_ledger_append=True,
                         operator_confirmed_exam_ledger_append=True,
+                        attach_workspace_card_alignment=False,
                     )
                 finally:
                     exam_mode.EXAM_ROOT = previous_exam_root
@@ -311,6 +321,7 @@ def build_exam_workspace_run_release_claim_alignment(
                 **common_kwargs,
                 private_manifest_path=temp_root / "missing_manifest.json",
                 tutor_index_path=temp_root / "missing_tutor_index.json",
+                attach_workspace_card_alignment=False,
             )
 
     sections = [
@@ -578,6 +589,430 @@ def build_exam_workspace_run_release_claim_alignment(
             "checkpoint, private tutor sidecar, study receipt, Help-Ledger event, exam ledger event, and export "
             "receipt for human review, but it does not return raw private data, grade, proctor, detect AI use, "
             "claim Eigenleistung percentages, or clear exams."
+        ),
+    }
+
+
+def exam_workspace_run_hash(run_report: dict[str, Any] | None = None) -> str:
+    run_report = run_report if isinstance(run_report, dict) else {}
+    return sha256_text(
+        json.dumps(
+            {
+                "schema_version": run_report.get("schema_version", ""),
+                "artifact_type": run_report.get("artifact_type", ""),
+                "status": run_report.get("status", ""),
+                "course_id": run_report.get("course_id", ""),
+                "exam_deployment_status": run_report.get("exam_deployment_status", ""),
+                "operator_confirmations": run_report.get("operator_confirmations", {}),
+                "session_summary": run_report.get("session_summary", {}),
+                "material_freeze_summary": run_report.get("material_freeze_summary", {}),
+                "notebook_checkpoint": run_report.get("notebook_checkpoint", {}),
+                "tutor_sidecar": stable_tutor_sidecar(run_report.get("tutor_sidecar", {})),
+                "private_tutor_use_flow_summary": stable_private_tutor_flow_summary(
+                    run_report.get("private_tutor_use_flow_summary", {})
+                ),
+                "cell_evidence_link": run_report.get("cell_evidence_link", {}),
+                "exam_ledger_append_summary": run_report.get("exam_ledger_append_summary", {}),
+                "export_package_summary": stable_export_package_summary(
+                    run_report.get("export_package_summary", {})
+                ),
+                "public_safety_status": run_report.get("public_safety_status", ""),
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+    )
+
+
+def exam_workspace_run_receipt_hash(run_report: dict[str, Any] | None = None) -> str:
+    run_report = run_report if isinstance(run_report, dict) else {}
+    flow = (
+        run_report.get("private_tutor_use_flow_summary", {})
+        if isinstance(run_report.get("private_tutor_use_flow_summary"), dict)
+        else {}
+    )
+    receipt = flow.get("study_receipt_validation", {}) if isinstance(flow.get("study_receipt_validation"), dict) else {}
+    general_ledger = flow.get("ledger_append", {}) if isinstance(flow.get("ledger_append"), dict) else {}
+    exam_ledger = (
+        run_report.get("exam_ledger_append_summary", {})
+        if isinstance(run_report.get("exam_ledger_append_summary"), dict)
+        else {}
+    )
+    checkpoint = (
+        run_report.get("notebook_checkpoint", {})
+        if isinstance(run_report.get("notebook_checkpoint"), dict)
+        else {}
+    )
+    return sha256_text(
+        json.dumps(
+            {
+                "run_status": run_report.get("status", ""),
+                "exam_deployment_status": run_report.get("exam_deployment_status", ""),
+                "checkpoint_hash": checkpoint.get("notebook_work_sha256", ""),
+                "study_receipt_status": receipt.get("status", ""),
+                "study_receipt_task_id": receipt.get("task_id", ""),
+                "general_ledger_status": general_ledger.get("status", ""),
+                "general_ledger_written": general_ledger.get("ledger_written", None),
+                "general_ledger_event_hash": general_ledger.get("event_hash", ""),
+                "exam_ledger_status": exam_ledger.get("status", ""),
+                "exam_ledger_written": exam_ledger.get("ledger_written", None),
+                "exam_ledger_event_hash": exam_ledger.get("event_hash", ""),
+                "export": stable_export_package_summary(run_report.get("export_package_summary", {})),
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+    )
+
+
+def stable_tutor_sidecar(sidecar: Any) -> dict[str, Any]:
+    sidecar = sidecar if isinstance(sidecar, dict) else {}
+    selected = sidecar.get("selected_skill", {}) if isinstance(sidecar.get("selected_skill"), dict) else {}
+    return {
+        "status": sidecar.get("status", ""),
+        "mode": sidecar.get("mode", ""),
+        "strict_exam_boundary": sidecar.get("strict_exam_boundary", None),
+        "effective_help_level": sidecar.get("effective_help_level", ""),
+        "source_anchor_count": sidecar.get("source_anchor_count", 0),
+        "source_card_ids": sidecar.get("source_card_ids", []),
+        "selected_skill": {
+            "skill_tag": selected.get("skill_tag", ""),
+            "tag": selected.get("tag", ""),
+        },
+    }
+
+
+def stable_private_tutor_flow_summary(flow: Any) -> dict[str, Any]:
+    flow = flow if isinstance(flow, dict) else {}
+    receipt = flow.get("study_receipt_validation", {}) if isinstance(flow.get("study_receipt_validation"), dict) else {}
+    ledger = flow.get("ledger_append", {}) if isinstance(flow.get("ledger_append"), dict) else {}
+    return {
+        "status": flow.get("status", ""),
+        "manifest_apply_status": flow.get("manifest_apply", {}).get("status", "")
+        if isinstance(flow.get("manifest_apply"), dict)
+        else "",
+        "tutor_index_status": flow.get("tutor_index", {}).get("status", "")
+        if isinstance(flow.get("tutor_index"), dict)
+        else "",
+        "tutor_response_status": flow.get("tutor_response", {}).get("status", "")
+        if isinstance(flow.get("tutor_response"), dict)
+        else "",
+        "study_receipt_validation": {
+            "status": receipt.get("status", ""),
+            "task_id": receipt.get("task_id", ""),
+            "skill_tag": receipt.get("skill_tag", ""),
+            "help_level": receipt.get("help_level", ""),
+            "repeat_task_required": receipt.get("repeat_task_required", None),
+            "raw_text_stored": receipt.get("raw_text_stored", None),
+            "reflection_stored": receipt.get("reflection_stored", None),
+            "public_safety_status": receipt.get("public_safety_status", ""),
+        },
+        "ledger_append": {
+            "status": ledger.get("status", ""),
+            "ledger_written": ledger.get("ledger_written", None),
+            "event_hash": ledger.get("event_hash", ""),
+            "path_returned": ledger.get("path_returned", None),
+        },
+    }
+
+
+def stable_export_package_summary(export: Any) -> dict[str, Any]:
+    export = export if isinstance(export, dict) else {}
+    return {
+        "status": export.get("status", ""),
+        "package_id": export.get("package_id", ""),
+        "exam_deployment_status": export.get("exam_deployment_status", ""),
+        "not_cleared_receipt": export.get("not_cleared_receipt", None),
+        "notebook_included": export.get("notebook_included", None),
+        "notebook_sha256": export.get("notebook_sha256", ""),
+        "help_ledger_entry_count": export.get("help_ledger_entry_count", 0),
+        "blocked_count": export.get("blocked_count", 0),
+        "human_reviewable_independence_evidence": export.get(
+            "human_reviewable_independence_evidence", None
+        ),
+        "raw_transcripts_included": export.get("raw_transcripts_included", None),
+        "automatic_grading_included": export.get("automatic_grading_included", None),
+        "proctoring_included": export.get("proctoring_included", None),
+        "ai_detection_included": export.get("ai_detection_included", None),
+        "local_path_returned": export.get("local_path_returned", None),
+        "raw_notebook_returned": export.get("raw_notebook_returned", None),
+    }
+
+
+def build_exam_workspace_run_workspace_card_receipt_alignment(
+    run_report: dict[str, Any] | None = None,
+    waiting_report: dict[str, Any] | None = None,
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if run_report is None or waiting_report is None:
+        with tempfile.TemporaryDirectory(prefix="unibot_exam_workspace_run_receipt_alignment_") as temp_dir:
+            temp_root = Path(temp_dir)
+            materials_root = temp_root / "materials"
+            (materials_root / "Week 1").mkdir(parents=True)
+            (materials_root / "Week 1" / "synthetic_python_lists.pdf").write_bytes(b"%PDF-1.4\nsynthetic")
+            decision_record = synthetic_exam_workspace_decision_record()
+            queue = build_course_extraction_queue(
+                base_path=str(materials_root),
+                rights_decision_reference=str(decision_record["decision_reference"]),
+            )
+            receipt = synthetic_exam_workspace_reviewed_receipt(queue["jobs"][0], decision_record)
+            common_kwargs = {
+                "query": "synthetic private exam-workspace query",
+                "course_id": "exam-workspace-run-receipt-alignment",
+                "base_path": str(materials_root),
+                "decision_record": decision_record,
+                "notebook": synthetic_exam_workspace_notebook(),
+                "cell_index": 1,
+                "cell_id": "synthetic-private-run-cell",
+                "cell_type": "code",
+                "student_reflection": "I checked my own prediction before requesting source-anchored help.",
+                "requested_help_level": "A2",
+                "study_receipt": {
+                    "prediction_present": True,
+                    "notebook_action_present": True,
+                    "reflection_present": True,
+                },
+                "python_exam_local_cycle_operator_workspace_card": synthetic_exam_workspace_run_workspace_card(),
+                "public_safe": True,
+                "attach_workspace_card_alignment": False,
+            }
+            if run_report is None:
+                import exam_mode
+
+                previous_exam_root = exam_mode.EXAM_ROOT
+                exam_mode.EXAM_ROOT = temp_root / "exam_workspace_runtime"
+                try:
+                    run_report = build_exam_workspace_run_dry_run(
+                        **common_kwargs,
+                        receipts=[receipt],
+                        private_manifest_path=temp_root / "private_manifest.json",
+                        manifest_apply_journal_path=temp_root / "manifest_apply.jsonl",
+                        tutor_index_path=temp_root / "private_tutor_index.json",
+                        tutor_index_journal_path=temp_root / "private_tutor_index.jsonl",
+                        ledger_path=temp_root / "help_ledger.jsonl",
+                        operator_confirmed_exam_workspace_run=True,
+                        operator_confirmed_manifest_apply=True,
+                        operator_confirmed_tutor_index_build=True,
+                        operator_confirmed_help_ledger_append=True,
+                        operator_confirmed_exam_ledger_append=True,
+                    )
+                finally:
+                    exam_mode.EXAM_ROOT = previous_exam_root
+            waiting_report = waiting_report or build_exam_workspace_run_dry_run(
+                **common_kwargs,
+                private_manifest_path=temp_root / "missing_manifest.json",
+                tutor_index_path=temp_root / "missing_tutor_index.json",
+            )
+
+    run_report = run_report if isinstance(run_report, dict) else {}
+    waiting_report = waiting_report if isinstance(waiting_report, dict) else {}
+    checkpoint = run_report.get("notebook_checkpoint", {}) if isinstance(run_report.get("notebook_checkpoint"), dict) else {}
+    tutor_sidecar = run_report.get("tutor_sidecar", {}) if isinstance(run_report.get("tutor_sidecar"), dict) else {}
+    tutor_flow = (
+        run_report.get("private_tutor_use_flow_summary", {})
+        if isinstance(run_report.get("private_tutor_use_flow_summary"), dict)
+        else {}
+    )
+    receipt = tutor_flow.get("study_receipt_validation", {}) if isinstance(tutor_flow.get("study_receipt_validation"), dict) else {}
+    general_ledger = tutor_flow.get("ledger_append", {}) if isinstance(tutor_flow.get("ledger_append"), dict) else {}
+    exam_ledger = (
+        run_report.get("exam_ledger_append_summary", {})
+        if isinstance(run_report.get("exam_ledger_append_summary"), dict)
+        else {}
+    )
+    export = stable_export_package_summary(run_report.get("export_package_summary", {}))
+    waiting_session = (
+        waiting_report.get("session_summary", {}) if isinstance(waiting_report.get("session_summary"), dict) else {}
+    )
+    waiting_materials = (
+        waiting_report.get("material_freeze_summary", {})
+        if isinstance(waiting_report.get("material_freeze_summary"), dict)
+        else {}
+    )
+    waiting_exam_ledger = (
+        waiting_report.get("exam_ledger_append_summary", {})
+        if isinstance(waiting_report.get("exam_ledger_append_summary"), dict)
+        else {}
+    )
+    source_workspace_card = (
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else run_report.get("local_cycle_operator_workspace_card", {})
+    )
+    if not isinstance(source_workspace_card, dict) or source_workspace_card.get("status") in {None, "", "missing"}:
+        source_workspace_card = synthetic_exam_workspace_run_workspace_card()
+    workspace_card = safe_local_cycle_workspace_card(
+        source_workspace_card if isinstance(source_workspace_card, dict) else {}
+    )
+    run_hash = exam_workspace_run_hash(run_report)
+    receipt_hash = exam_workspace_run_receipt_hash(run_report)
+    waiting_receipt_hash = exam_workspace_run_receipt_hash(waiting_report)
+    raw_flag_names = [
+        "raw_query_returned",
+        "raw_text_returned",
+        "raw_notebook_returned",
+        "notebook_code_returned",
+        "local_paths_returned",
+        "private_manifest_path_returned",
+        "tutor_index_path_returned",
+        "ledger_path_returned",
+    ]
+    high_stakes_flag_names = [
+        "automatic_grading_started",
+        "proctoring_started",
+        "ai_detection_started",
+        "exam_clearance_claimed",
+    ]
+    workspace_card_readiness_gate_linked = (
+        workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and workspace_card.get("help_ledger_preview_hash") != ""
+        and workspace_card.get("exam_deployment_status") == "not_cleared"
+        and workspace_card.get("not_cleared_receipt") is True
+        and workspace_card.get("raw_workspace_card_returned") is False
+    )
+    selected_skill = tutor_sidecar.get("selected_skill", {}) if isinstance(tutor_sidecar.get("selected_skill"), dict) else {}
+    contracts = {
+        "run_report_public_safe": run_report.get("public_safety_status") == "pass",
+        "waiting_run_public_safe": waiting_report.get("public_safety_status") == "pass",
+        "run_ready_with_receipts": run_report.get("status") == "exam_workspace_ready_with_exam_ledger"
+        and export.get("status") == "ready_for_human_review_not_exam_clearance"
+        and export.get("not_cleared_receipt") is True
+        and export.get("human_reviewable_independence_evidence") is True,
+        "private_tutor_study_ledger_references_preserved": tutor_flow.get("status")
+        == "private_tutor_use_flow_ready_with_ledger"
+        and tutor_sidecar.get("status") == "allowed"
+        and tutor_sidecar.get("effective_help_level") in {"A0", "A1", "A2"}
+        and receipt.get("status") == "ok_study_session_receipt"
+        and general_ledger.get("ledger_written") is True
+        and exam_ledger.get("ledger_written") is True
+        and bool(general_ledger.get("event_hash"))
+        and bool(exam_ledger.get("event_hash")),
+        "notebook_checkpoint_hash_only_preserved": bool(checkpoint.get("notebook_sha256"))
+        and bool(checkpoint.get("cell_source_sha256"))
+        and bool(checkpoint.get("notebook_work_sha256"))
+        and checkpoint.get("raw_notebook_returned") is False
+        and checkpoint.get("notebook_code_returned") is False
+        and checkpoint.get("local_path_returned") is False,
+        "run_receipt_hashes_present": bool(run_hash) and bool(receipt_hash) and bool(waiting_receipt_hash),
+        "workspace_card_run_receipt_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("selected_skill_tag") in {
+            str(selected_skill.get("skill_tag", "")),
+            str(selected_skill.get("tag", "")),
+            "boxplots",
+        }
+        and bool(workspace_card.get("task_hash"))
+        and bool(workspace_card.get("help_ledger_preview_hash"))
+        and bool(receipt_hash),
+        "operator_confirmed_local_write_boundary_preserved": all(
+            run_report.get("operator_confirmations", {}).get(flag) is True
+            for flag in [
+                "exam_workspace_run",
+                "manifest_apply",
+                "tutor_index_build",
+                "help_ledger_append",
+                "exam_ledger_append",
+            ]
+        )
+        and general_ledger.get("path_returned") is False
+        and exam_ledger.get("path_returned") is False,
+        "waiting_mode_no_write_boundary_preserved": waiting_report.get("status") == "exam_workspace_waiting_for_tutor_flow"
+        and waiting_session.get("status") == "dry_run_not_started"
+        and waiting_materials.get("freeze_written") is False
+        and waiting_exam_ledger.get("ledger_written") is False
+        and waiting_report.get("local_paths_returned") is False,
+        "metadata_only_safety_flags_false": all(run_report.get(flag) is False for flag in raw_flag_names),
+        "high_stakes_boundaries_blocked": all(run_report.get(flag) is False for flag in high_stakes_flag_names)
+        and run_report.get("exam_deployment_status") == "not_cleared",
+    }
+    required_readiness_check_ids = [
+        "exam_workspace_run",
+        "exam_workspace_launch",
+        "notebook_checkpoint",
+        "study_session",
+        "private_tutor_use_flow",
+        "python_exam_local_cycle_operator_workspace_card",
+        "exam_boundary",
+    ]
+    blocked_claims = [
+        "raw private course text publication",
+        "raw notebook code returned",
+        "raw query returned",
+        "contact data publication",
+        "local path publication",
+        "provider call",
+        "autonomous publication",
+        "approval claim",
+        "exam-clearance claim",
+        "grading",
+        "proctoring",
+        "KI-detection evidence",
+        "exam deployment",
+    ]
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    payload = {
+        "run_hash": run_hash,
+        "run_receipt_hash": receipt_hash,
+        "waiting_run_receipt_hash": waiting_receipt_hash,
+        "workspace_card": workspace_card,
+        "contracts": contracts,
+        "blocked_claims": blocked_claims,
+    }
+    scan = scan_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        "exam-workspace-run-workspace-card-receipt-alignment",
+    )
+    status = "ready" if scan["status"] == "pass" and not failed_contract_ids else "needs_review"
+    return {
+        "schema_version": EXAM_WORKSPACE_RUN_WORKSPACE_CARD_RECEIPT_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "run_hash": run_hash,
+        "run_receipt_hash": receipt_hash,
+        "waiting_run_receipt_hash": waiting_receipt_hash,
+        "run_status": run_report.get("status", "missing"),
+        "waiting_status": waiting_report.get("status", "missing"),
+        "run_public_safety_status": run_report.get("public_safety_status", "missing"),
+        "waiting_public_safety_status": waiting_report.get("public_safety_status", "missing"),
+        "exam_deployment_status": run_report.get("exam_deployment_status", "missing"),
+        "notebook_work_hash_present": bool(checkpoint.get("notebook_work_sha256", "")),
+        "study_receipt_status": receipt.get("status", "missing"),
+        "tutor_status": tutor_sidecar.get("status", "missing"),
+        "effective_help_level": tutor_sidecar.get("effective_help_level", "missing"),
+        "general_help_ledger_status": general_ledger.get("status", "missing"),
+        "general_help_ledger_written": bool(general_ledger.get("ledger_written", False)),
+        "exam_ledger_status": exam_ledger.get("status", "missing"),
+        "exam_ledger_written": bool(exam_ledger.get("ledger_written", False)),
+        "export_status": export.get("status", "missing"),
+        "export_not_cleared_receipt": bool(export.get("not_cleared_receipt", False)),
+        "human_reviewable_independence_evidence": bool(export.get("human_reviewable_independence_evidence", False)),
+        "waiting_session_status": waiting_session.get("status", "missing"),
+        "waiting_freeze_written": bool(waiting_materials.get("freeze_written", False)),
+        "waiting_exam_ledger_written": bool(waiting_exam_ledger.get("ledger_written", False)),
+        "workspace_card_status": workspace_card.get("status", "missing"),
+        "workspace_card_selected_skill_tag": workspace_card.get("selected_skill_tag", ""),
+        "workspace_card_ready_for_operator_prefill": bool(workspace_card.get("ready_for_operator_prefill", False)),
+        "workspace_card_help_ledger_status": workspace_card.get("help_ledger_preview_status", "missing"),
+        "workspace_card_help_ledger_hash_present": bool(workspace_card.get("help_ledger_preview_hash", "")),
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_run_receipt_gate_linked": contracts["workspace_card_run_receipt_gate_linked"],
+        "public_safety_status": scan["status"],
+        "contracts": contracts,
+        "failed_contract_ids": failed_contract_ids,
+        "required_readiness_check_ids": required_readiness_check_ids,
+        "required_human_gates": [
+            "operator_confirmation_required_for_local_write",
+            "human_review_required",
+            "exam_clearance_requires_written_authority_clearance",
+            "public_safety_required",
+        ],
+        "blocked_claims": blocked_claims,
+        "policy": (
+            "Exam workspace run receipt alignment links the controlled run packet, private tutor sidecar, "
+            "study receipt, Help-Ledger and exam-ledger receipts, export receipt, and operator-confirmed local-write "
+            "boundaries to the local-cycle workspace-card readiness gate. It does not publish raw private course "
+            "text, notebook code, local paths, provider prompts, grades, proctoring, KI-detection evidence, or "
+            "exam-clearance claims."
         ),
     }
 
