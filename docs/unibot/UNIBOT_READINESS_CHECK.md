@@ -54,6 +54,7 @@ It aggregates:
 - Python exam local-cycle start-packet and confirmation-boundary alignment
 - Python exam local-cycle readiness-review and manual-review alignment
 - Python exam local-cycle readiness-handoff and operator-prefill alignment
+- Python exam local-cycle operator workspace-card and help-ledger-preview alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -248,6 +249,14 @@ not-cleared; attention states stay blocked. The handoff preserves task,
 checkpoint, source-card, and receipt hashes, but it starts no local write,
 returns no raw notebook/query data, grades nothing, proctors nothing, detects
 no AI use, and clears no exam deployment.
+
+The Python exam local-cycle operator workspace-card gate carries
+`unibot-python-exam-local-cycle-operator-workspace-card-release-review-board-claim-alignment-v1`.
+It turns readiness-review and handoff evidence into a notebook-first status
+card with operator prefill metadata and a Help-Ledger preview. Ready cards
+remain metadata/hash-only and attention cards stay blocked. The card starts no
+local write, returns no raw notebook/query data, grades nothing, proctors
+nothing, detects no AI use, and clears no exam deployment.
 
 ## Source-Card Drift Guard
 
