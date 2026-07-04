@@ -20,7 +20,11 @@ from .course_tutor import (
     run_course_tutor_eval,
     scan_course_intake,
 )
-from .course_exam_coverage_dashboard import build_course_exam_coverage_dashboard
+from .course_exam_coverage_dashboard import (
+    build_course_exam_coverage_dashboard,
+    build_course_exam_coverage_dashboard_workspace_card_alignment,
+    synthetic_course_exam_coverage_dashboard_inputs,
+)
 from .course_per_skill_action_router import (
     build_course_per_skill_action_router,
     build_course_per_skill_action_router_workspace_card_alignment,
@@ -343,6 +347,8 @@ __all__ = [
     "validate_study_session_receipt",
     "build_course_tutor_coverage_plan",
     "build_course_exam_coverage_dashboard",
+    "build_course_exam_coverage_dashboard_workspace_card_alignment",
+    "synthetic_course_exam_coverage_dashboard_inputs",
     "build_course_per_skill_action_router",
     "build_course_per_skill_action_router_workspace_card_alignment",
     "synthetic_course_per_skill_action_router_inputs",

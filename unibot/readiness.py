@@ -15,6 +15,10 @@ from .decision_request import build_stakeholder_decision_request
 from .decision_journal import build_decision_journal_release_claim_alignment
 from .decision_state import build_external_decision_state_release_claim_alignment
 from .evaluation import build_evaluation_packet
+from .course_exam_coverage_dashboard import (
+    build_course_exam_coverage_dashboard_workspace_card_alignment,
+    synthetic_course_exam_coverage_dashboard_inputs,
+)
 from .course_per_skill_action_router import (
     build_course_per_skill_action_router_workspace_card_alignment,
     synthetic_course_per_skill_action_router_inputs,
@@ -472,6 +476,10 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     timeline_review_packet_inputs = synthetic_timeline_export_review_packet_inputs()
     timeline_review_packet_alignment = build_timeline_export_review_packet_workspace_card_alignment(
         timeline_review_packet_inputs["review_packet"],
+    )
+    course_exam_coverage_dashboard_inputs = synthetic_course_exam_coverage_dashboard_inputs()
+    course_exam_coverage_dashboard_alignment = build_course_exam_coverage_dashboard_workspace_card_alignment(
+        course_exam_coverage_dashboard_inputs["course_exam_coverage_dashboard"],
     )
     course_per_skill_action_router_inputs = synthetic_course_per_skill_action_router_inputs()
     course_per_skill_action_router_alignment = build_course_per_skill_action_router_workspace_card_alignment(
@@ -4332,6 +4340,68 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                     "workspace_card_readiness_gate_claim_linked"
                 ],
                 "raw_workspace_card_returned": timeline_review_packet_alignment["raw_workspace_card_returned"],
+            },
+        },
+        {
+            "check_id": "course_exam_coverage_dashboard",
+            "passed": course_exam_coverage_dashboard_alignment["status"] == "ready"
+            and course_exam_coverage_dashboard_alignment["alignment_public_safety_status"] == "pass"
+            and course_exam_coverage_dashboard_alignment["failed_contract_ids"] == []
+            and course_exam_coverage_dashboard_alignment["dashboard_status"]
+            == "course_exam_coverage_dashboard_ready"
+            and course_exam_coverage_dashboard_alignment["receipt_status"]
+            == "dashboard_receipt_ready_not_exam_clearance"
+            and course_exam_coverage_dashboard_alignment["skill_count"] >= 1
+            and course_exam_coverage_dashboard_alignment["visible_skill_count"] >= 1
+            and course_exam_coverage_dashboard_alignment["workspace_ready_skill_count"] >= 0
+            and course_exam_coverage_dashboard_alignment["checkpoint_hash_count"] >= 0
+            and course_exam_coverage_dashboard_alignment["open_operator_confirmation_count"] >= 0
+            and course_exam_coverage_dashboard_alignment["exam_deployment_status"] == "not_cleared"
+            and course_exam_coverage_dashboard_alignment["workspace_card_readiness_gate_linked"] is True
+            and course_exam_coverage_dashboard_alignment["workspace_card_course_exam_dashboard_gate_linked"] is True
+            and course_exam_coverage_dashboard_alignment["raw_workspace_card_returned"] is False,
+            "evidence": {
+                "workspace_card_dashboard_alignment_status": course_exam_coverage_dashboard_alignment["status"],
+                "workspace_card_dashboard_alignment_public_safety_status": course_exam_coverage_dashboard_alignment[
+                    "alignment_public_safety_status"
+                ],
+                "dashboard_status": course_exam_coverage_dashboard_alignment["dashboard_status"],
+                "receipt_status": course_exam_coverage_dashboard_alignment["receipt_status"],
+                "skill_count": course_exam_coverage_dashboard_alignment["skill_count"],
+                "visible_skill_count": course_exam_coverage_dashboard_alignment["visible_skill_count"],
+                "workspace_ready_skill_count": course_exam_coverage_dashboard_alignment[
+                    "workspace_ready_skill_count"
+                ],
+                "checkpoint_hash_count": course_exam_coverage_dashboard_alignment["checkpoint_hash_count"],
+                "open_operator_confirmation_count": course_exam_coverage_dashboard_alignment[
+                    "open_operator_confirmation_count"
+                ],
+                "exam_deployment_status": course_exam_coverage_dashboard_alignment["exam_deployment_status"],
+                "workspace_card_status": course_exam_coverage_dashboard_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": course_exam_coverage_dashboard_alignment[
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": course_exam_coverage_dashboard_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": course_exam_coverage_dashboard_alignment[
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": course_exam_coverage_dashboard_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": course_exam_coverage_dashboard_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_course_exam_dashboard_gate_linked": course_exam_coverage_dashboard_alignment[
+                    "workspace_card_course_exam_dashboard_gate_linked"
+                ],
+                "workspace_card_readiness_gate_claim_linked": course_exam_coverage_dashboard_alignment[
+                    "workspace_card_readiness_gate_claim_linked"
+                ],
+                "raw_workspace_card_returned": course_exam_coverage_dashboard_alignment[
+                    "raw_workspace_card_returned"
+                ],
             },
         },
         {

@@ -10,7 +10,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.course_exam_coverage_dashboard import build_course_exam_coverage_dashboard  # noqa: E402
+from unibot.course_exam_coverage_dashboard import (  # noqa: E402
+    build_course_exam_coverage_dashboard,
+    build_course_exam_coverage_dashboard_workspace_card_alignment,
+    course_exam_coverage_dashboard_hash,
+    course_exam_coverage_dashboard_receipt_hash,
+    synthetic_course_exam_coverage_dashboard_workspace_card,
+)
 from unibot.exam_workspace_session_console import build_exam_workspace_session_console  # noqa: E402
 from unibot.materials import build_material_manifest, sha256_text  # noqa: E402
 from unibot.public_safety import scan_text  # noqa: E402
@@ -136,6 +142,36 @@ class UniBotCourseExamCoverageDashboardTests(unittest.TestCase):
             self.assertIn("A2", " ".join(python_lists["allowed_exam_help"]))
             self.assertEqual(dashboard["coverage_receipt"]["status"], "dashboard_receipt_ready_not_exam_clearance")
             self.assertTrue(dashboard["coverage_receipt"]["not_cleared_receipt"])
+            alignment = dashboard["workspace_card_dashboard_alignment"]
+            self.assertEqual(
+                alignment["schema_version"],
+                "unibot-course-exam-coverage-dashboard-workspace-card-dashboard-alignment-v1",
+            )
+            self.assertEqual(alignment["status"], "ready")
+            self.assertEqual(alignment["alignment_public_safety_status"], "pass")
+            self.assertEqual(alignment["failed_contract_ids"], [])
+            self.assertEqual(
+                alignment["course_exam_coverage_dashboard_hash"],
+                course_exam_coverage_dashboard_hash(dashboard),
+            )
+            self.assertEqual(
+                alignment["course_exam_coverage_dashboard_receipt_hash"],
+                course_exam_coverage_dashboard_receipt_hash(dashboard),
+            )
+            self.assertEqual(alignment["dashboard_status"], "course_exam_coverage_dashboard_ready")
+            self.assertEqual(alignment["receipt_status"], "dashboard_receipt_ready_not_exam_clearance")
+            self.assertGreaterEqual(alignment["skill_count"], 1)
+            self.assertGreaterEqual(alignment["visible_skill_count"], 1)
+            self.assertGreaterEqual(alignment["workspace_ready_skill_count"], 1)
+            self.assertGreaterEqual(alignment["checkpoint_hash_count"], 1)
+            self.assertGreaterEqual(alignment["open_operator_confirmation_count"], 1)
+            self.assertEqual(alignment["exam_deployment_status"], "not_cleared")
+            self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+            self.assertTrue(alignment["workspace_card_course_exam_dashboard_gate_linked"])
+            self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+            self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+            self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+            self.assertFalse(alignment["raw_workspace_card_returned"])
             self.assertFalse(dashboard["raw_query_returned"])
             self.assertFalse(dashboard["raw_cell_returned"])
             self.assertFalse(dashboard["raw_text_returned"])
@@ -160,6 +196,45 @@ class UniBotCourseExamCoverageDashboardTests(unittest.TestCase):
         self.assertEqual(dashboard["run_history_summary"].get("run_count", 0), 0)
         self.assertFalse(dashboard["raw_text_returned"])
         self.assertFalse(dashboard["local_paths_returned"])
+
+    def test_dashboard_workspace_card_alignment_blocks_when_prefill_hashes_do_not_match(self) -> None:
+        dashboard = build_course_exam_coverage_dashboard(public_safe=True)
+        if not dashboard.get("skill_dashboard"):
+            dashboard["skill_dashboard"] = [
+                {
+                    "skill_tag": "python_lists",
+                    "workspace_readiness": "ready_for_exam_workspace_dry_run",
+                    "source_anchor_count": 1,
+                    "reviewed_notebook_anchor_count": 1,
+                    "checkpoint_hash_count": 0,
+                    "open_operator_confirmation_count": 0,
+                    "exam_deployment_status": "not_cleared",
+                    "raw_query_returned": False,
+                    "raw_text_returned": False,
+                    "raw_cell_returned": False,
+                    "notebook_code_returned": False,
+                    "local_paths_returned": False,
+                }
+            ]
+            dashboard["dashboard_summary"] = {
+                "skill_count": 1,
+                "workspace_ready_skill_count": 1,
+                "checkpoint_hash_count": 0,
+                "open_operator_confirmation_count": 0,
+                "exam_deployment_status": "not_cleared",
+            }
+            dashboard["coverage_receipt"]["receipt_id"] = sha256_text("dashboard broken hash receipt")[:20]
+        workspace_card = synthetic_course_exam_coverage_dashboard_workspace_card()
+        workspace_card["workspace_card_summary"]["checkpoint_hash"] = "wrong-dashboard-hash"
+        workspace_card["workspace_card_summary"]["task_hash"] = "wrong-receipt-hash"
+
+        alignment = build_course_exam_coverage_dashboard_workspace_card_alignment(dashboard, workspace_card)
+
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertIn("workspace_card_course_exam_dashboard_gate_linked", alignment["failed_contract_ids"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertFalse(alignment["workspace_card_course_exam_dashboard_gate_linked"])
+        self.assertEqual(alignment["alignment_public_safety_status"], "pass")
 
 
 if __name__ == "__main__":

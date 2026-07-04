@@ -783,6 +783,42 @@ class UniBotReadinessTests(unittest.TestCase):
         )
         self.assertTrue(timeline_review_packet["evidence"]["workspace_card_help_ledger_hash_present"])
         self.assertFalse(timeline_review_packet["evidence"]["raw_workspace_card_returned"])
+        course_exam_coverage_dashboard = next(
+            check for check in report["checks"] if check["check_id"] == "course_exam_coverage_dashboard"
+        )
+        self.assertEqual(
+            course_exam_coverage_dashboard["evidence"]["workspace_card_dashboard_alignment_status"],
+            "ready",
+        )
+        self.assertEqual(
+            course_exam_coverage_dashboard["evidence"]["workspace_card_dashboard_alignment_public_safety_status"],
+            "pass",
+        )
+        self.assertEqual(
+            course_exam_coverage_dashboard["evidence"]["dashboard_status"],
+            "course_exam_coverage_dashboard_ready",
+        )
+        self.assertEqual(
+            course_exam_coverage_dashboard["evidence"]["receipt_status"],
+            "dashboard_receipt_ready_not_exam_clearance",
+        )
+        self.assertGreaterEqual(course_exam_coverage_dashboard["evidence"]["skill_count"], 1)
+        self.assertGreaterEqual(course_exam_coverage_dashboard["evidence"]["visible_skill_count"], 1)
+        self.assertGreaterEqual(course_exam_coverage_dashboard["evidence"]["workspace_ready_skill_count"], 0)
+        self.assertGreaterEqual(course_exam_coverage_dashboard["evidence"]["checkpoint_hash_count"], 0)
+        self.assertGreaterEqual(course_exam_coverage_dashboard["evidence"]["open_operator_confirmation_count"], 0)
+        self.assertEqual(course_exam_coverage_dashboard["evidence"]["exam_deployment_status"], "not_cleared")
+        self.assertTrue(course_exam_coverage_dashboard["evidence"]["workspace_card_readiness_gate_linked"])
+        self.assertTrue(
+            course_exam_coverage_dashboard["evidence"]["workspace_card_course_exam_dashboard_gate_linked"]
+        )
+        self.assertTrue(course_exam_coverage_dashboard["evidence"]["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(
+            course_exam_coverage_dashboard["evidence"]["workspace_card_help_ledger_status"],
+            "help_ledger_preview_ready",
+        )
+        self.assertTrue(course_exam_coverage_dashboard["evidence"]["workspace_card_help_ledger_hash_present"])
+        self.assertFalse(course_exam_coverage_dashboard["evidence"]["raw_workspace_card_returned"])
         course_per_skill_action_router = next(
             check for check in report["checks"] if check["check_id"] == "course_per_skill_action_router"
         )
