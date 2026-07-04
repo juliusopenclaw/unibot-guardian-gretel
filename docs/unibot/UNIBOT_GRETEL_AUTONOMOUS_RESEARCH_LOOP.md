@@ -64,17 +64,27 @@ artifacts.
 
 ## Current Work Queue
 
-- `material_coverage_run_local_cycle_workspace_card_coverage_link_alignment`
-  is ready. It should link UniBot material coverage run skill coverage rows,
-  coverage receipt hashes, source/notebook/OCR/video gap counts, and
+- `private_tutor_use_flow_local_cycle_workspace_card_private_use_link_alignment`
+  is ready. It should link UniBot private tutor use flow private-manifest/index
+  dry-run metadata, receipt hashes, local-private/no-publication boundary, and
   no-clearance/local-write boundary with the harnessed local-cycle operator
-  workspace-card readiness gate, preserving coverage/receipt hashes and
+  workspace-card readiness gate, preserving flow/receipt hashes and
   workspace-card prefill evidence, no raw private course text/contact data/local
   path publication, no provider call/autonomous publication, no approval or
   exam-clearance claim, no grading/proctoring/KI-detection, and no exam
   deployment claims.
 
 ## Closed Harnessed Work
+
+- `material_coverage_run_local_cycle_workspace_card_coverage_link_alignment`:
+  closed in `6c44c96` with UniBot material coverage run skill coverage rows,
+  coverage receipt hashes, source/notebook/OCR/video gap counts, local-write
+  boundary, and no-clearance deployment line linked to the harnessed local-cycle
+  operator workspace-card readiness gate, coverage/receipt and
+  ready-for-prefill metadata, and blocked raw private course text/contact
+  data/local path publication, provider calls, autonomous publication, approval
+  or exam-clearance claims, grading, proctoring, KI-detection, and exam
+  deployment claims.
 
 - `course_exam_coverage_dashboard_local_cycle_workspace_card_dashboard_link_alignment`:
   closed in `624fde3` with UniBot course exam coverage dashboard skill
