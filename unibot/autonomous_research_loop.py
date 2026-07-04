@@ -1660,7 +1660,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "paperclip_evaluation_bridge_local_cycle_workspace_card_control_link_alignment",
             "priority": 88,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link optional Paperclip evaluation bridge control-plane status, request receipt, and non-runtime dependency metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving bridge/control hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no provider call/Paperclip runtime activation/autonomous publication, no approval or exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/paperclip_evaluation_bridge.py",
@@ -1670,6 +1670,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_paperclip_evaluation_bridge.py tests/test_unibot_readiness.py -q"],
             "review_gate": "paperclip_evaluation_bridge_local_cycle_workspace_card_control_link_traceability",
+            "closure_evidence": {
+                "commit": "eb7b327",
+                "summary": "Optional Paperclip evaluation bridge control-plane status and request/receipt hashes now link to the harnessed local-cycle operator workspace-card readiness gate, preserving control/receipt and ready-for-prefill metadata, and blocking raw private course text/contact data/local path publication, provider calls, Paperclip runtime activation, autonomous publication, approval or exam-clearance claims, grading, proctoring, KI-detection, and exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "command_center_local_cycle_workspace_card_route_link_alignment",
+            "priority": 89,
+            "status": "ready",
+            "goal": "Link UniBot command-center role lanes, active harness sequence, scope status, and no-clearance deployment line with the harnessed local-cycle operator workspace-card readiness gate, preserving command-center/route hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no provider call/autonomous publication, no approval or exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/orchestration.py",
+                "tests/test_unibot_orchestration.py",
+                "docs/unibot/UNIBOT_COMMAND_CENTER.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_orchestration.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "command_center_local_cycle_workspace_card_route_link_traceability",
         },
     ]
 

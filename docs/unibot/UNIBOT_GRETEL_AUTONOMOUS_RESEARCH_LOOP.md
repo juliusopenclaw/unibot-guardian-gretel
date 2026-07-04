@@ -64,16 +64,25 @@ artifacts.
 
 ## Current Work Queue
 
-- `paperclip_evaluation_bridge_local_cycle_workspace_card_control_link_alignment`
-  is ready. It should link optional Paperclip evaluation bridge control-plane
-  status, request receipt, and non-runtime dependency metadata with the
-  harnessed local-cycle operator workspace-card readiness gate, preserving
-  bridge/control hashes and workspace-card prefill evidence, no raw private
-  course text/contact data/local path publication, no provider call/Paperclip
-  runtime activation/autonomous publication, no approval or exam-clearance
-  claim, no grading/proctoring/KI-detection, and no exam deployment claims.
+- `command_center_local_cycle_workspace_card_route_link_alignment`
+  is ready. It should link UniBot command-center role lanes, active harness
+  sequence, scope status, and no-clearance deployment line with the harnessed
+  local-cycle operator workspace-card readiness gate, preserving
+  command-center/route hashes and workspace-card prefill evidence, no raw
+  private course text/contact data/local path publication, no provider
+  call/autonomous publication, no approval or exam-clearance claim, no
+  grading/proctoring/KI-detection, and no exam deployment claims.
 
 ## Closed Harnessed Work
+
+- `paperclip_evaluation_bridge_local_cycle_workspace_card_control_link_alignment`:
+  closed in `eb7b327` with optional Paperclip evaluation bridge control-plane
+  status and request/receipt hashes linked to the harnessed local-cycle operator
+  workspace-card readiness gate, control/receipt and ready-for-prefill metadata,
+  and blocked raw private course text/contact data/local path publication,
+  provider calls, Paperclip runtime activation, autonomous publication, approval
+  or exam-clearance claims, grading, proctoring, KI-detection, and exam
+  deployment claims.
 
 - `autonomous_research_loop_local_cycle_workspace_card_budget_link_alignment`:
   closed in `2a43b20` with Gretel autonomous research-loop budget/cadence and
