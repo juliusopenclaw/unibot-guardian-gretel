@@ -191,11 +191,11 @@ percentages, or clear exam deployment.
 The exam-workspace run gate carries
 `unibot-exam-workspace-run-release-review-board-claim-alignment-v1`. It links
 the controlled notebook run packet to private tutor sidecar evidence, study
-receipt validation, Help-Ledger and exam-ledger events, and a human-review
-export receipt. Operator-confirmed local writes stay local and hash-oriented;
-the public report still does not return raw queries, raw notebook code, local
-paths, grades, proctoring, AI-detection evidence, Eigenleistung percentages, or
-exam clearance.
+receipt validation, Help-Ledger and exam-ledger events, harnessed local-cycle
+operator workspace-card readiness metadata, and a human-review export receipt.
+Operator-confirmed local writes stay local and hash-oriented; the public report
+still does not return raw queries, raw notebook code, local paths, grades,
+proctoring, AI-detection evidence, Eigenleistung percentages, or exam clearance.
 
 The exam-workspace run-history gate carries
 `unibot-exam-workspace-run-history-release-review-board-claim-alignment-v1`.

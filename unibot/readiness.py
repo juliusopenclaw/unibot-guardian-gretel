@@ -1691,6 +1691,20 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "tutor_status": exam_workspace_run_alignment["tutor_status"],
                 "effective_help_level": exam_workspace_run_alignment["effective_help_level"],
                 "source_anchor_count": exam_workspace_run_alignment["source_anchor_count"],
+                "workspace_card_status": exam_workspace_run_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": exam_workspace_run_alignment["workspace_card_selected_skill_tag"],
+                "workspace_card_ready_for_operator_prefill": exam_workspace_run_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": exam_workspace_run_alignment[
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": exam_workspace_run_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": exam_workspace_run_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
                 "private_tutor_use_flow_status": exam_workspace_run_alignment["private_tutor_use_flow_status"],
                 "study_receipt_status": exam_workspace_run_alignment["study_receipt_status"],
                 "general_help_ledger_status": exam_workspace_run_alignment["general_help_ledger_status"],
@@ -1708,6 +1722,10 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "release_claim_alignment_human_gates": exam_workspace_run_alignment["required_human_gates"],
                 "launch_claim_linked": (
                     "exam_workspace_launch" in exam_workspace_run_alignment["required_readiness_check_ids"]
+                ),
+                "workspace_card_readiness_gate_claim_linked": (
+                    "python_exam_local_cycle_operator_workspace_card"
+                    in exam_workspace_run_alignment["required_readiness_check_ids"]
                 ),
                 "notebook_checkpoint_claim_linked": (
                     "notebook_checkpoint" in exam_workspace_run_alignment["required_readiness_check_ids"]
@@ -1748,6 +1766,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 ],
                 "private_tutor_study_and_ledger_linked": exam_workspace_run_alignment["contracts"][
                     "private_tutor_study_and_ledger_linked"
+                ],
+                "workspace_card_execution_gate_linked": exam_workspace_run_alignment["contracts"][
+                    "workspace_card_execution_gate_linked"
                 ],
                 "operator_confirmed_local_write_boundaries": exam_workspace_run_alignment["contracts"][
                     "operator_confirmed_local_write_boundaries"

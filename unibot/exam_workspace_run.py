@@ -53,6 +53,7 @@ def build_exam_workspace_run_dry_run(
     material_files: list[dict[str, Any]] | None = None,
     student_reflection: str = "",
     study_receipt: dict[str, Any] | None = None,
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
     operator_confirmed_exam_workspace_run: bool = False,
     operator_confirmed_manifest_apply: bool = False,
     operator_confirmed_tutor_index_build: bool = False,
@@ -61,6 +62,11 @@ def build_exam_workspace_run_dry_run(
     public_safe: bool = True,
 ) -> dict[str, Any]:
     safe_id = safe_course_id(course_id)
+    local_cycle_workspace_card = safe_local_cycle_workspace_card(
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else {}
+    )
     notebook_payload = notebook_from_payload(notebook=notebook, notebook_content_base64=notebook_content_base64)
     selected_source = str(cell_source or source_from_notebook(notebook_payload, cell_index))
     cell_hash = sha256_text(f"{safe_id}:{cell_index}:{cell_id or ''}:{selected_source}")[:16]
@@ -220,6 +226,7 @@ def build_exam_workspace_run_dry_run(
             "notebook_work_sha256": cell_run.get("notebook_work_sha256", ""),
             "eigenleistung_percentage_claimed": False,
         },
+        "local_cycle_operator_workspace_card": local_cycle_workspace_card,
         "exam_ledger_append_summary": exam_ledger_public_summary(exam_ledger),
         "export_package_summary": package,
         "raw_query_returned": False,
@@ -275,6 +282,7 @@ def build_exam_workspace_run_release_claim_alignment(
                     "notebook_action_present": True,
                     "reflection_present": True,
                 },
+                "python_exam_local_cycle_operator_workspace_card": synthetic_exam_workspace_run_workspace_card(),
                 "public_safe": True,
             }
             if run_report is None:
@@ -317,14 +325,24 @@ def build_exam_workspace_run_release_claim_alignment(
             "section_id": "private_tutor_study_ledger_trace",
             "summary_claim": "exam-workspace run keeps A0-A2 tutor help source-anchored, study-receipted, and ledgered only with operator confirmation",
             "source_card_ids": ["dfg-gwp", "dsk-ai-privacy-2024"],
-            "readiness_check_ids": ["exam_workspace_run", "private_tutor_use_flow", "evaluation_packet"],
+            "readiness_check_ids": [
+                "exam_workspace_run",
+                "python_exam_local_cycle_operator_workspace_card",
+                "private_tutor_use_flow",
+                "evaluation_packet",
+            ],
             "human_gates": ["human_submission_review_required", "public_safety_required"],
         },
         {
             "section_id": "operator_boundary_export_trace",
             "summary_claim": "exam-workspace run can prepare a human-review export receipt but remains not cleared for real exams",
             "source_card_ids": ["dfg-gwp", "uoc-ki-faq", "uoc-hilfsmittel"],
-            "readiness_check_ids": ["exam_workspace_run", "review_board_packet", "exam_boundary"],
+            "readiness_check_ids": [
+                "exam_workspace_run",
+                "python_exam_local_cycle_operator_workspace_card",
+                "review_board_packet",
+                "exam_boundary",
+            ],
             "human_gates": ["human_submission_review_required", "written_university_clearance_required_before_exam_use"],
         },
         {
@@ -349,6 +367,11 @@ def build_exam_workspace_run_release_claim_alignment(
         else {}
     )
     tutor_sidecar = run_report.get("tutor_sidecar", {}) if isinstance(run_report.get("tutor_sidecar"), dict) else {}
+    workspace_card = (
+        run_report.get("local_cycle_operator_workspace_card", {})
+        if isinstance(run_report.get("local_cycle_operator_workspace_card"), dict)
+        else {}
+    )
     tutor_flow = (
         run_report.get("private_tutor_use_flow_summary", {})
         if isinstance(run_report.get("private_tutor_use_flow_summary"), dict)
@@ -413,6 +436,9 @@ def build_exam_workspace_run_release_claim_alignment(
         "exam clearance",
     ]
     boundary = str(run_report.get("execution_boundary", ""))
+    workspace_card_readiness_gate_linked = any(
+        "python_exam_local_cycle_operator_workspace_card" in section["readiness_check_ids"] for section in sections
+    )
     contracts = {
         "run_public_safe": run_report.get("public_safety_status") == "pass",
         "waiting_run_public_safe": waiting_report.get("public_safety_status") == "pass",
@@ -437,6 +463,18 @@ def build_exam_workspace_run_release_claim_alignment(
         and exam_ledger.get("ledger_written") is True
         and cell_evidence.get("study_receipt_status") == "ok_study_session_receipt"
         and cell_evidence.get("eigenleistung_percentage_claimed") is False,
+        "workspace_card_execution_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and bool(workspace_card.get("help_ledger_preview_hash"))
+        and workspace_card.get("selected_skill_tag") in {
+            str(tutor_sidecar.get("selected_skill", {}).get("skill_tag", "")),
+            str(tutor_sidecar.get("selected_skill", {}).get("tag", "")),
+            "boxplots",
+        }
+        and workspace_card.get("not_cleared_receipt") is True
+        and workspace_card.get("raw_workspace_card_returned") is False,
         "operator_confirmed_local_write_boundaries": all(
             run_report.get("operator_confirmations", {}).get(flag) is True
             for flag in [
@@ -508,6 +546,12 @@ def build_exam_workspace_run_release_claim_alignment(
         "tutor_status": tutor_sidecar.get("status"),
         "effective_help_level": tutor_sidecar.get("effective_help_level"),
         "source_anchor_count": tutor_sidecar.get("source_anchor_count", 0),
+        "workspace_card_status": workspace_card.get("status"),
+        "workspace_card_selected_skill_tag": workspace_card.get("selected_skill_tag"),
+        "workspace_card_ready_for_operator_prefill": bool(workspace_card.get("ready_for_operator_prefill", False)),
+        "workspace_card_help_ledger_status": workspace_card.get("help_ledger_preview_status"),
+        "workspace_card_help_ledger_hash_present": bool(workspace_card.get("help_ledger_preview_hash")),
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
         "private_tutor_use_flow_status": tutor_flow.get("status"),
         "study_receipt_status": receipt.get("status"),
         "general_help_ledger_status": general_ledger.get("status"),
@@ -616,6 +660,74 @@ def synthetic_exam_workspace_notebook() -> dict[str, Any]:
         "metadata": {"kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"}},
         "nbformat": 4,
         "nbformat_minor": 5,
+    }
+
+
+def synthetic_exam_workspace_run_workspace_card() -> dict[str, Any]:
+    preview_hash = sha256_text("synthetic exam workspace run workspace card")
+    return {
+        "schema_version": "unibot-python-exam-local-cycle-operator-workspace-card-v1",
+        "artifact_type": "python_exam_local_cycle_operator_workspace_card",
+        "status": "python_exam_local_cycle_operator_workspace_card_ready",
+        "selected_skill_tag": "boxplots",
+        "exam_deployment_status": "not_cleared",
+        "not_cleared_receipt": True,
+        "workspace_card_summary": {
+            "recommendation": "ready_for_operator_prefill",
+            "recommendation_reason": "synthetic run prerequisites are satisfied",
+            "ready_for_operator_prefill": True,
+            "help_ledger_preview_status": "help_ledger_preview_ready",
+            "selected_skill_tag": "boxplots",
+            "next_safe_action": "review_exam_workspace_run_dry_run",
+            "next_safe_user_action": "review_run_evidence_before_any_local_write",
+            "operator_run_endpoint": "/api/unibot/exam-workspace/operator-run",
+            "operator_run_method": "POST",
+            "help_level": "A2",
+            "task_hash": preview_hash,
+            "checkpoint_hash": preview_hash,
+            "source_card_ids": ["dfg-gwp", "vanlehn-2011"],
+            "source_anchor_count": 2,
+            "help_ledger_preview_hash": preview_hash,
+        },
+        "help_ledger_preview": {
+            "status": "help_ledger_preview_ready",
+            "help_level": "A2",
+            "preview_hash": preview_hash,
+        },
+    }
+
+
+def safe_local_cycle_workspace_card(workspace_card: dict[str, Any]) -> dict[str, Any]:
+    summary = workspace_card.get("workspace_card_summary", {}) if isinstance(workspace_card.get("workspace_card_summary"), dict) else {}
+    review = workspace_card.get("readiness_review", {}) if isinstance(workspace_card.get("readiness_review"), dict) else {}
+    handoff = workspace_card.get("readiness_handoff", {}) if isinstance(workspace_card.get("readiness_handoff"), dict) else {}
+    ledger = workspace_card.get("help_ledger_preview", {}) if isinstance(workspace_card.get("help_ledger_preview"), dict) else {}
+    if not summary and (
+        workspace_card.get("help_ledger_preview_hash") is not None
+        or workspace_card.get("ready_for_operator_prefill") is not None
+        or workspace_card.get("help_ledger_preview_status") is not None
+    ):
+        summary = workspace_card
+    return {
+        "status": workspace_card.get("status", "missing"),
+        "selected_skill_tag": str(summary.get("selected_skill_tag", workspace_card.get("selected_skill_tag", ""))),
+        "recommendation": str(summary.get("recommendation", review.get("recommendation", "keep_blocked"))),
+        "recommendation_reason": str(summary.get("recommendation_reason", review.get("recommendation_reason", "missing_start_packet"))),
+        "ready_for_operator_prefill": bool(summary.get("ready_for_operator_prefill", False)),
+        "help_ledger_preview_status": str(summary.get("help_ledger_preview_status", ledger.get("status", "missing"))),
+        "next_safe_action": str(summary.get("next_safe_action", review.get("next_safe_action", ""))),
+        "next_safe_user_action": str(summary.get("next_safe_user_action", review.get("next_safe_user_action", ""))),
+        "operator_run_endpoint": str(summary.get("operator_run_endpoint", handoff.get("operator_run_endpoint", ""))),
+        "operator_run_method": str(summary.get("operator_run_method", handoff.get("operator_run_method", "POST"))),
+        "help_level": str(summary.get("help_level", ledger.get("help_level", "A2"))),
+        "task_hash": str(summary.get("task_hash", "")),
+        "checkpoint_hash": str(summary.get("checkpoint_hash", "")),
+        "source_card_ids": [str(item) for item in (summary.get("source_card_ids", []) or [])][:8],
+        "source_anchor_count": int(summary.get("source_anchor_count", 0) or 0),
+        "help_ledger_preview_hash": str(summary.get("help_ledger_preview_hash", ledger.get("preview_hash", ""))),
+        "not_cleared_receipt": bool(workspace_card.get("not_cleared_receipt", True)),
+        "exam_deployment_status": "not_cleared",
+        "raw_workspace_card_returned": False,
     }
 
 
