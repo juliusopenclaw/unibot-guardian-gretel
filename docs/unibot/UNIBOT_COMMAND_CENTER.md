@@ -12,6 +12,13 @@ Older chats and workbench artifacts are treated as evidence inputs. They do not
 become parallel source-of-truth implementations. Every implementation slice
 returns through the local UniBot hub and must leave a public-safe handoff.
 
+The command center also carries a workspace-card route alignment. Role lanes,
+active harness routes, scope status, and the no-clearance deployment line are
+linked to the harnessed local-cycle operator workspace-card readiness gate
+through hashes only. The alignment preserves operator-prefill evidence without
+exposing raw workspace data, private course text, contact data, local paths,
+provider prompts, notebook code, or exam artifacts.
+
 ## Golden Rules
 
 - PM-GR1 Generalisieren: useful case work becomes reusable UniBot capability.

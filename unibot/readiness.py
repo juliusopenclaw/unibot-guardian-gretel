@@ -3790,6 +3790,12 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and command_center["deployment_line"]["exam_deployment_status"] == "not_cleared"
             and command_center["public_safety_status"] == "pass"
             and command_center_scan["status"] == "pass"
+            and command_center["workspace_card_route_alignment"]["status"] == "ready"
+            and command_center["workspace_card_route_alignment"]["alignment_public_safety_status"] == "pass"
+            and command_center["workspace_card_route_alignment"]["failed_contract_ids"] == []
+            and command_center["workspace_card_route_alignment"]["workspace_card_readiness_gate_linked"] is True
+            and command_center["workspace_card_route_alignment"]["workspace_card_command_center_gate_linked"] is True
+            and command_center["workspace_card_route_alignment"]["raw_workspace_card_returned"] is False
             and handoff_validation["status"] == "ok",
             "evidence": {
                 "status": command_center["status"],
@@ -3797,6 +3803,38 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "public_safety_status": command_center["public_safety_status"],
                 "handoff_validation_status": handoff_validation["status"],
                 "exam_deployment_status": command_center["deployment_line"]["exam_deployment_status"],
+                "workspace_card_route_alignment_status": command_center["workspace_card_route_alignment"]["status"],
+                "workspace_card_route_alignment_public_safety_status": command_center[
+                    "workspace_card_route_alignment"
+                ]["alignment_public_safety_status"],
+                "active_harness_count": command_center["workspace_card_route_alignment"]["active_harness_count"],
+                "active_route_count": command_center["workspace_card_route_alignment"]["active_route_count"],
+                "scope_status": command_center["workspace_card_route_alignment"]["scope_status"],
+                "workspace_card_status": command_center["workspace_card_route_alignment"]["workspace_card_status"],
+                "workspace_card_selected_skill_tag": command_center["workspace_card_route_alignment"][
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": command_center["workspace_card_route_alignment"][
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": command_center["workspace_card_route_alignment"][
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": command_center["workspace_card_route_alignment"][
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": command_center["workspace_card_route_alignment"][
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_command_center_gate_linked": command_center["workspace_card_route_alignment"][
+                    "workspace_card_command_center_gate_linked"
+                ],
+                "workspace_card_readiness_gate_claim_linked": command_center["workspace_card_route_alignment"][
+                    "workspace_card_readiness_gate_claim_linked"
+                ],
+                "raw_workspace_card_returned": command_center["workspace_card_route_alignment"][
+                    "raw_workspace_card_returned"
+                ],
             },
         },
         {

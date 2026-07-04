@@ -55,6 +55,7 @@ It aggregates:
 - Python exam local-cycle readiness-review and manual-review alignment
 - Python exam local-cycle readiness-handoff and operator-prefill alignment
 - Python exam local-cycle operator workspace-card and help-ledger-preview alignment
+- orchestration command center and workspace-card route alignment
 - Gretel/GLM proposal lane
 - Gretel autonomous research loop and workspace-card budget/receipt alignment
 - Paperclip evaluation bridge and workspace-card control/receipt alignment
@@ -89,6 +90,15 @@ control alignment links optional control-plane status and request/receipt hashes
 to the harnessed local-cycle operator workspace-card readiness gate without
 exposing raw private course text, contact data, local paths, provider prompts,
 runtime activation data, autonomous publication, approval or exam-clearance
+claims, grading, proctoring, KI-detection evidence, exam deployment claims, or
+the raw workspace card.
+
+The orchestration command center is ready only when role lanes, active harness
+routes, scope status, handoff rules, and the not-cleared deployment line remain
+public-safe. Its workspace-card route alignment links command-center and route
+hashes to the harnessed local-cycle operator workspace-card readiness gate
+without exposing raw private course text, contact data, local paths, provider
+prompts, notebook code, autonomous publication, approval or exam-clearance
 claims, grading, proctoring, KI-detection evidence, exam deployment claims, or
 the raw workspace card.
 

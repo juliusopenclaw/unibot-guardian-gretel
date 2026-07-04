@@ -15,8 +15,12 @@ sys.path.insert(0, str(ROOT))
 from unibot.course_tutor import build_course_material_compiler_plan  # noqa: E402
 from unibot.orchestration import (  # noqa: E402
     build_context_packet,
+    build_command_center_workspace_card_route_alignment,
     build_orchestration_markdown,
     build_unibot_command_center,
+    command_center_hash,
+    command_center_route_hash,
+    synthetic_command_center_workspace_card,
     validate_chat_handoff,
 )
 from unibot.public_safety import scan_text  # noqa: E402
@@ -485,8 +489,48 @@ class UniBotOrchestrationTests(unittest.TestCase):
                 decision_harness["sequence"],
             )
             self.assertIn("no exam deployment switch", decision_harness["boundary"])
+            alignment = center["workspace_card_route_alignment"]
+            self.assertEqual(
+                alignment["schema_version"],
+                "unibot-command-center-workspace-card-route-alignment-v1",
+            )
+            self.assertEqual(alignment["status"], "ready")
+            self.assertEqual(alignment["alignment_public_safety_status"], "pass")
+            self.assertEqual(alignment["failed_contract_ids"], [])
+            self.assertEqual(alignment["command_center_hash"], command_center_hash(center))
+            self.assertEqual(alignment["route_hash"], command_center_route_hash(center))
+            self.assertEqual(alignment["command_center_status"], "ready_to_orchestrate")
+            self.assertEqual(alignment["exam_deployment_status"], "not_cleared")
+            self.assertGreaterEqual(alignment["role_lane_count"], 7)
+            self.assertGreaterEqual(alignment["active_harness_count"], 3)
+            self.assertGreaterEqual(alignment["active_route_count"], 1)
+            self.assertIn("orchestration_command_center", alignment["required_readiness_check_ids"])
+            self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
+            self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+            self.assertTrue(alignment["workspace_card_command_center_gate_linked"])
+            self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+            self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+            self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+            self.assertFalse(alignment["raw_workspace_card_returned"])
+            self.assertIn("exam deployment", alignment["blocked_claims"])
             self.assertNotIn(str(fixture_root), payload)
             self.assertEqual(center["public_safety_status"], "pass")
+
+    def test_command_center_workspace_card_alignment_rejects_unlinked_hashes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fixture_root = Path(temp_dir)
+            write_orchestration_fixture(fixture_root)
+            center = build_unibot_command_center(base_path=str(fixture_root), review_policy="local_private_tutor")
+            workspace_card = synthetic_command_center_workspace_card()
+            workspace_card["workspace_card_summary"]["checkpoint_hash"] = "wrong-command-hash"
+            workspace_card["workspace_card_summary"]["task_hash"] = "wrong-route-hash"
+
+            alignment = build_command_center_workspace_card_route_alignment(center, workspace_card)
+
+            self.assertEqual(alignment["status"], "blocked")
+            self.assertIn("workspace_card_command_center_gate_linked", alignment["failed_contract_ids"])
+            self.assertFalse(alignment["workspace_card_command_center_gate_linked"])
+            self.assertFalse(alignment["raw_workspace_card_returned"])
 
     def test_command_center_uses_configured_course_material_root_from_env(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -563,6 +607,8 @@ class UniBotOrchestrationTests(unittest.TestCase):
         status, center = route_request("/api/unibot/orchestration/command-center", {})
         self.assertEqual(status, 200)
         self.assertEqual(center["status"], "ready_to_orchestrate")
+        self.assertEqual(center["workspace_card_route_alignment"]["status"], "ready")
+        self.assertTrue(center["workspace_card_route_alignment"]["workspace_card_command_center_gate_linked"])
 
         status, packet = route_request("/api/unibot/orchestration/context-packet", {"role_id": "qa_redteam"})
         self.assertEqual(status, 200)
@@ -589,6 +635,7 @@ class UniBotOrchestrationTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("# UniBot Command Center", markdown["markdown"])
         self.assertIn("Exam deployment: not_cleared", markdown["markdown"])
+        self.assertIn("Workspace-card gate linked: True", markdown["markdown"])
         self.assertIn("# UniBot Command Center", build_orchestration_markdown())
 
 
