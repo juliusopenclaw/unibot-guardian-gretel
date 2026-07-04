@@ -1477,7 +1477,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "stakeholder_submission_bundle_local_cycle_workspace_card_lane_link_alignment",
             "priority": 78,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link stakeholder submission bundle decision-lane and evidence-summary metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving lane/evidence hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no external send or approval claim, no grading/proctoring/KI-detection, and no exam clearance/deployment claims.",
             "allowed_files": [
                 "unibot/submission.py",
@@ -1487,6 +1487,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_submission.py tests/test_unibot_readiness.py -q"],
             "review_gate": "stakeholder_submission_bundle_local_cycle_workspace_card_lane_link_traceability",
+            "closure_evidence": {
+                "commit": "57fafbd",
+                "summary": "Stakeholder submission bundle release-claim alignment now links decision-lane and combined-evidence hashes to the harnessed local-cycle operator workspace-card readiness gate, preserves lane/evidence and ready-for-prefill metadata, and blocks raw private course text/contact data/local path publication, external sends or approval claims, grading, proctoring, KI-detection, and exam clearance/deployment claims.",
+            },
+        },
+        {
+            "work_id": "authority_handoff_local_cycle_workspace_card_authority_link_alignment",
+            "priority": 79,
+            "status": "ready",
+            "goal": "Link authority handoff reviewer-packet and public-language metadata with the harnessed local-cycle operator workspace-card readiness gate, preserving authority/evidence hashes and workspace-card prefill evidence, no raw private course text/contact data/local path publication, no external send, no legal/approval/exam-clearance claim, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/handoff.py",
+                "tests/test_unibot_handoff.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_handoff.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "authority_handoff_local_cycle_workspace_card_authority_link_traceability",
         },
     ]
 

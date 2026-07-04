@@ -57,15 +57,23 @@ contract change.
 
 ## Current Work Queue
 
-- `stakeholder_submission_bundle_local_cycle_workspace_card_lane_link_alignment`
-  is ready. It should link stakeholder submission bundle decision-lane and
-  evidence-summary metadata with the harnessed local-cycle operator
-  workspace-card readiness gate, preserving lane/evidence hashes and
-  workspace-card prefill evidence, no raw private course text/contact data/local
-  path publication, no external send or approval claim, no
-  grading/proctoring/KI-detection, and no exam clearance/deployment claims.
+- `authority_handoff_local_cycle_workspace_card_authority_link_alignment` is
+  ready. It should link authority handoff reviewer-packet and public-language
+  metadata with the harnessed local-cycle operator workspace-card readiness
+  gate, preserving authority/evidence hashes and workspace-card prefill
+  evidence, no raw private course text/contact data/local path publication, no
+  external send, no legal/approval/exam-clearance claim, no
+  grading/proctoring/KI-detection, and no exam deployment claims.
 
 ## Closed Harnessed Work
+
+- `stakeholder_submission_bundle_local_cycle_workspace_card_lane_link_alignment`:
+  closed in `57fafbd` with stakeholder submission bundle release-claim links
+  from decision-lane and combined-evidence hashes to the harnessed local-cycle
+  operator workspace-card readiness gate, lane/evidence and ready-for-prefill
+  metadata, and blocked raw private course text/contact data/local path
+  publication, external sends or approval claims, grading, proctoring,
+  KI-detection, and exam clearance/deployment claims.
 
 - `stakeholder_decision_request_local_cycle_workspace_card_packet_link_alignment`:
   closed in `2809248` with stakeholder decision request release-claim links from
