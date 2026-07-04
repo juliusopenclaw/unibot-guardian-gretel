@@ -118,7 +118,14 @@ from .external_decision_journal import (
 from .handoff import build_authority_handoff_markdown, build_authority_handoff_packet
 from .ledger import append_ledger_event, export_public_ledger_summary, read_ledger, summarize_ledger
 from .loop_lab import core25_dataset, loop_lab_cases, run_loop_lab
-from .material_coverage_run import build_course_material_coverage_run
+from .material_coverage_run import (
+    build_course_material_coverage_run,
+    build_material_coverage_run_workspace_card_alignment,
+    material_coverage_run_hash,
+    material_coverage_run_receipt_hash,
+    synthetic_material_coverage_run_inputs,
+    synthetic_material_coverage_run_workspace_card,
+)
 from .exam_notebook_checkpoint import build_exam_notebook_checkpoint_adapter_dry_run
 from .exam_skill_drilldown import build_exam_skill_drilldown
 from .exam_workspace_launch_flow import build_exam_workspace_launch_flow_dry_run
@@ -392,6 +399,11 @@ __all__ = [
     "build_skill_to_workspace_session_carryover",
     "build_skill_to_workspace_live_flow",
     "build_course_material_coverage_run",
+    "build_material_coverage_run_workspace_card_alignment",
+    "material_coverage_run_hash",
+    "material_coverage_run_receipt_hash",
+    "synthetic_material_coverage_run_inputs",
+    "synthetic_material_coverage_run_workspace_card",
     "build_exam_notebook_checkpoint_adapter_dry_run",
     "build_exam_skill_drilldown",
     "build_exam_workspace_launch_flow_dry_run",

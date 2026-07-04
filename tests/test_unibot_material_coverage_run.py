@@ -10,7 +10,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.material_coverage_run import build_course_material_coverage_run  # noqa: E402
+from unibot.material_coverage_run import (  # noqa: E402
+    build_course_material_coverage_run,
+    build_material_coverage_run_workspace_card_alignment,
+    material_coverage_run_hash,
+    material_coverage_run_receipt_hash,
+    synthetic_material_coverage_run_workspace_card,
+)
 from unibot.materials import build_material_manifest, sha256_text  # noqa: E402
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
@@ -162,10 +168,37 @@ class UniBotMaterialCoverageRunTests(unittest.TestCase):
             self.assertEqual(report["next_exam_workspace_start_point"]["status"], "ready")
             self.assertEqual(report["next_exam_workspace_start_point"]["recommended_endpoint"], "/api/unibot/exam-workspace/run-dry-run")
             self.assertEqual(report["next_exam_workspace_start_point"]["recommended_help_level"], "A2")
+            self.assertEqual(report["coverage_receipt"]["status"], "material_coverage_receipt_ready_not_exam_clearance")
+            self.assertTrue(report["coverage_receipt"]["not_cleared_receipt"])
             self.assertEqual(skills["pandas"]["exam_workspace_readiness"], "ready_for_exam_workspace_dry_run")
+            self.assertEqual(skills["pandas"]["exam_deployment_status"], "not_cleared")
             self.assertGreaterEqual(skills["pandas"]["source_anchor_count"], 1)
             self.assertGreaterEqual(skills["pandas"]["reviewed_notebook_anchor_count"], 1)
             self.assertIn(skills["pandas"]["notebook_exercise"]["status"], {"ready", "ready_from_private_index_anchor"})
+            alignment = report["workspace_card_coverage_alignment"]
+            self.assertEqual(
+                alignment["schema_version"],
+                "unibot-material-coverage-run-workspace-card-coverage-alignment-v1",
+            )
+            self.assertEqual(alignment["status"], "ready")
+            self.assertEqual(alignment["alignment_public_safety_status"], "pass")
+            self.assertEqual(alignment["failed_contract_ids"], [])
+            self.assertEqual(alignment["material_coverage_run_hash"], material_coverage_run_hash(report))
+            self.assertEqual(alignment["material_coverage_run_receipt_hash"], material_coverage_run_receipt_hash(report))
+            self.assertEqual(alignment["receipt_status"], "material_coverage_receipt_ready_not_exam_clearance")
+            self.assertGreaterEqual(alignment["skill_count"], 1)
+            self.assertGreaterEqual(alignment["visible_skill_count"], 1)
+            self.assertGreaterEqual(alignment["source_anchor_count"], 1)
+            self.assertGreaterEqual(alignment["notebook_anchor_count"], 1)
+            self.assertGreaterEqual(alignment["ocr_gap_count"], 0)
+            self.assertGreaterEqual(alignment["video_gap_count"], 0)
+            self.assertEqual(alignment["exam_deployment_status"], "not_cleared")
+            self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+            self.assertTrue(alignment["workspace_card_material_coverage_gate_linked"])
+            self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+            self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+            self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+            self.assertFalse(alignment["raw_workspace_card_returned"])
             self.assertFalse(report["raw_text_returned"])
             self.assertFalse(report["raw_query_returned"])
             self.assertFalse(report["local_paths_returned"])
@@ -174,6 +207,20 @@ class UniBotMaterialCoverageRunTests(unittest.TestCase):
             self.assertNotIn(str(temp_dir), payload)
             self.assertNotIn("Week 01 pandas", payload)
             self.assertEqual(scan_text(payload, "material-coverage-ready")["status"], "pass")
+
+    def test_material_coverage_workspace_card_alignment_blocks_when_prefill_hashes_do_not_match(self) -> None:
+        report = build_course_material_coverage_run(public_safe=True)
+        workspace_card = synthetic_material_coverage_run_workspace_card()
+        workspace_card["workspace_card_summary"]["checkpoint_hash"] = "wrong-material-coverage-hash"
+        workspace_card["workspace_card_summary"]["task_hash"] = "wrong-material-coverage-receipt-hash"
+
+        alignment = build_material_coverage_run_workspace_card_alignment(report, workspace_card)
+
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertIn("workspace_card_material_coverage_gate_linked", alignment["failed_contract_ids"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertFalse(alignment["workspace_card_material_coverage_gate_linked"])
+        self.assertEqual(alignment["alignment_public_safety_status"], "pass")
 
 
 if __name__ == "__main__":

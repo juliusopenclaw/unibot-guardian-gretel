@@ -71,6 +71,7 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertIn("exam_packet_timeline", check_ids)
         self.assertIn("timeline_export_review_packet", check_ids)
         self.assertIn("timeline_export_receipt_journal", check_ids)
+        self.assertIn("material_coverage_run", check_ids)
         self.assertIn("extraction_progress", check_ids)
         self.assertIn("extraction_manifest_update", check_ids)
         self.assertIn("extraction_manifest_apply", check_ids)
@@ -783,6 +784,48 @@ class UniBotReadinessTests(unittest.TestCase):
         )
         self.assertTrue(timeline_review_packet["evidence"]["workspace_card_help_ledger_hash_present"])
         self.assertFalse(timeline_review_packet["evidence"]["raw_workspace_card_returned"])
+        material_coverage_run = next(
+            check for check in report["checks"] if check["check_id"] == "material_coverage_run"
+        )
+        self.assertEqual(
+            material_coverage_run["evidence"]["workspace_card_coverage_alignment_status"],
+            "ready",
+        )
+        self.assertEqual(
+            material_coverage_run["evidence"]["workspace_card_coverage_alignment_public_safety_status"],
+            "pass",
+        )
+        self.assertIn(
+            material_coverage_run["evidence"]["coverage_status"],
+            {
+                "course_material_coverage_needs_materials",
+                "course_material_coverage_needs_private_manifest_apply",
+                "course_material_coverage_needs_tutor_index_build",
+                "course_material_coverage_ready_for_exam_workspace",
+                "course_material_coverage_needs_extraction_or_transcription",
+                "course_material_coverage_needs_anchor_review",
+            },
+        )
+        self.assertEqual(
+            material_coverage_run["evidence"]["receipt_status"],
+            "material_coverage_receipt_ready_not_exam_clearance",
+        )
+        self.assertGreaterEqual(material_coverage_run["evidence"]["skill_count"], 1)
+        self.assertGreaterEqual(material_coverage_run["evidence"]["visible_skill_count"], 1)
+        self.assertGreaterEqual(material_coverage_run["evidence"]["source_anchor_count"], 0)
+        self.assertGreaterEqual(material_coverage_run["evidence"]["notebook_anchor_count"], 0)
+        self.assertGreaterEqual(material_coverage_run["evidence"]["ocr_gap_count"], 0)
+        self.assertGreaterEqual(material_coverage_run["evidence"]["video_gap_count"], 0)
+        self.assertEqual(material_coverage_run["evidence"]["exam_deployment_status"], "not_cleared")
+        self.assertTrue(material_coverage_run["evidence"]["workspace_card_readiness_gate_linked"])
+        self.assertTrue(material_coverage_run["evidence"]["workspace_card_material_coverage_gate_linked"])
+        self.assertTrue(material_coverage_run["evidence"]["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(
+            material_coverage_run["evidence"]["workspace_card_help_ledger_status"],
+            "help_ledger_preview_ready",
+        )
+        self.assertTrue(material_coverage_run["evidence"]["workspace_card_help_ledger_hash_present"])
+        self.assertFalse(material_coverage_run["evidence"]["raw_workspace_card_returned"])
         course_exam_coverage_dashboard = next(
             check for check in report["checks"] if check["check_id"] == "course_exam_coverage_dashboard"
         )

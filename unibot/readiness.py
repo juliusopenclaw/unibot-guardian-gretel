@@ -19,6 +19,10 @@ from .course_exam_coverage_dashboard import (
     build_course_exam_coverage_dashboard_workspace_card_alignment,
     synthetic_course_exam_coverage_dashboard_inputs,
 )
+from .material_coverage_run import (
+    build_material_coverage_run_workspace_card_alignment,
+    synthetic_material_coverage_run_inputs,
+)
 from .course_per_skill_action_router import (
     build_course_per_skill_action_router_workspace_card_alignment,
     synthetic_course_per_skill_action_router_inputs,
@@ -196,6 +200,7 @@ def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
         "python_exam_local_cycle_readiness_review",
         "python_exam_local_cycle_readiness_handoff",
         "python_exam_local_cycle_operator_workspace_card",
+        "material_coverage_run",
         "gretel_glm_evolve_lane",
         "gretel_bachelor_thesis_package",
         "gretel_autonomous_research_loop",
@@ -476,6 +481,10 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     timeline_review_packet_inputs = synthetic_timeline_export_review_packet_inputs()
     timeline_review_packet_alignment = build_timeline_export_review_packet_workspace_card_alignment(
         timeline_review_packet_inputs["review_packet"],
+    )
+    material_coverage_run_inputs = synthetic_material_coverage_run_inputs()
+    material_coverage_run_alignment = build_material_coverage_run_workspace_card_alignment(
+        material_coverage_run_inputs["material_coverage_run"],
     )
     course_exam_coverage_dashboard_inputs = synthetic_course_exam_coverage_dashboard_inputs()
     course_exam_coverage_dashboard_alignment = build_course_exam_coverage_dashboard_workspace_card_alignment(
@@ -4340,6 +4349,71 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                     "workspace_card_readiness_gate_claim_linked"
                 ],
                 "raw_workspace_card_returned": timeline_review_packet_alignment["raw_workspace_card_returned"],
+            },
+        },
+        {
+            "check_id": "material_coverage_run",
+            "passed": material_coverage_run_alignment["status"] == "ready"
+            and material_coverage_run_alignment["alignment_public_safety_status"] == "pass"
+            and material_coverage_run_alignment["failed_contract_ids"] == []
+            and material_coverage_run_alignment["coverage_status"]
+            in {
+                "course_material_coverage_needs_materials",
+                "course_material_coverage_needs_private_manifest_apply",
+                "course_material_coverage_needs_tutor_index_build",
+                "course_material_coverage_ready_for_exam_workspace",
+                "course_material_coverage_needs_extraction_or_transcription",
+                "course_material_coverage_needs_anchor_review",
+            }
+            and material_coverage_run_alignment["receipt_status"]
+            == "material_coverage_receipt_ready_not_exam_clearance"
+            and material_coverage_run_alignment["skill_count"] >= 1
+            and material_coverage_run_alignment["visible_skill_count"] >= 1
+            and material_coverage_run_alignment["source_anchor_count"] >= 0
+            and material_coverage_run_alignment["notebook_anchor_count"] >= 0
+            and material_coverage_run_alignment["ocr_gap_count"] >= 0
+            and material_coverage_run_alignment["video_gap_count"] >= 0
+            and material_coverage_run_alignment["exam_deployment_status"] == "not_cleared"
+            and material_coverage_run_alignment["workspace_card_readiness_gate_linked"] is True
+            and material_coverage_run_alignment["workspace_card_material_coverage_gate_linked"] is True
+            and material_coverage_run_alignment["raw_workspace_card_returned"] is False,
+            "evidence": {
+                "workspace_card_coverage_alignment_status": material_coverage_run_alignment["status"],
+                "workspace_card_coverage_alignment_public_safety_status": material_coverage_run_alignment[
+                    "alignment_public_safety_status"
+                ],
+                "coverage_status": material_coverage_run_alignment["coverage_status"],
+                "receipt_status": material_coverage_run_alignment["receipt_status"],
+                "skill_count": material_coverage_run_alignment["skill_count"],
+                "visible_skill_count": material_coverage_run_alignment["visible_skill_count"],
+                "source_anchor_count": material_coverage_run_alignment["source_anchor_count"],
+                "notebook_anchor_count": material_coverage_run_alignment["notebook_anchor_count"],
+                "ocr_gap_count": material_coverage_run_alignment["ocr_gap_count"],
+                "video_gap_count": material_coverage_run_alignment["video_gap_count"],
+                "exam_deployment_status": material_coverage_run_alignment["exam_deployment_status"],
+                "workspace_card_status": material_coverage_run_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": material_coverage_run_alignment[
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": material_coverage_run_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": material_coverage_run_alignment[
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": material_coverage_run_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": material_coverage_run_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_material_coverage_gate_linked": material_coverage_run_alignment[
+                    "workspace_card_material_coverage_gate_linked"
+                ],
+                "workspace_card_readiness_gate_claim_linked": material_coverage_run_alignment[
+                    "workspace_card_readiness_gate_claim_linked"
+                ],
+                "raw_workspace_card_returned": material_coverage_run_alignment["raw_workspace_card_returned"],
             },
         },
         {

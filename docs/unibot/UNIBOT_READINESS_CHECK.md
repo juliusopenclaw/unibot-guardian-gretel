@@ -58,6 +58,7 @@ It aggregates:
 - orchestration command center and workspace-card route alignment
 - completion audit and workspace-card closure alignment
 - review-chain integrity and workspace-card chain alignment
+- material coverage run and workspace-card coverage alignment
 - course exam coverage dashboard and workspace-card dashboard alignment
 - per-skill action router and workspace-card route alignment
 - routed action executor and workspace-card execution alignment
@@ -129,6 +130,16 @@ workspace-card readiness gate without exposing raw private course text, contact
 data, local paths, notebook code, autonomous publication, approval or
 exam-clearance claims, grading, proctoring, KI-detection evidence, exam
 deployment claims, or the raw workspace card.
+
+The material coverage run carries
+`unibot-material-coverage-run-workspace-card-coverage-alignment-v1`. This
+contract keeps skill coverage rows, coverage receipt hashes, source/notebook
+anchor counts, OCR/video gap counts, and the not-cleared deployment line
+hash-linked to the harnessed local-cycle operator workspace-card readiness gate
+without exposing raw private course text, contact data, local paths, notebook
+code, autonomous publication, provider calls, approval or exam-clearance
+claims, grading, proctoring, KI-detection evidence, exam deployment claims, or
+the raw workspace card.
 
 The course exam coverage dashboard carries
 `unibot-course-exam-coverage-dashboard-workspace-card-dashboard-alignment-v1`.
