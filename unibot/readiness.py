@@ -96,7 +96,11 @@ from .source_cards import (
     list_source_cards,
 )
 from .submission import build_stakeholder_submission_bundle
-from .study_session import build_study_session_release_claim_alignment
+from .study_session import (
+    build_study_session_release_claim_alignment,
+    build_study_session_workspace_card_alignment,
+    synthetic_study_session_inputs,
+)
 from .timeline_export_receipt_journal import (
     build_timeline_export_receipt_journal_workspace_card_alignment,
     synthetic_timeline_export_receipt_journal_inputs,
@@ -358,6 +362,10 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
         private_tutor_use_flow_inputs["private_tutor_use_flow"],
     )
     study_session_alignment = build_study_session_release_claim_alignment()
+    study_session_inputs = synthetic_study_session_inputs()
+    study_session_workspace_alignment = build_study_session_workspace_card_alignment(
+        study_session_inputs["study_session_review_report"],
+    )
     notebook_checkpoint_alignment = build_notebook_checkpoint_release_claim_alignment()
     exam_workspace_launch_alignment = build_exam_workspace_launch_release_claim_alignment()
     exam_workspace_run_alignment = build_exam_workspace_run_release_claim_alignment()
@@ -1872,11 +1880,27 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and study_session_alignment["repeat_validation_public_safety_status"] == "pass"
             and study_session_alignment["exam_deployment_status"] == "not_cleared"
             and study_session_alignment["missing_source_card_ids"] == []
-            and study_session_alignment["failed_contract_ids"] == [],
+            and study_session_alignment["failed_contract_ids"] == []
+            and study_session_workspace_alignment["status"] == "ready"
+            and study_session_workspace_alignment["alignment_public_safety_status"] == "pass"
+            and study_session_workspace_alignment["failed_contract_ids"] == []
+            and study_session_workspace_alignment["receipt_status"]
+            == "study_session_review_receipt_ready_not_exam_clearance"
+            and study_session_workspace_alignment["workspace_card_readiness_gate_linked"] is True
+            and study_session_workspace_alignment["workspace_card_study_session_gate_linked"] is True
+            and study_session_workspace_alignment["raw_workspace_card_returned"] is False,
             "evidence": {
                 "release_claim_alignment_status": study_session_alignment["status"],
                 "release_claim_alignment_public_safety_status": study_session_alignment["public_safety_status"],
                 "release_claim_alignment_contract_status": study_session_alignment["schema_version"],
+                "workspace_card_study_alignment_status": study_session_workspace_alignment["status"],
+                "workspace_card_study_alignment_public_safety_status": study_session_workspace_alignment[
+                    "alignment_public_safety_status"
+                ],
+                "workspace_card_study_alignment_contract_status": study_session_workspace_alignment[
+                    "schema_version"
+                ],
+                "workspace_card_study_receipt_status": study_session_workspace_alignment["receipt_status"],
                 "release_claim_alignment_section_count": study_session_alignment["section_count"],
                 "review_status": study_session_alignment["review_status"],
                 "review_public_safety_status": study_session_alignment["review_public_safety_status"],
@@ -1908,6 +1932,12 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 ],
                 "workspace_card_reflection_gate_linked": study_session_alignment[
                     "workspace_card_reflection_gate_linked"
+                ],
+                "workspace_card_study_session_gate_linked": study_session_workspace_alignment[
+                    "workspace_card_study_session_gate_linked"
+                ],
+                "workspace_card_operator_prefill_hash_present": study_session_workspace_alignment[
+                    "workspace_card_operator_prefill_hash_present"
                 ],
                 "workspace_card_reflection_hash_present": study_session_alignment[
                     "workspace_card_reflection_hash_present"

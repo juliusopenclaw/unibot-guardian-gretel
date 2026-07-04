@@ -400,6 +400,16 @@ learner text or the raw workspace card. The report does not store raw student
 text, grade, rank, proctor, detect AI use, claim Eigenleistung percentages, or
 clear exam deployment.
 
+Its study workspace-card alignment carries
+`unibot-study-session-workspace-card-study-alignment-v1`. This contract keeps
+review hashes, receipt hashes, formative evidence counts, repeat-task
+boundaries, and the not-cleared deployment line hash-linked to the harnessed
+local-cycle operator workspace-card readiness gate without exposing raw private
+course text, raw learner reflection, contact data, local paths, notebook code,
+autonomous publication, provider calls, approval or exam-clearance claims,
+grading, proctoring, KI-detection evidence, exam deployment claims, or the raw
+workspace card.
+
 The notebook-checkpoint gate carries
 `unibot-notebook-checkpoint-release-review-board-claim-alignment-v1`. It turns
 local notebook cell work into hash-only checkpoint evidence and can write a

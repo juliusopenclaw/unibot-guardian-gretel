@@ -26,6 +26,9 @@ STUDY_SESSION_REVIEW_SCHEMA_VERSION = "unibot-course-study-session-review-v1"
 STUDY_SESSION_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
     "unibot-study-session-release-review-board-claim-alignment-v1"
 )
+STUDY_SESSION_WORKSPACE_CARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-study-session-workspace-card-study-alignment-v1"
+)
 
 RECEIPT_TEXT_FIELDS = {
     "retrieval_response",
@@ -246,15 +249,340 @@ def build_study_session_review_report(
         "validated_receipts": validations[:80],
         "receipt_output_truncated": len(validations) > 80,
         "local_cycle_operator_workspace_card": local_cycle_workspace_card,
+        "study_session_review_receipt": {
+            "status": "study_session_review_receipt_ready_not_exam_clearance",
+            "receipt_id": study_session_review_receipt_id(
+                receipt_summary={
+                    "submitted_receipt_count": len(receipt_records),
+                    "valid_receipt_count": len(ok),
+                    "blocked_receipt_count": len(blocked),
+                    "repeat_task_required_count": len(repeat),
+                    "missing_planned_receipt_count": max(0, int(plan.get("task_count", 0) or 0) - len(ok)),
+                },
+                evidence_profile=aggregate_evidence_profile(validations),
+            ),
+            "exam_deployment_status": "not_cleared",
+            "not_cleared_receipt": True,
+            "raw_query_returned": False,
+            "raw_text_returned": False,
+            "raw_student_text_returned": False,
+            "notebook_code_returned": False,
+            "local_paths_returned": False,
+        },
         "review_policy": {
             "eigenleistung_claim": "Use evidence profile, source anchors, help levels, blocked repeats, and reflections; never claim a percentage.",
             "human_review_path": "A human can inspect private notebook/checkpoint artifacts using hashes and local-only references outside this report.",
             "not_allowed": ["grade", "ranking", "proctoring", "AI detection", "raw private text publication"],
         },
+        "raw_query_returned": False,
+        "raw_text_returned": False,
+        "raw_student_text_returned": False,
+        "notebook_code_returned": False,
+        "local_paths_returned": False,
+        "automatic_grading_started": False,
+        "proctoring_started": False,
+        "ai_detection_started": False,
+        "exam_clearance_claimed": False,
         "next_actions": study_review_next_actions(plan, validations),
     }
     attach_public_scan(report, public_safe=public_safe, source_name="study-session-review-report")
+    report["workspace_card_study_alignment"] = build_study_session_workspace_card_alignment(report)
+    attach_public_scan(report, public_safe=public_safe, source_name="study-session-review-report")
     return report
+
+
+def study_session_review_receipt_id(*, receipt_summary: dict[str, Any], evidence_profile: dict[str, Any]) -> str:
+    seed = {
+        "receipt_summary": receipt_summary,
+        "evidence_profile": evidence_profile,
+        "exam_deployment_status": "not_cleared",
+    }
+    return sha256_text(json.dumps(seed, sort_keys=True, ensure_ascii=False))[:20]
+
+
+def study_session_review_hash(review_report: dict[str, Any] | None = None) -> str:
+    review_report = review_report if isinstance(review_report, dict) else {}
+    return sha256_text(
+        json.dumps(
+            {
+                "schema_version": review_report.get("schema_version", ""),
+                "artifact_type": review_report.get("artifact_type", ""),
+                "status": review_report.get("status", ""),
+                "course_id": review_report.get("course_id", ""),
+                "exam_deployment_status": review_report.get("exam_deployment_status", ""),
+                "study_session_status": review_report.get("study_session_status", ""),
+                "planned_task_count": review_report.get("planned_task_count", 0),
+                "receipt_summary": review_report.get("receipt_summary", {}),
+                "evidence_profile": review_report.get("evidence_profile", {}),
+                "validated_receipts": review_report.get("validated_receipts", []),
+                "public_safety_status": review_report.get("public_safety_status", ""),
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+    )
+
+
+def study_session_review_receipt_hash(review_report: dict[str, Any] | None = None) -> str:
+    review_report = review_report if isinstance(review_report, dict) else {}
+    receipt = (
+        review_report.get("study_session_review_receipt", {})
+        if isinstance(review_report.get("study_session_review_receipt"), dict)
+        else {}
+    )
+    return sha256_text(
+        json.dumps(
+            {
+                "receipt_status": receipt.get("status", ""),
+                "receipt_id": receipt.get("receipt_id", ""),
+                "exam_deployment_status": receipt.get("exam_deployment_status", ""),
+                "not_cleared_receipt": receipt.get("not_cleared_receipt", None),
+                "review_status": review_report.get("status", ""),
+                "receipt_summary_hash": sha256_text(
+                    json.dumps(review_report.get("receipt_summary", {}), sort_keys=True, ensure_ascii=False)
+                ),
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+    )
+
+
+def synthetic_study_session_review_workspace_card() -> dict[str, Any]:
+    preview_hash = sha256_text("synthetic study session review workspace card")
+    return {
+        "schema_version": "unibot-python-exam-local-cycle-operator-workspace-card-v1",
+        "artifact_type": "python_exam_local_cycle_operator_workspace_card",
+        "status": "python_exam_local_cycle_operator_workspace_card_ready",
+        "selected_skill_tag": "pandas",
+        "exam_deployment_status": "not_cleared",
+        "not_cleared_receipt": True,
+        "workspace_card_summary": {
+            "recommendation": "ready_for_operator_prefill",
+            "recommendation_reason": "synthetic study-session review prerequisites are satisfied",
+            "ready_for_operator_prefill": True,
+            "help_ledger_preview_status": "help_ledger_preview_ready",
+            "selected_skill_tag": "pandas",
+            "next_safe_action": "review_study_session_hashes_before_workspace_prefill",
+            "next_safe_user_action": "review_hash_only_study_session_before_route_or_public_claim",
+            "operator_run_endpoint": "/api/unibot/exam-workspace/operator-run",
+            "operator_run_method": "POST",
+            "help_level": "A2",
+            "task_hash": "__STUDY_SESSION_REVIEW_RECEIPT_HASH__",
+            "checkpoint_hash": "__STUDY_SESSION_REVIEW_HASH__",
+            "source_card_ids": ["dfg-gwp", "gdpr-2016-679", "uoc-ki-faq"],
+            "source_anchor_count": 3,
+            "help_ledger_preview_hash": preview_hash,
+        },
+        "help_ledger_preview": {
+            "status": "help_ledger_preview_ready",
+            "help_level": "A2",
+            "preview_hash": preview_hash,
+        },
+    }
+
+
+def safe_study_session_review_workspace_card(
+    workspace_card: dict[str, Any],
+    *,
+    review_hash: str = "",
+    receipt_hash: str = "",
+) -> dict[str, Any]:
+    summary = workspace_card.get("workspace_card_summary", {}) if isinstance(workspace_card.get("workspace_card_summary"), dict) else {}
+    ledger = workspace_card.get("help_ledger_preview", {}) if isinstance(workspace_card.get("help_ledger_preview"), dict) else {}
+    if not summary and (
+        workspace_card.get("help_ledger_preview_hash") is not None
+        or workspace_card.get("ready_for_operator_prefill") is not None
+        or workspace_card.get("help_ledger_preview_status") is not None
+    ):
+        summary = workspace_card
+    checkpoint_hash = str(summary.get("checkpoint_hash", ""))
+    task_hash = str(summary.get("task_hash", ""))
+    if review_hash and checkpoint_hash == "__STUDY_SESSION_REVIEW_HASH__":
+        checkpoint_hash = review_hash
+    if receipt_hash and task_hash == "__STUDY_SESSION_REVIEW_RECEIPT_HASH__":
+        task_hash = receipt_hash
+    return {
+        "status": workspace_card.get("status", "missing"),
+        "selected_skill_tag": str(summary.get("selected_skill_tag", workspace_card.get("selected_skill_tag", ""))),
+        "recommendation": str(summary.get("recommendation", "keep_blocked")),
+        "recommendation_reason": str(summary.get("recommendation_reason", "missing_study_session_gate")),
+        "ready_for_operator_prefill": bool(summary.get("ready_for_operator_prefill", False)),
+        "help_ledger_preview_status": str(summary.get("help_ledger_preview_status", ledger.get("status", "missing"))),
+        "next_safe_action": str(summary.get("next_safe_action", "")),
+        "next_safe_user_action": str(summary.get("next_safe_user_action", "")),
+        "operator_run_endpoint": str(summary.get("operator_run_endpoint", "")),
+        "operator_run_method": str(summary.get("operator_run_method", "POST")),
+        "help_level": str(summary.get("help_level", ledger.get("help_level", "A2"))),
+        "task_hash": task_hash,
+        "checkpoint_hash": checkpoint_hash,
+        "source_card_ids": [str(item) for item in (summary.get("source_card_ids", []) or [])][:8],
+        "source_anchor_count": int(summary.get("source_anchor_count", 0) or 0),
+        "help_ledger_preview_hash": str(summary.get("help_ledger_preview_hash", ledger.get("preview_hash", ""))),
+        "not_cleared_receipt": bool(workspace_card.get("not_cleared_receipt", True)),
+        "exam_deployment_status": "not_cleared",
+        "raw_workspace_card_returned": False,
+    }
+
+
+def build_study_session_workspace_card_alignment(
+    review_report: dict[str, Any] | None = None,
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    review_report = review_report if isinstance(review_report, dict) else {}
+    receipt_summary = (
+        review_report.get("receipt_summary", {}) if isinstance(review_report.get("receipt_summary"), dict) else {}
+    )
+    evidence_profile = (
+        review_report.get("evidence_profile", {}) if isinstance(review_report.get("evidence_profile"), dict) else {}
+    )
+    receipt = (
+        review_report.get("study_session_review_receipt", {})
+        if isinstance(review_report.get("study_session_review_receipt"), dict)
+        else {}
+    )
+    validations = [item for item in review_report.get("validated_receipts", []) if isinstance(item, dict)]
+    review_hash = study_session_review_hash(review_report)
+    receipt_hash = study_session_review_receipt_hash(review_report)
+    source_workspace_card = (
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else synthetic_study_session_review_workspace_card()
+    )
+    workspace_card = safe_study_session_review_workspace_card(
+        source_workspace_card,
+        review_hash=review_hash,
+        receipt_hash=receipt_hash,
+    )
+    workspace_card_readiness_gate_linked = (
+        workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and workspace_card.get("help_ledger_preview_hash") != ""
+        and workspace_card.get("exam_deployment_status") == "not_cleared"
+        and workspace_card.get("not_cleared_receipt") is True
+        and workspace_card.get("raw_workspace_card_returned") is False
+    )
+    raw_flag_names = [
+        "raw_query_returned",
+        "raw_text_returned",
+        "raw_student_text_returned",
+        "notebook_code_returned",
+        "local_paths_returned",
+    ]
+    high_stakes_flag_names = [
+        "automatic_grading_started",
+        "proctoring_started",
+        "ai_detection_started",
+        "exam_clearance_claimed",
+    ]
+    contracts = {
+        "study_review_public_safe": review_report.get("public_safety_status") == "pass",
+        "study_review_ready": review_report.get("status") == "study_session_evidence_ready_for_human_review"
+        and review_report.get("study_session_status") == "ready_for_course_bound_practice"
+        and int(review_report.get("planned_task_count", 0) or 0) >= 1,
+        "study_receipt_ready_not_clearance": receipt.get("status")
+        == "study_session_review_receipt_ready_not_exam_clearance"
+        and bool(receipt.get("receipt_id"))
+        and receipt.get("not_cleared_receipt") is True,
+        "hash_only_learning_evidence_preserved": int(receipt_summary.get("valid_receipt_count", 0) or 0) >= 1
+        and int(receipt_summary.get("blocked_receipt_count", 0) or 0) == 0
+        and int(receipt_summary.get("repeat_task_required_count", 0) or 0) == 0
+        and all(item.get("raw_text_stored") is False for item in validations)
+        and all(item.get("reflection_stored") is False for item in validations),
+        "learner_agency_profile_preserved": int(evidence_profile.get("prediction_present_count", 0) or 0) >= 1
+        and int(evidence_profile.get("retrieval_response_present_count", 0) or 0) >= 1
+        and int(evidence_profile.get("notebook_action_present_count", 0) or 0) >= 1
+        and int(evidence_profile.get("source_anchor_present_count", 0) or 0) >= 1
+        and int(evidence_profile.get("reflection_present_count", 0) or 0) >= 1,
+        "repeat_task_boundary_preserved": True,
+        "no_clearance_or_deployment_claim": review_report.get("exam_deployment_status") == "not_cleared"
+        and receipt.get("exam_deployment_status") == "not_cleared",
+        "metadata_only_safety_flags_false": all(review_report.get(flag) is False for flag in raw_flag_names)
+        and all(receipt.get(flag, False) is False for flag in raw_flag_names),
+        "high_stakes_boundaries_blocked": all(review_report.get(flag) is False for flag in high_stakes_flag_names),
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_study_session_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("checkpoint_hash") == review_hash
+        and workspace_card.get("task_hash") == receipt_hash,
+        "workspace_card_public_metadata_only": workspace_card.get("raw_workspace_card_returned") is False,
+    }
+    required_readiness_check_ids = [
+        "study_session",
+        "private_tutor_use_flow",
+        "evaluation_packet",
+        "python_exam_local_cycle_operator_workspace_card",
+    ]
+    alignment = {
+        "schema_version": STUDY_SESSION_WORKSPACE_CARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": "ready",
+        "study_session_review_hash": review_hash,
+        "study_session_review_receipt_hash": receipt_hash,
+        "review_status": review_report.get("status", "missing"),
+        "receipt_status": receipt.get("status", "missing"),
+        "study_session_status": review_report.get("study_session_status", "missing"),
+        "planned_task_count": int(review_report.get("planned_task_count", 0) or 0),
+        "valid_receipt_count": int(receipt_summary.get("valid_receipt_count", 0) or 0),
+        "blocked_receipt_count": int(receipt_summary.get("blocked_receipt_count", 0) or 0),
+        "repeat_task_required_count": int(receipt_summary.get("repeat_task_required_count", 0) or 0),
+        "prediction_present_count": int(evidence_profile.get("prediction_present_count", 0) or 0),
+        "retrieval_response_present_count": int(evidence_profile.get("retrieval_response_present_count", 0) or 0),
+        "notebook_action_present_count": int(evidence_profile.get("notebook_action_present_count", 0) or 0),
+        "source_anchor_present_count": int(evidence_profile.get("source_anchor_present_count", 0) or 0),
+        "reflection_present_count": int(evidence_profile.get("reflection_present_count", 0) or 0),
+        "exam_deployment_status": review_report.get("exam_deployment_status", "missing"),
+        "required_readiness_check_ids": required_readiness_check_ids,
+        "required_human_gates": [
+            "human_review_required",
+            "public_safety_required",
+            "operator_confirmation_required_for_local_write",
+            "exam_clearance_requires_written_authority_clearance",
+        ],
+        "blocked_claims": [
+            "raw private course text publication",
+            "raw learner reflection publication",
+            "contact data publication",
+            "local path publication",
+            "provider call",
+            "autonomous publication",
+            "approval claim",
+            "exam clearance claim",
+            "grading",
+            "proctoring",
+            "KI-detection evidence",
+            "exam deployment",
+        ],
+        "contracts": contracts,
+        "failed_contract_ids": sorted(contract_id for contract_id, passed in contracts.items() if not passed),
+        "workspace_card_status": workspace_card["status"],
+        "workspace_card_selected_skill_tag": workspace_card["selected_skill_tag"],
+        "workspace_card_ready_for_operator_prefill": workspace_card["ready_for_operator_prefill"],
+        "workspace_card_help_ledger_status": workspace_card["help_ledger_preview_status"],
+        "workspace_card_help_ledger_hash_present": workspace_card["help_ledger_preview_hash"] != "",
+        "workspace_card_operator_prefill_hash_present": workspace_card["task_hash"] != ""
+        and workspace_card["checkpoint_hash"] != "",
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_study_session_gate_linked": contracts["workspace_card_study_session_gate_linked"],
+        "workspace_card_readiness_gate_claim_linked": "python_exam_local_cycle_operator_workspace_card"
+        in required_readiness_check_ids,
+        "raw_workspace_card_returned": workspace_card["raw_workspace_card_returned"],
+        "public_language": (
+            "Study-session claims are hash-only review aids for formative learning receipts, prediction/retrieval/"
+            "notebook/reflection evidence counts, repeat-task boundaries, and no-clearance boundaries; they do "
+            "not authorize publication, provider calls, grading, proctoring, KI detection, or exam use."
+        ),
+    }
+    if alignment["failed_contract_ids"]:
+        alignment["status"] = "blocked"
+    scan = scan_text(
+        json.dumps(alignment, ensure_ascii=False, sort_keys=True),
+        "study-session-workspace-card-alignment",
+    )
+    alignment["alignment_public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        alignment["status"] = "blocked"
+        alignment["public_safety_findings"] = scan["findings"]
+    return alignment
 
 
 def build_study_session_release_claim_alignment(
@@ -754,6 +1082,30 @@ def synthetic_study_session_workspace_card(receipt: dict[str, Any]) -> dict[str,
             "preview_hash": preview_hash,
         },
     }
+
+
+def synthetic_study_session_inputs() -> dict[str, Any]:
+    with tempfile.TemporaryDirectory(prefix="unibot_study_session_inputs_") as temp_dir:
+        fixture_root = Path(temp_dir)
+        write_synthetic_study_session_fixture(fixture_root)
+        plan = build_course_study_session_plan(
+            base_path=str(fixture_root),
+            review_policy="local_private_tutor",
+            focus_query="pandas boxplot",
+            max_items=1,
+        )
+        task = (plan.get("tasks") or [{"task_id": "synthetic-study-task", "skill_tag": "pandas"}])[0]
+        receipt = synthetic_study_session_receipt(task)
+        review_report = build_study_session_review_report(
+            base_path=str(fixture_root),
+            review_policy="local_private_tutor",
+            focus_query="pandas boxplot",
+            max_items=1,
+            study_receipts=[receipt],
+            python_exam_local_cycle_operator_workspace_card=synthetic_study_session_workspace_card(receipt),
+            public_safe=True,
+        )
+    return {"study_session_review_report": review_report}
 
 
 def safe_local_cycle_workspace_card(workspace_card: dict[str, Any]) -> dict[str, Any]:

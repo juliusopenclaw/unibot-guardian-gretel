@@ -15,7 +15,11 @@ from unibot.server import route_request  # noqa: E402
 from unibot.study_session import (  # noqa: E402
     build_course_study_session_plan,
     build_study_session_release_claim_alignment,
+    build_study_session_workspace_card_alignment,
     build_study_session_review_report,
+    study_session_review_hash,
+    study_session_review_receipt_hash,
+    synthetic_study_session_review_workspace_card,
     validate_study_session_receipt,
 )
 
@@ -150,6 +154,43 @@ class UniBotStudySessionTests(unittest.TestCase):
             self.assertEqual(report["public_safety_status"], "pass")
             self.assertEqual(report["receipt_summary"]["valid_receipt_count"], 1)
             self.assertEqual(report["evidence_profile"]["by_help_level"]["A2"], 1)
+            self.assertEqual(
+                report["study_session_review_receipt"]["status"],
+                "study_session_review_receipt_ready_not_exam_clearance",
+            )
+            self.assertTrue(report["study_session_review_receipt"]["not_cleared_receipt"])
+            alignment = report["workspace_card_study_alignment"]
+            self.assertEqual(
+                alignment["schema_version"],
+                "unibot-study-session-workspace-card-study-alignment-v1",
+            )
+            self.assertEqual(alignment["status"], "ready")
+            self.assertEqual(alignment["alignment_public_safety_status"], "pass")
+            self.assertEqual(alignment["failed_contract_ids"], [])
+            self.assertEqual(alignment["study_session_review_hash"], study_session_review_hash(report))
+            self.assertEqual(
+                alignment["study_session_review_receipt_hash"],
+                study_session_review_receipt_hash(report),
+            )
+            self.assertEqual(alignment["review_status"], "study_session_evidence_ready_for_human_review")
+            self.assertEqual(alignment["receipt_status"], "study_session_review_receipt_ready_not_exam_clearance")
+            self.assertEqual(alignment["study_session_status"], "ready_for_course_bound_practice")
+            self.assertGreaterEqual(alignment["planned_task_count"], 1)
+            self.assertGreaterEqual(alignment["valid_receipt_count"], 1)
+            self.assertEqual(alignment["blocked_receipt_count"], 0)
+            self.assertEqual(alignment["repeat_task_required_count"], 0)
+            self.assertGreaterEqual(alignment["prediction_present_count"], 1)
+            self.assertGreaterEqual(alignment["retrieval_response_present_count"], 1)
+            self.assertGreaterEqual(alignment["notebook_action_present_count"], 1)
+            self.assertGreaterEqual(alignment["source_anchor_present_count"], 1)
+            self.assertGreaterEqual(alignment["reflection_present_count"], 1)
+            self.assertEqual(alignment["exam_deployment_status"], "not_cleared")
+            self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+            self.assertTrue(alignment["workspace_card_study_session_gate_linked"])
+            self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+            self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+            self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+            self.assertFalse(alignment["raw_workspace_card_returned"])
             self.assertIn("never claim a percentage", report["review_policy"]["eigenleistung_claim"])
             self.assertNotIn(str(fixture_root), payload)
             self.assertNotIn("DataFrames brauchen passende Spalten", payload)
@@ -234,6 +275,37 @@ class UniBotStudySessionTests(unittest.TestCase):
         self.assertIn("a6_or_final_solution_forces_repeat", alignment["failed_contract_ids"])
         self.assertIn("workspace_card_reflection_gate_linked", alignment["failed_contract_ids"])
         self.assertIn("non_grading_human_review_only", alignment["failed_contract_ids"])
+
+    def test_study_session_workspace_card_alignment_blocks_unlinked_prefill_hashes(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fixture_root = Path(temp_dir)
+            write_study_fixture(fixture_root)
+            plan = build_course_study_session_plan(
+                base_path=str(fixture_root),
+                review_policy="local_private_tutor",
+                focus_query="pandas",
+                max_items=1,
+            )
+            task = plan["tasks"][0]
+            receipt = valid_study_receipt(task_id=task["task_id"], skill_tag=task["skill_tag"])
+            report = build_study_session_review_report(
+                base_path=str(fixture_root),
+                review_policy="local_private_tutor",
+                study_receipts=[receipt],
+                focus_query="pandas",
+                max_items=1,
+            )
+        workspace_card = synthetic_study_session_review_workspace_card()
+        workspace_card["workspace_card_summary"]["checkpoint_hash"] = "wrong-study-session-hash"
+        workspace_card["workspace_card_summary"]["task_hash"] = "wrong-study-session-receipt-hash"
+
+        alignment = build_study_session_workspace_card_alignment(report, workspace_card)
+
+        self.assertEqual(alignment["status"], "blocked")
+        self.assertIn("workspace_card_study_session_gate_linked", alignment["failed_contract_ids"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertFalse(alignment["workspace_card_study_session_gate_linked"])
+        self.assertEqual(alignment["alignment_public_safety_status"], "pass")
 
     def test_study_session_api_route(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

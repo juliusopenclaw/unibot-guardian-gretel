@@ -209,7 +209,16 @@ from .skill_to_workspace_session_carryover import build_skill_to_workspace_sessi
 from .skill_to_workspace_live_flow import build_skill_to_workspace_live_flow
 from .server import route_request
 from .source_cards import build_source_card_drift_report, get_source_card, list_source_cards, required_source_card_ids
-from .study_session import build_course_study_session_plan, build_study_session_review_report, validate_study_session_receipt
+from .study_session import (
+    build_course_study_session_plan,
+    build_study_session_review_report,
+    build_study_session_workspace_card_alignment,
+    study_session_review_hash,
+    study_session_review_receipt_hash,
+    synthetic_study_session_inputs,
+    synthetic_study_session_review_workspace_card,
+    validate_study_session_receipt,
+)
 from .tutor_coverage import build_course_tutor_coverage_plan
 from .timeline_export_receipt_journal import (
     build_timeline_export_receipt_journal_append,
@@ -363,6 +372,11 @@ __all__ = [
     "build_release_runbook_markdown",
     "build_course_study_session_plan",
     "build_study_session_review_report",
+    "build_study_session_workspace_card_alignment",
+    "study_session_review_hash",
+    "study_session_review_receipt_hash",
+    "synthetic_study_session_inputs",
+    "synthetic_study_session_review_workspace_card",
     "validate_study_session_receipt",
     "build_course_tutor_coverage_plan",
     "build_course_exam_coverage_dashboard",

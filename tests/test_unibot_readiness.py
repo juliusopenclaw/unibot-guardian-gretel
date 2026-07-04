@@ -492,6 +492,16 @@ class UniBotReadinessTests(unittest.TestCase):
             study_session["evidence"]["release_claim_alignment_contract_status"],
             "unibot-study-session-release-review-board-claim-alignment-v1",
         )
+        self.assertEqual(study_session["evidence"]["workspace_card_study_alignment_status"], "ready")
+        self.assertEqual(study_session["evidence"]["workspace_card_study_alignment_public_safety_status"], "pass")
+        self.assertEqual(
+            study_session["evidence"]["workspace_card_study_alignment_contract_status"],
+            "unibot-study-session-workspace-card-study-alignment-v1",
+        )
+        self.assertEqual(
+            study_session["evidence"]["workspace_card_study_receipt_status"],
+            "study_session_review_receipt_ready_not_exam_clearance",
+        )
         self.assertEqual(study_session["evidence"]["review_public_safety_status"], "pass")
         self.assertEqual(study_session["evidence"]["review_status"], "study_session_evidence_ready_for_human_review")
         self.assertEqual(study_session["evidence"]["study_session_status"], "ready_for_course_bound_practice")
@@ -516,6 +526,8 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertTrue(study_session["evidence"]["hash_only_receipts_with_required_evidence"])
         self.assertTrue(study_session["evidence"]["learner_agency_profile_complete"])
         self.assertTrue(study_session["evidence"]["a6_or_final_solution_forces_repeat"])
+        self.assertTrue(study_session["evidence"]["workspace_card_study_session_gate_linked"])
+        self.assertTrue(study_session["evidence"]["workspace_card_operator_prefill_hash_present"])
         self.assertTrue(study_session["evidence"]["non_grading_human_review_only"])
         self.assertTrue(study_session["evidence"]["raw_reflection_storage_blocked"])
         self.assertTrue(study_session["evidence"]["final_solution_acceptance_blocked"])
