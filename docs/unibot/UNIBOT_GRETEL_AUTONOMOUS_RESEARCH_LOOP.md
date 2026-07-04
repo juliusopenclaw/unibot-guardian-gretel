@@ -57,10 +57,10 @@ contract change.
 
 ## Current Work Queue
 
-- `extraction_manifest_update_release_review_board_claim_alignment` is ready. It
-  should align extraction manifest update plans with reviewed receipt
-  candidates, private metadata-only apply boundaries, no file writes by
-  planning, no public release, and no exam deployment claims.
+- `extraction_manifest_apply_release_review_board_claim_alignment` is ready. It
+  should align private manifest apply dry-runs and confirmed private writes with
+  operator confirmation, metadata-only outputs, local path suppression, no tutor
+  indexing, and no exam deployment claims.
 
 ## Closed Harnessed Work
 
@@ -214,6 +214,10 @@ contract change.
   `8562658` with extraction progress release-claim alignment across receipt
   metadata, hash-only review queues, private manifest-candidate boundaries, no
   raw text or local paths, and no exam deployment claims.
+- `extraction_manifest_update_release_review_board_claim_alignment`: closed in
+  `49d4fa2` with extraction manifest update release-claim alignment across
+  reviewed receipt candidates, private metadata-only boundaries, no file writes
+  by planning, no public release, and no exam deployment claims.
 
 ## Automation Rule
 

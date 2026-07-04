@@ -899,7 +899,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "extraction_manifest_update_release_review_board_claim_alignment",
             "priority": 46,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align extraction manifest update plans with reviewed receipt candidates, private metadata-only apply boundaries, no file writes by planning, no public release, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/extraction_manifest_update.py",
@@ -909,6 +909,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_extraction_manifest_update.py tests/test_unibot_readiness.py -q"],
             "review_gate": "extraction_manifest_update_release_review_board_claim_traceability",
+            "closure_evidence": {
+                "commit": "49d4fa2",
+                "summary": "Extraction manifest update release-claim alignment added with reviewed receipt candidates, private metadata-only boundaries, no file writes by planning, no public release, and no exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "extraction_manifest_apply_release_review_board_claim_alignment",
+            "priority": 47,
+            "status": "ready",
+            "goal": "Align private manifest apply dry-runs and confirmed private writes with operator confirmation, metadata-only outputs, local path suppression, no tutor indexing, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/extraction_manifest_apply.py",
+                "tests/test_unibot_extraction_manifest_apply.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_extraction_manifest_apply.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "extraction_manifest_apply_release_review_board_claim_traceability",
         },
     ]
 

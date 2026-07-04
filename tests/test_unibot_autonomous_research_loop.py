@@ -56,7 +56,7 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         queue = loop["work_queue"]
         by_id = {item["work_id"]: item for item in queue}
 
-        self.assertGreaterEqual(len(queue), 46)
+        self.assertGreaterEqual(len(queue), 47)
         self.assertEqual(by_id["intent_contract_regression_pack"]["status"], "closed_harnessed")
         self.assertEqual(by_id["intent_contract_regression_pack"]["closure_evidence"]["commit"], "fa942b0")
         self.assertEqual(by_id["scientific_evaluation_depth"]["status"], "closed_harnessed")
@@ -354,14 +354,24 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             "extraction_progress_release_review_board_claim_traceability",
         )
         self.assertIn("unibot/extraction_progress.py", by_id["extraction_progress_release_review_board_claim_alignment"]["allowed_files"])
-        self.assertEqual(by_id["extraction_manifest_update_release_review_board_claim_alignment"]["status"], "ready")
+        self.assertEqual(by_id["extraction_manifest_update_release_review_board_claim_alignment"]["status"], "closed_harnessed")
+        self.assertEqual(
+            by_id["extraction_manifest_update_release_review_board_claim_alignment"]["closure_evidence"]["commit"],
+            "49d4fa2",
+        )
         self.assertEqual(
             by_id["extraction_manifest_update_release_review_board_claim_alignment"]["review_gate"],
             "extraction_manifest_update_release_review_board_claim_traceability",
         )
         self.assertIn("unibot/extraction_manifest_update.py", by_id["extraction_manifest_update_release_review_board_claim_alignment"]["allowed_files"])
-        self.assertEqual(loop["next_recommended_work_id"], "extraction_manifest_update_release_review_board_claim_alignment")
-        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 45)
+        self.assertEqual(by_id["extraction_manifest_apply_release_review_board_claim_alignment"]["status"], "ready")
+        self.assertEqual(
+            by_id["extraction_manifest_apply_release_review_board_claim_alignment"]["review_gate"],
+            "extraction_manifest_apply_release_review_board_claim_traceability",
+        )
+        self.assertIn("unibot/extraction_manifest_apply.py", by_id["extraction_manifest_apply_release_review_board_claim_alignment"]["allowed_files"])
+        self.assertEqual(loop["next_recommended_work_id"], "extraction_manifest_apply_release_review_board_claim_alignment")
+        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 46)
         self.assertEqual(loop["receipt"]["ready_work_items"], 1)
         self.assertLessEqual(loop["budget_policy"]["cadence"]["max_active_work_item_per_run"], 1)
         for item in queue:
@@ -377,8 +387,8 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("Public safety: pass", markdown)
         self.assertIn("Default reasoning effort: low", markdown)
         self.assertIn("Autonomous GitHub push: False", markdown)
-        self.assertIn("Closed harnessed items: 45", markdown)
-        self.assertIn("Next recommended work: extraction_manifest_update_release_review_board_claim_alignment", markdown)
+        self.assertIn("Closed harnessed items: 46", markdown)
+        self.assertIn("Next recommended work: extraction_manifest_apply_release_review_board_claim_alignment", markdown)
 
         status, loop = route_request("/api/unibot/autonomous-research-loop", {})
         self.assertEqual(status, 200)
