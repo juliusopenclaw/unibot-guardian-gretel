@@ -10,10 +10,13 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from unibot.bachelor_thesis import (  # noqa: E402
+    bachelor_thesis_authorship_evidence_hash,
+    bachelor_thesis_glm_method_hash,
     build_bachelor_thesis_evidence_index,
     build_bachelor_thesis_evaluation_claim_alignment,
     build_bachelor_thesis_markdown,
     build_bachelor_thesis_package,
+    synthetic_bachelor_thesis_workspace_card,
 )
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
@@ -39,6 +42,9 @@ class UniBotBachelorThesisTests(unittest.TestCase):
         self.assertEqual(package["evidence_index"]["public_safety_status"], "pass")
         self.assertEqual(package["evaluation_claim_alignment"]["status"], "ready")
         self.assertEqual(package["evaluation_claim_alignment"]["public_safety_status"], "pass")
+        self.assertTrue(package["evaluation_claim_alignment"]["workspace_card_readiness_gate_linked"])
+        self.assertTrue(package["evaluation_claim_alignment"]["workspace_card_bachelor_thesis_gate_linked"])
+        self.assertFalse(package["evaluation_claim_alignment"]["raw_workspace_card_returned"])
 
     def test_evidence_index_maps_claims_to_sources_tests_and_human_gates(self) -> None:
         index = build_bachelor_thesis_evidence_index()
@@ -59,12 +65,17 @@ class UniBotBachelorThesisTests(unittest.TestCase):
         self.assertIn("evaluation_learner_agency_boundary", by_id)
         self.assertIn("evaluation_packet", by_id["evaluation_learner_agency_boundary"]["readiness_check_ids"])
         self.assertIn("adaptive_task_plan", by_id["evaluation_learner_agency_boundary"]["readiness_check_ids"])
+        self.assertIn("workspace_card_thesis_glm_link", by_id)
+        self.assertIn(
+            "python_exam_local_cycle_operator_workspace_card",
+            by_id["workspace_card_thesis_glm_link"]["readiness_check_ids"],
+        )
         self.assertTrue(all(item["acceptance_tests"] for item in index["evidence_items"]))
         self.assertTrue(all(item["readiness_check_ids"] for item in index["evidence_items"]))
 
     def test_evaluation_claim_alignment_traces_thesis_claims_to_evaluation_and_adaptive_boundaries(self) -> None:
         package = build_bachelor_thesis_package()
-        alignment = build_bachelor_thesis_evaluation_claim_alignment(package["evidence_index"])
+        alignment = build_bachelor_thesis_evaluation_claim_alignment(package["evidence_index"], thesis_package=package)
 
         self.assertEqual(alignment["schema_version"], "unibot-gretel-thesis-evaluation-claim-alignment-v1")
         self.assertEqual(alignment["status"], "ready")
@@ -75,12 +86,52 @@ class UniBotBachelorThesisTests(unittest.TestCase):
         self.assertIn("evaluation_packet", alignment["required_readiness_check_ids"])
         self.assertIn("adaptive_task_plan", alignment["required_readiness_check_ids"])
         self.assertIn("gretel_bachelor_thesis_package", alignment["required_readiness_check_ids"])
+        self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
         self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertTrue(alignment["contracts"]["workspace_card_bachelor_thesis_gate_linked"])
+        self.assertEqual(alignment["workspace_card_status"], "python_exam_local_cycle_operator_workspace_card_ready")
+        self.assertEqual(alignment["workspace_card_selected_skill_tag"], "pandas")
+        self.assertTrue(alignment["workspace_card_ready_for_operator_prefill"])
+        self.assertEqual(alignment["workspace_card_help_ledger_status"], "help_ledger_preview_ready")
+        self.assertTrue(alignment["workspace_card_help_ledger_hash_present"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_linked"])
+        self.assertTrue(alignment["workspace_card_bachelor_thesis_gate_linked"])
+        self.assertTrue(alignment["workspace_card_readiness_gate_claim_linked"])
+        self.assertFalse(alignment["raw_workspace_card_returned"])
+        self.assertEqual(alignment["thesis_evidence_hash"], bachelor_thesis_authorship_evidence_hash(package))
+        self.assertEqual(alignment["glm_method_hash"], bachelor_thesis_glm_method_hash(package))
 
         sections = {section["section_id"]: section for section in alignment["sections"]}
         self.assertIn("evaluation_learner_agency_boundary", sections["learner_agency_claim_trace"]["claim_ids"])
         self.assertIn("official grades", sections["no_high_stakes_claim"]["excluded_measures"])
         self.assertIn("source_card_drift_guard", sections["source_card_claim_trace"]["readiness_check_ids"])
+        self.assertIn(
+            "python_exam_local_cycle_operator_workspace_card",
+            sections["workspace_card_thesis_glm_trace"]["readiness_check_ids"],
+        )
+
+    def test_bachelor_thesis_hash_helpers_link_authorship_evidence_and_glm_method(self) -> None:
+        package = build_bachelor_thesis_package()
+
+        self.assertTrue(bachelor_thesis_authorship_evidence_hash(package))
+        self.assertTrue(bachelor_thesis_glm_method_hash(package))
+        self.assertNotEqual(bachelor_thesis_authorship_evidence_hash(package), bachelor_thesis_glm_method_hash(package))
+
+    def test_evaluation_claim_alignment_rejects_unlinked_workspace_card_hashes(self) -> None:
+        package = build_bachelor_thesis_package()
+        card = synthetic_bachelor_thesis_workspace_card()
+        card["workspace_card_summary"]["checkpoint_hash"] = "wrong-thesis-evidence-hash"
+        card["workspace_card_summary"]["task_hash"] = "wrong-glm-method-hash"
+
+        alignment = build_bachelor_thesis_evaluation_claim_alignment(
+            package["evidence_index"],
+            python_exam_local_cycle_operator_workspace_card=card,
+            thesis_package=package,
+        )
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertFalse(alignment["workspace_card_bachelor_thesis_gate_linked"])
+        self.assertIn("workspace_card_bachelor_thesis_gate_linked", alignment["failed_contract_ids"])
 
     def test_evaluation_claim_alignment_blocks_unready_evaluation_trace(self) -> None:
         evidence_index = build_bachelor_thesis_evidence_index()

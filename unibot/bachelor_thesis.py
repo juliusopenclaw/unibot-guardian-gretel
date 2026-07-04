@@ -105,6 +105,19 @@ def build_bachelor_thesis_evidence_index() -> dict[str, Any]:
             "source_card_ids": ["dfg-gwp", "unesco-genai-2023", "vanlehn-2011"],
             "human_gate": "human_submission_review_required",
         },
+        {
+            "claim_id": "workspace_card_thesis_glm_link",
+            "claim": (
+                "Gretel bachelor-thesis authorship/evidence and GLM-method metadata are linked to the "
+                "local-cycle operator workspace-card readiness gate by hashes, without returning raw workspace data."
+            ),
+            "evidence_type": "hash_linked_workspace_card_gate",
+            "artifact_refs": ["unibot/bachelor_thesis.py", "unibot/python_exam_local_cycle_operator_workspace_card.py"],
+            "readiness_check_ids": ["gretel_bachelor_thesis_package", "python_exam_local_cycle_operator_workspace_card"],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_bachelor_thesis.py tests/test_unibot_readiness.py -q"],
+            "source_card_ids": ["dfg-gwp", "zai-glm-52"],
+            "human_gate": "human_submission_review_required",
+        },
     ]
     index = {
         "schema_version": "unibot-gretel-bachelor-thesis-evidence-index-v1",
@@ -134,11 +147,32 @@ def build_bachelor_thesis_evidence_index() -> dict[str, Any]:
 def build_bachelor_thesis_evaluation_claim_alignment(
     evidence_index: dict[str, Any] | None = None,
     evaluation_packet: dict[str, Any] | None = None,
+    python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
+    thesis_package: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if evidence_index is None:
         evidence_index = build_bachelor_thesis_evidence_index()
     if evaluation_packet is None:
         evaluation_packet = build_evaluation_packet()
+    thesis_hash_basis = thesis_package if isinstance(thesis_package, dict) else default_bachelor_thesis_hash_basis(evidence_index)
+    thesis_evidence_hash = bachelor_thesis_authorship_evidence_hash(thesis_hash_basis)
+    glm_method_hash = bachelor_thesis_glm_method_hash(thesis_hash_basis)
+    workspace_card = safe_bachelor_thesis_workspace_card(
+        python_exam_local_cycle_operator_workspace_card
+        if isinstance(python_exam_local_cycle_operator_workspace_card, dict)
+        else synthetic_bachelor_thesis_workspace_card(),
+        thesis_evidence_hash=thesis_evidence_hash,
+        glm_method_hash=glm_method_hash,
+    )
+    workspace_card_readiness_gate_linked = (
+        workspace_card.get("status") == "python_exam_local_cycle_operator_workspace_card_ready"
+        and workspace_card.get("ready_for_operator_prefill") is True
+        and workspace_card.get("help_ledger_preview_status") == "help_ledger_preview_ready"
+        and workspace_card.get("help_ledger_preview_hash") != ""
+        and workspace_card.get("exam_deployment_status") == "not_cleared"
+        and workspace_card.get("not_cleared_receipt") is True
+        and workspace_card.get("raw_workspace_card_returned") is False
+    )
 
     evidence_items = {item["claim_id"]: item for item in evidence_index.get("evidence_items", [])}
     evaluation_alignment = evaluation_packet.get("learner_agency_boundary_alignment", {})
@@ -186,6 +220,17 @@ def build_bachelor_thesis_evaluation_claim_alignment(
             "human_gates": sorted(evidence_index.get("required_human_gates", [])),
             "boundary": "Gretel authorship and thesis-level rigor remain human-reviewed draft claims, not real submission authority",
         },
+        {
+            "section_id": "workspace_card_thesis_glm_trace",
+            "claim_ids": ["workspace_card_thesis_glm_link", "glm_52_basis", "gretel_authorship_label"],
+            "readiness_check_ids": ["gretel_bachelor_thesis_package", "python_exam_local_cycle_operator_workspace_card"],
+            "source_card_ids": ["dfg-gwp", "zai-glm-52"],
+            "human_gates": ["human_submission_review_required", "written_university_clearance_required_before_exam_use"],
+            "boundary": (
+                "workspace-card prefill evidence may link thesis and GLM metadata by hash only; it is not "
+                "university submission, exam clearance, grading, proctoring, or AI-detection evidence"
+            ),
+        },
     ]
     payload = json.dumps(
         {"evidence_index": evidence_index, "evaluation_alignment": evaluation_alignment, "sections": sections},
@@ -206,6 +251,9 @@ def build_bachelor_thesis_evaluation_claim_alignment(
         }.issubset(set(evaluation_packet.get("measurement_plan", {}).get("excluded_measures", []))),
         "thesis_human_gated": "human_submission_review_required" in evidence_index.get("required_human_gates", [])
         and "written_university_clearance_required_before_exam_use" in evidence_index.get("required_human_gates", []),
+        "workspace_card_bachelor_thesis_gate_linked": workspace_card_readiness_gate_linked
+        and workspace_card.get("checkpoint_hash") == thesis_evidence_hash
+        and workspace_card.get("task_hash") == glm_method_hash,
         "payload_public_safe": payload_scan["status"] == "pass",
     }
     failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
@@ -222,12 +270,178 @@ def build_bachelor_thesis_evaluation_claim_alignment(
             {check_id for section in sections for check_id in section["readiness_check_ids"]}
         ),
         "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "workspace_card_status": workspace_card["status"],
+        "workspace_card_selected_skill_tag": workspace_card["selected_skill_tag"],
+        "workspace_card_ready_for_operator_prefill": workspace_card["ready_for_operator_prefill"],
+        "workspace_card_help_ledger_status": workspace_card["help_ledger_preview_status"],
+        "workspace_card_help_ledger_hash_present": workspace_card["help_ledger_preview_hash"] != "",
+        "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "workspace_card_bachelor_thesis_gate_linked": contracts["workspace_card_bachelor_thesis_gate_linked"],
+        "workspace_card_readiness_gate_claim_linked": "python_exam_local_cycle_operator_workspace_card"
+        in sorted({check_id for section in sections for check_id in section["readiness_check_ids"]}),
+        "raw_workspace_card_returned": workspace_card["raw_workspace_card_returned"],
+        "thesis_evidence_hash": thesis_evidence_hash,
+        "glm_method_hash": glm_method_hash,
         "public_safety_status": payload_scan["status"],
         "policy": (
             "Bachelor-thesis evaluation claim alignment is a public review aid only; it does not authorize "
             "real submission, grading, exam clearance, proctoring, KI-detection evidence, provider calls, "
             "private course text, local paths, or student data."
         ),
+    }
+
+
+def default_bachelor_thesis_hash_basis(evidence_index: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "status": "public_scientific_draft_bachelor_thesis_level_not_real_submission",
+        "submission_type": "bachelor_thesis_level_research_package_not_real_university_submission",
+        "authorship_statement": {
+            "builder": "Gretel",
+            "documentation_author": "Gretel",
+            "programmer_claim": "This public package is labelled as built and documented by Gretel, not by Julius.",
+            "institutional_status": "not a real thesis submission and not institutionally approved by this artifact",
+        },
+        "glm_technology_basis": {
+            "primary_model_hint": "zai/glm-5.2",
+            "provider": "Z.AI",
+            "provider_call_default": "disabled",
+            "official_source_card_ids": ["zai-glm-52", "zai-glm-52-migration", "zai-glm-pricing"],
+        },
+        "research_question": (
+            "How can a public, source-bound AI practice layer support coding learners without replacing "
+            "their own work, leaking private material, or claiming exam clearance?"
+        ),
+        "scientific_contribution": [
+            "A Socratic integrity layer that blocks final-answer outsourcing while preserving learner reflection.",
+            "A public-safety scanner for paths, secrets, personal data, raw AI transcripts, and private course references.",
+            "A reproducible publication and readiness package based on synthetic tasks and source cards.",
+            "A GLM-5.2-ready proposal lane that turns model ideas into tests, review entries, or blocked reasons.",
+            "A clear exam boundary: practice and review are supported; official grading, proctoring, and exam clearance are blocked.",
+        ],
+        "methodology": [
+            "Three Golden Rules define allowed and blocked learning support.",
+            "Public source cards anchor legal, institutional, privacy, technical, and educational claims.",
+            "Synthetic scenarios and red-team checks test likely failure modes.",
+            "Readiness and publication gates require public-safety pass results before public release.",
+            "Accepted improvements must be converted into regression tests, red-team cases, documentation, or review-board decisions.",
+        ],
+        "review_gates": {
+            "public_safety_required": True,
+            "written_university_clearance_required_before_exam_use": True,
+            "human_submission_review_required": True,
+            "no_autonomous_github_publish": True,
+            "no_final_go_by_gretel_or_glm": True,
+            "provider_call_requires_explicit_go_and_redaction_receipt": True,
+        },
+        "evidence_index": evidence_index,
+    }
+
+
+def bachelor_thesis_authorship_evidence_hash(package: dict[str, Any]) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            {
+                "status": package.get("status", ""),
+                "submission_type": package.get("submission_type", ""),
+                "authorship_statement": package.get("authorship_statement", {}),
+                "review_gates": package.get("review_gates", {}),
+                "evidence_index": package.get("evidence_index", {}),
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def bachelor_thesis_glm_method_hash(package: dict[str, Any]) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            {
+                "glm_technology_basis": package.get("glm_technology_basis", {}),
+                "research_question": package.get("research_question", ""),
+                "scientific_contribution": package.get("scientific_contribution", []),
+                "methodology": package.get("methodology", []),
+            },
+            sort_keys=True,
+            ensure_ascii=False,
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def synthetic_bachelor_thesis_workspace_card() -> dict[str, Any]:
+    preview_hash = hashlib.sha256(b"synthetic bachelor thesis workspace card").hexdigest()
+    return {
+        "schema_version": "unibot-python-exam-local-cycle-operator-workspace-card-v1",
+        "artifact_type": "python_exam_local_cycle_operator_workspace_card",
+        "status": "python_exam_local_cycle_operator_workspace_card_ready",
+        "selected_skill_tag": "pandas",
+        "exam_deployment_status": "not_cleared",
+        "not_cleared_receipt": True,
+        "workspace_card_summary": {
+            "recommendation": "ready_for_operator_prefill",
+            "recommendation_reason": "synthetic bachelor-thesis package prerequisites are satisfied",
+            "ready_for_operator_prefill": True,
+            "help_ledger_preview_status": "help_ledger_preview_ready",
+            "selected_skill_tag": "pandas",
+            "next_safe_action": "review_bachelor_thesis_hashes_before_workspace_prefill",
+            "next_safe_user_action": "review_hash_only_bachelor_thesis_package_before_manual_submission_discussion",
+            "operator_run_endpoint": "/api/unibot/exam-workspace/operator-run",
+            "operator_run_method": "POST",
+            "help_level": "A2",
+            "task_hash": "__BACHELOR_THESIS_GLM_METHOD_HASH__",
+            "checkpoint_hash": "__BACHELOR_THESIS_EVIDENCE_HASH__",
+            "source_card_ids": ["dfg-gwp", "zai-glm-52"],
+            "source_anchor_count": 2,
+            "help_ledger_preview_hash": preview_hash,
+        },
+        "help_ledger_preview": {
+            "status": "help_ledger_preview_ready",
+            "help_level": "A2",
+            "preview_hash": preview_hash,
+        },
+    }
+
+
+def safe_bachelor_thesis_workspace_card(
+    workspace_card: dict[str, Any],
+    *,
+    thesis_evidence_hash: str = "",
+    glm_method_hash: str = "",
+) -> dict[str, Any]:
+    summary = workspace_card.get("workspace_card_summary", {}) if isinstance(workspace_card.get("workspace_card_summary"), dict) else {}
+    ledger = workspace_card.get("help_ledger_preview", {}) if isinstance(workspace_card.get("help_ledger_preview"), dict) else {}
+    if not summary and (
+        workspace_card.get("help_ledger_preview_hash") is not None
+        or workspace_card.get("ready_for_operator_prefill") is not None
+        or workspace_card.get("help_ledger_preview_status") is not None
+    ):
+        summary = workspace_card
+    checkpoint_hash = str(summary.get("checkpoint_hash", ""))
+    task_hash = str(summary.get("task_hash", ""))
+    if thesis_evidence_hash and checkpoint_hash == "__BACHELOR_THESIS_EVIDENCE_HASH__":
+        checkpoint_hash = thesis_evidence_hash
+    if glm_method_hash and task_hash == "__BACHELOR_THESIS_GLM_METHOD_HASH__":
+        task_hash = glm_method_hash
+    return {
+        "status": workspace_card.get("status", "missing"),
+        "selected_skill_tag": str(summary.get("selected_skill_tag", workspace_card.get("selected_skill_tag", ""))),
+        "recommendation": str(summary.get("recommendation", "keep_blocked")),
+        "recommendation_reason": str(summary.get("recommendation_reason", "missing_bachelor_thesis_package")),
+        "ready_for_operator_prefill": bool(summary.get("ready_for_operator_prefill", False)),
+        "help_ledger_preview_status": str(summary.get("help_ledger_preview_status", ledger.get("status", "missing"))),
+        "next_safe_action": str(summary.get("next_safe_action", "")),
+        "next_safe_user_action": str(summary.get("next_safe_user_action", "")),
+        "operator_run_endpoint": str(summary.get("operator_run_endpoint", "")),
+        "operator_run_method": str(summary.get("operator_run_method", "POST")),
+        "help_level": str(summary.get("help_level", ledger.get("help_level", "A2"))),
+        "task_hash": task_hash,
+        "checkpoint_hash": checkpoint_hash,
+        "source_card_ids": [str(item) for item in (summary.get("source_card_ids", []) or [])][:8],
+        "source_anchor_count": int(summary.get("source_anchor_count", 0) or 0),
+        "help_ledger_preview_hash": str(summary.get("help_ledger_preview_hash", ledger.get("preview_hash", ""))),
+        "not_cleared_receipt": bool(workspace_card.get("not_cleared_receipt", True)),
+        "exam_deployment_status": "not_cleared",
+        "raw_workspace_card_returned": False,
     }
 
 
@@ -320,7 +534,10 @@ def build_bachelor_thesis_package() -> dict[str, Any]:
         },
     }
     package["evidence_index"] = build_bachelor_thesis_evidence_index()
-    package["evaluation_claim_alignment"] = build_bachelor_thesis_evaluation_claim_alignment(package["evidence_index"])
+    package["evaluation_claim_alignment"] = build_bachelor_thesis_evaluation_claim_alignment(
+        package["evidence_index"],
+        thesis_package=package,
+    )
     package["source_cards"] = [
         card for card in (get_source_card(source_id) for source_id in package["glm_technology_basis"]["official_source_card_ids"]) if card
     ]

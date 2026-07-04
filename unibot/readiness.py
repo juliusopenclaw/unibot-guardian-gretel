@@ -3767,7 +3767,12 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and bachelor_thesis_package["evaluation_claim_alignment"]["public_safety_status"] == "pass"
             and bachelor_thesis_package["evaluation_claim_alignment"]["missing_source_card_ids"] == []
             and bachelor_thesis_package["evaluation_claim_alignment"]["failed_contract_ids"] == []
+            and bachelor_thesis_package["evaluation_claim_alignment"]["workspace_card_readiness_gate_linked"] is True
+            and bachelor_thesis_package["evaluation_claim_alignment"]["workspace_card_bachelor_thesis_gate_linked"] is True
+            and bachelor_thesis_package["evaluation_claim_alignment"]["raw_workspace_card_returned"] is False
             and "source_card_drift_guard" in bachelor_thesis_package["evidence_index"]["required_readiness_check_ids"]
+            and "python_exam_local_cycle_operator_workspace_card"
+            in bachelor_thesis_package["evaluation_claim_alignment"]["required_readiness_check_ids"]
             and "written_university_clearance_required_before_exam_use"
             in bachelor_thesis_package["evidence_index"]["required_human_gates"],
             "evidence": {
@@ -3783,6 +3788,31 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "evaluation_claim_alignment_status": bachelor_thesis_package["evaluation_claim_alignment"]["status"],
                 "evaluation_claim_alignment_section_count": bachelor_thesis_package["evaluation_claim_alignment"]["section_count"],
                 "evaluation_claim_alignment_human_gates": bachelor_thesis_package["evaluation_claim_alignment"]["required_human_gates"],
+                "workspace_card_status": bachelor_thesis_package["evaluation_claim_alignment"]["workspace_card_status"],
+                "workspace_card_selected_skill_tag": bachelor_thesis_package["evaluation_claim_alignment"][
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": bachelor_thesis_package["evaluation_claim_alignment"][
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": bachelor_thesis_package["evaluation_claim_alignment"][
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": bachelor_thesis_package["evaluation_claim_alignment"][
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": bachelor_thesis_package["evaluation_claim_alignment"][
+                    "workspace_card_readiness_gate_linked"
+                ],
+                "workspace_card_bachelor_thesis_gate_linked": bachelor_thesis_package["evaluation_claim_alignment"][
+                    "workspace_card_bachelor_thesis_gate_linked"
+                ],
+                "workspace_card_readiness_gate_claim_linked": bachelor_thesis_package["evaluation_claim_alignment"][
+                    "workspace_card_readiness_gate_claim_linked"
+                ],
+                "raw_workspace_card_returned": bachelor_thesis_package["evaluation_claim_alignment"][
+                    "raw_workspace_card_returned"
+                ],
                 "required_human_gates": bachelor_thesis_package["evidence_index"]["required_human_gates"],
             },
         },
