@@ -19,6 +19,7 @@ from .external_decision_journal import build_external_decision_record_journal_re
 from .exam_notebook_checkpoint import build_notebook_checkpoint_release_claim_alignment
 from .exam_workspace_launch_flow import build_exam_workspace_launch_release_claim_alignment
 from .exam_workspace_run import build_exam_workspace_run_release_claim_alignment
+from .exam_workspace_run_history import build_exam_workspace_run_history_release_claim_alignment
 from .extraction_completion import build_extraction_completion_release_claim_alignment
 from .extraction_human_review import build_extraction_human_review_release_claim_alignment
 from .extraction_manifest_apply import build_private_manifest_apply_release_claim_alignment
@@ -143,6 +144,7 @@ def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
         "notebook_checkpoint",
         "exam_workspace_launch",
         "exam_workspace_run",
+        "exam_workspace_run_history",
         "gretel_glm_evolve_lane",
         "gretel_bachelor_thesis_package",
         "gretel_autonomous_research_loop",
@@ -227,6 +229,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     notebook_checkpoint_alignment = build_notebook_checkpoint_release_claim_alignment()
     exam_workspace_launch_alignment = build_exam_workspace_launch_release_claim_alignment()
     exam_workspace_run_alignment = build_exam_workspace_run_release_claim_alignment()
+    exam_workspace_run_history_alignment = build_exam_workspace_run_history_release_claim_alignment()
     notebook = generate_practice_notebook("UniBot readiness notebook smoke")
     source_cards = list_source_cards()
     source_card_drift = build_source_card_drift_report()
@@ -1724,6 +1727,123 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "cloud_processing_blocked": "cloud processing" in exam_workspace_run_alignment["blocked_claims"],
                 "exam_deployment_blocked": "exam deployment" in exam_workspace_run_alignment["blocked_claims"],
                 "exam_clearance_blocked": "exam clearance" in exam_workspace_run_alignment["blocked_claims"],
+            },
+        },
+        {
+            "check_id": "exam_workspace_run_history",
+            "passed": exam_workspace_run_history_alignment["status"] == "ready"
+            and exam_workspace_run_history_alignment["public_safety_status"] == "pass"
+            and exam_workspace_run_history_alignment["history_public_safety_status"] == "pass"
+            and exam_workspace_run_history_alignment["waiting_public_safety_status"] == "pass"
+            and exam_workspace_run_history_alignment["exam_deployment_status"] == "not_cleared"
+            and exam_workspace_run_history_alignment["missing_source_card_ids"] == []
+            and exam_workspace_run_history_alignment["failed_contract_ids"] == [],
+            "evidence": {
+                "release_claim_alignment_status": exam_workspace_run_history_alignment["status"],
+                "release_claim_alignment_public_safety_status": exam_workspace_run_history_alignment[
+                    "public_safety_status"
+                ],
+                "release_claim_alignment_contract_status": exam_workspace_run_history_alignment["schema_version"],
+                "release_claim_alignment_section_count": exam_workspace_run_history_alignment["section_count"],
+                "history_status": exam_workspace_run_history_alignment["history_status"],
+                "history_public_safety_status": exam_workspace_run_history_alignment["history_public_safety_status"],
+                "waiting_status": exam_workspace_run_history_alignment["waiting_status"],
+                "waiting_public_safety_status": exam_workspace_run_history_alignment["waiting_public_safety_status"],
+                "exam_deployment_status": exam_workspace_run_history_alignment["exam_deployment_status"],
+                "run_count": exam_workspace_run_history_alignment["run_count"],
+                "checkpoint_hash_count": exam_workspace_run_history_alignment["checkpoint_hash_count"],
+                "skill_tags": exam_workspace_run_history_alignment["skill_tags"],
+                "help_level_profile": exam_workspace_run_history_alignment["help_level_profile"],
+                "blocker_profile": exam_workspace_run_history_alignment["blocker_profile"],
+                "open_operator_step_count": exam_workspace_run_history_alignment["open_operator_step_count"],
+                "export_review_status": exam_workspace_run_history_alignment["export_review_status"],
+                "human_reviewable_independence_evidence": exam_workspace_run_history_alignment[
+                    "human_reviewable_independence_evidence"
+                ],
+                "reflection_evidence_present": exam_workspace_run_history_alignment["reflection_evidence_present"],
+                "export_receipt_status": exam_workspace_run_history_alignment["export_receipt_status"],
+                "export_receipt_not_cleared": exam_workspace_run_history_alignment["export_receipt_not_cleared"],
+                "waiting_run_count": exam_workspace_run_history_alignment["waiting_run_count"],
+                "waiting_export_status": exam_workspace_run_history_alignment["waiting_export_status"],
+                "release_claim_alignment_human_gates": exam_workspace_run_history_alignment["required_human_gates"],
+                "run_claim_linked": (
+                    "exam_workspace_run" in exam_workspace_run_history_alignment["required_readiness_check_ids"]
+                ),
+                "launch_claim_linked": (
+                    "exam_workspace_launch" in exam_workspace_run_history_alignment["required_readiness_check_ids"]
+                ),
+                "study_session_claim_linked": (
+                    "study_session" in exam_workspace_run_history_alignment["required_readiness_check_ids"]
+                ),
+                "review_board_claim_linked": (
+                    "review_board_packet" in exam_workspace_run_history_alignment["required_readiness_check_ids"]
+                ),
+                "external_decision_state_claim_linked": (
+                    "external_decision_state"
+                    in exam_workspace_run_history_alignment["required_readiness_check_ids"]
+                ),
+                "evaluation_claim_linked": (
+                    "evaluation_packet" in exam_workspace_run_history_alignment["required_readiness_check_ids"]
+                ),
+                "exam_boundary_claim_linked": (
+                    "exam_boundary" in exam_workspace_run_history_alignment["required_readiness_check_ids"]
+                ),
+                "human_submission_gate_linked": (
+                    "human_submission_review_required" in exam_workspace_run_history_alignment["required_human_gates"]
+                ),
+                "datenschutz_gate_linked": (
+                    "datenschutz_review_required_before_real_pilot"
+                    in exam_workspace_run_history_alignment["required_human_gates"]
+                ),
+                "written_clearance_gate_linked": (
+                    "written_university_clearance_required_before_exam_use"
+                    in exam_workspace_run_history_alignment["required_human_gates"]
+                ),
+                "history_public_safe": exam_workspace_run_history_alignment["contracts"]["history_public_safe"],
+                "waiting_history_public_safe": exam_workspace_run_history_alignment["contracts"][
+                    "waiting_history_public_safe"
+                ],
+                "run_history_hash_only_ready": exam_workspace_run_history_alignment["contracts"][
+                    "run_history_hash_only_ready"
+                ],
+                "operator_reflection_and_blockers_preserved": exam_workspace_run_history_alignment["contracts"][
+                    "operator_reflection_and_blockers_preserved"
+                ],
+                "export_review_package_human_reviewable": exam_workspace_run_history_alignment["contracts"][
+                    "export_review_package_human_reviewable"
+                ],
+                "export_review_receipt_not_exam_clearance": exam_workspace_run_history_alignment["contracts"][
+                    "export_review_receipt_not_exam_clearance"
+                ],
+                "waiting_history_has_no_reviewable_export": exam_workspace_run_history_alignment["contracts"][
+                    "waiting_history_has_no_reviewable_export"
+                ],
+                "public_outputs_hide_private_history_data": exam_workspace_run_history_alignment["contracts"][
+                    "public_outputs_hide_private_history_data"
+                ],
+                "high_stakes_actions_not_started": exam_workspace_run_history_alignment["contracts"][
+                    "high_stakes_actions_not_started"
+                ],
+                "raw_query_returned_blocked": "raw query returned"
+                in exam_workspace_run_history_alignment["blocked_claims"],
+                "raw_history_returned_blocked": "raw history returned"
+                in exam_workspace_run_history_alignment["blocked_claims"],
+                "raw_notebook_code_returned_blocked": "raw notebook code returned"
+                in exam_workspace_run_history_alignment["blocked_claims"],
+                "raw_cell_text_returned_blocked": "raw cell text returned"
+                in exam_workspace_run_history_alignment["blocked_claims"],
+                "final_solution_acceptance_blocked": "final solution acceptance"
+                in exam_workspace_run_history_alignment["blocked_claims"],
+                "eigenleistung_percentage_claim_blocked": "Eigenleistung percentage claim"
+                in exam_workspace_run_history_alignment["blocked_claims"],
+                "automatic_grading_blocked": "automatic grading"
+                in exam_workspace_run_history_alignment["blocked_claims"],
+                "proctoring_blocked": "proctoring" in exam_workspace_run_history_alignment["blocked_claims"],
+                "ki_detection_evidence_blocked": "KI-detection evidence"
+                in exam_workspace_run_history_alignment["blocked_claims"],
+                "cloud_processing_blocked": "cloud processing" in exam_workspace_run_history_alignment["blocked_claims"],
+                "exam_deployment_blocked": "exam deployment" in exam_workspace_run_history_alignment["blocked_claims"],
+                "exam_clearance_blocked": "exam clearance" in exam_workspace_run_history_alignment["blocked_claims"],
             },
         },
         {

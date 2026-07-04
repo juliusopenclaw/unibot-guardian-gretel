@@ -1,17 +1,23 @@
 from __future__ import annotations
 
 import json
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from .course_tutor import DEFAULT_COURSE_ID, safe_course_id
 from .exam_workspace_session_console import build_exam_workspace_session_console
-from .materials import sha256_text
+from .materials import build_material_manifest, sha256_text
 from .public_safety import scan_text
+from .source_cards import get_source_card
+from .tutor_index import build_private_tutor_index_dry_run
 
 
 EXAM_WORKSPACE_RUN_HISTORY_SCHEMA_VERSION = "unibot-exam-workspace-run-history-v1"
+EXAM_WORKSPACE_RUN_HISTORY_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-exam-workspace-run-history-release-review-board-claim-alignment-v1"
+)
 RUN_HISTORY_ENDPOINT = "/api/unibot/exam-workspace/run-history-export-review"
 
 
@@ -143,6 +149,262 @@ def build_exam_workspace_run_history_export_review(
     return report
 
 
+def build_exam_workspace_run_history_release_claim_alignment(
+    history_report: dict[str, Any] | None = None,
+    waiting_report: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    if history_report is None or waiting_report is None:
+        with tempfile.TemporaryDirectory(prefix="unibot_exam_workspace_run_history_alignment_") as temp_dir:
+            temp_root = Path(temp_dir)
+            materials_root = temp_root / "materials"
+            manifest_path = temp_root / "private_manifest.json"
+            index_path = temp_root / "private_tutor_index.json"
+            write_synthetic_history_fixture(materials_root)
+            write_synthetic_history_manifest(manifest_path)
+            build_private_tutor_index_dry_run(
+                private_manifest_path=manifest_path,
+                tutor_index_path=index_path,
+                operator_confirmed_tutor_index_build=True,
+            )
+            first = build_exam_workspace_session_console(
+                base_path=str(materials_root),
+                review_policy="local_private_tutor",
+                decision_record=synthetic_history_decision_record(),
+                private_manifest_path=manifest_path,
+                tutor_index_path=index_path,
+                selected_skill_tag="python_lists",
+                cell_source="own_checkpoint = []\n",
+                repeat_run_index=1,
+                study_receipt={
+                    "prediction_present": True,
+                    "notebook_action_present": True,
+                    "reflection_present": True,
+                },
+                public_safe=True,
+            )
+            second = build_exam_workspace_session_console(
+                base_path=str(materials_root),
+                review_policy="local_private_tutor",
+                decision_record=synthetic_history_decision_record(),
+                private_manifest_path=manifest_path,
+                tutor_index_path=index_path,
+                selected_skill_tag="python_lists",
+                cell_source="own_checkpoint = ['next']\n",
+                repeat_run_index=2,
+                previous_console_receipts=[first["session_console_receipt"]],
+                study_receipt={
+                    "prediction_present": True,
+                    "notebook_action_present": True,
+                    "reflection_present": True,
+                },
+                public_safe=True,
+            )
+            history_report = history_report or build_exam_workspace_run_history_export_review(
+                console_reports=[first, second],
+                console_receipts=[first["session_console_receipt"]],
+                build_current_console=False,
+                public_safe=True,
+            )
+            waiting_report = waiting_report or build_empty_history_waiting_report(
+                course_id="exam-workspace-run-history-alignment"
+            )
+
+    sections = [
+        {
+            "section_id": "run_receipt_history_trace",
+            "summary_claim": "run history aggregates only session-console receipt ids, hashes, skill tags, and checkpoint hashes",
+            "source_card_ids": ["dfg-gwp", "gdpr-2016-679", "dsk-ai-privacy-2024"],
+            "readiness_check_ids": ["exam_workspace_run_history", "exam_workspace_run", "exam_workspace_launch"],
+            "human_gates": ["datenschutz_review_required_before_real_pilot", "human_submission_review_required"],
+        },
+        {
+            "section_id": "operator_reflection_export_trace",
+            "summary_claim": "history export preserves operator-confirmation state, blockers, and reflection evidence for human review",
+            "source_card_ids": ["dfg-gwp", "dsk-ai-privacy-2024"],
+            "readiness_check_ids": ["exam_workspace_run_history", "study_session", "review_board_packet"],
+            "human_gates": ["human_submission_review_required", "public_safety_required"],
+        },
+        {
+            "section_id": "not_cleared_export_receipt_trace",
+            "summary_claim": "history export receipt is human-reviewable evidence and remains not exam clearance",
+            "source_card_ids": ["dfg-gwp", "uoc-ki-faq", "uoc-hilfsmittel"],
+            "readiness_check_ids": ["exam_workspace_run_history", "external_decision_state", "exam_boundary"],
+            "human_gates": ["human_submission_review_required", "written_university_clearance_required_before_exam_use"],
+        },
+        {
+            "section_id": "not_authorized_trace",
+            "summary_claim": "run history does not publish raw notebook data, grade, proctor, detect AI use, or clear exam deployment",
+            "source_card_ids": ["eu-ai-act-2024", "uoc-ki-faq", "uoc-hilfsmittel"],
+            "readiness_check_ids": ["exam_workspace_run_history", "evaluation_packet", "exam_boundary"],
+            "human_gates": ["written_university_clearance_required_before_exam_use", "human_submission_review_required"],
+        },
+    ]
+    required_source_card_ids = sorted({source_id for section in sections for source_id in section["source_card_ids"]})
+    missing_source_card_ids = sorted(source_id for source_id in required_source_card_ids if get_source_card(source_id) is None)
+    entries = [item for item in history_report.get("run_history", []) or [] if isinstance(item, dict)]
+    summary = history_report.get("history_summary", {}) if isinstance(history_report.get("history_summary"), dict) else {}
+    package = (
+        history_report.get("export_review_package", {})
+        if isinstance(history_report.get("export_review_package"), dict)
+        else {}
+    )
+    review_items = package.get("review_items", {}) if isinstance(package.get("review_items"), dict) else {}
+    receipt = (
+        history_report.get("export_review_receipt", {})
+        if isinstance(history_report.get("export_review_receipt"), dict)
+        else {}
+    )
+    waiting_summary = (
+        waiting_report.get("history_summary", {})
+        if isinstance(waiting_report.get("history_summary"), dict)
+        else {}
+    )
+    waiting_package = (
+        waiting_report.get("export_review_package", {})
+        if isinstance(waiting_report.get("export_review_package"), dict)
+        else {}
+    )
+    waiting_receipt = (
+        waiting_report.get("export_review_receipt", {})
+        if isinstance(waiting_report.get("export_review_receipt"), dict)
+        else {}
+    )
+    blocked_claims = [
+        "raw query returned",
+        "raw history returned",
+        "raw notebook code returned",
+        "raw cell text returned",
+        "raw notebook returned",
+        "local path returned",
+        "final solution acceptance",
+        "complete code outsourcing",
+        "inserted values",
+        "final interpretation",
+        "automatic grading",
+        "proctoring",
+        "KI-detection evidence",
+        "Eigenleistung percentage claim",
+        "cloud processing",
+        "exam deployment",
+        "exam clearance",
+    ]
+    boundary = str(history_report.get("execution_boundary", ""))
+    contracts = {
+        "history_public_safe": history_report.get("public_safety_status") == "pass",
+        "waiting_history_public_safe": waiting_report.get("public_safety_status") == "pass",
+        "run_history_hash_only_ready": history_report.get("status") == "exam_workspace_run_history_export_review_ready"
+        and int(summary.get("run_count", 0) or 0) >= 2
+        and int(summary.get("checkpoint_hash_count", 0) or 0) >= 2
+        and summary.get("raw_history_returned") is False
+        and all(entry.get("raw_query_returned") is False for entry in entries)
+        and all(entry.get("raw_text_returned") is False for entry in entries)
+        and all(entry.get("raw_cell_returned") is False for entry in entries)
+        and all(entry.get("notebook_code_returned") is False for entry in entries)
+        and all(entry.get("local_paths_returned") is False for entry in entries),
+        "operator_reflection_and_blockers_preserved": "reflection_evidence_present"
+        in set(review_items.get("reflection_statuses", []) or [])
+        and "operator_confirmations_open" in dict(summary.get("blocker_profile", {}) or {})
+        and int(summary.get("open_operator_step_count", 0) or 0) >= 1,
+        "export_review_package_human_reviewable": package.get("status") == "export_review_ready"
+        and package.get("human_reviewable_independence_evidence") is True
+        and package.get("raw_query_returned") is False
+        and package.get("raw_text_returned") is False
+        and package.get("raw_cell_returned") is False
+        and package.get("notebook_code_returned") is False
+        and package.get("local_paths_returned") is False
+        and package.get("automatic_grading_started") is False
+        and all(
+            item.get("not_cleared_receipt") is True
+            for item in (review_items.get("export_receipts", []) or [])
+            if isinstance(item, dict)
+        ),
+        "export_review_receipt_not_exam_clearance": receipt.get("status")
+        == "export_review_receipt_ready_not_exam_clearance"
+        and receipt.get("exam_deployment_status") == "not_cleared"
+        and receipt.get("not_cleared_receipt") is True
+        and int(receipt.get("run_count", 0) or 0) == int(summary.get("run_count", 0) or 0)
+        and receipt.get("raw_query_returned") is False
+        and receipt.get("raw_text_returned") is False
+        and receipt.get("raw_cell_returned") is False
+        and receipt.get("notebook_code_returned") is False
+        and receipt.get("local_paths_returned") is False,
+        "waiting_history_has_no_reviewable_export": waiting_report.get("status")
+        == "exam_workspace_run_history_waiting_for_session_history"
+        and int(waiting_summary.get("run_count", 0) or 0) == 0
+        and waiting_package.get("status") == "export_review_waiting_for_session_history"
+        and waiting_package.get("human_reviewable_independence_evidence") is False
+        and int(waiting_receipt.get("run_count", 0) or 0) == 0,
+        "public_outputs_hide_private_history_data": history_report.get("raw_query_returned") is False
+        and history_report.get("raw_text_returned") is False
+        and history_report.get("raw_cell_returned") is False
+        and history_report.get("raw_notebook_returned") is False
+        and history_report.get("notebook_code_returned") is False
+        and history_report.get("local_paths_returned") is False
+        and "never returns raw queries" in boundary
+        and "notebook code" in boundary
+        and "local paths" in boundary,
+        "high_stakes_actions_not_started": history_report.get("exam_deployment_status") == "not_cleared"
+        and history_report.get("automatic_grading_started") is False
+        and history_report.get("proctoring_started") is False
+        and history_report.get("ai_detection_started") is False
+        and history_report.get("exam_clearance_claimed") is False,
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    payload = {
+        "sections": sections,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "blocked_claims": blocked_claims,
+        "history_status": history_report.get("status"),
+        "waiting_status": waiting_report.get("status"),
+    }
+    scan = scan_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        "exam-workspace-run-history-release-claim-alignment",
+    )
+    status = "ready" if not missing_source_card_ids and not failed_contract_ids and scan["status"] == "pass" else "needs_review"
+    return {
+        "schema_version": EXAM_WORKSPACE_RUN_HISTORY_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "history_status": history_report.get("status"),
+        "history_public_safety_status": history_report.get("public_safety_status"),
+        "waiting_status": waiting_report.get("status"),
+        "waiting_public_safety_status": waiting_report.get("public_safety_status"),
+        "exam_deployment_status": history_report.get("exam_deployment_status"),
+        "run_count": summary.get("run_count", 0),
+        "checkpoint_hash_count": summary.get("checkpoint_hash_count", 0),
+        "skill_tags": list(summary.get("skill_tags", []) or [])[:8],
+        "help_level_profile": dict(summary.get("help_level_profile", {}) or {}),
+        "blocker_profile": dict(summary.get("blocker_profile", {}) or {}),
+        "open_operator_step_count": summary.get("open_operator_step_count", 0),
+        "export_review_status": package.get("status"),
+        "human_reviewable_independence_evidence": bool(package.get("human_reviewable_independence_evidence", False)),
+        "reflection_evidence_present": "reflection_evidence_present"
+        in set(review_items.get("reflection_statuses", []) or []),
+        "export_receipt_status": receipt.get("status"),
+        "export_receipt_not_cleared": bool(receipt.get("not_cleared_receipt", False)),
+        "waiting_run_count": waiting_summary.get("run_count", 0),
+        "waiting_export_status": waiting_package.get("status"),
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "blocked_claims": blocked_claims,
+        "public_safety_status": scan["status"],
+        "policy": (
+            "Exam workspace run history is a hash-only export-review surface. It may aggregate session-console "
+            "receipt ids, checkpoint hashes, help-level profiles, blockers, operator-confirmation state, reflection "
+            "status, and not-cleared export receipts for human review, but it does not return raw private data, grade, "
+            "proctor, detect AI use, claim Eigenleistung percentages, or clear exams."
+        ),
+    }
+
+
 def build_history_entries(*, reports: list[dict[str, Any]], receipts: list[dict[str, Any]]) -> list[dict[str, Any]]:
     entries: list[dict[str, Any]] = []
     for report in reports:
@@ -225,6 +487,91 @@ def build_history_entries(*, reports: list[dict[str, Any]], receipts: list[dict[
         )
     entries.sort(key=lambda item: (int(item.get("repeat_run_index", 1) or 1), str(item.get("receipt_id", ""))))
     return entries[:24]
+
+
+def write_synthetic_history_fixture(root: Path) -> None:
+    (root / "Week 1").mkdir(parents=True)
+    (root / "Week 1" / "lists_intro.md").write_text(
+        "Python lists dictionary tuple index slice loop function notebook",
+        encoding="utf-8",
+    )
+
+
+def synthetic_history_manifest_record() -> dict[str, Any]:
+    return {
+        "material_id": "synthetic-history-python-lists-notebook",
+        "title": "Synthetic history Python lists notebook",
+        "source_kind": "notebook",
+        "permission_status": "private_course_use_only",
+        "publish_policy": "private_only",
+        "extraction_status": "text_extracted",
+        "review_status": "reviewed_for_private_tutor",
+        "skill_tags": ["python_lists", "control_flow", "debugging"],
+        "source_card_ids": ["dfg-gwp", "vanlehn-2011"],
+        "page_or_timestamp": "synthetic week 01",
+        "sha256": sha256_text("synthetic history python lists notebook reviewed locally"),
+    }
+
+
+def write_synthetic_history_manifest(path: Path) -> None:
+    manifest = build_material_manifest([synthetic_history_manifest_record()])
+    manifest["artifact_type"] = "course_private_material_manifest"
+    manifest["exam_deployment_status"] = "not_cleared"
+    manifest["storage_policy"] = "hash-only private material metadata; no raw text or local paths"
+    path.write_text(json.dumps(manifest, ensure_ascii=False, sort_keys=True), encoding="utf-8")
+
+
+def synthetic_history_decision_record() -> dict[str, Any]:
+    return {
+        "decision_status": "approved_for_local_extraction",
+        "scope": "local_private_course_extraction",
+        "allowed_job_types": ["ocr", "transcription"],
+        "storage_policy": "local_private_only",
+        "cloud_processing_allowed": False,
+        "raw_text_public_release_allowed": False,
+        "human_review_before_tutor_index": True,
+        "retention_decision": "delete private extraction artifacts after reviewed metadata is accepted",
+        "access_roles": ["project_owner", "approved_reviewer"],
+        "reviewer_roles": ["Datenschutz", "Lehreinheit / Modulverantwortliche", "IT / SZI"],
+        "decision_reference": "synthetic history review decision",
+    }
+
+
+def build_empty_history_waiting_report(*, course_id: str) -> dict[str, Any]:
+    safe_id = safe_course_id(course_id)
+    entries: list[dict[str, Any]] = []
+    package = export_review_package(entries)
+    review_receipt = export_review_receipt(safe_id, package, entries)
+    report = {
+        "schema_version": EXAM_WORKSPACE_RUN_HISTORY_SCHEMA_VERSION,
+        "artifact_type": "exam_workspace_run_history_export_review",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "course_id": safe_id,
+        "status": history_status(entries),
+        "exam_deployment_status": "not_cleared",
+        "execution_boundary": (
+            "Exam Workspace Run History waiting state. It has no session history and therefore no reviewable "
+            "independence evidence. It never returns raw queries, course raw text, notebook code, local paths, "
+            "grading, proctoring, AI detection, or exam clearance."
+        ),
+        "run_history": entries,
+        "history_summary": history_summary(entries),
+        "export_review_package": package,
+        "export_review_receipt": review_receipt,
+        "raw_query_returned": False,
+        "raw_text_returned": False,
+        "raw_cell_returned": False,
+        "raw_notebook_returned": False,
+        "notebook_code_returned": False,
+        "local_paths_returned": False,
+        "automatic_grading_started": False,
+        "proctoring_started": False,
+        "ai_detection_started": False,
+        "exam_clearance_claimed": False,
+        "next_actions": history_next_actions(entries),
+    }
+    attach_public_scan(report, public_safe=True)
+    return report
 
 
 def blockers_from_console(report: dict[str, Any], console: dict[str, Any]) -> list[str]:

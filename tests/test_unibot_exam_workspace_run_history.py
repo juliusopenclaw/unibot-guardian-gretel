@@ -10,7 +10,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.exam_workspace_run_history import build_exam_workspace_run_history_export_review  # noqa: E402
+from unibot.exam_workspace_run_history import (  # noqa: E402
+    build_exam_workspace_run_history_export_review,
+    build_exam_workspace_run_history_release_claim_alignment,
+)
 from unibot.exam_workspace_session_console import build_exam_workspace_session_console  # noqa: E402
 from unibot.materials import build_material_manifest, sha256_text  # noqa: E402
 from unibot.public_safety import scan_text  # noqa: E402
@@ -268,6 +271,144 @@ class UniBotExamWorkspaceRunHistoryTests(unittest.TestCase):
                 self.assertTrue(review_report["history_summary"]["workspace_card_profile"])
                 self.assertTrue(review_report["export_review_package"]["review_items"]["workspace_card_profile"])
                 self.assertTrue(review_report["run_history"][0]["local_cycle_operator_workspace_card"])
+
+    def test_history_release_claim_alignment_links_review_board_claims(self) -> None:
+        alignment = build_exam_workspace_run_history_release_claim_alignment()
+        payload = json.dumps(alignment, ensure_ascii=False)
+
+        self.assertEqual(
+            alignment["schema_version"],
+            "unibot-exam-workspace-run-history-release-review-board-claim-alignment-v1",
+        )
+        self.assertEqual(alignment["status"], "ready")
+        self.assertEqual(alignment["public_safety_status"], "pass")
+        self.assertEqual(alignment["history_status"], "exam_workspace_run_history_export_review_ready")
+        self.assertEqual(alignment["history_public_safety_status"], "pass")
+        self.assertEqual(alignment["waiting_status"], "exam_workspace_run_history_waiting_for_session_history")
+        self.assertEqual(alignment["waiting_public_safety_status"], "pass")
+        self.assertEqual(alignment["exam_deployment_status"], "not_cleared")
+        self.assertGreaterEqual(alignment["run_count"], 2)
+        self.assertGreaterEqual(alignment["checkpoint_hash_count"], 2)
+        self.assertIn("python_lists", alignment["skill_tags"])
+        self.assertEqual(alignment["help_level_profile"]["A2"], 2)
+        self.assertIn("operator_confirmations_open", alignment["blocker_profile"])
+        self.assertGreaterEqual(alignment["open_operator_step_count"], 1)
+        self.assertEqual(alignment["export_review_status"], "export_review_ready")
+        self.assertTrue(alignment["human_reviewable_independence_evidence"])
+        self.assertTrue(alignment["reflection_evidence_present"])
+        self.assertEqual(alignment["export_receipt_status"], "export_review_receipt_ready_not_exam_clearance")
+        self.assertTrue(alignment["export_receipt_not_cleared"])
+        self.assertEqual(alignment["waiting_run_count"], 0)
+        self.assertEqual(alignment["waiting_export_status"], "export_review_waiting_for_session_history")
+        self.assertEqual(alignment["missing_source_card_ids"], [])
+        self.assertEqual(alignment["failed_contract_ids"], [])
+        self.assertIn("exam_workspace_run_history", alignment["required_readiness_check_ids"])
+        self.assertIn("exam_workspace_run", alignment["required_readiness_check_ids"])
+        self.assertIn("exam_workspace_launch", alignment["required_readiness_check_ids"])
+        self.assertIn("study_session", alignment["required_readiness_check_ids"])
+        self.assertIn("review_board_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("external_decision_state", alignment["required_readiness_check_ids"])
+        self.assertIn("evaluation_packet", alignment["required_readiness_check_ids"])
+        self.assertIn("exam_boundary", alignment["required_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", alignment["required_human_gates"])
+        self.assertIn("datenschutz_review_required_before_real_pilot", alignment["required_human_gates"])
+        self.assertIn("written_university_clearance_required_before_exam_use", alignment["required_human_gates"])
+        self.assertTrue(alignment["contracts"]["history_public_safe"])
+        self.assertTrue(alignment["contracts"]["waiting_history_public_safe"])
+        self.assertTrue(alignment["contracts"]["run_history_hash_only_ready"])
+        self.assertTrue(alignment["contracts"]["operator_reflection_and_blockers_preserved"])
+        self.assertTrue(alignment["contracts"]["export_review_package_human_reviewable"])
+        self.assertTrue(alignment["contracts"]["export_review_receipt_not_exam_clearance"])
+        self.assertTrue(alignment["contracts"]["waiting_history_has_no_reviewable_export"])
+        self.assertTrue(alignment["contracts"]["public_outputs_hide_private_history_data"])
+        self.assertTrue(alignment["contracts"]["high_stakes_actions_not_started"])
+        self.assertIn("raw history returned", alignment["blocked_claims"])
+        self.assertIn("raw notebook code returned", alignment["blocked_claims"])
+        self.assertIn("automatic grading", alignment["blocked_claims"])
+        self.assertIn("proctoring", alignment["blocked_claims"])
+        self.assertIn("KI-detection evidence", alignment["blocked_claims"])
+        self.assertIn("exam deployment", alignment["blocked_claims"])
+        self.assertIn("exam clearance", alignment["blocked_claims"])
+        self.assertEqual(scan_text(payload, "run-history-alignment")["status"], "pass")
+
+    def test_history_release_claim_alignment_blocks_overstated_history_claims(self) -> None:
+        unsafe_history = {
+            "status": "exam_workspace_run_history_export_review_ready",
+            "public_safety_status": "pass",
+            "exam_deployment_status": "cleared",
+            "execution_boundary": "History export.",
+            "run_history": [
+                {
+                    "raw_query_returned": True,
+                    "raw_text_returned": True,
+                    "raw_cell_returned": True,
+                    "notebook_code_returned": True,
+                    "local_paths_returned": True,
+                }
+            ],
+            "history_summary": {
+                "run_count": 1,
+                "checkpoint_hash_count": 0,
+                "raw_history_returned": True,
+                "blocker_profile": {},
+                "open_operator_step_count": 0,
+            },
+            "export_review_package": {
+                "status": "ready_for_exam_deployment",
+                "human_reviewable_independence_evidence": False,
+                "review_items": {"reflection_statuses": [], "export_receipts": [{"not_cleared_receipt": False}]},
+                "raw_query_returned": True,
+                "raw_text_returned": True,
+                "raw_cell_returned": True,
+                "notebook_code_returned": True,
+                "local_paths_returned": True,
+                "automatic_grading_started": True,
+            },
+            "export_review_receipt": {
+                "status": "exam_clearance_ready",
+                "exam_deployment_status": "cleared",
+                "not_cleared_receipt": False,
+                "run_count": 1,
+                "raw_query_returned": True,
+                "raw_text_returned": True,
+                "raw_cell_returned": True,
+                "notebook_code_returned": True,
+                "local_paths_returned": True,
+            },
+            "raw_query_returned": True,
+            "raw_text_returned": True,
+            "raw_cell_returned": True,
+            "raw_notebook_returned": True,
+            "notebook_code_returned": True,
+            "local_paths_returned": True,
+            "automatic_grading_started": True,
+            "proctoring_started": True,
+            "ai_detection_started": True,
+            "exam_clearance_claimed": True,
+        }
+        waiting = {
+            "status": "exam_workspace_run_history_waiting_for_session_history",
+            "public_safety_status": "pass",
+            "history_summary": {"run_count": 0},
+            "export_review_package": {
+                "status": "export_review_waiting_for_session_history",
+                "human_reviewable_independence_evidence": False,
+            },
+            "export_review_receipt": {"run_count": 0},
+        }
+
+        alignment = build_exam_workspace_run_history_release_claim_alignment(
+            history_report=unsafe_history,
+            waiting_report=waiting,
+        )
+
+        self.assertEqual(alignment["status"], "needs_review")
+        self.assertIn("run_history_hash_only_ready", alignment["failed_contract_ids"])
+        self.assertIn("operator_reflection_and_blockers_preserved", alignment["failed_contract_ids"])
+        self.assertIn("export_review_package_human_reviewable", alignment["failed_contract_ids"])
+        self.assertIn("export_review_receipt_not_exam_clearance", alignment["failed_contract_ids"])
+        self.assertIn("public_outputs_hide_private_history_data", alignment["failed_contract_ids"])
+        self.assertIn("high_stakes_actions_not_started", alignment["failed_contract_ids"])
 
 
 if __name__ == "__main__":

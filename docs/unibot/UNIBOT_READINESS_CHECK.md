@@ -48,6 +48,7 @@ It aggregates:
 - notebook checkpoint and hash-only local cell evidence alignment
 - exam workspace launch and release-claim alignment
 - exam workspace run and release-claim alignment
+- exam workspace run-history and export-review alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -188,6 +189,14 @@ export receipt. Operator-confirmed local writes stay local and hash-oriented;
 the public report still does not return raw queries, raw notebook code, local
 paths, grades, proctoring, AI-detection evidence, Eigenleistung percentages, or
 exam clearance.
+
+The exam-workspace run-history gate carries
+`unibot-exam-workspace-run-history-release-review-board-claim-alignment-v1`.
+It aggregates session-console receipt ids, checkpoint hashes, help-level
+profiles, blockers, operator-confirmation state, reflection status, and
+not-cleared export receipts into a human-review surface. It does not publish raw
+history, raw queries, notebook code, local paths, grades, proctoring,
+AI-detection evidence, Eigenleistung percentages, or exam clearance.
 
 ## Source-Card Drift Guard
 
