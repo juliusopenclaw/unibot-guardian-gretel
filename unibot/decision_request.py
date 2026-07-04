@@ -7,13 +7,169 @@ from typing import Any
 from .course_tutor import DEFAULT_COURSE_ID, safe_course_id
 from .materials import sha256_text
 from .public_safety import scan_text
+from .source_cards import get_source_card
 from .submission import build_stakeholder_submission_bundle
 
 
 DECISION_REQUEST_SCHEMA_VERSION = "unibot-stakeholder-decision-request-v1"
+DECISION_REQUEST_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
+    "unibot-stakeholder-decision-request-release-review-board-claim-alignment-v1"
+)
 
 ALLOWED_LANE_IDS = {"rights_privacy_local_extraction", "exam_gateway_authority_clearance"}
 ALLOWED_RECEIPT_STATUSES = {"draft_not_sent", "sent_for_human_review", "withdrawn", "response_received"}
+
+
+def build_stakeholder_decision_request_release_claim_alignment(request: dict[str, Any]) -> dict[str, Any]:
+    sections = [
+        {
+            "section_id": "request_boundary_trace",
+            "summary_claim": "decision request is a single manual-review draft and not an automatic external send or approval",
+            "source_card_ids": ["uoc-ki-lehre", "dfg-gwp"],
+            "readiness_check_ids": [
+                "stakeholder_decision_request",
+                "stakeholder_submission_bundle",
+                "review_board_packet",
+                "public_safety",
+            ],
+            "human_gates": ["human_submission_review_required", "public_safety_required"],
+        },
+        {
+            "section_id": "receipt_boundary_trace",
+            "summary_claim": "receipt template records only human submission status and hash-safe references, never raw decision text",
+            "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024"],
+            "readiness_check_ids": ["stakeholder_decision_request", "data_protection_screening", "public_safety"],
+            "human_gates": ["human_submission_review_required", "datenschutz_review_required_before_real_pilot"],
+        },
+        {
+            "section_id": "lane_evidence_trace",
+            "summary_claim": "request evidence remains linked to the stakeholder submission bundle and one selected decision lane",
+            "source_card_ids": ["dfg-gwp"],
+            "readiness_check_ids": [
+                "stakeholder_decision_request",
+                "stakeholder_submission_bundle",
+                "source_card_drift_guard",
+            ],
+            "human_gates": ["human_submission_review_required"],
+        },
+        {
+            "section_id": "exam_boundary_trace",
+            "summary_claim": "exam lane requests remain not cleared and continue to require written university authority review",
+            "source_card_ids": ["hg-nrw-2025", "hg-nrw-64", "uoc-hilfsmittel", "uoc-ki-faq"],
+            "readiness_check_ids": ["stakeholder_decision_request", "authority_handoff", "exam_boundary"],
+            "human_gates": ["written_university_clearance_required_before_exam_use", "human_submission_review_required"],
+        },
+    ]
+    required_source_card_ids = sorted({source_id for section in sections for source_id in section["source_card_ids"]})
+    missing_source_card_ids = sorted(source_id for source_id in required_source_card_ids if get_source_card(source_id) is None)
+
+    lane_id = request.get("lane_id", "")
+    receipt = request.get("receipt_template", {})
+    minimum_record = request.get("minimum_record_template", {})
+    evidence_manifest = request.get("evidence_manifest", [])
+    evidence_by_artifact = {item.get("artifact"): item for item in evidence_manifest}
+    boundary = request.get("request_boundary", "")
+    checklist_text = " ".join(request.get("human_review_checklist", []))
+    must_not_claim = set(request.get("must_not_claim", []))
+
+    lane_specific_contract = False
+    if lane_id == "rights_privacy_local_extraction":
+        lane_specific_contract = (
+            request.get("validator_endpoint") == "/api/unibot/course/extraction-decision/validate"
+            and "Datenschutz" in request.get("target_reviewer_roles", [])
+            and minimum_record.get("cloud_processing_allowed") is False
+            and minimum_record.get("raw_text_public_release_allowed") is False
+            and "cloud processing" in checklist_text
+            and "exam deployment is authorized" in must_not_claim
+        )
+    if lane_id == "exam_gateway_authority_clearance":
+        lane_specific_contract = (
+            request.get("validator_endpoint") == "/api/unibot/institutional-clearance/validate"
+            and "Pruefungsamt" in request.get("target_reviewer_roles", [])
+            and minimum_record.get("help_levels_allowed") == ["A0", "A1", "A2"]
+            and minimum_record.get("no_proctoring") is True
+            and minimum_record.get("no_ai_detection") is True
+            and minimum_record.get("no_automatic_grading") is True
+            and "exam use is already cleared" in must_not_claim
+        )
+
+    contracts = {
+        "request_ready_for_manual_review_not_sent": request.get("status") == "ready_for_manual_review_not_sent",
+        "supported_single_lane": lane_id in ALLOWED_LANE_IDS,
+        "exam_deployment_not_cleared": request.get("exam_deployment_status") == "not_cleared",
+        "request_boundary_blocks_send_approval_raw_text_exam": all(
+            phrase in boundary
+            for phrase in [
+                "does not send it",
+                "does not claim approval",
+                "stores no raw written decision text",
+                "does not clear exam deployment",
+            ]
+        ),
+        "human_review_checklist_blocks_private_and_approval_claims": all(
+            phrase in checklist_text
+            for phrase in [
+                "not raw private course text",
+                "local absolute paths",
+                "private written decision text are absent",
+                "does not claim approval",
+            ]
+        ),
+        "receipt_template_is_manual_hash_only": receipt.get("manual_submission_status") == "draft_not_sent"
+        and receipt.get("submission_performed_by_human") is True
+        and receipt.get("tool_sent_message") is False
+        and receipt.get("raw_decision_text_included") is False
+        and "hash-only reference" in receipt.get("submission_reference", ""),
+        "evidence_manifest_links_submission_bundle_and_lane": evidence_by_artifact.get("stakeholder_submission_bundle", {}).get("status")
+        == "ready_for_human_submission_not_sent"
+        and evidence_by_artifact.get("stakeholder_submission_bundle", {}).get("public_safety_status") == "pass"
+        and evidence_by_artifact.get("stakeholder_submission_bundle", {}).get("exam_deployment_status") == "not_cleared"
+        and bool(evidence_by_artifact.get("stakeholder_submission_bundle", {}).get("summary_hash"))
+        and evidence_by_artifact.get("decision_lane", {}).get("lane_id") == lane_id
+        and bool(evidence_by_artifact.get("decision_lane", {}).get("current_evidence_hash")),
+        "lane_specific_contract_matches_boundary": lane_specific_contract,
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    payload = {
+        "sections": sections,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "blocked_claims": [
+            "automatic external send",
+            "approval claim",
+            "exam clearance",
+            "official grading",
+            "proctoring",
+            "KI-detection evidence",
+            "raw written decision storage",
+            "public raw course text release",
+        ],
+    }
+    scan = scan_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        "stakeholder-decision-request-release-claim-alignment",
+    )
+    status = "ready" if not missing_source_card_ids and not failed_contract_ids and scan["status"] == "pass" else "needs_review"
+    return {
+        "schema_version": DECISION_REQUEST_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION,
+        "status": status,
+        "section_count": len(sections),
+        "sections": sections,
+        "contracts": contracts,
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "required_readiness_check_ids": sorted(
+            {check_id for section in sections for check_id in section["readiness_check_ids"]}
+        ),
+        "required_human_gates": sorted({gate for section in sections for gate in section["human_gates"]}),
+        "blocked_claims": payload["blocked_claims"],
+        "public_safety_status": scan["status"],
+        "policy": (
+            "Stakeholder decision request release claims are manual-review drafts only; they do not send "
+            "messages, claim approval, store raw written decisions, clear exam use, grade, proctor, detect KI, "
+            "or release private course material."
+        ),
+    }
 
 
 def build_stakeholder_decision_request(
@@ -86,6 +242,7 @@ def build_stakeholder_decision_request(
             "Validate the written decision record itself before changing extraction or exam gates.",
         ],
     }
+    request["release_claim_alignment"] = build_stakeholder_decision_request_release_claim_alignment(request)
     attach_public_scan(request, public_safe=public_safe, source_name="stakeholder-decision-request")
     return request
 
@@ -174,6 +331,7 @@ def build_stakeholder_decision_request_markdown(
     )
     receipt_template = json.dumps(packet.get("receipt_template", {}), indent=2, sort_keys=True)
     minimum_record = json.dumps(packet.get("minimum_record_template", {}), indent=2, sort_keys=True)
+    release_alignment = packet.get("release_claim_alignment", {})
     return (
         "# UniBot Stakeholder Decision Request\n\n"
         f"Status: {packet.get('status')}\n\n"
@@ -181,6 +339,11 @@ def build_stakeholder_decision_request_markdown(
         f"Lane: `{packet.get('lane_id', 'missing')}`\n\n"
         f"Exam deployment: `{packet.get('exam_deployment_status', 'not_cleared')}`\n\n"
         f"Boundary: {packet.get('request_boundary')}\n\n"
+        "## Release Claim Alignment\n\n"
+        f"- Status: {release_alignment.get('status', 'missing')}\n"
+        f"- Public Safety: {release_alignment.get('public_safety_status', 'missing')}\n"
+        f"- Human Gates: {', '.join(release_alignment.get('required_human_gates', []))}\n"
+        f"- Blocked Claims: {', '.join(release_alignment.get('blocked_claims', []))}\n\n"
         "## Decision Request\n\n"
         f"{packet.get('decision_request', '')}\n\n"
         "## Draft Message\n\n"

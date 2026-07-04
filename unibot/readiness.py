@@ -11,6 +11,7 @@ from .autonomous_research_loop import build_autonomous_research_loop
 from .bachelor_thesis import build_bachelor_thesis_package
 from .compliance import build_compliance_matrix
 from .demo import build_local_demo_run
+from .decision_request import build_stakeholder_decision_request
 from .evaluation import build_evaluation_packet
 from .feedback import demo_feedback_template, export_public_demo_feedback_summary, validate_demo_feedback
 from .github_issues import build_github_issue_bundle
@@ -113,6 +114,7 @@ def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
         "publication_package",
         "review_board_packet",
         "stakeholder_submission_bundle",
+        "stakeholder_decision_request",
         "gretel_glm_evolve_lane",
         "gretel_bachelor_thesis_package",
         "gretel_autonomous_research_loop",
@@ -182,6 +184,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     evaluation_learner_agency_alignment = evaluation["learner_agency_boundary_alignment"]
     handoff = build_authority_handoff_packet()
     stakeholder_submission = build_stakeholder_submission_bundle()
+    stakeholder_decision_request = build_stakeholder_decision_request()
     notebook = generate_practice_notebook("UniBot readiness notebook smoke")
     source_cards = list_source_cards()
     source_card_drift = build_source_card_drift_report()
@@ -507,6 +510,66 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 in stakeholder_submission["release_claim_alignment"]["blocked_claims"],
                 "automatic_submission_blocked": "automatic submission"
                 in stakeholder_submission["release_claim_alignment"]["blocked_claims"],
+            },
+        },
+        {
+            "check_id": "stakeholder_decision_request",
+            "passed": stakeholder_decision_request["status"] == "ready_for_manual_review_not_sent"
+            and stakeholder_decision_request["exam_deployment_status"] == "not_cleared"
+            and stakeholder_decision_request["public_safety_status"] == "pass"
+            and stakeholder_decision_request["release_claim_alignment"]["status"] == "ready"
+            and stakeholder_decision_request["release_claim_alignment"]["public_safety_status"] == "pass"
+            and stakeholder_decision_request["release_claim_alignment"]["missing_source_card_ids"] == []
+            and stakeholder_decision_request["release_claim_alignment"]["failed_contract_ids"] == [],
+            "evidence": {
+                "status": stakeholder_decision_request["status"],
+                "lane_id": stakeholder_decision_request["lane_id"],
+                "exam_deployment_status": stakeholder_decision_request["exam_deployment_status"],
+                "public_safety_status": stakeholder_decision_request["public_safety_status"],
+                "evidence_manifest_count": len(stakeholder_decision_request["evidence_manifest"]),
+                "receipt_tool_sent_message": stakeholder_decision_request["receipt_template"]["tool_sent_message"],
+                "receipt_raw_decision_text_included": stakeholder_decision_request["receipt_template"][
+                    "raw_decision_text_included"
+                ],
+                "release_claim_alignment_status": stakeholder_decision_request["release_claim_alignment"]["status"],
+                "release_claim_alignment_public_safety_status": stakeholder_decision_request[
+                    "release_claim_alignment"
+                ]["public_safety_status"],
+                "release_claim_alignment_contract_status": stakeholder_decision_request["release_claim_alignment"][
+                    "schema_version"
+                ],
+                "release_claim_alignment_section_count": stakeholder_decision_request["release_claim_alignment"][
+                    "section_count"
+                ],
+                "release_claim_alignment_human_gates": stakeholder_decision_request["release_claim_alignment"][
+                    "required_human_gates"
+                ],
+                "submission_bundle_claim_linked": (
+                    "stakeholder_submission_bundle"
+                    in stakeholder_decision_request["release_claim_alignment"]["required_readiness_check_ids"]
+                ),
+                "review_board_claim_linked": (
+                    "review_board_packet"
+                    in stakeholder_decision_request["release_claim_alignment"]["required_readiness_check_ids"]
+                ),
+                "data_protection_claim_linked": (
+                    "data_protection_screening"
+                    in stakeholder_decision_request["release_claim_alignment"]["required_readiness_check_ids"]
+                ),
+                "human_submission_gate_linked": (
+                    "human_submission_review_required"
+                    in stakeholder_decision_request["release_claim_alignment"]["required_human_gates"]
+                ),
+                "datenschutz_gate_linked": (
+                    "datenschutz_review_required_before_real_pilot"
+                    in stakeholder_decision_request["release_claim_alignment"]["required_human_gates"]
+                ),
+                "automatic_external_send_blocked": "automatic external send"
+                in stakeholder_decision_request["release_claim_alignment"]["blocked_claims"],
+                "raw_decision_storage_blocked": "raw written decision storage"
+                in stakeholder_decision_request["release_claim_alignment"]["blocked_claims"],
+                "exam_clearance_blocked": "exam clearance"
+                in stakeholder_decision_request["release_claim_alignment"]["blocked_claims"],
             },
         },
         {

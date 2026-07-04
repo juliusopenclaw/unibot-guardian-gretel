@@ -33,6 +33,7 @@ It aggregates:
 - data-protection screening
 - review board packet
 - stakeholder submission bundle and release-claim alignment
+- stakeholder decision request and receipt-boundary alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -58,6 +59,13 @@ contract keeps the rights/privacy extraction lane and exam-authority lane tied
 to review-board, authority-handoff, source-card, Datenschutz, public-safety, and
 human-gate evidence. It does not send messages, approve processing, clear exam
 use, or authorize public release of private course material.
+
+The stakeholder decision request carries
+`unibot-stakeholder-decision-request-release-review-board-claim-alignment-v1`.
+This contract keeps a single request lane tied to the submission bundle,
+receipt template, review-board evidence, Datenschutz controls, public-safety,
+and human gates. It keeps the packet manual-review-only and blocks tool-sent
+messages, approval claims, raw written decision storage, and exam clearance.
 
 ## Source-Card Drift Guard
 
