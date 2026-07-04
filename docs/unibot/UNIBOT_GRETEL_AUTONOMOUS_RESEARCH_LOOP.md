@@ -64,16 +64,26 @@ artifacts.
 
 ## Current Work Queue
 
-- `routed_action_executor_local_cycle_workspace_card_execution_link_alignment`
-  is ready. It should link UniBot routed action executor dry-run execution
-  metadata, selected route, result/receipt hashes, and no-clearance/local-write
+- `course_per_skill_action_router_local_cycle_workspace_card_route_link_alignment`
+  is ready. It should link UniBot per-skill action router selected route, route
+  receipt hashes, open-operator-confirmation counts, and no-clearance/local-write
   boundary with the harnessed local-cycle operator workspace-card readiness
-  gate, preserving execution/receipt hashes and workspace-card prefill
-  evidence, no raw private course text/contact data/local path publication, no
-  provider call/autonomous publication, no approval or exam-clearance claim, no
+  gate, preserving route/receipt hashes and workspace-card prefill evidence, no
+  raw private course text/contact data/local path publication, no provider
+  call/autonomous publication, no approval or exam-clearance claim, no
   grading/proctoring/KI-detection, and no exam deployment claims.
 
 ## Closed Harnessed Work
+
+- `routed_action_executor_local_cycle_workspace_card_execution_link_alignment`:
+  closed in `d390b41` with UniBot routed action executor dry-run execution
+  metadata, selected route, result/receipt hashes, local-write boundary, and
+  no-clearance deployment line linked to the harnessed local-cycle operator
+  workspace-card readiness gate, execution/receipt and ready-for-prefill
+  metadata, and blocked raw private course text/contact data/local path
+  publication, provider calls, autonomous publication, approval or
+  exam-clearance claims, grading, proctoring, KI-detection, and exam deployment
+  claims.
 
 - `exam_run_packet_local_cycle_workspace_card_packet_link_alignment`:
   closed in `e8db021` with UniBot exam run packet selected skill packet, route
