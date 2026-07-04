@@ -53,6 +53,7 @@ It aggregates:
 - exam workspace session-console and receipt alignment
 - Python exam local-cycle start-packet and confirmation-boundary alignment
 - Python exam local-cycle readiness-review and manual-review alignment
+- Python exam local-cycle readiness-handoff and operator-prefill alignment
 - Gretel/GLM proposal lane
 - exam boundary check
 
@@ -238,6 +239,15 @@ request human review, fully confirmed packets allow only manual local-cycle
 review, and missing packet evidence stays blocked. The review preserves
 hash/source-card metadata and still starts nothing, writes nothing, grades
 nothing, proctors nothing, detects no AI use, and clears no exam deployment.
+
+The Python exam local-cycle readiness-handoff gate carries
+`unibot-python-exam-local-cycle-readiness-handoff-release-review-board-claim-alignment-v1`.
+It turns the readiness review into a metadata-only operator-run prefill and
+manual handoff packet. The prefill remains dry-run, confirmation-bound, and
+not-cleared; attention states stay blocked. The handoff preserves task,
+checkpoint, source-card, and receipt hashes, but it starts no local write,
+returns no raw notebook/query data, grades nothing, proctors nothing, detects
+no AI use, and clears no exam deployment.
 
 ## Source-Card Drift Guard
 
