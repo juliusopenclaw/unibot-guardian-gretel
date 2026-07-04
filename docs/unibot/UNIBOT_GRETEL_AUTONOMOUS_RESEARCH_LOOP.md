@@ -64,17 +64,27 @@ artifacts.
 
 ## Current Work Queue
 
-- `notebook_checkpoint_local_cycle_workspace_card_checkpoint_receipt_link_alignment`
-  is ready. It should link UniBot notebook checkpoint local cell evidence,
-  checkpoint receipt hashes, study-session references, operator-confirmed
-  journal boundary, and no-clearance/local-write boundary with the harnessed
-  local-cycle operator workspace-card readiness gate, preserving
-  checkpoint/receipt hashes and workspace-card prefill evidence, no raw private
-  course text/contact data/local path publication, no provider call/autonomous
-  publication, no approval or exam-clearance claim, no
+- `exam_workspace_launch_local_cycle_workspace_card_launch_receipt_link_alignment`
+  is ready. It should link UniBot exam workspace launch dry-run receipt,
+  coverage-selected start point, private tutor/study/notebook checkpoint
+  references, operator-reviewed launch boundary, and no-clearance/local-write
+  boundary with the harnessed local-cycle operator workspace-card readiness
+  gate, preserving launch/receipt hashes and workspace-card prefill evidence,
+  no raw private course text/contact data/local path publication, no provider
+  call/autonomous publication, no approval or exam-clearance claim, no
   grading/proctoring/KI-detection, and no exam deployment claims.
 
 ## Closed Harnessed Work
+
+- `notebook_checkpoint_local_cycle_workspace_card_checkpoint_receipt_link_alignment`:
+  closed in `da5e026` with UniBot notebook checkpoint local cell evidence,
+  checkpoint/report/receipt hashes, study-session references,
+  operator-confirmed journal boundary, local-write boundary, and no-clearance
+  deployment line linked to the harnessed local-cycle operator workspace-card
+  readiness gate, checkpoint/receipt and ready-for-prefill metadata, and
+  blocked raw private course text/contact data/local path publication, provider
+  calls, autonomous publication, approval or exam-clearance claims, grading,
+  proctoring, KI-detection, and exam deployment claims.
 
 - `study_session_local_cycle_workspace_card_study_link_alignment`:
   closed in `99a6626` with UniBot study-session formative learning evidence,
