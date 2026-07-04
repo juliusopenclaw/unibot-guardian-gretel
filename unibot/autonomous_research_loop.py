@@ -881,7 +881,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "extraction_progress_release_review_board_claim_alignment",
             "priority": 45,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Align extraction progress reports with receipt metadata, review queues, manifest-update boundaries, no raw text or local paths, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/extraction_progress.py",
@@ -891,6 +891,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_extraction_progress.py tests/test_unibot_readiness.py -q"],
             "review_gate": "extraction_progress_release_review_board_claim_traceability",
+            "closure_evidence": {
+                "commit": "8562658",
+                "summary": "Extraction progress release-claim alignment added with receipt metadata, hash-only review queues, private manifest-candidate boundaries, no raw text or local paths, and no exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "extraction_manifest_update_release_review_board_claim_alignment",
+            "priority": 46,
+            "status": "ready",
+            "goal": "Align extraction manifest update plans with reviewed receipt candidates, private metadata-only apply boundaries, no file writes by planning, no public release, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/extraction_manifest_update.py",
+                "tests/test_unibot_extraction_manifest_update.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_extraction_manifest_update.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "extraction_manifest_update_release_review_board_claim_traceability",
         },
     ]
 
