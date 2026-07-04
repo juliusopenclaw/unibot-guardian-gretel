@@ -57,14 +57,21 @@ contract change.
 
 ## Current Work Queue
 
-- `exam_workspace_run_history_local_cycle_workspace_card_review_link_alignment`
-  is ready. It should link exam-workspace run history/export review with the
-  harnessed local-cycle operator workspace-card readiness gate, preserving
-  session-console receipt hashes, workspace-card metadata, reflection evidence,
-  no raw notebook/query publication, no grading/proctoring/KI-detection, and no
-  exam deployment claims.
+- `exam_workspace_operator_run_local_cycle_workspace_card_start_view_link_alignment`
+  is ready. It should link exam-workspace operator-run Start Exam Workspace view
+  with the harnessed local-cycle operator workspace-card readiness gate,
+  preserving operator-confirmation boundaries, workspace-card metadata,
+  receipt/hash-only evidence, no raw notebook/query publication, no
+  grading/proctoring/KI-detection, and no exam deployment claims.
 
 ## Closed Harnessed Work
+
+- `exam_workspace_run_history_local_cycle_workspace_card_review_link_alignment`:
+  closed in `99c0914` with run-history/export-review release-claim links to the
+  harnessed local-cycle operator workspace-card readiness gate, session-console
+  receipt hashes, workspace-card ready/prefill and Help-Ledger hash metadata,
+  reflection evidence, and blocked raw notebook/query, grading, proctoring,
+  KI-detection, and exam deployment claims.
 
 - `exam_workspace_session_console_local_cycle_workspace_card_readiness_link_alignment`:
   closed in `4543a62` with session-console release-claim links to the harnessed

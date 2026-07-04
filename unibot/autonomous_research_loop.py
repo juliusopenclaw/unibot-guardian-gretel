@@ -1205,7 +1205,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "exam_workspace_run_history_local_cycle_workspace_card_review_link_alignment",
             "priority": 63,
-            "status": "ready",
+            "status": "closed_harnessed",
             "goal": "Link exam-workspace run history/export review with the harnessed local-cycle operator workspace-card readiness gate, preserving session-console receipt hashes, workspace-card metadata, reflection evidence, no raw notebook/query publication, no grading/proctoring/KI-detection, and no exam deployment claims.",
             "allowed_files": [
                 "unibot/exam_workspace_run_history.py",
@@ -1215,6 +1215,24 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_exam_workspace_run_history.py tests/test_unibot_readiness.py -q"],
             "review_gate": "exam_workspace_run_history_local_cycle_workspace_card_review_link_traceability",
+            "closure_evidence": {
+                "commit": "99c0914",
+                "summary": "Exam-workspace run-history/export-review release-claim alignment now links the harnessed local-cycle operator workspace-card readiness gate, preserves session-console receipt hashes, workspace-card ready/prefill and Help-Ledger hash metadata, reflection evidence, and no raw notebook/query, grading, proctoring, KI-detection, or exam deployment claims.",
+            },
+        },
+        {
+            "work_id": "exam_workspace_operator_run_local_cycle_workspace_card_start_view_link_alignment",
+            "priority": 64,
+            "status": "ready",
+            "goal": "Link exam-workspace operator-run Start Exam Workspace view with the harnessed local-cycle operator workspace-card readiness gate, preserving operator-confirmation boundaries, workspace-card metadata, receipt/hash-only evidence, no raw notebook/query publication, no grading/proctoring/KI-detection, and no exam deployment claims.",
+            "allowed_files": [
+                "unibot/exam_workspace_operator_run.py",
+                "tests/test_unibot_exam_workspace_operator_run.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/readiness.py",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_exam_workspace_operator_run.py tests/test_unibot_readiness.py -q"],
+            "review_gate": "exam_workspace_operator_run_local_cycle_workspace_card_start_view_link_traceability",
         },
     ]
 
