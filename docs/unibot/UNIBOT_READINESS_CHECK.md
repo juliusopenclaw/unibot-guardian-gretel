@@ -208,10 +208,11 @@ Eigenleistung percentages, or exam clearance.
 The exam-workspace operator-run gate carries
 `unibot-exam-workspace-operator-run-release-review-board-claim-alignment-v1`.
 It turns launch/run evidence into the human-facing Start Exam Workspace view and
-keeps every local write behind an individual operator confirmation. The default
-state is dry-run and not-cleared; it does not expose raw queries, raw cells,
-notebook code, local paths, grades, proctoring, AI-detection evidence,
-Eigenleistung percentages, or exam clearance.
+links that view to the harnessed local-cycle operator workspace-card readiness
+gate while keeping every local write behind an individual operator
+confirmation. The default state is dry-run and not-cleared; it does not expose
+raw queries, raw cells, notebook code, local paths, grades, proctoring,
+AI-detection evidence, Eigenleistung percentages, or exam clearance.
 
 The exam-workspace session-console gate carries
 `unibot-exam-workspace-session-console-release-review-board-claim-alignment-v1`.

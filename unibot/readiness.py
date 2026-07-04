@@ -1926,6 +1926,22 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "workspace_status": exam_workspace_operator_run_alignment["workspace_status"],
                 "tutor_status": exam_workspace_operator_run_alignment["tutor_status"],
                 "study_receipt_status": exam_workspace_operator_run_alignment["study_receipt_status"],
+                "workspace_card_status": exam_workspace_operator_run_alignment["workspace_card_status"],
+                "workspace_card_selected_skill_tag": exam_workspace_operator_run_alignment[
+                    "workspace_card_selected_skill_tag"
+                ],
+                "workspace_card_ready_for_operator_prefill": exam_workspace_operator_run_alignment[
+                    "workspace_card_ready_for_operator_prefill"
+                ],
+                "workspace_card_help_ledger_status": exam_workspace_operator_run_alignment[
+                    "workspace_card_help_ledger_status"
+                ],
+                "workspace_card_help_ledger_hash_present": exam_workspace_operator_run_alignment[
+                    "workspace_card_help_ledger_hash_present"
+                ],
+                "workspace_card_readiness_gate_linked": exam_workspace_operator_run_alignment[
+                    "workspace_card_readiness_gate_linked"
+                ],
                 "help_ledger_preview_status": exam_workspace_operator_run_alignment["help_ledger_preview_status"],
                 "general_help_ledger_written": exam_workspace_operator_run_alignment["general_help_ledger_written"],
                 "exam_ledger_written": exam_workspace_operator_run_alignment["exam_ledger_written"],
@@ -1935,6 +1951,10 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "release_claim_alignment_human_gates": exam_workspace_operator_run_alignment["required_human_gates"],
                 "launch_claim_linked": (
                     "exam_workspace_launch" in exam_workspace_operator_run_alignment["required_readiness_check_ids"]
+                ),
+                "workspace_card_readiness_gate_claim_linked": (
+                    "python_exam_local_cycle_operator_workspace_card"
+                    in exam_workspace_operator_run_alignment["required_readiness_check_ids"]
                 ),
                 "run_claim_linked": (
                     "exam_workspace_run" in exam_workspace_operator_run_alignment["required_readiness_check_ids"]
@@ -1978,6 +1998,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 ],
                 "start_view_hash_only_ready": exam_workspace_operator_run_alignment["contracts"][
                     "start_view_hash_only_ready"
+                ],
+                "workspace_card_start_view_gate_linked": exam_workspace_operator_run_alignment["contracts"][
+                    "workspace_card_start_view_gate_linked"
                 ],
                 "individual_confirmations_default_to_dry_run": exam_workspace_operator_run_alignment["contracts"][
                     "individual_confirmations_default_to_dry_run"
