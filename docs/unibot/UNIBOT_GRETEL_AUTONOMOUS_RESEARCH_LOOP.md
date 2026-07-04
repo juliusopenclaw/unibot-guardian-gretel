@@ -64,17 +64,27 @@ artifacts.
 
 ## Current Work Queue
 
-- `exam_workspace_launch_local_cycle_workspace_card_launch_receipt_link_alignment`
-  is ready. It should link UniBot exam workspace launch dry-run receipt,
-  coverage-selected start point, private tutor/study/notebook checkpoint
-  references, operator-reviewed launch boundary, and no-clearance/local-write
-  boundary with the harnessed local-cycle operator workspace-card readiness
-  gate, preserving launch/receipt hashes and workspace-card prefill evidence,
-  no raw private course text/contact data/local path publication, no provider
+- `exam_workspace_run_local_cycle_workspace_card_run_receipt_link_alignment`
+  is ready. It should link UniBot exam workspace run dry-run packet, private
+  tutor sidecar, study receipt, Help-Ledger/exam-ledger previews, export
+  receipt, operator-confirmed local-write boundary, and no-clearance boundary
+  with the harnessed local-cycle operator workspace-card readiness gate,
+  preserving run/receipt hashes and workspace-card prefill evidence, no raw
+  private course text/contact data/local path publication, no provider
   call/autonomous publication, no approval or exam-clearance claim, no
   grading/proctoring/KI-detection, and no exam deployment claims.
 
 ## Closed Harnessed Work
+
+- `exam_workspace_launch_local_cycle_workspace_card_launch_receipt_link_alignment`:
+  closed in `df68605` with UniBot exam workspace launch dry-run evidence,
+  coverage-selected start point, private tutor/study/notebook checkpoint
+  references, export receipt hashes, operator-reviewed local-write boundary,
+  and no-clearance deployment line linked to the harnessed local-cycle operator
+  workspace-card readiness gate, launch/receipt and ready-for-prefill metadata,
+  and blocked raw private course text/contact data/local path publication,
+  provider calls, autonomous publication, approval or exam-clearance claims,
+  grading, proctoring, KI-detection, and exam deployment claims.
 
 - `notebook_checkpoint_local_cycle_workspace_card_checkpoint_receipt_link_alignment`:
   closed in `da5e026` with UniBot notebook checkpoint local cell evidence,
