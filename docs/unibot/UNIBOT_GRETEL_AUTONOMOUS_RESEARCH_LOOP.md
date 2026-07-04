@@ -57,15 +57,23 @@ contract change.
 
 ## Current Work Queue
 
-- `review_board_packet_local_cycle_workspace_card_review_link_alignment` is
-  ready. It should link review-board reviewer-packet and release-claim summary
-  metadata with the harnessed local-cycle operator workspace-card readiness
-  gate, preserving review/evidence hashes and workspace-card prefill evidence,
-  no raw private course text/contact data/local path publication, no external
-  send, no approval/exam-clearance claim, no
+- `release_runbook_local_cycle_workspace_card_release_link_alignment` is ready.
+  It should link release-runbook gate and release-evidence metadata with the
+  harnessed local-cycle operator workspace-card readiness gate, preserving
+  release/evidence hashes and workspace-card prefill evidence, no raw private
+  course text/contact data/local path publication, no autonomous public release,
+  no approval/exam-clearance claim, no
   grading/proctoring/KI-detection, and no exam deployment claims.
 
 ## Closed Harnessed Work
+
+- `review_board_packet_local_cycle_workspace_card_review_link_alignment`:
+  closed in `3865e19` with review-board release-claim summary links from
+  reviewer-packet and release-summary hashes to the harnessed local-cycle
+  operator workspace-card readiness gate, review/evidence and
+  ready-for-prefill metadata, and blocked raw private course text/contact
+  data/local path publication, external sends, approval or exam-clearance
+  claims, grading, proctoring, KI-detection, and exam deployment claims.
 
 - `authority_handoff_local_cycle_workspace_card_authority_link_alignment`:
   closed in `9e4b6b9` with authority handoff release-claim links from
