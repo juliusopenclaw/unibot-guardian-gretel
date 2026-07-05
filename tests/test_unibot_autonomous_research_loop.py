@@ -68,7 +68,7 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertEqual(alignment["recommended_cron"], "every_6_hours")
         self.assertEqual(alignment["max_active_work_item_per_run"], 1)
         self.assertEqual(alignment["default_reasoning_effort"], "low")
-        self.assertEqual(alignment["ready_work_items"], 1)
+        self.assertEqual(alignment["ready_work_items"], 0)
         self.assertGreaterEqual(alignment["closed_harnessed_work_items"], 1)
         self.assertIn("gretel_autonomous_research_loop", alignment["required_readiness_check_ids"])
         self.assertIn("python_exam_local_cycle_operator_workspace_card", alignment["required_readiness_check_ids"])
@@ -1360,7 +1360,13 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         )
         self.assertEqual(
             by_id["exam_workspace_operator_run_local_cycle_workspace_card_operator_receipt_link_alignment"]["status"],
-            "ready",
+            "closed_harnessed",
+        )
+        self.assertEqual(
+            by_id["exam_workspace_operator_run_local_cycle_workspace_card_operator_receipt_link_alignment"][
+                "closure_evidence"
+            ]["commit"],
+            "25ae8f2",
         )
         self.assertEqual(
             by_id["exam_workspace_operator_run_local_cycle_workspace_card_operator_receipt_link_alignment"][
@@ -1374,12 +1380,9 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
                 "allowed_files"
             ],
         )
-        self.assertEqual(
-            loop["next_recommended_work_id"],
-            "exam_workspace_operator_run_local_cycle_workspace_card_operator_receipt_link_alignment",
-        )
-        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 105)
-        self.assertEqual(loop["receipt"]["ready_work_items"], 1)
+        self.assertEqual(loop["next_recommended_work_id"], "")
+        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 106)
+        self.assertEqual(loop["receipt"]["ready_work_items"], 0)
         self.assertLessEqual(loop["budget_policy"]["cadence"]["max_active_work_item_per_run"], 1)
         for item in queue:
             self.assertIn("acceptance_tests", item)
@@ -1395,11 +1398,8 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("Default reasoning effort: low", markdown)
         self.assertIn("Workspace-card gate linked: True", markdown)
         self.assertIn("Autonomous GitHub push: False", markdown)
-        self.assertIn("Closed harnessed items: 105", markdown)
-        self.assertIn(
-            "Next recommended work: exam_workspace_operator_run_local_cycle_workspace_card_operator_receipt_link_alignment",
-            markdown,
-        )
+        self.assertIn("Closed harnessed items: 106", markdown)
+        self.assertIn("Next recommended work: ", markdown)
 
         status, loop = route_request("/api/unibot/autonomous-research-loop", {})
         self.assertEqual(status, 200)

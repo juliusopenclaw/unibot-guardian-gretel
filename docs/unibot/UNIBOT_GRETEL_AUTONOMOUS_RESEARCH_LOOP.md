@@ -64,18 +64,21 @@ artifacts.
 
 ## Current Work Queue
 
-- `exam_workspace_operator_run_local_cycle_workspace_card_operator_receipt_link_alignment`
-  is ready. It should link UniBot exam workspace operator-run start view,
-  operator-confirmation metadata, launch/run/session-console references,
-  help-ledger preview, operator-confirmed local-write boundary, and
-  no-clearance boundary with the harnessed local-cycle operator workspace-card
-  readiness gate while preserving operator-run receipt hashes and
-  workspace-card prefill evidence, no raw private course text/contact data/local
-  path publication, no provider call/autonomous publication, no approval or
-  exam-clearance claim, no grading/proctoring/KI-detection, and no exam
-  deployment claims.
+- No ready item is currently listed. The next loop should add one small,
+  public-safe candidate before changing implementation code.
 
 ## Closed Harnessed Work
+
+- `exam_workspace_operator_run_local_cycle_workspace_card_operator_receipt_link_alignment`:
+  closed in `25ae8f2` with UniBot exam workspace operator-run start view,
+  operator-confirmation metadata, launch/run/session-console references,
+  Help-Ledger preview, operator-confirmed local-write boundary, and
+  no-clearance boundary linked to the harnessed local-cycle operator
+  workspace-card readiness gate, operator-run receipt hashes and
+  ready-for-prefill metadata preserved, and blocked raw private course
+  text/contact data/local path publication, provider calls, autonomous
+  publication, approval or exam-clearance claims, grading, proctoring,
+  KI-detection, and exam deployment claims.
 
 - `exam_workspace_run_local_cycle_workspace_card_run_receipt_link_alignment`:
   closed in `ae66b36` with UniBot exam workspace run dry-run packet, private
