@@ -15,6 +15,7 @@ sys.path.insert(0, str(ROOT))
 from unibot.exam_workspace_operator_run import (  # noqa: E402
     build_exam_workspace_operator_run_dry_run,
     build_exam_workspace_operator_run_release_claim_alignment,
+    synthetic_operator_workspace_card,
 )
 from unibot.materials import build_material_manifest, sha256_text  # noqa: E402
 from unibot.public_safety import scan_text  # noqa: E402
@@ -90,6 +91,7 @@ class UniBotExamWorkspaceOperatorRunTests(unittest.TestCase):
                 tutor_index_journal_path=index_journal_path,
                 operator_confirmed_tutor_index_build=True,
             )
+            workspace_card = synthetic_operator_workspace_card()
 
             status, report = route_request(
                 "/api/unibot/exam-workspace/operator-run",
@@ -115,9 +117,11 @@ class UniBotExamWorkspaceOperatorRunTests(unittest.TestCase):
                         "notebook_action_present": True,
                         "reflection_present": True,
                     },
+                    "python_exam_local_cycle_operator_workspace_card": workspace_card,
                 },
             )
             payload = json.dumps(report, ensure_ascii=False)
+            control = report["operator_control_references"]
 
             self.assertEqual(status, 200)
             self.assertEqual(report["artifact_type"], "exam_workspace_operator_run_dry_run")
@@ -126,7 +130,28 @@ class UniBotExamWorkspaceOperatorRunTests(unittest.TestCase):
             self.assertEqual(report["public_safety_status"], "pass")
             self.assertEqual(report["start_exam_workspace_view"]["title"], "Start Exam Workspace")
             self.assertEqual(report["start_exam_workspace_view"]["status"], "ready_to_start_dry_run")
+            self.assertEqual(
+                report["start_exam_workspace_view"]["local_cycle_operator_workspace_card"]["status"],
+                "python_exam_local_cycle_operator_workspace_card_ready",
+            )
+            self.assertTrue(
+                report["start_exam_workspace_view"]["local_cycle_operator_workspace_card"]["ready_for_operator_prefill"]
+            )
             self.assertIn("# Start Exam Workspace", report["start_exam_workspace_markdown"])
+            self.assertEqual(control["status"], "operator_control_references_ready")
+            self.assertTrue(control["hash_only"])
+            self.assertEqual(control["operator_run_endpoint"], "/api/unibot/exam-workspace/operator-run")
+            self.assertEqual(control["launch_endpoint"], "/api/unibot/exam-workspace/launch-flow/dry-run")
+            self.assertEqual(control["workspace_run_endpoint"], "/api/unibot/exam-workspace/run-dry-run")
+            self.assertEqual(control["session_console_endpoint"], "/api/unibot/exam-workspace/session-console")
+            self.assertEqual(control["confirmation_status"], "all_steps_dry_run")
+            self.assertEqual(control["confirmed_count"], 0)
+            self.assertEqual(control["write_step_count"], 6)
+            self.assertTrue(control["workspace_card_hash_present"])
+            self.assertTrue(control["help_ledger_preview_hash_present"])
+            self.assertFalse(control["raw_workspace_card_returned"])
+            self.assertFalse(control["raw_confirmation_text_returned"])
+            self.assertFalse(control["local_paths_returned"])
             self.assertEqual(report["dry_run_receipt"]["status"], "ready_for_human_review_not_exam_clearance")
             self.assertEqual(report["dry_run_receipt"]["notebook_work_sha256"], sha256_text(cell_source))
             self.assertEqual(report["dry_run_receipt"]["effective_help_level"], "A2")
@@ -262,6 +287,15 @@ class UniBotExamWorkspaceOperatorRunTests(unittest.TestCase):
         self.assertTrue(alignment["contracts"]["markdown_boundary_mentions_no_high_stakes_claims"])
         self.assertTrue(alignment["contracts"]["public_outputs_hide_private_operator_data"])
         self.assertTrue(alignment["contracts"]["high_stakes_actions_not_started"])
+        self.assertTrue(alignment["contracts"]["operator_control_references_hash_only_linked"])
+        self.assertEqual(alignment["operator_control_reference_status"], "operator_control_references_ready")
+        self.assertEqual(
+            alignment["operator_control_reference_session_console_endpoint"],
+            "/api/unibot/exam-workspace/session-console",
+        )
+        self.assertTrue(alignment["operator_control_reference_workspace_card_hash_present"])
+        self.assertTrue(alignment["operator_control_reference_help_ledger_hash_present"])
+        self.assertTrue(alignment["operator_control_reference_hash_only"])
         self.assertIn("unconfirmed local write", alignment["blocked_claims"])
         self.assertIn("raw notebook code returned", alignment["blocked_claims"])
         self.assertIn("automatic grading", alignment["blocked_claims"])
@@ -354,6 +388,7 @@ class UniBotExamWorkspaceOperatorRunTests(unittest.TestCase):
         self.assertIn("markdown_boundary_mentions_no_high_stakes_claims", alignment["failed_contract_ids"])
         self.assertIn("public_outputs_hide_private_operator_data", alignment["failed_contract_ids"])
         self.assertIn("high_stakes_actions_not_started", alignment["failed_contract_ids"])
+        self.assertIn("operator_control_references_hash_only_linked", alignment["failed_contract_ids"])
 
 
 if __name__ == "__main__":

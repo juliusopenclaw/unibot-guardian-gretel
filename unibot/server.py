@@ -2115,6 +2115,10 @@ def route_request(path: str, payload: dict[str, Any] | None = None, method: str 
         receipts, receipt_error = payload_receipts_with_journal(payload, "receipts")
         study_receipt = payload.get("study_receipt")
         notebook_checkpoint = payload.get("notebook_checkpoint")
+        local_cycle_workspace_card = payload.get(
+            "python_exam_local_cycle_operator_workspace_card",
+            payload.get("local_cycle_operator_workspace_card"),
+        )
         if decision_record is not None and not isinstance(decision_record, dict):
             return 400, {"status": "invalid-decision-record"}
         if receipt_error:
@@ -2123,6 +2127,8 @@ def route_request(path: str, payload: dict[str, Any] | None = None, method: str 
             return 400, {"status": "invalid-study-receipt"}
         if notebook_checkpoint is not None and not isinstance(notebook_checkpoint, dict):
             return 400, {"status": "invalid-notebook-checkpoint"}
+        if local_cycle_workspace_card is not None and not isinstance(local_cycle_workspace_card, dict):
+            return 400, {"status": "invalid-python-exam-local-cycle-operator-workspace-card"}
         return 200, build_exam_workspace_operator_run_dry_run(
             course_id=str(payload.get("course_id", "introduction-to-python-neuroscience-cologne")),
             base_path=payload.get("base_path") if payload.get("base_path") else None,
@@ -2144,6 +2150,7 @@ def route_request(path: str, payload: dict[str, Any] | None = None, method: str 
             student_reflection=str(payload.get("student_reflection", "")),
             study_receipt=study_receipt,
             notebook_checkpoint=notebook_checkpoint,
+            python_exam_local_cycle_operator_workspace_card=local_cycle_workspace_card,
             cell_source=str(payload.get("cell_source", "")),
             cell_index=cell_index,
             cell_id=str(payload.get("cell_id", "")),

@@ -178,7 +178,7 @@ def build_glm_evolve_work_packet(
             "local filesystem details",
             "credentials",
             "raw model transcripts",
-            "confidential Gretel or FM case material",
+            "confidential Gretel case material",
         ],
         "knowledge_inventory": build_public_knowledge_inventory(),
         "request_to_gretel_glm": {

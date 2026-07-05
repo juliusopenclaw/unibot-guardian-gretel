@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .course_tutor import DEFAULT_COURSE_ID, safe_course_id
-from .exam_workspace_launch_flow import build_exam_workspace_launch_flow_dry_run
+from .exam_workspace_launch_flow import LAUNCH_ENDPOINT, WORKSPACE_RUN_ENDPOINT, build_exam_workspace_launch_flow_dry_run
 from .materials import build_material_manifest, sha256_text
 from .public_safety import scan_text
 from .source_cards import get_source_card
@@ -19,6 +19,7 @@ EXAM_WORKSPACE_OPERATOR_RUN_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
     "unibot-exam-workspace-operator-run-release-review-board-claim-alignment-v1"
 )
 OPERATOR_RUN_ENDPOINT = "/api/unibot/exam-workspace/operator-run"
+SESSION_CONSOLE_ENDPOINT = "/api/unibot/exam-workspace/session-console"
 
 
 def build_exam_workspace_operator_run_dry_run(
@@ -113,6 +114,12 @@ def build_exam_workspace_operator_run_dry_run(
         receipt=receipt,
         local_cycle_workspace_card=local_cycle_workspace_card,
     )
+    control_references = operator_control_references(
+        launch=launch,
+        confirmations=confirmations,
+        receipt=receipt,
+        local_cycle_workspace_card=local_cycle_workspace_card,
+    )
     report = {
         "schema_version": EXAM_WORKSPACE_OPERATOR_RUN_SCHEMA_VERSION,
         "artifact_type": "exam_workspace_operator_run_dry_run",
@@ -128,6 +135,7 @@ def build_exam_workspace_operator_run_dry_run(
             "interpretation, grading, proctoring, AI detection, or exam clearance."
         ),
         "operator_run_endpoint": OPERATOR_RUN_ENDPOINT,
+        "operator_control_references": control_references,
         "start_exam_workspace_view": view,
         "start_exam_workspace_markdown": start_exam_workspace_markdown(view),
         "local_cycle_operator_workspace_card": local_cycle_workspace_card,
@@ -238,6 +246,19 @@ def build_exam_workspace_operator_run_release_claim_alignment(
             "human_gates": ["human_submission_review_required", "public_safety_required"],
         },
         {
+            "section_id": "operator_control_reference_trace",
+            "summary_claim": "operator run links launch, run, session-console, confirmation, workspace-card, and Help-Ledger references with hash-only metadata",
+            "source_card_ids": ["dfg-gwp", "gdpr-2016-679", "dsk-ai-privacy-2024"],
+            "readiness_check_ids": [
+                "exam_workspace_operator_run",
+                "exam_workspace_launch",
+                "exam_workspace_run",
+                "exam_workspace_session_console",
+                "python_exam_local_cycle_operator_workspace_card",
+            ],
+            "human_gates": ["human_submission_review_required", "public_safety_required"],
+        },
+        {
             "section_id": "repeat_task_boundary_trace",
             "summary_claim": "operator run stops when a notebook checkpoint contains final-solution exposure",
             "source_card_ids": ["dfg-gwp", "uoc-ki-faq", "uoc-hilfsmittel"],
@@ -292,6 +313,11 @@ def build_exam_workspace_operator_run_release_claim_alignment(
         else {}
     )
     export = ready_report.get("export_receipt", {}) if isinstance(ready_report.get("export_receipt"), dict) else {}
+    control_references = (
+        ready_report.get("operator_control_references", {})
+        if isinstance(ready_report.get("operator_control_references"), dict)
+        else {}
+    )
     repeat_checkpoint = (
         repeat_report.get("local_notebook_checkpoint", {})
         if isinstance(repeat_report.get("local_notebook_checkpoint"), dict)
@@ -394,6 +420,20 @@ def build_exam_workspace_operator_run_release_claim_alignment(
         and ready_report.get("ai_detection_started") is False
         and ready_report.get("exam_clearance_claimed") is False
         and ready_report.get("exam_deployment_status") == "not_cleared",
+        "operator_control_references_hash_only_linked": control_references.get("status") == "operator_control_references_ready"
+        and control_references.get("operator_run_endpoint") == OPERATOR_RUN_ENDPOINT
+        and control_references.get("launch_endpoint") == LAUNCH_ENDPOINT
+        and control_references.get("workspace_run_endpoint") == WORKSPACE_RUN_ENDPOINT
+        and control_references.get("session_console_endpoint") == SESSION_CONSOLE_ENDPOINT
+        and control_references.get("confirmation_status") == confirmations.get("status")
+        and control_references.get("confirmed_count") == confirmations.get("confirmed_count")
+        and control_references.get("write_step_count") == confirmations.get("write_step_count")
+        and control_references.get("receipt_id") == receipt.get("receipt_id")
+        and control_references.get("workspace_card_hash_present") is True
+        and control_references.get("help_ledger_preview_hash_present") is True
+        and control_references.get("raw_workspace_card_returned") is False
+        and control_references.get("raw_confirmation_text_returned") is False
+        and control_references.get("local_paths_returned") is False,
     }
     failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
     payload = {
@@ -437,6 +477,15 @@ def build_exam_workspace_operator_run_release_claim_alignment(
         "workspace_card_help_ledger_status": workspace_card.get("help_ledger_preview_status"),
         "workspace_card_help_ledger_hash_present": bool(workspace_card.get("help_ledger_preview_hash")),
         "workspace_card_readiness_gate_linked": workspace_card_readiness_gate_linked,
+        "operator_control_reference_status": control_references.get("status"),
+        "operator_control_reference_session_console_endpoint": control_references.get("session_console_endpoint"),
+        "operator_control_reference_workspace_card_hash_present": bool(
+            control_references.get("workspace_card_hash_present", False)
+        ),
+        "operator_control_reference_help_ledger_hash_present": bool(
+            control_references.get("help_ledger_preview_hash_present", False)
+        ),
+        "operator_control_reference_hash_only": bool(control_references.get("hash_only", False)),
         "help_ledger_preview_status": ledger.get("status"),
         "general_help_ledger_written": bool(ledger.get("general_help_ledger_written", False)),
         "exam_ledger_written": bool(ledger.get("exam_ledger_written", False)),
@@ -525,6 +574,54 @@ def operator_confirmation_matrix(
         "steps": steps,
         "local_writes_requested": confirmed_count > 0,
         "raw_confirmation_text_returned": False,
+    }
+
+
+def operator_control_references(
+    *,
+    launch: dict[str, Any],
+    confirmations: dict[str, Any],
+    receipt: dict[str, Any],
+    local_cycle_workspace_card: dict[str, Any],
+) -> dict[str, Any]:
+    ledger = launch.get("help_ledger_preview", {}) if isinstance(launch.get("help_ledger_preview"), dict) else {}
+    workspace = launch.get("exam_workspace_run_summary", {}) if isinstance(launch.get("exam_workspace_run_summary"), dict) else {}
+    checkpoint = launch.get("local_notebook_checkpoint", {}) if isinstance(launch.get("local_notebook_checkpoint"), dict) else {}
+    reference_seed = {
+        "operator_receipt_id": receipt.get("receipt_id", ""),
+        "launch_status": launch.get("status", ""),
+        "workspace_status": workspace.get("status", ""),
+        "checkpoint_hash": checkpoint.get("notebook_work_sha256", ""),
+        "help_ledger_hash": ledger.get("event_hash", ""),
+        "workspace_card_hash": local_cycle_workspace_card.get("help_ledger_preview_hash", ""),
+        "confirmation_status": confirmations.get("status", ""),
+        "confirmed_count": confirmations.get("confirmed_count", 0),
+    }
+    return {
+        "status": "operator_control_references_ready",
+        "hash_only": True,
+        "operator_run_endpoint": OPERATOR_RUN_ENDPOINT,
+        "launch_endpoint": LAUNCH_ENDPOINT,
+        "workspace_run_endpoint": WORKSPACE_RUN_ENDPOINT,
+        "session_console_endpoint": SESSION_CONSOLE_ENDPOINT,
+        "receipt_id": receipt.get("receipt_id", ""),
+        "launch_status": launch.get("status", "unknown"),
+        "workspace_status": workspace.get("status", "unknown"),
+        "session_console_status": "available_after_operator_review",
+        "confirmation_status": confirmations.get("status", "unknown"),
+        "confirmed_count": confirmations.get("confirmed_count", 0),
+        "write_step_count": confirmations.get("write_step_count", 0),
+        "checkpoint_hash_present": bool(checkpoint.get("notebook_work_sha256", "")),
+        "help_ledger_preview_hash_present": bool(ledger.get("event_hash", "")),
+        "workspace_card_hash_present": bool(local_cycle_workspace_card.get("help_ledger_preview_hash", "")),
+        "control_reference_hash": sha256_text(json.dumps(reference_seed, sort_keys=True, ensure_ascii=False)),
+        "raw_workspace_card_returned": False,
+        "raw_confirmation_text_returned": False,
+        "raw_query_returned": False,
+        "raw_cell_returned": False,
+        "notebook_code_returned": False,
+        "local_paths_returned": False,
+        "exam_deployment_status": "not_cleared",
     }
 
 
