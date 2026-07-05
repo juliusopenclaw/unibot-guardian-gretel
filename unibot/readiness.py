@@ -4356,7 +4356,17 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "workspace_card_autonomous_loop_gate_linked"
             ]
             is True
-            and autonomous_research_loop["workspace_card_budget_alignment"]["raw_workspace_card_returned"] is False,
+            and autonomous_research_loop["workspace_card_budget_alignment"]["raw_workspace_card_returned"] is False
+            and autonomous_research_loop["candidate_receipt"]["status"] == "candidate_receipt_ready"
+            and autonomous_research_loop["candidate_receipt"]["selected_work_id"]
+            == "autonomous_queue_candidate_receipt_gate"
+            and autonomous_research_loop["candidate_receipt"]["ready_work_items_remain_zero"] is True
+            and autonomous_research_loop["candidate_receipt"]["candidate_is_not_auto_ready"] is True
+            and autonomous_research_loop["candidate_receipt"]["allowed_file_count"] <= 4
+            and autonomous_research_loop["candidate_receipt"]["public_safety_status"] == "pass"
+            and autonomous_research_loop["receipt"]["candidate_receipt_status"] == "candidate_receipt_ready"
+            and autonomous_research_loop["receipt"]["candidate_receipt_hash"]
+            == autonomous_research_loop["candidate_receipt"]["candidate_hash"],
             "evidence": {
                 "status": autonomous_research_loop["status"],
                 "public_safety_status": autonomous_research_loop["public_safety_status"],
@@ -4372,6 +4382,13 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "ready_work_items": autonomous_research_loop["receipt"]["ready_work_items"],
                 "candidate_work_items": autonomous_research_loop["receipt"]["candidate_work_items"],
                 "closed_harnessed_work_items": autonomous_research_loop["receipt"]["closed_harnessed_work_items"],
+                "candidate_receipt_status": autonomous_research_loop["candidate_receipt"]["status"],
+                "candidate_receipt_work_id": autonomous_research_loop["candidate_receipt"]["selected_work_id"],
+                "candidate_receipt_hash_present": autonomous_research_loop["candidate_receipt"]["candidate_hash"]
+                != "",
+                "candidate_receipt_public_safety_status": autonomous_research_loop["candidate_receipt"][
+                    "public_safety_status"
+                ],
                 "autonomous_github_push": autonomous_research_loop["safety"]["autonomous_github_push"],
                 "workspace_card_status": autonomous_research_loop["workspace_card_budget_alignment"][
                     "workspace_card_status"

@@ -2081,6 +2081,7 @@ def build_autonomous_research_loop() -> dict[str, Any]:
             "final_go": False,
         },
     }
+    payload["candidate_receipt"] = build_autonomous_candidate_receipt(payload)
     payload["receipt"] = build_autonomous_loop_receipt(payload)
     payload["workspace_card_budget_alignment"] = build_autonomous_loop_workspace_card_alignment(payload)
     scan = scan_text(json.dumps(payload, ensure_ascii=False), "unibot-gretel-autonomous-research-loop")
@@ -2089,6 +2090,67 @@ def build_autonomous_research_loop() -> dict[str, Any]:
         payload["status"] = "blocked_public_safety"
         payload["public_safety_findings"] = scan["findings"]
     return payload
+
+
+def build_autonomous_candidate_receipt(payload: dict[str, Any]) -> dict[str, Any]:
+    next_work_id = payload.get("next_recommended_work_id", "")
+    queue = payload.get("work_queue", [])
+    candidate = next((item for item in queue if item.get("work_id") == next_work_id), {})
+    candidate_status = str(candidate.get("status", "missing"))
+    receipt = {
+        "schema_version": "unibot-gretel-autonomous-candidate-receipt-v1",
+        "status": "candidate_receipt_ready",
+        "selected_work_id": next_work_id,
+        "selected_status": candidate_status,
+        "ready_work_items_remain_zero": len([item for item in queue if item.get("status") == "ready"]) == 0,
+        "candidate_is_not_auto_ready": candidate_status == "candidate",
+        "allowed_file_count": len(candidate.get("allowed_files", [])) if isinstance(candidate, dict) else 0,
+        "acceptance_tests": [str(item) for item in candidate.get("acceptance_tests", [])],
+        "review_gate": str(candidate.get("review_gate", "")),
+        "provider_call_executed": payload.get("safety", {}).get("provider_call_executed") is True,
+        "autonomous_github_push": payload.get("safety", {}).get("autonomous_github_push") is True,
+        "external_messages_sent": payload.get("safety", {}).get("mail_calendar_chat_actions") is True,
+        "final_go": payload.get("safety", {}).get("final_go") is True,
+        "blocked_claims": [
+            "provider call",
+            "autonomous publication",
+            "exam clearance claim",
+            "grading",
+            "proctoring",
+            "KI-detection evidence",
+            "private context ingestion",
+        ],
+    }
+    receipt["candidate_hash"] = hashlib.sha256(
+        json.dumps(
+            {
+                "selected_work_id": receipt["selected_work_id"],
+                "selected_status": receipt["selected_status"],
+                "allowed_file_count": receipt["allowed_file_count"],
+                "acceptance_tests": receipt["acceptance_tests"],
+                "review_gate": receipt["review_gate"],
+                "blocked_claims": receipt["blocked_claims"],
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    scan = scan_text(json.dumps(receipt, ensure_ascii=False), "autonomous-candidate-receipt")
+    receipt["public_safety_status"] = scan["status"]
+    if (
+        scan["status"] != "pass"
+        or receipt["provider_call_executed"]
+        or receipt["autonomous_github_push"]
+        or receipt["external_messages_sent"]
+        or receipt["final_go"]
+        or not receipt["ready_work_items_remain_zero"]
+        or not receipt["candidate_is_not_auto_ready"]
+        or receipt["allowed_file_count"] > 4
+    ):
+        receipt["status"] = "candidate_receipt_blocked"
+        if scan["status"] != "pass":
+            receipt["public_safety_findings"] = scan["findings"]
+    return receipt
 
 
 def build_autonomous_loop_receipt(payload: dict[str, Any]) -> dict[str, Any]:
@@ -2102,6 +2164,8 @@ def build_autonomous_loop_receipt(payload: dict[str, Any]) -> dict[str, Any]:
         "candidate_work_items": len([item for item in payload["work_queue"] if item["status"] == "candidate"]),
         "closed_harnessed_work_items": len([item for item in payload["work_queue"] if item["status"] == "closed_harnessed"]),
         "next_recommended_work_id": payload.get("next_recommended_work_id", ""),
+        "candidate_receipt_status": payload.get("candidate_receipt", {}).get("status", "missing"),
+        "candidate_receipt_hash": payload.get("candidate_receipt", {}).get("candidate_hash", ""),
         "provider_call_executed": False,
         "autonomous_github_push": False,
         "human_review_required_for_publication": True,
