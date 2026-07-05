@@ -1380,9 +1380,19 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
                 "allowed_files"
             ],
         )
-        self.assertEqual(loop["next_recommended_work_id"], "")
+        self.assertEqual(loop["next_recommended_work_id"], "autonomous_queue_candidate_receipt_gate")
         self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 106)
         self.assertEqual(loop["receipt"]["ready_work_items"], 0)
+        self.assertEqual(loop["receipt"]["candidate_work_items"], 1)
+        self.assertEqual(by_id["autonomous_queue_candidate_receipt_gate"]["status"], "candidate")
+        self.assertEqual(
+            by_id["autonomous_queue_candidate_receipt_gate"]["review_gate"],
+            "autonomous_queue_candidate_public_safe_receipt_traceability",
+        )
+        self.assertIn(
+            "docs/unibot/UNIBOT_GRETEL_AUTONOMOUS_RESEARCH_LOOP.md",
+            by_id["autonomous_queue_candidate_receipt_gate"]["allowed_files"],
+        )
         self.assertLessEqual(loop["budget_policy"]["cadence"]["max_active_work_item_per_run"], 1)
         for item in queue:
             self.assertIn("acceptance_tests", item)
@@ -1399,7 +1409,8 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("Workspace-card gate linked: True", markdown)
         self.assertIn("Autonomous GitHub push: False", markdown)
         self.assertIn("Closed harnessed items: 106", markdown)
-        self.assertIn("Next recommended work: ", markdown)
+        self.assertIn("Candidate items: 1", markdown)
+        self.assertIn("Next recommended work: autonomous_queue_candidate_receipt_gate", markdown)
 
         status, loop = route_request("/api/unibot/autonomous-research-loop", {})
         self.assertEqual(status, 200)

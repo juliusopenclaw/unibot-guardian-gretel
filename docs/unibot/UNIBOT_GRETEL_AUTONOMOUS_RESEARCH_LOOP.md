@@ -64,8 +64,11 @@ artifacts.
 
 ## Current Work Queue
 
-- No ready item is currently listed. The next loop should add one small,
-  public-safe candidate before changing implementation code.
+- No ready item is currently listed.
+- Candidate: `autonomous_queue_candidate_receipt_gate` keeps the recurring
+  Gretel loop's next-work receipt explicit without authorizing implementation
+  work, provider calls, autonomous publication, exam clearance, grading,
+  proctoring, KI-detection, or private-context ingestion.
 
 ## Closed Harnessed Work
 

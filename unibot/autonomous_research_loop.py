@@ -2029,6 +2029,19 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
                 "summary": "UniBot exam workspace operator-run start view, operator-confirmation metadata, launch/run/session-console references, Help-Ledger preview, operator-confirmed local-write boundary, and no-clearance boundary now link to the harnessed local-cycle operator workspace-card readiness gate, preserving operator-run receipt hashes and workspace-card prefill evidence, and blocking raw private course text/contact data/local path publication, provider calls, autonomous publication, approval or exam-clearance claims, grading, proctoring, KI-detection, and exam deployment claims.",
             },
         },
+        {
+            "work_id": "autonomous_queue_candidate_receipt_gate",
+            "priority": 107,
+            "status": "candidate",
+            "goal": "Keep the recurring Gretel autonomous loop from reporting an empty next-work lane by exposing one public-safe candidate receipt gate while preserving zero ready work items, bounded file scope, no provider call, no autonomous publication, no exam clearance claim, no grading/proctoring/KI-detection, and no private context ingestion.",
+            "allowed_files": [
+                "unibot/autonomous_research_loop.py",
+                "tests/test_unibot_autonomous_research_loop.py",
+                "docs/unibot/UNIBOT_GRETEL_AUTONOMOUS_RESEARCH_LOOP.md",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_autonomous_research_loop.py -q"],
+            "review_gate": "autonomous_queue_candidate_public_safe_receipt_traceability",
+        },
     ]
 
 def build_autonomous_research_loop() -> dict[str, Any]:
