@@ -98,6 +98,9 @@ The readiness gate also verifies the candidate rotation receipt: the previous
 closed candidate, closure commit, current candidate, receipt hash, review hash,
 and rotation hash must match the loop receipt while automatic promotion remains
 blocked.
+It also verifies the single-candidate continuity receipt: zero ready items, one
+candidate item, public safety, failed-contract absence, blocked auto-promotion,
+and the continuity hash must match the loop receipt.
 
 The Paperclip evaluation bridge is ready only when Paperclip remains optional,
 non-critical, no-runtime, and no-provider-call by default. Its workspace-card

@@ -493,6 +493,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
         ).encode("utf-8")
     ).hexdigest()
     autonomous_candidate_rotation_hash = autonomous_research_loop["candidate_rotation_receipt"]["rotation_hash"]
+    autonomous_single_candidate_continuity_hash = autonomous_research_loop["single_candidate_continuity_receipt"][
+        "continuity_hash"
+    ]
     paperclip_status_payload = paperclip_status()
     paperclip_bridge = build_paperclip_evaluation_request()
     paperclip_workspace_card_alignment = build_paperclip_workspace_card_control_alignment(
@@ -4387,7 +4390,18 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and autonomous_research_loop["candidate_rotation_receipt"]["auto_promotion_allowed"] is False
             and autonomous_research_loop["receipt"]["candidate_rotation_status"]
             == "candidate_rotation_receipt_ready"
-            and autonomous_research_loop["receipt"]["candidate_rotation_hash"] == autonomous_candidate_rotation_hash,
+            and autonomous_research_loop["receipt"]["candidate_rotation_hash"] == autonomous_candidate_rotation_hash
+            and autonomous_research_loop["single_candidate_continuity_receipt"]["status"]
+            == "single_candidate_continuity_ready"
+            and autonomous_research_loop["single_candidate_continuity_receipt"]["public_safety_status"] == "pass"
+            and autonomous_research_loop["single_candidate_continuity_receipt"]["ready_work_items"] == 0
+            and autonomous_research_loop["single_candidate_continuity_receipt"]["candidate_work_items"] == 1
+            and autonomous_research_loop["single_candidate_continuity_receipt"]["failed_contract_ids"] == []
+            and autonomous_research_loop["single_candidate_continuity_receipt"]["auto_promotion_allowed"] is False
+            and autonomous_research_loop["receipt"]["single_candidate_continuity_status"]
+            == "single_candidate_continuity_ready"
+            and autonomous_research_loop["receipt"]["single_candidate_continuity_hash"]
+            == autonomous_single_candidate_continuity_hash,
             "evidence": {
                 "status": autonomous_research_loop["status"],
                 "public_safety_status": autonomous_research_loop["public_safety_status"],
@@ -4460,6 +4474,32 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 == autonomous_candidate_rotation_hash,
                 "candidate_rotation_auto_promotion_allowed": autonomous_research_loop[
                     "candidate_rotation_receipt"
+                ]["auto_promotion_allowed"],
+                "single_candidate_continuity_status": autonomous_research_loop[
+                    "single_candidate_continuity_receipt"
+                ]["status"],
+                "single_candidate_continuity_public_safety_status": autonomous_research_loop[
+                    "single_candidate_continuity_receipt"
+                ]["public_safety_status"],
+                "single_candidate_continuity_selected_work_id": autonomous_research_loop[
+                    "single_candidate_continuity_receipt"
+                ]["selected_work_id"],
+                "single_candidate_continuity_ready_work_items": autonomous_research_loop[
+                    "single_candidate_continuity_receipt"
+                ]["ready_work_items"],
+                "single_candidate_continuity_candidate_work_items": autonomous_research_loop[
+                    "single_candidate_continuity_receipt"
+                ]["candidate_work_items"],
+                "single_candidate_continuity_hash_present": autonomous_single_candidate_continuity_hash != "",
+                "single_candidate_continuity_receipt_status": autonomous_research_loop["receipt"][
+                    "single_candidate_continuity_status"
+                ],
+                "single_candidate_continuity_receipt_hash_matches_continuity": autonomous_research_loop["receipt"][
+                    "single_candidate_continuity_hash"
+                ]
+                == autonomous_single_candidate_continuity_hash,
+                "single_candidate_continuity_auto_promotion_allowed": autonomous_research_loop[
+                    "single_candidate_continuity_receipt"
                 ]["auto_promotion_allowed"],
                 "autonomous_github_push": autonomous_research_loop["safety"]["autonomous_github_push"],
                 "workspace_card_status": autonomous_research_loop["workspace_card_budget_alignment"][
