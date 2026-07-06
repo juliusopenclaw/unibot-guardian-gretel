@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT))
 from unibot.autonomous_research_loop import (  # noqa: E402
     autonomous_loop_budget_hash,
     autonomous_loop_receipt_hash,
+    build_autonomous_candidate_receipt,
     build_autonomous_research_loop,
     build_autonomous_loop_workspace_card_alignment,
     build_autonomous_research_markdown,
@@ -1443,6 +1444,45 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(response["status"], "ok")
         self.assertIn("North Star", response["markdown"])
+
+    def test_candidate_receipt_blocks_external_effects_and_overbroad_scope(self) -> None:
+        loop = build_autonomous_research_loop()
+        unsafe_payload = dict(loop)
+        unsafe_payload["safety"] = {
+            **loop["safety"],
+            "provider_call_executed": True,
+            "autonomous_github_push": True,
+            "mail_calendar_chat_actions": True,
+            "final_go": True,
+        }
+        unsafe_payload["work_queue"] = [
+            {
+                "work_id": "unsafe_candidate",
+                "status": "candidate",
+                "allowed_files": [
+                    "unibot/a.py",
+                    "unibot/b.py",
+                    "unibot/c.py",
+                    "unibot/d.py",
+                    "unibot/e.py",
+                ],
+                "acceptance_tests": ["python3 -m pytest tests/test_unibot_autonomous_research_loop.py -q"],
+                "review_gate": "unsafe_candidate_gate",
+            }
+        ]
+        unsafe_payload["next_recommended_work_id"] = "unsafe_candidate"
+
+        receipt = build_autonomous_candidate_receipt(unsafe_payload)
+
+        self.assertEqual(receipt["status"], "candidate_receipt_blocked")
+        self.assertEqual(receipt["selected_work_id"], "unsafe_candidate")
+        self.assertGreater(receipt["allowed_file_count"], 4)
+        self.assertTrue(receipt["provider_call_executed"])
+        self.assertTrue(receipt["autonomous_github_push"])
+        self.assertTrue(receipt["external_messages_sent"])
+        self.assertTrue(receipt["final_go"])
+        self.assertIn("provider call", receipt["blocked_claims"])
+        self.assertIn("private context ingestion", receipt["blocked_claims"])
 
 
 if __name__ == "__main__":
