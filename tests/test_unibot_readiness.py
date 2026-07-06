@@ -884,6 +884,11 @@ class UniBotReadinessTests(unittest.TestCase):
             autonomous_loop["evidence"]["single_candidate_continuity_selected_work_id"],
             "autonomous_queue_continuity_readiness_gate",
         )
+        self.assertEqual(autonomous_loop["evidence"]["single_candidate_continuity_selected_status"], "candidate")
+        self.assertEqual(
+            autonomous_loop["evidence"]["single_candidate_continuity_review_gate"],
+            "autonomous_queue_continuity_readiness_traceability",
+        )
         self.assertEqual(autonomous_loop["evidence"]["single_candidate_continuity_ready_work_items"], 0)
         self.assertEqual(autonomous_loop["evidence"]["single_candidate_continuity_candidate_work_items"], 1)
         self.assertTrue(autonomous_loop["evidence"]["single_candidate_continuity_hash_present"])

@@ -4394,6 +4394,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and autonomous_research_loop["single_candidate_continuity_receipt"]["status"]
             == "single_candidate_continuity_ready"
             and autonomous_research_loop["single_candidate_continuity_receipt"]["public_safety_status"] == "pass"
+            and autonomous_research_loop["single_candidate_continuity_receipt"]["selected_status"] == "candidate"
+            and autonomous_research_loop["single_candidate_continuity_receipt"]["review_gate"]
+            == "autonomous_queue_continuity_readiness_traceability"
             and autonomous_research_loop["single_candidate_continuity_receipt"]["ready_work_items"] == 0
             and autonomous_research_loop["single_candidate_continuity_receipt"]["candidate_work_items"] == 1
             and autonomous_research_loop["single_candidate_continuity_receipt"]["failed_contract_ids"] == []
@@ -4484,6 +4487,12 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "single_candidate_continuity_selected_work_id": autonomous_research_loop[
                     "single_candidate_continuity_receipt"
                 ]["selected_work_id"],
+                "single_candidate_continuity_selected_status": autonomous_research_loop[
+                    "single_candidate_continuity_receipt"
+                ]["selected_status"],
+                "single_candidate_continuity_review_gate": autonomous_research_loop[
+                    "single_candidate_continuity_receipt"
+                ]["review_gate"],
                 "single_candidate_continuity_ready_work_items": autonomous_research_loop[
                     "single_candidate_continuity_receipt"
                 ]["ready_work_items"],
