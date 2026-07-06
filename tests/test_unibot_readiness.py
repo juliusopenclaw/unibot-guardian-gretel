@@ -835,6 +835,13 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertTrue(glm["evidence"]["workspace_card_glm_gate_linked"])
         self.assertFalse(glm["evidence"]["raw_workspace_card_returned"])
         autonomous_loop = next(check for check in report["checks"] if check["check_id"] == "gretel_autonomous_research_loop")
+        self.assertEqual(
+            autonomous_loop["evidence"]["candidate_receipt_work_id"],
+            "autonomous_queue_candidate_rotation_receipt_gate",
+        )
+        self.assertEqual(autonomous_loop["evidence"]["candidate_work_items"], 1)
+        self.assertEqual(autonomous_loop["evidence"]["ready_work_items"], 0)
+        self.assertTrue(autonomous_loop["evidence"]["candidate_receipt_hash_present"])
         self.assertEqual(autonomous_loop["evidence"]["workspace_card_budget_alignment_status"], "ready")
         self.assertEqual(autonomous_loop["evidence"]["workspace_card_budget_alignment_public_safety_status"], "pass")
         self.assertTrue(autonomous_loop["evidence"]["workspace_card_readiness_gate_linked"])

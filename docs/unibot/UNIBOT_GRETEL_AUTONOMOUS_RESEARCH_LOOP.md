@@ -65,12 +65,18 @@ artifacts.
 ## Current Work Queue
 
 - No ready item is currently listed.
-- Candidate: `autonomous_queue_candidate_receipt_gate` keeps the recurring
-  Gretel loop's next-work receipt explicit without authorizing implementation
-  work, provider calls, autonomous publication, exam clearance, grading,
-  proctoring, KI-detection, or private-context ingestion.
+- Candidate: `autonomous_queue_candidate_rotation_receipt_gate` keeps the
+  recurring Gretel loop's candidate lane rotatable after a harnessed candidate
+  receipt gate without authorizing implementation work, provider calls,
+  autonomous publication, exam clearance, grading, proctoring, KI-detection, or
+  private-context ingestion.
 
 ## Closed Harnessed Work
+
+- `autonomous_queue_candidate_receipt_gate`: closed in `1ec515d` with a
+  public-safe candidate receipt and a negative harness proving provider calls,
+  autonomous GitHub push, external messages, Final-Go, and overbroad file scope
+  block the candidate receipt instead of becoming runnable work.
 
 - `exam_workspace_operator_run_local_cycle_workspace_card_operator_receipt_link_alignment`:
   closed in `25ae8f2` with UniBot exam workspace operator-run start view,

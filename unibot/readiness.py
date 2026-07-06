@@ -4359,7 +4359,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and autonomous_research_loop["workspace_card_budget_alignment"]["raw_workspace_card_returned"] is False
             and autonomous_research_loop["candidate_receipt"]["status"] == "candidate_receipt_ready"
             and autonomous_research_loop["candidate_receipt"]["selected_work_id"]
-            == "autonomous_queue_candidate_receipt_gate"
+            == autonomous_research_loop["next_recommended_work_id"]
             and autonomous_research_loop["candidate_receipt"]["ready_work_items_remain_zero"] is True
             and autonomous_research_loop["candidate_receipt"]["candidate_is_not_auto_ready"] is True
             and autonomous_research_loop["candidate_receipt"]["allowed_file_count"] <= 4
