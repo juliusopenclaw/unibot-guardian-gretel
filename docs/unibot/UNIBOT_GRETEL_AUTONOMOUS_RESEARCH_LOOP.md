@@ -65,10 +65,10 @@ artifacts.
 ## Current Work Queue
 
 - No ready item is currently listed.
-- Candidate: `autonomous_queue_single_candidate_continuity_gate` keeps the
-  recurring Gretel loop's single-candidate continuity auditable after
-  readiness-rotation closure without authorizing implementation work, provider
-  calls, autonomous publication, exam clearance, grading, proctoring, KI-detection, or
+- Candidate: `autonomous_queue_continuity_readiness_gate` keeps the recurring
+  Gretel loop's single-candidate continuity receipt readiness-gatable after
+  continuity closure without authorizing implementation work, provider calls,
+  autonomous publication, exam clearance, grading, proctoring, KI-detection, or
   private-context ingestion. Candidate lanes are not runnable work; promotion
   requires a new closed-harnessed receipt or an explicit ready item with bounded
   scope and tests. The `autonomous_queue_candidate_review` surface recommends
@@ -98,6 +98,10 @@ artifacts.
   a single non-runnable candidate lane, zero ready work items, bounded scope,
   and no external/provider/exam-clearance effects preserved after
   readiness-rotation closure.
+- `autonomous_queue_single_candidate_continuity_gate`: closed in `76bbddb` with
+  a single-candidate continuity receipt proving exactly one candidate, zero
+  ready items, highest-priority tail selection, bounded scope, and no
+  external/provider/exam-clearance effects.
 
 - `exam_workspace_operator_run_local_cycle_workspace_card_operator_receipt_link_alignment`:
   closed in `25ae8f2` with UniBot exam workspace operator-run start view,

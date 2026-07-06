@@ -2100,7 +2100,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "autonomous_queue_single_candidate_continuity_gate",
             "priority": 111,
-            "status": "candidate",
+            "status": "closed_harnessed",
             "goal": "Keep the recurring Gretel autonomous loop's single-candidate continuity auditable after readiness-rotation closure while preserving zero ready work items, one public-safe candidate, bounded file scope, no provider call, no autonomous publication, no exam clearance claim, no grading/proctoring/KI-detection, and no private context ingestion.",
             "allowed_files": [
                 "unibot/autonomous_research_loop.py",
@@ -2109,6 +2109,26 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_autonomous_research_loop.py -q"],
             "review_gate": "autonomous_queue_single_candidate_continuity_traceability",
+            "closure_evidence": {
+                "commit": "76bbddb",
+                "summary": "UniBot autonomous loop now emits a single-candidate continuity receipt proving exactly one candidate, zero ready work items, highest-priority tail selection, bounded scope, and no external/provider/exam-clearance effects.",
+            },
+        },
+        {
+            "work_id": "autonomous_queue_continuity_readiness_gate",
+            "priority": 112,
+            "status": "candidate",
+            "goal": "Keep the recurring Gretel autonomous loop's single-candidate continuity receipt readiness-gatable while preserving zero ready work items, one public-safe candidate, bounded file scope, no provider call, no autonomous publication, no exam clearance claim, no grading/proctoring/KI-detection, and no private context ingestion.",
+            "allowed_files": [
+                "unibot/readiness.py",
+                "tests/test_unibot_readiness.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "unibot/autonomous_research_loop.py",
+            ],
+            "acceptance_tests": [
+                "python3 -m pytest tests/test_unibot_readiness.py tests/test_unibot_autonomous_research_loop.py -q"
+            ],
+            "review_gate": "autonomous_queue_continuity_readiness_traceability",
         },
     ]
 
