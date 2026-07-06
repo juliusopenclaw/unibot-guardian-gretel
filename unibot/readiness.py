@@ -492,6 +492,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             sort_keys=True,
         ).encode("utf-8")
     ).hexdigest()
+    autonomous_candidate_rotation_hash = autonomous_research_loop["candidate_rotation_receipt"]["rotation_hash"]
     paperclip_status_payload = paperclip_status()
     paperclip_bridge = build_paperclip_evaluation_request()
     paperclip_workspace_card_alignment = build_paperclip_workspace_card_control_alignment(
@@ -4379,7 +4380,14 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and autonomous_research_loop["receipt"]["candidate_receipt_hash"]
             == autonomous_research_loop["candidate_receipt"]["candidate_hash"]
             and autonomous_research_loop["receipt"]["candidate_review_status"] == "candidate_review_ready"
-            and autonomous_research_loop["receipt"]["candidate_review_hash"] == autonomous_candidate_review_hash,
+            and autonomous_research_loop["receipt"]["candidate_review_hash"] == autonomous_candidate_review_hash
+            and autonomous_research_loop["candidate_rotation_receipt"]["status"] == "candidate_rotation_receipt_ready"
+            and autonomous_research_loop["candidate_rotation_receipt"]["public_safety_status"] == "pass"
+            and autonomous_research_loop["candidate_rotation_receipt"]["failed_contract_ids"] == []
+            and autonomous_research_loop["candidate_rotation_receipt"]["auto_promotion_allowed"] is False
+            and autonomous_research_loop["receipt"]["candidate_rotation_status"]
+            == "candidate_rotation_receipt_ready"
+            and autonomous_research_loop["receipt"]["candidate_rotation_hash"] == autonomous_candidate_rotation_hash,
             "evidence": {
                 "status": autonomous_research_loop["status"],
                 "public_safety_status": autonomous_research_loop["public_safety_status"],
@@ -4426,6 +4434,33 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "candidate_review_promotion_recommendation": autonomous_research_loop["candidate_review"][
                     "promotion_recommendation"
                 ],
+                "candidate_rotation_status": autonomous_research_loop["candidate_rotation_receipt"]["status"],
+                "candidate_rotation_public_safety_status": autonomous_research_loop["candidate_rotation_receipt"][
+                    "public_safety_status"
+                ],
+                "candidate_rotation_previous_closed_work_id": autonomous_research_loop[
+                    "candidate_rotation_receipt"
+                ]["previous_closed_work_id"],
+                "candidate_rotation_previous_closed_commit": autonomous_research_loop[
+                    "candidate_rotation_receipt"
+                ]["previous_closed_commit"],
+                "candidate_rotation_selected_work_id": autonomous_research_loop["candidate_rotation_receipt"][
+                    "selected_work_id"
+                ],
+                "candidate_rotation_hash_present": autonomous_research_loop["candidate_rotation_receipt"][
+                    "rotation_hash"
+                ]
+                != "",
+                "candidate_rotation_receipt_status": autonomous_research_loop["receipt"][
+                    "candidate_rotation_status"
+                ],
+                "candidate_rotation_receipt_hash_matches_rotation": autonomous_research_loop["receipt"][
+                    "candidate_rotation_hash"
+                ]
+                == autonomous_candidate_rotation_hash,
+                "candidate_rotation_auto_promotion_allowed": autonomous_research_loop[
+                    "candidate_rotation_receipt"
+                ]["auto_promotion_allowed"],
                 "autonomous_github_push": autonomous_research_loop["safety"]["autonomous_github_push"],
                 "workspace_card_status": autonomous_research_loop["workspace_card_budget_alignment"][
                     "workspace_card_status"

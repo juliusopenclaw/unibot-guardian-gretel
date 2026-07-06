@@ -854,6 +854,24 @@ class UniBotReadinessTests(unittest.TestCase):
             autonomous_loop["evidence"]["candidate_review_promotion_recommendation"],
             "keep_candidate_not_runnable",
         )
+        self.assertEqual(autonomous_loop["evidence"]["candidate_rotation_status"], "candidate_rotation_receipt_ready")
+        self.assertEqual(autonomous_loop["evidence"]["candidate_rotation_public_safety_status"], "pass")
+        self.assertEqual(
+            autonomous_loop["evidence"]["candidate_rotation_previous_closed_work_id"],
+            "autonomous_queue_candidate_rotation_receipt_gate",
+        )
+        self.assertEqual(autonomous_loop["evidence"]["candidate_rotation_previous_closed_commit"], "c5c9a2e")
+        self.assertEqual(
+            autonomous_loop["evidence"]["candidate_rotation_selected_work_id"],
+            "autonomous_queue_candidate_review_hash_rotation_gate",
+        )
+        self.assertTrue(autonomous_loop["evidence"]["candidate_rotation_hash_present"])
+        self.assertEqual(
+            autonomous_loop["evidence"]["candidate_rotation_receipt_status"],
+            "candidate_rotation_receipt_ready",
+        )
+        self.assertTrue(autonomous_loop["evidence"]["candidate_rotation_receipt_hash_matches_rotation"])
+        self.assertFalse(autonomous_loop["evidence"]["candidate_rotation_auto_promotion_allowed"])
         self.assertEqual(autonomous_loop["evidence"]["workspace_card_budget_alignment_status"], "ready")
         self.assertEqual(autonomous_loop["evidence"]["workspace_card_budget_alignment_public_safety_status"], "pass")
         self.assertTrue(autonomous_loop["evidence"]["workspace_card_readiness_gate_linked"])

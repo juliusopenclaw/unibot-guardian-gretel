@@ -94,6 +94,10 @@ local-cycle operator workspace-card readiness gate without exposing raw private
 course text, contact data, local paths, autonomous publication, provider calls,
 approval or exam-clearance claims, grading, proctoring, KI-detection evidence,
 exam deployment claims, or the raw workspace card.
+The readiness gate also verifies the candidate rotation receipt: the previous
+closed candidate, closure commit, current candidate, receipt hash, review hash,
+and rotation hash must match the loop receipt while automatic promotion remains
+blocked.
 
 The Paperclip evaluation bridge is ready only when Paperclip remains optional,
 non-critical, no-runtime, and no-provider-call by default. Its workspace-card
