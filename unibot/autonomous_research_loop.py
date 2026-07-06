@@ -2049,7 +2049,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "autonomous_queue_candidate_rotation_receipt_gate",
             "priority": 108,
-            "status": "candidate",
+            "status": "closed_harnessed",
             "goal": "Keep the recurring Gretel autonomous loop's candidate lane rotatable after a harnessed candidate receipt gate while preserving zero ready work items, one public-safe candidate, bounded file scope, no provider call, no autonomous publication, no exam clearance claim, no grading/proctoring/KI-detection, and no private context ingestion.",
             "allowed_files": [
                 "unibot/autonomous_research_loop.py",
@@ -2058,6 +2058,23 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_autonomous_research_loop.py -q"],
             "review_gate": "autonomous_queue_candidate_rotation_receipt_traceability",
+            "closure_evidence": {
+                "commit": "c5c9a2e",
+                "summary": "UniBot autonomous loop receipt now carries the candidate-review status and exact review hash, and readiness verifies that the receipt hash matches the candidate review before treating the loop gate as green.",
+            },
+        },
+        {
+            "work_id": "autonomous_queue_candidate_review_hash_rotation_gate",
+            "priority": 109,
+            "status": "candidate",
+            "goal": "Keep the recurring Gretel autonomous loop's next candidate lane rotatable after candidate-review hash closure while preserving zero ready work items, one public-safe candidate, bounded file scope, no provider call, no autonomous publication, no exam clearance claim, no grading/proctoring/KI-detection, and no private context ingestion.",
+            "allowed_files": [
+                "unibot/autonomous_research_loop.py",
+                "tests/test_unibot_autonomous_research_loop.py",
+                "docs/unibot/UNIBOT_GRETEL_AUTONOMOUS_RESEARCH_LOOP.md",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_autonomous_research_loop.py -q"],
+            "review_gate": "autonomous_queue_candidate_review_hash_rotation_traceability",
         },
     ]
 

@@ -837,7 +837,7 @@ class UniBotReadinessTests(unittest.TestCase):
         autonomous_loop = next(check for check in report["checks"] if check["check_id"] == "gretel_autonomous_research_loop")
         self.assertEqual(
             autonomous_loop["evidence"]["candidate_receipt_work_id"],
-            "autonomous_queue_candidate_rotation_receipt_gate",
+            "autonomous_queue_candidate_review_hash_rotation_gate",
         )
         self.assertEqual(autonomous_loop["evidence"]["candidate_work_items"], 1)
         self.assertEqual(autonomous_loop["evidence"]["ready_work_items"], 0)
