@@ -2097,6 +2097,7 @@ def build_autonomous_candidate_receipt(payload: dict[str, Any]) -> dict[str, Any
     queue = payload.get("work_queue", [])
     candidate = next((item for item in queue if item.get("work_id") == next_work_id), {})
     candidate_status = str(candidate.get("status", "missing"))
+    allowed_files = [str(item) for item in candidate.get("allowed_files", [])] if isinstance(candidate, dict) else []
     receipt = {
         "schema_version": "unibot-gretel-autonomous-candidate-receipt-v1",
         "status": "candidate_receipt_ready",
@@ -2104,7 +2105,8 @@ def build_autonomous_candidate_receipt(payload: dict[str, Any]) -> dict[str, Any
         "selected_status": candidate_status,
         "ready_work_items_remain_zero": len([item for item in queue if item.get("status") == "ready"]) == 0,
         "candidate_is_not_auto_ready": candidate_status == "candidate",
-        "allowed_file_count": len(candidate.get("allowed_files", [])) if isinstance(candidate, dict) else 0,
+        "allowed_files": allowed_files,
+        "allowed_file_count": len(allowed_files),
         "acceptance_tests": [str(item) for item in candidate.get("acceptance_tests", [])],
         "review_gate": str(candidate.get("review_gate", "")),
         "provider_call_executed": payload.get("safety", {}).get("provider_call_executed") is True,
@@ -2126,6 +2128,7 @@ def build_autonomous_candidate_receipt(payload: dict[str, Any]) -> dict[str, Any
             {
                 "selected_work_id": receipt["selected_work_id"],
                 "selected_status": receipt["selected_status"],
+                "allowed_files": receipt["allowed_files"],
                 "allowed_file_count": receipt["allowed_file_count"],
                 "acceptance_tests": receipt["acceptance_tests"],
                 "review_gate": receipt["review_gate"],

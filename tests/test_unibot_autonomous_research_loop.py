@@ -1391,6 +1391,14 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertTrue(loop["candidate_receipt"]["ready_work_items_remain_zero"])
         self.assertTrue(loop["candidate_receipt"]["candidate_is_not_auto_ready"])
         self.assertLessEqual(loop["candidate_receipt"]["allowed_file_count"], 4)
+        self.assertEqual(
+            loop["candidate_receipt"]["allowed_files"],
+            by_id["autonomous_queue_candidate_receipt_gate"]["allowed_files"],
+        )
+        self.assertIn(
+            "tests/test_unibot_autonomous_research_loop.py",
+            loop["candidate_receipt"]["allowed_files"],
+        )
         self.assertEqual(loop["candidate_receipt"]["review_gate"], "autonomous_queue_candidate_public_safe_receipt_traceability")
         self.assertEqual(loop["receipt"]["candidate_receipt_status"], "candidate_receipt_ready")
         self.assertEqual(loop["receipt"]["candidate_receipt_hash"], loop["candidate_receipt"]["candidate_hash"])
