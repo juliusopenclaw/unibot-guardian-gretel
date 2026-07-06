@@ -2126,6 +2126,13 @@ def build_autonomous_candidate_receipt(payload: dict[str, Any]) -> dict[str, Any
         "allowed_file_count": len(allowed_files),
         "acceptance_tests": [str(item) for item in candidate.get("acceptance_tests", [])],
         "review_gate": str(candidate.get("review_gate", "")),
+        "candidate_review_status": "candidate_requires_human_or_harness_promotion",
+        "promotion_blocker_reason": (
+            "candidate lanes are intentionally not runnable work; promotion requires a new closed-harnessed "
+            "receipt or an explicit ready work item with bounded scope and tests"
+        ),
+        "promotion_review_surface": "autonomous_queue_candidate_review",
+        "auto_promotion_allowed": False,
         "provider_call_executed": payload.get("safety", {}).get("provider_call_executed") is True,
         "autonomous_github_push": payload.get("safety", {}).get("autonomous_github_push") is True,
         "external_messages_sent": payload.get("safety", {}).get("mail_calendar_chat_actions") is True,
@@ -2149,6 +2156,10 @@ def build_autonomous_candidate_receipt(payload: dict[str, Any]) -> dict[str, Any
                 "allowed_file_count": receipt["allowed_file_count"],
                 "acceptance_tests": receipt["acceptance_tests"],
                 "review_gate": receipt["review_gate"],
+                "candidate_review_status": receipt["candidate_review_status"],
+                "promotion_blocker_reason": receipt["promotion_blocker_reason"],
+                "promotion_review_surface": receipt["promotion_review_surface"],
+                "auto_promotion_allowed": receipt["auto_promotion_allowed"],
                 "blocked_claims": receipt["blocked_claims"],
             },
             ensure_ascii=False,

@@ -1394,6 +1394,13 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertEqual(loop["candidate_receipt"]["selected_status"], "candidate")
         self.assertTrue(loop["candidate_receipt"]["ready_work_items_remain_zero"])
         self.assertTrue(loop["candidate_receipt"]["candidate_is_not_auto_ready"])
+        self.assertEqual(
+            loop["candidate_receipt"]["candidate_review_status"],
+            "candidate_requires_human_or_harness_promotion",
+        )
+        self.assertIn("not runnable work", loop["candidate_receipt"]["promotion_blocker_reason"])
+        self.assertEqual(loop["candidate_receipt"]["promotion_review_surface"], "autonomous_queue_candidate_review")
+        self.assertFalse(loop["candidate_receipt"]["auto_promotion_allowed"])
         self.assertLessEqual(loop["candidate_receipt"]["allowed_file_count"], 4)
         self.assertEqual(
             loop["candidate_receipt"]["allowed_files"],
@@ -1489,6 +1496,9 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertTrue(receipt["autonomous_github_push"])
         self.assertTrue(receipt["external_messages_sent"])
         self.assertTrue(receipt["final_go"])
+        self.assertEqual(receipt["candidate_review_status"], "candidate_requires_human_or_harness_promotion")
+        self.assertFalse(receipt["auto_promotion_allowed"])
+        self.assertIn("explicit ready work item", receipt["promotion_blocker_reason"])
         self.assertIn("provider call", receipt["blocked_claims"])
         self.assertIn("private context ingestion", receipt["blocked_claims"])
 

@@ -69,7 +69,9 @@ artifacts.
   recurring Gretel loop's candidate lane rotatable after a harnessed candidate
   receipt gate without authorizing implementation work, provider calls,
   autonomous publication, exam clearance, grading, proctoring, KI-detection, or
-  private-context ingestion.
+  private-context ingestion. Candidate lanes are not runnable work; promotion
+  requires a new closed-harnessed receipt or an explicit ready item with bounded
+  scope and tests.
 
 ## Closed Harnessed Work
 
