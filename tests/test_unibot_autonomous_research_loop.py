@@ -13,6 +13,7 @@ from unibot.autonomous_research_loop import (  # noqa: E402
     autonomous_loop_budget_hash,
     autonomous_loop_receipt_hash,
     build_autonomous_candidate_receipt,
+    build_autonomous_candidate_review,
     build_autonomous_research_loop,
     build_autonomous_loop_workspace_card_alignment,
     build_autonomous_research_markdown,
@@ -1416,6 +1417,14 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         )
         self.assertEqual(loop["receipt"]["candidate_receipt_status"], "candidate_receipt_ready")
         self.assertEqual(loop["receipt"]["candidate_receipt_hash"], loop["candidate_receipt"]["candidate_hash"])
+        self.assertEqual(loop["candidate_review"]["status"], "candidate_review_ready")
+        self.assertEqual(loop["candidate_review"]["public_safety_status"], "pass")
+        self.assertEqual(loop["candidate_review"]["selected_work_id"], loop["next_recommended_work_id"])
+        self.assertEqual(loop["candidate_review"]["candidate_review_surface"], "autonomous_queue_candidate_review")
+        self.assertEqual(loop["candidate_review"]["promotion_recommendation"], "keep_candidate_not_runnable")
+        self.assertFalse(loop["candidate_review"]["auto_promotion_allowed"])
+        self.assertEqual(loop["candidate_review"]["failed_contract_ids"], [])
+        self.assertIn("automatic candidate promotion", loop["candidate_review"]["blocked_claims"])
         self.assertFalse(loop["candidate_receipt"]["provider_call_executed"])
         self.assertFalse(loop["candidate_receipt"]["autonomous_github_push"])
         self.assertFalse(loop["candidate_receipt"]["external_messages_sent"])
@@ -1488,6 +1497,8 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         unsafe_payload["next_recommended_work_id"] = "unsafe_candidate"
 
         receipt = build_autonomous_candidate_receipt(unsafe_payload)
+        unsafe_payload["candidate_receipt"] = receipt
+        review = build_autonomous_candidate_review(unsafe_payload)
 
         self.assertEqual(receipt["status"], "candidate_receipt_blocked")
         self.assertEqual(receipt["selected_work_id"], "unsafe_candidate")
@@ -1501,6 +1512,10 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("explicit ready work item", receipt["promotion_blocker_reason"])
         self.assertIn("provider call", receipt["blocked_claims"])
         self.assertIn("private context ingestion", receipt["blocked_claims"])
+        self.assertEqual(review["status"], "candidate_review_blocked")
+        self.assertIn("bounded_scope_preserved", review["failed_contract_ids"])
+        self.assertIn("no_external_effects", review["failed_contract_ids"])
+        self.assertFalse(review["auto_promotion_allowed"])
 
 
 if __name__ == "__main__":

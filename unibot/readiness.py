@@ -4364,6 +4364,10 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and autonomous_research_loop["candidate_receipt"]["candidate_is_not_auto_ready"] is True
             and autonomous_research_loop["candidate_receipt"]["allowed_file_count"] <= 4
             and autonomous_research_loop["candidate_receipt"]["public_safety_status"] == "pass"
+            and autonomous_research_loop["candidate_review"]["status"] == "candidate_review_ready"
+            and autonomous_research_loop["candidate_review"]["public_safety_status"] == "pass"
+            and autonomous_research_loop["candidate_review"]["failed_contract_ids"] == []
+            and autonomous_research_loop["candidate_review"]["auto_promotion_allowed"] is False
             and autonomous_research_loop["receipt"]["candidate_receipt_status"] == "candidate_receipt_ready"
             and autonomous_research_loop["receipt"]["candidate_receipt_hash"]
             == autonomous_research_loop["candidate_receipt"]["candidate_hash"],
@@ -4388,6 +4392,23 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 != "",
                 "candidate_receipt_public_safety_status": autonomous_research_loop["candidate_receipt"][
                     "public_safety_status"
+                ],
+                "candidate_review_status": autonomous_research_loop["candidate_review"]["status"],
+                "candidate_review_public_safety_status": autonomous_research_loop["candidate_review"][
+                    "public_safety_status"
+                ],
+                "candidate_review_surface": autonomous_research_loop["candidate_review"][
+                    "candidate_review_surface"
+                ],
+                "candidate_review_hash_present": autonomous_research_loop["candidate_review"][
+                    "candidate_receipt_hash"
+                ]
+                != "",
+                "candidate_review_auto_promotion_allowed": autonomous_research_loop["candidate_review"][
+                    "auto_promotion_allowed"
+                ],
+                "candidate_review_promotion_recommendation": autonomous_research_loop["candidate_review"][
+                    "promotion_recommendation"
                 ],
                 "autonomous_github_push": autonomous_research_loop["safety"]["autonomous_github_push"],
                 "workspace_card_status": autonomous_research_loop["workspace_card_budget_alignment"][

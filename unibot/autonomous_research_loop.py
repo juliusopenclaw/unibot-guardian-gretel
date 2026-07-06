@@ -2099,6 +2099,7 @@ def build_autonomous_research_loop() -> dict[str, Any]:
         },
     }
     payload["candidate_receipt"] = build_autonomous_candidate_receipt(payload)
+    payload["candidate_review"] = build_autonomous_candidate_review(payload)
     payload["receipt"] = build_autonomous_loop_receipt(payload)
     payload["workspace_card_budget_alignment"] = build_autonomous_loop_workspace_card_alignment(payload)
     scan = scan_text(json.dumps(payload, ensure_ascii=False), "unibot-gretel-autonomous-research-loop")
@@ -2182,6 +2183,76 @@ def build_autonomous_candidate_receipt(payload: dict[str, Any]) -> dict[str, Any
         if scan["status"] != "pass":
             receipt["public_safety_findings"] = scan["findings"]
     return receipt
+
+
+def build_autonomous_candidate_review(payload: dict[str, Any]) -> dict[str, Any]:
+    candidate_receipt = payload.get("candidate_receipt", {})
+    candidate_receipt = candidate_receipt if isinstance(candidate_receipt, dict) else {}
+    receipt_hash = hashlib.sha256(
+        json.dumps(candidate_receipt, ensure_ascii=False, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    ready_items = len([item for item in payload.get("work_queue", []) if item.get("status") == "ready"])
+    candidate_items = len([item for item in payload.get("work_queue", []) if item.get("status") == "candidate"])
+    contracts = {
+        "candidate_receipt_ready": candidate_receipt.get("status") == "candidate_receipt_ready",
+        "candidate_matches_next_work": candidate_receipt.get("selected_work_id")
+        == payload.get("next_recommended_work_id", ""),
+        "candidate_not_auto_runnable": candidate_receipt.get("candidate_is_not_auto_ready") is True
+        and candidate_receipt.get("auto_promotion_allowed") is False,
+        "bounded_scope_preserved": int(candidate_receipt.get("allowed_file_count", 99) or 99) <= 4,
+        "single_candidate_lane_preserved": ready_items == 0 and candidate_items == 1,
+        "no_external_effects": candidate_receipt.get("provider_call_executed") is False
+        and candidate_receipt.get("autonomous_github_push") is False
+        and candidate_receipt.get("external_messages_sent") is False
+        and candidate_receipt.get("final_go") is False,
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    review = {
+        "schema_version": "unibot-gretel-autonomous-candidate-review-v1",
+        "status": "candidate_review_ready",
+        "selected_work_id": candidate_receipt.get("selected_work_id", ""),
+        "selected_status": candidate_receipt.get("selected_status", ""),
+        "candidate_receipt_status": candidate_receipt.get("status", "missing"),
+        "candidate_receipt_hash": receipt_hash,
+        "candidate_review_surface": candidate_receipt.get(
+            "promotion_review_surface", "autonomous_queue_candidate_review"
+        ),
+        "promotion_recommendation": "keep_candidate_not_runnable",
+        "promotion_blocker_reason": candidate_receipt.get("promotion_blocker_reason", ""),
+        "auto_promotion_allowed": False,
+        "ready_work_items": ready_items,
+        "candidate_work_items": candidate_items,
+        "allowed_file_count": candidate_receipt.get("allowed_file_count", 0),
+        "review_gate": candidate_receipt.get("review_gate", ""),
+        "allowed_next_actions": [
+            "keep_candidate_for_next_budgeted_review",
+            "promote_only_by_new_ready_work_item_with_bounded_scope_and_tests",
+            "retire_candidate_only_with_closed_harnessed_receipt",
+        ],
+        "blocked_claims": [
+            "provider call",
+            "autonomous publication",
+            "automatic candidate promotion",
+            "exam clearance claim",
+            "grading",
+            "proctoring",
+            "KI-detection evidence",
+            "private context ingestion",
+        ],
+        "contracts": contracts,
+        "failed_contract_ids": failed_contract_ids,
+        "raw_private_context_shared": False,
+        "provider_call_executed": False,
+        "autonomous_publication_started": False,
+        "final_go": False,
+    }
+    scan = scan_text(json.dumps(review, ensure_ascii=False), "autonomous-candidate-review")
+    review["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass" or failed_contract_ids:
+        review["status"] = "candidate_review_blocked"
+        if scan["status"] != "pass":
+            review["public_safety_findings"] = scan["findings"]
+    return review
 
 
 def build_autonomous_loop_receipt(payload: dict[str, Any]) -> dict[str, Any]:

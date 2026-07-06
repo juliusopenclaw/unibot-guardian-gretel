@@ -71,7 +71,8 @@ artifacts.
   autonomous publication, exam clearance, grading, proctoring, KI-detection, or
   private-context ingestion. Candidate lanes are not runnable work; promotion
   requires a new closed-harnessed receipt or an explicit ready item with bounded
-  scope and tests.
+  scope and tests. The `autonomous_queue_candidate_review` surface recommends
+  keeping the candidate non-runnable until that evidence exists.
 
 ## Closed Harnessed Work
 

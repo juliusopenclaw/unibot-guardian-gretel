@@ -842,6 +842,15 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertEqual(autonomous_loop["evidence"]["candidate_work_items"], 1)
         self.assertEqual(autonomous_loop["evidence"]["ready_work_items"], 0)
         self.assertTrue(autonomous_loop["evidence"]["candidate_receipt_hash_present"])
+        self.assertEqual(autonomous_loop["evidence"]["candidate_review_status"], "candidate_review_ready")
+        self.assertEqual(autonomous_loop["evidence"]["candidate_review_public_safety_status"], "pass")
+        self.assertEqual(autonomous_loop["evidence"]["candidate_review_surface"], "autonomous_queue_candidate_review")
+        self.assertTrue(autonomous_loop["evidence"]["candidate_review_hash_present"])
+        self.assertFalse(autonomous_loop["evidence"]["candidate_review_auto_promotion_allowed"])
+        self.assertEqual(
+            autonomous_loop["evidence"]["candidate_review_promotion_recommendation"],
+            "keep_candidate_not_runnable",
+        )
         self.assertEqual(autonomous_loop["evidence"]["workspace_card_budget_alignment_status"], "ready")
         self.assertEqual(autonomous_loop["evidence"]["workspace_card_budget_alignment_public_safety_status"], "pass")
         self.assertTrue(autonomous_loop["evidence"]["workspace_card_readiness_gate_linked"])
