@@ -2258,6 +2258,16 @@ def build_autonomous_candidate_review(payload: dict[str, Any]) -> dict[str, Any]
 def build_autonomous_loop_receipt(payload: dict[str, Any]) -> dict[str, Any]:
     hashed = {key: value for key, value in payload.items() if key not in {"generated_at_utc", "receipt"}}
     digest = hashlib.sha256(json.dumps(hashed, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
+    candidate_review = (
+        payload.get("candidate_review", {})
+        if isinstance(payload.get("candidate_review"), dict)
+        else {}
+    )
+    candidate_review_hash = (
+        hashlib.sha256(json.dumps(candidate_review, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
+        if candidate_review
+        else ""
+    )
     return {
         "schema_version": "unibot-gretel-autonomous-research-loop-receipt-v1",
         "loop_hash": digest,
@@ -2268,6 +2278,8 @@ def build_autonomous_loop_receipt(payload: dict[str, Any]) -> dict[str, Any]:
         "next_recommended_work_id": payload.get("next_recommended_work_id", ""),
         "candidate_receipt_status": payload.get("candidate_receipt", {}).get("status", "missing"),
         "candidate_receipt_hash": payload.get("candidate_receipt", {}).get("candidate_hash", ""),
+        "candidate_review_status": candidate_review.get("status", "missing"),
+        "candidate_review_hash": candidate_review_hash,
         "provider_call_executed": False,
         "autonomous_github_push": False,
         "human_review_required_for_publication": True,

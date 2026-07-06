@@ -485,6 +485,13 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
         json.dumps(autonomous_research_loop, ensure_ascii=False),
         "unibot-gretel-autonomous-research-loop-readiness",
     )
+    autonomous_candidate_review_hash = hashlib.sha256(
+        json.dumps(
+            autonomous_research_loop["candidate_review"],
+            ensure_ascii=False,
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
     paperclip_status_payload = paperclip_status()
     paperclip_bridge = build_paperclip_evaluation_request()
     paperclip_workspace_card_alignment = build_paperclip_workspace_card_control_alignment(
@@ -4370,7 +4377,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and autonomous_research_loop["candidate_review"]["auto_promotion_allowed"] is False
             and autonomous_research_loop["receipt"]["candidate_receipt_status"] == "candidate_receipt_ready"
             and autonomous_research_loop["receipt"]["candidate_receipt_hash"]
-            == autonomous_research_loop["candidate_receipt"]["candidate_hash"],
+            == autonomous_research_loop["candidate_receipt"]["candidate_hash"]
+            and autonomous_research_loop["receipt"]["candidate_review_status"] == "candidate_review_ready"
+            and autonomous_research_loop["receipt"]["candidate_review_hash"] == autonomous_candidate_review_hash,
             "evidence": {
                 "status": autonomous_research_loop["status"],
                 "public_safety_status": autonomous_research_loop["public_safety_status"],
@@ -4404,6 +4413,13 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                     "candidate_receipt_hash"
                 ]
                 != "",
+                "candidate_review_receipt_status": autonomous_research_loop["receipt"]["candidate_review_status"],
+                "candidate_review_receipt_hash_present": autonomous_research_loop["receipt"]["candidate_review_hash"]
+                != "",
+                "candidate_review_receipt_hash_matches_review": autonomous_research_loop["receipt"][
+                    "candidate_review_hash"
+                ]
+                == autonomous_candidate_review_hash,
                 "candidate_review_auto_promotion_allowed": autonomous_research_loop["candidate_review"][
                     "auto_promotion_allowed"
                 ],

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 import unittest
@@ -1417,6 +1418,12 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         )
         self.assertEqual(loop["receipt"]["candidate_receipt_status"], "candidate_receipt_ready")
         self.assertEqual(loop["receipt"]["candidate_receipt_hash"], loop["candidate_receipt"]["candidate_hash"])
+        self.assertEqual(loop["receipt"]["candidate_review_status"], "candidate_review_ready")
+        self.assertTrue(loop["receipt"]["candidate_review_hash"])
+        expected_review_hash = hashlib.sha256(
+            json.dumps(loop["candidate_review"], ensure_ascii=False, sort_keys=True).encode("utf-8")
+        ).hexdigest()
+        self.assertEqual(loop["receipt"]["candidate_review_hash"], expected_review_hash)
         self.assertEqual(loop["candidate_review"]["status"], "candidate_review_ready")
         self.assertEqual(loop["candidate_review"]["public_safety_status"], "pass")
         self.assertEqual(loop["candidate_review"]["selected_work_id"], loop["next_recommended_work_id"])

@@ -846,6 +846,9 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertEqual(autonomous_loop["evidence"]["candidate_review_public_safety_status"], "pass")
         self.assertEqual(autonomous_loop["evidence"]["candidate_review_surface"], "autonomous_queue_candidate_review")
         self.assertTrue(autonomous_loop["evidence"]["candidate_review_hash_present"])
+        self.assertEqual(autonomous_loop["evidence"]["candidate_review_receipt_status"], "candidate_review_ready")
+        self.assertTrue(autonomous_loop["evidence"]["candidate_review_receipt_hash_present"])
+        self.assertTrue(autonomous_loop["evidence"]["candidate_review_receipt_hash_matches_review"])
         self.assertFalse(autonomous_loop["evidence"]["candidate_review_auto_promotion_allowed"])
         self.assertEqual(
             autonomous_loop["evidence"]["candidate_review_promotion_recommendation"],
