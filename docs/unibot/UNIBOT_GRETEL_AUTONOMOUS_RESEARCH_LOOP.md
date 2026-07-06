@@ -65,10 +65,10 @@ artifacts.
 ## Current Work Queue
 
 - No ready item is currently listed.
-- Candidate: `autonomous_queue_candidate_review_hash_rotation_gate` keeps the
-  recurring Gretel loop's candidate lane rotatable after candidate-review hash
-  closure without authorizing implementation work, provider calls, autonomous
-  publication, exam clearance, grading, proctoring, KI-detection, or
+- Candidate: `autonomous_queue_readiness_rotation_receipt_gate` keeps the
+  recurring Gretel loop's candidate lane rotatable after readiness-gated
+  candidate-rotation evidence without authorizing implementation work, provider
+  calls, autonomous publication, exam clearance, grading, proctoring, KI-detection, or
   private-context ingestion. Candidate lanes are not runnable work; promotion
   requires a new closed-harnessed receipt or an explicit ready item with bounded
   scope and tests. The `autonomous_queue_candidate_review` surface recommends
@@ -88,6 +88,10 @@ artifacts.
   candidate-review status and exact review-hash evidence in the main loop
   receipt; readiness verifies that the receipt hash matches the review before
   treating the autonomous-loop gate as green.
+- `autonomous_queue_candidate_review_hash_rotation_gate`: closed in `497ac6f`
+  with readiness-gated candidate-rotation evidence: status, public safety,
+  failed-contract list, auto-promotion block, and loop receipt hash match are
+  verified before the autonomous-loop gate is green.
 
 - `exam_workspace_operator_run_local_cycle_workspace_card_operator_receipt_link_alignment`:
   closed in `25ae8f2` with UniBot exam workspace operator-run start view,
