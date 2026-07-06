@@ -2152,6 +2152,7 @@ def build_autonomous_research_loop() -> dict[str, Any]:
     payload["candidate_receipt"] = build_autonomous_candidate_receipt(payload)
     payload["candidate_review"] = build_autonomous_candidate_review(payload)
     payload["candidate_rotation_receipt"] = build_autonomous_candidate_rotation_receipt(payload)
+    payload["single_candidate_continuity_receipt"] = build_single_candidate_continuity_receipt(payload)
     payload["receipt"] = build_autonomous_loop_receipt(payload)
     payload["workspace_card_budget_alignment"] = build_autonomous_loop_workspace_card_alignment(payload)
     scan = scan_text(json.dumps(payload, ensure_ascii=False), "unibot-gretel-autonomous-research-loop")
@@ -2384,6 +2385,73 @@ def build_autonomous_candidate_rotation_receipt(payload: dict[str, Any]) -> dict
     return receipt
 
 
+def build_single_candidate_continuity_receipt(payload: dict[str, Any]) -> dict[str, Any]:
+    queue = [item for item in payload.get("work_queue", []) if isinstance(item, dict)]
+    candidate_receipt = payload.get("candidate_receipt", {})
+    candidate_receipt = candidate_receipt if isinstance(candidate_receipt, dict) else {}
+    candidate_items = [item for item in queue if item.get("status") == "candidate"]
+    ready_items = [item for item in queue if item.get("status") == "ready"]
+    highest_priority_item = max(queue, key=lambda item: int(item.get("priority", 0) or 0), default={})
+    selected_work_id = str(candidate_receipt.get("selected_work_id", ""))
+    highest_priority_work_id = str(highest_priority_item.get("work_id", ""))
+    contracts = {
+        "single_candidate_lane_preserved": len(candidate_items) == 1,
+        "zero_ready_items_preserved": len(ready_items) == 0,
+        "candidate_matches_next_work": selected_work_id == payload.get("next_recommended_work_id", ""),
+        "candidate_is_highest_priority_tail": selected_work_id != "" and selected_work_id == highest_priority_work_id,
+        "candidate_not_auto_runnable": candidate_receipt.get("candidate_is_not_auto_ready") is True
+        and candidate_receipt.get("auto_promotion_allowed") is False,
+        "bounded_scope_preserved": int(candidate_receipt.get("allowed_file_count", 99) or 99) <= 4,
+        "no_external_effects": payload.get("safety", {}).get("provider_call_executed") is False
+        and payload.get("safety", {}).get("autonomous_github_push") is False
+        and payload.get("safety", {}).get("mail_calendar_chat_actions") is False
+        and payload.get("safety", {}).get("final_go") is False,
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    continuity = {
+        "schema_version": "unibot-gretel-single-candidate-continuity-receipt-v1",
+        "status": "single_candidate_continuity_ready",
+        "selected_work_id": selected_work_id,
+        "highest_priority_work_id": highest_priority_work_id,
+        "selected_status": candidate_receipt.get("selected_status", ""),
+        "review_gate": candidate_receipt.get("review_gate", ""),
+        "ready_work_items": len(ready_items),
+        "candidate_work_items": len(candidate_items),
+        "closed_harnessed_work_items": len([item for item in queue if item.get("status") == "closed_harnessed"]),
+        "allowed_file_count": candidate_receipt.get("allowed_file_count", 0),
+        "candidate_receipt_hash": candidate_receipt.get("candidate_hash", ""),
+        "contracts": contracts,
+        "failed_contract_ids": failed_contract_ids,
+        "auto_promotion_allowed": False,
+        "provider_call_executed": False,
+        "autonomous_publication_started": False,
+        "final_go": False,
+    }
+    continuity["continuity_hash"] = hashlib.sha256(
+        json.dumps(
+            {
+                "selected_work_id": continuity["selected_work_id"],
+                "highest_priority_work_id": continuity["highest_priority_work_id"],
+                "review_gate": continuity["review_gate"],
+                "ready_work_items": continuity["ready_work_items"],
+                "candidate_work_items": continuity["candidate_work_items"],
+                "closed_harnessed_work_items": continuity["closed_harnessed_work_items"],
+                "candidate_receipt_hash": continuity["candidate_receipt_hash"],
+                "contracts": continuity["contracts"],
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    scan = scan_text(json.dumps(continuity, ensure_ascii=False), "single-candidate-continuity-receipt")
+    continuity["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass" or failed_contract_ids:
+        continuity["status"] = "single_candidate_continuity_blocked"
+        if scan["status"] != "pass":
+            continuity["public_safety_findings"] = scan["findings"]
+    return continuity
+
+
 def build_autonomous_loop_receipt(payload: dict[str, Any]) -> dict[str, Any]:
     hashed = {key: value for key, value in payload.items() if key not in {"generated_at_utc", "receipt"}}
     digest = hashlib.sha256(json.dumps(hashed, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
@@ -2402,6 +2470,11 @@ def build_autonomous_loop_receipt(payload: dict[str, Any]) -> dict[str, Any]:
         if isinstance(payload.get("candidate_rotation_receipt"), dict)
         else {}
     )
+    single_candidate_continuity = (
+        payload.get("single_candidate_continuity_receipt", {})
+        if isinstance(payload.get("single_candidate_continuity_receipt"), dict)
+        else {}
+    )
     return {
         "schema_version": "unibot-gretel-autonomous-research-loop-receipt-v1",
         "loop_hash": digest,
@@ -2416,6 +2489,8 @@ def build_autonomous_loop_receipt(payload: dict[str, Any]) -> dict[str, Any]:
         "candidate_review_hash": candidate_review_hash,
         "candidate_rotation_status": candidate_rotation_receipt.get("status", "missing"),
         "candidate_rotation_hash": candidate_rotation_receipt.get("rotation_hash", ""),
+        "single_candidate_continuity_status": single_candidate_continuity.get("status", "missing"),
+        "single_candidate_continuity_hash": single_candidate_continuity.get("continuity_hash", ""),
         "provider_call_executed": False,
         "autonomous_github_push": False,
         "human_review_required_for_publication": True,

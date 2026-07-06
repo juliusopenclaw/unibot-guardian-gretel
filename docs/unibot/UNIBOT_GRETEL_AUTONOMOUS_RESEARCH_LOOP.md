@@ -76,7 +76,9 @@ artifacts.
   `candidate_rotation_receipt` records the previous closed candidate, its
   closure commit, the new selected candidate, candidate receipt hash, candidate
   review hash, and rotation contracts so stale loop repetition is auditable
-  without exposing private context.
+  without exposing private context. The `single_candidate_continuity_receipt`
+  verifies that exactly one candidate, zero ready items, highest-priority tail
+  selection, bounded scope, and no external effects are preserved.
 
 ## Closed Harnessed Work
 

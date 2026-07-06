@@ -20,6 +20,7 @@ from unibot.autonomous_research_loop import (  # noqa: E402
     build_autonomous_loop_workspace_card_alignment,
     build_autonomous_research_markdown,
     build_unibot_intent_contract,
+    build_single_candidate_continuity_receipt,
     synthetic_autonomous_loop_workspace_card,
 )
 from unibot.public_safety import scan_text  # noqa: E402
@@ -1427,6 +1428,11 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertEqual(loop["receipt"]["candidate_review_hash"], expected_review_hash)
         self.assertEqual(loop["receipt"]["candidate_rotation_status"], "candidate_rotation_receipt_ready")
         self.assertEqual(loop["receipt"]["candidate_rotation_hash"], loop["candidate_rotation_receipt"]["rotation_hash"])
+        self.assertEqual(loop["receipt"]["single_candidate_continuity_status"], "single_candidate_continuity_ready")
+        self.assertEqual(
+            loop["receipt"]["single_candidate_continuity_hash"],
+            loop["single_candidate_continuity_receipt"]["continuity_hash"],
+        )
         self.assertEqual(loop["candidate_review"]["status"], "candidate_review_ready")
         self.assertEqual(loop["candidate_review"]["public_safety_status"], "pass")
         self.assertEqual(loop["candidate_review"]["selected_work_id"], loop["next_recommended_work_id"])
@@ -1454,6 +1460,20 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertEqual(loop["candidate_rotation_receipt"]["candidate_review_hash"], expected_review_hash)
         self.assertEqual(loop["candidate_rotation_receipt"]["failed_contract_ids"], [])
         self.assertFalse(loop["candidate_rotation_receipt"]["auto_promotion_allowed"])
+        self.assertEqual(loop["single_candidate_continuity_receipt"]["status"], "single_candidate_continuity_ready")
+        self.assertEqual(loop["single_candidate_continuity_receipt"]["public_safety_status"], "pass")
+        self.assertEqual(
+            loop["single_candidate_continuity_receipt"]["selected_work_id"],
+            "autonomous_queue_single_candidate_continuity_gate",
+        )
+        self.assertEqual(
+            loop["single_candidate_continuity_receipt"]["highest_priority_work_id"],
+            "autonomous_queue_single_candidate_continuity_gate",
+        )
+        self.assertEqual(loop["single_candidate_continuity_receipt"]["ready_work_items"], 0)
+        self.assertEqual(loop["single_candidate_continuity_receipt"]["candidate_work_items"], 1)
+        self.assertEqual(loop["single_candidate_continuity_receipt"]["failed_contract_ids"], [])
+        self.assertFalse(loop["single_candidate_continuity_receipt"]["auto_promotion_allowed"])
         self.assertEqual(by_id["autonomous_queue_candidate_receipt_gate"]["status"], "closed_harnessed")
         self.assertEqual(by_id["autonomous_queue_candidate_receipt_gate"]["closure_evidence"]["commit"], "1ec515d")
         self.assertEqual(by_id["autonomous_queue_candidate_rotation_receipt_gate"]["status"], "closed_harnessed")
@@ -1540,6 +1560,8 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         review = build_autonomous_candidate_review(unsafe_payload)
         unsafe_payload["candidate_review"] = review
         rotation = build_autonomous_candidate_rotation_receipt(unsafe_payload)
+        unsafe_payload["candidate_rotation_receipt"] = rotation
+        continuity = build_single_candidate_continuity_receipt(unsafe_payload)
 
         self.assertEqual(receipt["status"], "candidate_receipt_blocked")
         self.assertEqual(receipt["selected_work_id"], "unsafe_candidate")
@@ -1562,6 +1584,10 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("candidate_review_ready", rotation["failed_contract_ids"])
         self.assertIn("no_external_effects", rotation["failed_contract_ids"])
         self.assertFalse(rotation["auto_promotion_allowed"])
+        self.assertEqual(continuity["status"], "single_candidate_continuity_blocked")
+        self.assertIn("bounded_scope_preserved", continuity["failed_contract_ids"])
+        self.assertIn("no_external_effects", continuity["failed_contract_ids"])
+        self.assertFalse(continuity["auto_promotion_allowed"])
 
 
 if __name__ == "__main__":
