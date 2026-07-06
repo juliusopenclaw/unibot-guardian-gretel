@@ -72,7 +72,11 @@ artifacts.
   private-context ingestion. Candidate lanes are not runnable work; promotion
   requires a new closed-harnessed receipt or an explicit ready item with bounded
   scope and tests. The `autonomous_queue_candidate_review` surface recommends
-  keeping the candidate non-runnable until that evidence exists.
+  keeping the candidate non-runnable until that evidence exists. The
+  `candidate_rotation_receipt` records the previous closed candidate, its
+  closure commit, the new selected candidate, candidate receipt hash, candidate
+  review hash, and rotation contracts so stale loop repetition is auditable
+  without exposing private context.
 
 ## Closed Harnessed Work
 

@@ -2117,6 +2117,7 @@ def build_autonomous_research_loop() -> dict[str, Any]:
     }
     payload["candidate_receipt"] = build_autonomous_candidate_receipt(payload)
     payload["candidate_review"] = build_autonomous_candidate_review(payload)
+    payload["candidate_rotation_receipt"] = build_autonomous_candidate_rotation_receipt(payload)
     payload["receipt"] = build_autonomous_loop_receipt(payload)
     payload["workspace_card_budget_alignment"] = build_autonomous_loop_workspace_card_alignment(payload)
     scan = scan_text(json.dumps(payload, ensure_ascii=False), "unibot-gretel-autonomous-research-loop")
@@ -2272,6 +2273,83 @@ def build_autonomous_candidate_review(payload: dict[str, Any]) -> dict[str, Any]
     return review
 
 
+def build_autonomous_candidate_rotation_receipt(payload: dict[str, Any]) -> dict[str, Any]:
+    queue = [item for item in payload.get("work_queue", []) if isinstance(item, dict)]
+    candidate_receipt = payload.get("candidate_receipt", {})
+    candidate_receipt = candidate_receipt if isinstance(candidate_receipt, dict) else {}
+    candidate_review = payload.get("candidate_review", {})
+    candidate_review = candidate_review if isinstance(candidate_review, dict) else {}
+    closed_items = [item for item in queue if item.get("status") == "closed_harnessed"]
+    previous_closed = max(closed_items, key=lambda item: int(item.get("priority", 0) or 0), default={})
+    selected_work_id = str(candidate_receipt.get("selected_work_id", ""))
+    previous_closed_work_id = str(previous_closed.get("work_id", ""))
+    previous_closed_commit = str(previous_closed.get("closure_evidence", {}).get("commit", ""))
+    candidate_review_hash = (
+        hashlib.sha256(json.dumps(candidate_review, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
+        if candidate_review
+        else ""
+    )
+    contracts = {
+        "previous_closed_candidate_present": previous_closed_work_id != "" and previous_closed_commit != "",
+        "rotation_advances_work_id": previous_closed_work_id != "" and previous_closed_work_id != selected_work_id,
+        "candidate_receipt_ready": candidate_receipt.get("status") == "candidate_receipt_ready",
+        "candidate_review_ready": candidate_review.get("status") == "candidate_review_ready",
+        "candidate_review_hash_present": candidate_review_hash != "",
+        "single_candidate_lane_preserved": len([item for item in queue if item.get("status") == "candidate"]) == 1,
+        "zero_ready_items_preserved": len([item for item in queue if item.get("status") == "ready"]) == 0,
+        "bounded_scope_preserved": int(candidate_receipt.get("allowed_file_count", 99) or 99) <= 4,
+        "no_external_effects": payload.get("safety", {}).get("provider_call_executed") is False
+        and payload.get("safety", {}).get("autonomous_github_push") is False
+        and payload.get("safety", {}).get("mail_calendar_chat_actions") is False
+        and payload.get("safety", {}).get("final_go") is False,
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    receipt = {
+        "schema_version": "unibot-gretel-autonomous-candidate-rotation-receipt-v1",
+        "status": "candidate_rotation_receipt_ready",
+        "previous_closed_work_id": previous_closed_work_id,
+        "previous_closed_commit": previous_closed_commit,
+        "selected_work_id": selected_work_id,
+        "selected_status": candidate_receipt.get("selected_status", ""),
+        "review_gate": candidate_receipt.get("review_gate", ""),
+        "candidate_receipt_hash": candidate_receipt.get("candidate_hash", ""),
+        "candidate_review_hash": candidate_review_hash,
+        "rotation_recommendation": "keep_new_candidate_non_runnable",
+        "auto_promotion_allowed": False,
+        "ready_work_items": len([item for item in queue if item.get("status") == "ready"]),
+        "candidate_work_items": len([item for item in queue if item.get("status") == "candidate"]),
+        "closed_harnessed_work_items": len(closed_items),
+        "contracts": contracts,
+        "failed_contract_ids": failed_contract_ids,
+        "provider_call_executed": False,
+        "autonomous_publication_started": False,
+        "final_go": False,
+    }
+    receipt["rotation_hash"] = hashlib.sha256(
+        json.dumps(
+            {
+                "previous_closed_work_id": receipt["previous_closed_work_id"],
+                "previous_closed_commit": receipt["previous_closed_commit"],
+                "selected_work_id": receipt["selected_work_id"],
+                "selected_status": receipt["selected_status"],
+                "review_gate": receipt["review_gate"],
+                "candidate_receipt_hash": receipt["candidate_receipt_hash"],
+                "candidate_review_hash": receipt["candidate_review_hash"],
+                "contracts": receipt["contracts"],
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    scan = scan_text(json.dumps(receipt, ensure_ascii=False), "autonomous-candidate-rotation-receipt")
+    receipt["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass" or failed_contract_ids:
+        receipt["status"] = "candidate_rotation_receipt_blocked"
+        if scan["status"] != "pass":
+            receipt["public_safety_findings"] = scan["findings"]
+    return receipt
+
+
 def build_autonomous_loop_receipt(payload: dict[str, Any]) -> dict[str, Any]:
     hashed = {key: value for key, value in payload.items() if key not in {"generated_at_utc", "receipt"}}
     digest = hashlib.sha256(json.dumps(hashed, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
@@ -2285,6 +2363,11 @@ def build_autonomous_loop_receipt(payload: dict[str, Any]) -> dict[str, Any]:
         if candidate_review
         else ""
     )
+    candidate_rotation_receipt = (
+        payload.get("candidate_rotation_receipt", {})
+        if isinstance(payload.get("candidate_rotation_receipt"), dict)
+        else {}
+    )
     return {
         "schema_version": "unibot-gretel-autonomous-research-loop-receipt-v1",
         "loop_hash": digest,
@@ -2297,6 +2380,8 @@ def build_autonomous_loop_receipt(payload: dict[str, Any]) -> dict[str, Any]:
         "candidate_receipt_hash": payload.get("candidate_receipt", {}).get("candidate_hash", ""),
         "candidate_review_status": candidate_review.get("status", "missing"),
         "candidate_review_hash": candidate_review_hash,
+        "candidate_rotation_status": candidate_rotation_receipt.get("status", "missing"),
+        "candidate_rotation_hash": candidate_rotation_receipt.get("rotation_hash", ""),
         "provider_call_executed": False,
         "autonomous_github_push": False,
         "human_review_required_for_publication": True,

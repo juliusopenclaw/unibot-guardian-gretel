@@ -14,6 +14,7 @@ from unibot.autonomous_research_loop import (  # noqa: E402
     autonomous_loop_budget_hash,
     autonomous_loop_receipt_hash,
     build_autonomous_candidate_receipt,
+    build_autonomous_candidate_rotation_receipt,
     build_autonomous_candidate_review,
     build_autonomous_research_loop,
     build_autonomous_loop_workspace_card_alignment,
@@ -1424,6 +1425,8 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             json.dumps(loop["candidate_review"], ensure_ascii=False, sort_keys=True).encode("utf-8")
         ).hexdigest()
         self.assertEqual(loop["receipt"]["candidate_review_hash"], expected_review_hash)
+        self.assertEqual(loop["receipt"]["candidate_rotation_status"], "candidate_rotation_receipt_ready")
+        self.assertEqual(loop["receipt"]["candidate_rotation_hash"], loop["candidate_rotation_receipt"]["rotation_hash"])
         self.assertEqual(loop["candidate_review"]["status"], "candidate_review_ready")
         self.assertEqual(loop["candidate_review"]["public_safety_status"], "pass")
         self.assertEqual(loop["candidate_review"]["selected_work_id"], loop["next_recommended_work_id"])
@@ -1437,6 +1440,20 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertFalse(loop["candidate_receipt"]["external_messages_sent"])
         self.assertFalse(loop["candidate_receipt"]["final_go"])
         self.assertIn("private context ingestion", loop["candidate_receipt"]["blocked_claims"])
+        self.assertEqual(loop["candidate_rotation_receipt"]["status"], "candidate_rotation_receipt_ready")
+        self.assertEqual(loop["candidate_rotation_receipt"]["public_safety_status"], "pass")
+        self.assertEqual(
+            loop["candidate_rotation_receipt"]["previous_closed_work_id"],
+            "autonomous_queue_candidate_rotation_receipt_gate",
+        )
+        self.assertEqual(loop["candidate_rotation_receipt"]["previous_closed_commit"], "c5c9a2e")
+        self.assertEqual(
+            loop["candidate_rotation_receipt"]["selected_work_id"],
+            "autonomous_queue_candidate_review_hash_rotation_gate",
+        )
+        self.assertEqual(loop["candidate_rotation_receipt"]["candidate_review_hash"], expected_review_hash)
+        self.assertEqual(loop["candidate_rotation_receipt"]["failed_contract_ids"], [])
+        self.assertFalse(loop["candidate_rotation_receipt"]["auto_promotion_allowed"])
         self.assertEqual(by_id["autonomous_queue_candidate_receipt_gate"]["status"], "closed_harnessed")
         self.assertEqual(by_id["autonomous_queue_candidate_receipt_gate"]["closure_evidence"]["commit"], "1ec515d")
         self.assertEqual(by_id["autonomous_queue_candidate_rotation_receipt_gate"]["status"], "closed_harnessed")
@@ -1511,6 +1528,8 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         receipt = build_autonomous_candidate_receipt(unsafe_payload)
         unsafe_payload["candidate_receipt"] = receipt
         review = build_autonomous_candidate_review(unsafe_payload)
+        unsafe_payload["candidate_review"] = review
+        rotation = build_autonomous_candidate_rotation_receipt(unsafe_payload)
 
         self.assertEqual(receipt["status"], "candidate_receipt_blocked")
         self.assertEqual(receipt["selected_work_id"], "unsafe_candidate")
@@ -1528,6 +1547,11 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("bounded_scope_preserved", review["failed_contract_ids"])
         self.assertIn("no_external_effects", review["failed_contract_ids"])
         self.assertFalse(review["auto_promotion_allowed"])
+        self.assertEqual(rotation["status"], "candidate_rotation_receipt_blocked")
+        self.assertIn("candidate_receipt_ready", rotation["failed_contract_ids"])
+        self.assertIn("candidate_review_ready", rotation["failed_contract_ids"])
+        self.assertIn("no_external_effects", rotation["failed_contract_ids"])
+        self.assertFalse(rotation["auto_promotion_allowed"])
 
 
 if __name__ == "__main__":
