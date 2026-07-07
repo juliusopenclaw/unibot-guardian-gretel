@@ -79,7 +79,11 @@ artifacts.
   review hash, and rotation contracts so stale loop repetition is auditable
   without exposing private context. The `single_candidate_continuity_receipt`
   verifies that exactly one candidate, zero ready items, highest-priority tail
-  selection, bounded scope, and no external effects are preserved.
+  selection, bounded scope, and no external effects are preserved. The
+  `docs_traceability_negative_evidence_receipt` binds the prior negative
+  harness commit, the prior negative-evidence closure commit, the current
+  non-runnable candidate, and the review gate into a hash that the main loop
+  receipt carries forward.
 
 ## Closed Harnessed Work
 

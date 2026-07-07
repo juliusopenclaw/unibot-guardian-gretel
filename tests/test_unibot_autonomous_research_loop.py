@@ -16,6 +16,7 @@ from unibot.autonomous_research_loop import (  # noqa: E402
     build_autonomous_candidate_receipt,
     build_autonomous_candidate_rotation_receipt,
     build_autonomous_candidate_review,
+    build_autonomous_docs_traceability_negative_evidence_receipt,
     build_autonomous_research_loop,
     build_autonomous_loop_workspace_card_alignment,
     build_autonomous_research_markdown,
@@ -1477,6 +1478,37 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertEqual(loop["single_candidate_continuity_receipt"]["candidate_work_items"], 1)
         self.assertEqual(loop["single_candidate_continuity_receipt"]["failed_contract_ids"], [])
         self.assertFalse(loop["single_candidate_continuity_receipt"]["auto_promotion_allowed"])
+        self.assertEqual(
+            loop["docs_traceability_negative_evidence_receipt"]["status"],
+            "docs_traceability_negative_evidence_receipt_ready",
+        )
+        self.assertEqual(loop["docs_traceability_negative_evidence_receipt"]["public_safety_status"], "pass")
+        self.assertEqual(
+            loop["docs_traceability_negative_evidence_receipt"]["negative_harness_commit"],
+            "1f7b05d",
+        )
+        self.assertEqual(
+            loop["docs_traceability_negative_evidence_receipt"]["negative_evidence_commit"],
+            "b0d9d42",
+        )
+        self.assertEqual(
+            loop["docs_traceability_negative_evidence_receipt"]["selected_work_id"],
+            "autonomous_queue_docs_traceability_negative_evidence_receipt_gate",
+        )
+        self.assertEqual(
+            loop["docs_traceability_negative_evidence_receipt"]["review_gate"],
+            "autonomous_queue_docs_traceability_negative_evidence_receipt",
+        )
+        self.assertEqual(loop["docs_traceability_negative_evidence_receipt"]["failed_contract_ids"], [])
+        self.assertFalse(loop["docs_traceability_negative_evidence_receipt"]["auto_promotion_allowed"])
+        self.assertEqual(
+            loop["receipt"]["docs_traceability_negative_evidence_status"],
+            "docs_traceability_negative_evidence_receipt_ready",
+        )
+        self.assertEqual(
+            loop["receipt"]["docs_traceability_negative_evidence_hash"],
+            loop["docs_traceability_negative_evidence_receipt"]["evidence_hash"],
+        )
         self.assertEqual(by_id["autonomous_queue_candidate_receipt_gate"]["status"], "closed_harnessed")
         self.assertEqual(by_id["autonomous_queue_candidate_receipt_gate"]["closure_evidence"]["commit"], "1ec515d")
         self.assertEqual(by_id["autonomous_queue_candidate_rotation_receipt_gate"]["status"], "closed_harnessed")
@@ -1551,6 +1583,10 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             "Next recommended work: autonomous_queue_docs_traceability_negative_evidence_receipt_gate",
             markdown,
         )
+        self.assertIn(
+            "Docs traceability negative evidence: docs_traceability_negative_evidence_receipt_ready",
+            markdown,
+        )
 
         status, loop = route_request("/api/unibot/autonomous-research-loop", {})
         self.assertEqual(status, 200)
@@ -1621,6 +1657,23 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("bounded_scope_preserved", continuity["failed_contract_ids"])
         self.assertIn("no_external_effects", continuity["failed_contract_ids"])
         self.assertFalse(continuity["auto_promotion_allowed"])
+
+    def test_docs_traceability_negative_evidence_receipt_blocks_missing_closure(self) -> None:
+        loop = build_autonomous_research_loop()
+        unsafe_payload = json.loads(json.dumps(loop))
+        for item in unsafe_payload["work_queue"]:
+            if item["work_id"] == "autonomous_queue_docs_traceability_negative_evidence_gate":
+                item["closure_evidence"]["commit"] = ""
+
+        receipt = build_autonomous_docs_traceability_negative_evidence_receipt(unsafe_payload)
+
+        self.assertEqual(receipt["status"], "docs_traceability_negative_evidence_receipt_blocked")
+        self.assertEqual(receipt["public_safety_status"], "pass")
+        self.assertIn("negative_evidence_closed", receipt["failed_contract_ids"])
+        self.assertFalse(receipt["auto_promotion_allowed"])
+        self.assertFalse(receipt["provider_call_executed"])
+        self.assertFalse(receipt["autonomous_publication_started"])
+        self.assertFalse(receipt["final_go"])
 
 
 if __name__ == "__main__":

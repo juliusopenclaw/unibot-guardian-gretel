@@ -908,6 +908,19 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertTrue(autonomous_loop["evidence"]["docs_traceability_readiness_gate_match_rule_documented"])
         self.assertTrue(autonomous_loop["evidence"]["docs_traceability_promotion_blocker_documented"])
         self.assertEqual(autonomous_loop["evidence"]["docs_traceability_failed_contract_ids"], [])
+        loop_payload = build_autonomous_research_loop()
+        self.assertEqual(
+            loop_payload["docs_traceability_negative_evidence_receipt"]["status"],
+            "docs_traceability_negative_evidence_receipt_ready",
+        )
+        self.assertEqual(
+            loop_payload["receipt"]["docs_traceability_negative_evidence_hash"],
+            loop_payload["docs_traceability_negative_evidence_receipt"]["evidence_hash"],
+        )
+        self.assertEqual(
+            loop_payload["docs_traceability_negative_evidence_receipt"]["failed_contract_ids"],
+            [],
+        )
         self.assertEqual(autonomous_loop["evidence"]["workspace_card_budget_alignment_status"], "ready")
         self.assertEqual(autonomous_loop["evidence"]["workspace_card_budget_alignment_public_safety_status"], "pass")
         self.assertTrue(autonomous_loop["evidence"]["workspace_card_readiness_gate_linked"])
