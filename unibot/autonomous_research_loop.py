@@ -2331,7 +2331,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_gate",
             "priority": 123,
-            "status": "candidate",
+            "status": "closed_harnessed",
             "goal": "Bind the docs-traceability readiness-negative-receipt-readiness receipt visibility closure into the autonomous-loop receipt while preserving zero ready work items, one public-safe candidate, bounded file scope, no provider call, no autonomous publication, no exam clearance claim, no grading/proctoring/KI-detection, and no private context ingestion.",
             "allowed_files": [
                 "unibot/autonomous_research_loop.py",
@@ -2343,6 +2343,26 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
                 "python3 -m pytest tests/test_unibot_readiness.py tests/test_unibot_autonomous_research_loop.py -q"
             ],
             "review_gate": "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt",
+            "closure_evidence": {
+                "commit": "468358c",
+                "summary": "The autonomous-loop receipt now binds the docs-traceability readiness-negative-receipt-readiness receipt visibility closure into the negative-evidence receipt and loop hash evidence.",
+            },
+        },
+        {
+            "work_id": "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_gate",
+            "priority": 124,
+            "status": "candidate",
+            "goal": "Surface the docs-traceability readiness-negative-receipt-readiness receipt visibility receipt closure in readiness evidence while preserving zero ready work items, one public-safe candidate, bounded file scope, no provider call, no autonomous publication, no exam clearance claim, no grading/proctoring/KI-detection, and no private context ingestion.",
+            "allowed_files": [
+                "unibot/readiness.py",
+                "tests/test_unibot_readiness.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "docs/unibot/UNIBOT_GRETEL_AUTONOMOUS_RESEARCH_LOOP.md",
+            ],
+            "acceptance_tests": [
+                "python3 -m pytest tests/test_unibot_readiness.py tests/test_unibot_autonomous_research_loop.py -q"
+            ],
+            "review_gate": "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness",
         },
     ]
 
@@ -2712,6 +2732,10 @@ def build_autonomous_docs_traceability_negative_evidence_receipt(payload: dict[s
         "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_gate",
         {},
     )
+    negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt = by_id.get(
+        "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_gate",
+        {},
+    )
     candidate_receipt = payload.get("candidate_receipt", {})
     candidate_receipt = candidate_receipt if isinstance(candidate_receipt, dict) else {}
     selected_work_id = str(candidate_receipt.get("selected_work_id", ""))
@@ -2761,10 +2785,20 @@ def build_autonomous_docs_traceability_negative_evidence_receipt(payload: dict[s
             )
         )
         != "",
-        "current_candidate_is_readiness_negative_receipt_readiness_receipt_readiness_receipt_gate": selected_work_id
-        == "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_gate",
-        "current_review_gate_is_readiness_negative_receipt_readiness_receipt_readiness_receipt_gate": review_gate
-        == "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt",
+        "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_closed": negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt.get(
+            "status"
+        )
+        == "closed_harnessed"
+        and str(
+            negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt.get(
+                "closure_evidence", {}
+            ).get("commit", "")
+        )
+        != "",
+        "current_candidate_is_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_gate": selected_work_id
+        == "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_gate",
+        "current_review_gate_is_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_gate": review_gate
+        == "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness",
         "candidate_receipt_ready": candidate_receipt.get("status") == "candidate_receipt_ready",
         "candidate_not_auto_runnable": candidate_receipt.get("candidate_is_not_auto_ready") is True
         and candidate_receipt.get("auto_promotion_allowed") is False,
@@ -2815,6 +2849,12 @@ def build_autonomous_docs_traceability_negative_evidence_receipt(payload: dict[s
             negative_evidence_readiness_negative_receipt_readiness_receipt_readiness.get("closure_evidence", {}).get(
                 "commit", ""
             )
+        ),
+        "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_work_id": "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_gate",
+        "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_commit": str(
+            negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt.get(
+                "closure_evidence", {}
+            ).get("commit", "")
         ),
         "selected_work_id": selected_work_id,
         "selected_status": candidate_receipt.get("selected_status", ""),
@@ -2871,6 +2911,12 @@ def build_autonomous_docs_traceability_negative_evidence_receipt(payload: dict[s
                 ],
                 "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_commit": receipt[
                     "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_commit"
+                ],
+                "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_work_id": receipt[
+                    "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_work_id"
+                ],
+                "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_commit": receipt[
+                    "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_commit"
                 ],
                 "selected_work_id": receipt["selected_work_id"],
                 "selected_status": receipt["selected_status"],
