@@ -102,6 +102,11 @@ It also verifies the single-candidate continuity receipt: zero ready items, one
 candidate item, public safety, failed-contract absence, blocked auto-promotion,
 selected `candidate` status, a review gate matching the current candidate
 receipt, and the continuity hash must match the loop receipt.
+It also verifies the docs-traceability negative-evidence receipt: the prior
+negative harness commit, prior negative-evidence closure commit, prior
+negative-evidence receipt commit, current candidate, review gate, failed
+contracts, no-provider/no-publication/no-Final-Go flags, and evidence hash must
+match the main loop receipt before the autonomous loop check can pass.
 The same readiness gate also checks public documentation traceability: the
 current autonomous-loop candidate, the previous closure evidence, and this
 review gate matching the current candidate receipt must be present in the

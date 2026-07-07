@@ -4463,6 +4463,21 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             == "single_candidate_continuity_ready"
             and autonomous_research_loop["receipt"]["single_candidate_continuity_hash"]
             == autonomous_single_candidate_continuity_hash
+            and autonomous_research_loop["docs_traceability_negative_evidence_receipt"]["status"]
+            == "docs_traceability_negative_evidence_receipt_ready"
+            and autonomous_research_loop["docs_traceability_negative_evidence_receipt"]["public_safety_status"] == "pass"
+            and autonomous_research_loop["docs_traceability_negative_evidence_receipt"]["failed_contract_ids"] == []
+            and autonomous_research_loop["docs_traceability_negative_evidence_receipt"]["auto_promotion_allowed"] is False
+            and autonomous_research_loop["docs_traceability_negative_evidence_receipt"]["provider_call_executed"] is False
+            and autonomous_research_loop["docs_traceability_negative_evidence_receipt"][
+                "autonomous_publication_started"
+            ]
+            is False
+            and autonomous_research_loop["docs_traceability_negative_evidence_receipt"]["final_go"] is False
+            and autonomous_research_loop["receipt"]["docs_traceability_negative_evidence_status"]
+            == "docs_traceability_negative_evidence_receipt_ready"
+            and autonomous_research_loop["receipt"]["docs_traceability_negative_evidence_hash"]
+            == autonomous_research_loop["docs_traceability_negative_evidence_receipt"]["evidence_hash"]
             and autonomous_loop_docs_traceability["status"] == "ready"
             and autonomous_loop_docs_traceability["public_safety_status"] == "pass"
             and autonomous_loop_docs_traceability["failed_contract_ids"] == [],
@@ -4590,6 +4605,41 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                     "promotion_blocker_documented"
                 ],
                 "docs_traceability_failed_contract_ids": autonomous_loop_docs_traceability["failed_contract_ids"],
+                "docs_traceability_negative_evidence_receipt_status": autonomous_research_loop[
+                    "docs_traceability_negative_evidence_receipt"
+                ]["status"],
+                "docs_traceability_negative_evidence_receipt_public_safety_status": autonomous_research_loop[
+                    "docs_traceability_negative_evidence_receipt"
+                ]["public_safety_status"],
+                "docs_traceability_negative_evidence_receipt_hash_present": autonomous_research_loop[
+                    "docs_traceability_negative_evidence_receipt"
+                ]["evidence_hash"]
+                != "",
+                "docs_traceability_negative_evidence_receipt_hash_matches_loop_receipt": autonomous_research_loop[
+                    "receipt"
+                ]["docs_traceability_negative_evidence_hash"]
+                == autonomous_research_loop["docs_traceability_negative_evidence_receipt"]["evidence_hash"],
+                "docs_traceability_negative_evidence_receipt_negative_harness_commit": autonomous_research_loop[
+                    "docs_traceability_negative_evidence_receipt"
+                ]["negative_harness_commit"],
+                "docs_traceability_negative_evidence_receipt_negative_evidence_commit": autonomous_research_loop[
+                    "docs_traceability_negative_evidence_receipt"
+                ]["negative_evidence_commit"],
+                "docs_traceability_negative_evidence_receipt_negative_evidence_receipt_commit": autonomous_research_loop[
+                    "docs_traceability_negative_evidence_receipt"
+                ]["negative_evidence_receipt_commit"],
+                "docs_traceability_negative_evidence_receipt_selected_work_id": autonomous_research_loop[
+                    "docs_traceability_negative_evidence_receipt"
+                ]["selected_work_id"],
+                "docs_traceability_negative_evidence_receipt_review_gate": autonomous_research_loop[
+                    "docs_traceability_negative_evidence_receipt"
+                ]["review_gate"],
+                "docs_traceability_negative_evidence_receipt_failed_contract_ids": autonomous_research_loop[
+                    "docs_traceability_negative_evidence_receipt"
+                ]["failed_contract_ids"],
+                "docs_traceability_negative_evidence_receipt_auto_promotion_allowed": autonomous_research_loop[
+                    "docs_traceability_negative_evidence_receipt"
+                ]["auto_promotion_allowed"],
                 "autonomous_github_push": autonomous_research_loop["safety"]["autonomous_github_push"],
                 "workspace_card_status": autonomous_research_loop["workspace_card_budget_alignment"][
                     "workspace_card_status"

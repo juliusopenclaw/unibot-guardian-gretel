@@ -908,15 +908,46 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertTrue(autonomous_loop["evidence"]["docs_traceability_readiness_gate_match_rule_documented"])
         self.assertTrue(autonomous_loop["evidence"]["docs_traceability_promotion_blocker_documented"])
         self.assertEqual(autonomous_loop["evidence"]["docs_traceability_failed_contract_ids"], [])
-        loop_payload = build_autonomous_research_loop()
         self.assertEqual(
-            loop_payload["docs_traceability_negative_evidence_receipt"]["status"],
+            autonomous_loop["evidence"]["docs_traceability_negative_evidence_receipt_status"],
             "docs_traceability_negative_evidence_receipt_ready",
         )
         self.assertEqual(
-            loop_payload["receipt"]["docs_traceability_negative_evidence_hash"],
-            loop_payload["docs_traceability_negative_evidence_receipt"]["evidence_hash"],
+            autonomous_loop["evidence"]["docs_traceability_negative_evidence_receipt_public_safety_status"],
+            "pass",
         )
+        self.assertTrue(autonomous_loop["evidence"]["docs_traceability_negative_evidence_receipt_hash_present"])
+        self.assertTrue(
+            autonomous_loop["evidence"]["docs_traceability_negative_evidence_receipt_hash_matches_loop_receipt"]
+        )
+        self.assertEqual(
+            autonomous_loop["evidence"]["docs_traceability_negative_evidence_receipt_negative_harness_commit"],
+            "1f7b05d",
+        )
+        self.assertEqual(
+            autonomous_loop["evidence"]["docs_traceability_negative_evidence_receipt_negative_evidence_commit"],
+            "b0d9d42",
+        )
+        self.assertEqual(
+            autonomous_loop["evidence"][
+                "docs_traceability_negative_evidence_receipt_negative_evidence_receipt_commit"
+            ],
+            "c2fca9a",
+        )
+        self.assertEqual(
+            autonomous_loop["evidence"]["docs_traceability_negative_evidence_receipt_selected_work_id"],
+            "autonomous_queue_docs_traceability_negative_evidence_readiness_gate",
+        )
+        self.assertEqual(
+            autonomous_loop["evidence"]["docs_traceability_negative_evidence_receipt_review_gate"],
+            "autonomous_queue_docs_traceability_negative_evidence_readiness",
+        )
+        self.assertEqual(
+            autonomous_loop["evidence"]["docs_traceability_negative_evidence_receipt_failed_contract_ids"],
+            [],
+        )
+        self.assertFalse(autonomous_loop["evidence"]["docs_traceability_negative_evidence_receipt_auto_promotion_allowed"])
+        loop_payload = build_autonomous_research_loop()
         self.assertEqual(
             loop_payload["docs_traceability_negative_evidence_receipt"]["failed_contract_ids"],
             [],

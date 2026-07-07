@@ -83,7 +83,10 @@ artifacts.
   `docs_traceability_negative_evidence_receipt` binds the prior negative
   harness commit, the prior negative-evidence closure commit, the prior
   negative-evidence receipt commit, the current non-runnable candidate, and the
-  review gate into a hash that the main loop receipt carries forward.
+  review gate into a hash that the main loop receipt carries forward. The
+  readiness gate now exposes that receipt status, commit chain, review gate,
+  failed-contract list, auto-promotion block, and loop-hash match as public
+  evidence.
 
 ## Closed Harnessed Work
 
