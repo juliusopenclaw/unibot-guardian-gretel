@@ -66,15 +66,15 @@ artifacts.
 
 - No ready item is currently listed.
 - Candidate:
-  `autonomous_queue_docs_traceability_negative_evidence_readiness_negative_gate`
-  adds a negative harness proving the readiness gate blocks a missing or
-  mismatched docs-traceability negative-evidence receipt without authorizing
-  implementation work, provider calls, autonomous publication, exam clearance,
-  grading, proctoring, KI-detection, or private-context ingestion. Candidate
-  lanes are not runnable work; promotion requires a new closed-harnessed
-  receipt or an explicit ready item with bounded scope and tests. The
-  `autonomous_queue_candidate_review` surface recommends keeping the candidate
-  non-runnable until that evidence exists. The
+  `autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_gate`
+  binds the docs-traceability readiness-negative harness scenarios to an
+  auditable autonomous-loop receipt without authorizing implementation work,
+  provider calls, autonomous publication, exam clearance, grading, proctoring,
+  KI-detection, or private-context ingestion. Candidate lanes are not runnable
+  work; promotion requires a new closed-harnessed receipt or an explicit ready
+  item with bounded scope and tests. The `autonomous_queue_candidate_review`
+  surface recommends keeping the candidate non-runnable until that evidence
+  exists. The
   `candidate_rotation_receipt` records the previous closed candidate, its
   closure commit, the new selected candidate, candidate receipt hash, candidate
   review hash, and rotation contracts so stale loop repetition is auditable
@@ -84,8 +84,9 @@ artifacts.
   `docs_traceability_negative_evidence_receipt` binds the prior negative
   harness commit, the prior negative-evidence closure commit, the prior
   negative-evidence receipt commit, the prior negative-evidence readiness
-  commit, the current non-runnable candidate, and the review gate into a hash
-  that the main loop receipt carries forward. The
+  commit, the prior readiness-negative harness commit, the current
+  non-runnable candidate, and the review gate into a hash that the main loop
+  receipt carries forward. The
   readiness gate now exposes that receipt status, commit chain, review gate,
   failed-contract list, auto-promotion block, and loop-hash match as public
   evidence. The current negative harness proves that removing the receipt or
@@ -139,6 +140,10 @@ artifacts.
   in `e84d853` with readiness evidence surfacing the docs-traceability
   negative-evidence receipt status, commit chain, selected work id, review gate,
   failed-contract list, auto-promotion block, and loop-hash match.
+- `autonomous_queue_docs_traceability_negative_evidence_readiness_negative_gate`:
+  closed in `f5bb021` with a negative readiness harness proving a missing
+  docs-traceability negative-evidence receipt or mismatched receipt hash blocks
+  the autonomous-loop readiness check.
 
 - `exam_workspace_operator_run_local_cycle_workspace_card_operator_receipt_link_alignment`:
   closed in `25ae8f2` with UniBot exam workspace operator-run start view,
