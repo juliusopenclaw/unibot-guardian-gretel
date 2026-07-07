@@ -485,6 +485,43 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
         json.dumps(autonomous_research_loop, ensure_ascii=False),
         "unibot-gretel-autonomous-research-loop-readiness",
     )
+    autonomous_loop_doc_text = (
+        ROOT / "docs" / "unibot" / "UNIBOT_GRETEL_AUTONOMOUS_RESEARCH_LOOP.md"
+    ).read_text(encoding="utf-8")
+    readiness_doc_text = (ROOT / "docs" / "unibot" / "UNIBOT_READINESS_CHECK.md").read_text(encoding="utf-8")
+    autonomous_loop_docs_traceability = {
+        "schema_version": "unibot-autonomous-loop-docs-traceability-v1",
+        "status": "ready",
+        "current_candidate_documented": autonomous_research_loop["next_recommended_work_id"] in autonomous_loop_doc_text,
+        "previous_closure_documented": (
+            autonomous_research_loop["candidate_rotation_receipt"]["previous_closed_work_id"] in autonomous_loop_doc_text
+            and autonomous_research_loop["candidate_rotation_receipt"]["previous_closed_commit"] in autonomous_loop_doc_text
+        ),
+        "readiness_gate_match_rule_documented": "review gate matching the current candidate receipt"
+        in readiness_doc_text,
+        "raw_private_context_returned": False,
+    }
+    autonomous_loop_docs_traceability["failed_contract_ids"] = sorted(
+        contract_id
+        for contract_id, passed in {
+            "current_candidate_documented": autonomous_loop_docs_traceability["current_candidate_documented"],
+            "previous_closure_documented": autonomous_loop_docs_traceability["previous_closure_documented"],
+            "readiness_gate_match_rule_documented": autonomous_loop_docs_traceability[
+                "readiness_gate_match_rule_documented"
+            ],
+            "raw_private_context_not_returned": not autonomous_loop_docs_traceability["raw_private_context_returned"],
+        }.items()
+        if not passed
+    )
+    autonomous_loop_docs_traceability_scan = scan_text(
+        json.dumps(autonomous_loop_docs_traceability, ensure_ascii=False),
+        "unibot-gretel-autonomous-loop-docs-traceability-readiness",
+    )
+    autonomous_loop_docs_traceability["public_safety_status"] = autonomous_loop_docs_traceability_scan["status"]
+    if autonomous_loop_docs_traceability["public_safety_status"] != "pass" or autonomous_loop_docs_traceability[
+        "failed_contract_ids"
+    ]:
+        autonomous_loop_docs_traceability["status"] = "blocked"
     autonomous_candidate_review_hash = hashlib.sha256(
         json.dumps(
             autonomous_research_loop["candidate_review"],
@@ -4404,7 +4441,10 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and autonomous_research_loop["receipt"]["single_candidate_continuity_status"]
             == "single_candidate_continuity_ready"
             and autonomous_research_loop["receipt"]["single_candidate_continuity_hash"]
-            == autonomous_single_candidate_continuity_hash,
+            == autonomous_single_candidate_continuity_hash
+            and autonomous_loop_docs_traceability["status"] == "ready"
+            and autonomous_loop_docs_traceability["public_safety_status"] == "pass"
+            and autonomous_loop_docs_traceability["failed_contract_ids"] == [],
             "evidence": {
                 "status": autonomous_research_loop["status"],
                 "public_safety_status": autonomous_research_loop["public_safety_status"],
@@ -4514,6 +4554,18 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "single_candidate_continuity_auto_promotion_allowed": autonomous_research_loop[
                     "single_candidate_continuity_receipt"
                 ]["auto_promotion_allowed"],
+                "docs_traceability_status": autonomous_loop_docs_traceability["status"],
+                "docs_traceability_public_safety_status": autonomous_loop_docs_traceability["public_safety_status"],
+                "docs_traceability_current_candidate_documented": autonomous_loop_docs_traceability[
+                    "current_candidate_documented"
+                ],
+                "docs_traceability_previous_closure_documented": autonomous_loop_docs_traceability[
+                    "previous_closure_documented"
+                ],
+                "docs_traceability_readiness_gate_match_rule_documented": autonomous_loop_docs_traceability[
+                    "readiness_gate_match_rule_documented"
+                ],
+                "docs_traceability_failed_contract_ids": autonomous_loop_docs_traceability["failed_contract_ids"],
                 "autonomous_github_push": autonomous_research_loop["safety"]["autonomous_github_push"],
                 "workspace_card_status": autonomous_research_loop["workspace_card_budget_alignment"][
                     "workspace_card_status"

@@ -102,6 +102,10 @@ It also verifies the single-candidate continuity receipt: zero ready items, one
 candidate item, public safety, failed-contract absence, blocked auto-promotion,
 selected `candidate` status, a review gate matching the current candidate
 receipt, and the continuity hash must match the loop receipt.
+The same readiness gate also checks public documentation traceability: the
+current autonomous-loop candidate, the previous closure evidence, and this
+review gate matching the current candidate receipt must be present in the
+public docs before the autonomous loop check can pass.
 
 The Paperclip evaluation bridge is ready only when Paperclip remains optional,
 non-critical, no-runtime, and no-provider-call by default. Its workspace-card
