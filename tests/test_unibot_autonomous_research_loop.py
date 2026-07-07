@@ -1388,16 +1388,16 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         )
         self.assertEqual(
             loop["next_recommended_work_id"],
-            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate",
+            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate",
         )
-        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 124)
+        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 125)
         self.assertEqual(loop["receipt"]["ready_work_items"], 0)
         self.assertEqual(loop["receipt"]["candidate_work_items"], 1)
         self.assertEqual(loop["candidate_receipt"]["status"], "candidate_receipt_ready")
         self.assertEqual(loop["candidate_receipt"]["public_safety_status"], "pass")
         self.assertEqual(
             loop["candidate_receipt"]["selected_work_id"],
-            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate",
+            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate",
         )
         self.assertEqual(loop["candidate_receipt"]["selected_status"], "candidate")
         self.assertTrue(loop["candidate_receipt"]["ready_work_items_remain_zero"])
@@ -1413,16 +1413,16 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertEqual(
             loop["candidate_receipt"]["allowed_files"],
             by_id[
-                "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate"
+                "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate"
             ]["allowed_files"],
         )
         self.assertIn(
-            "unibot/autonomous_research_loop.py",
+            "unibot/readiness.py",
             loop["candidate_receipt"]["allowed_files"],
         )
         self.assertEqual(
             loop["candidate_receipt"]["review_gate"],
-            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt",
+            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness",
         )
         self.assertEqual(loop["receipt"]["candidate_receipt_status"], "candidate_receipt_ready")
         self.assertEqual(loop["receipt"]["candidate_receipt_hash"], loop["candidate_receipt"]["candidate_hash"])
@@ -1456,12 +1456,12 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertEqual(loop["candidate_rotation_receipt"]["public_safety_status"], "pass")
         self.assertEqual(
             loop["candidate_rotation_receipt"]["previous_closed_work_id"],
-            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_gate",
+            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate",
         )
-        self.assertEqual(loop["candidate_rotation_receipt"]["previous_closed_commit"], "35d7de0")
+        self.assertEqual(loop["candidate_rotation_receipt"]["previous_closed_commit"], "536a5ae")
         self.assertEqual(
             loop["candidate_rotation_receipt"]["selected_work_id"],
-            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate",
+            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate",
         )
         self.assertEqual(loop["candidate_rotation_receipt"]["candidate_review_hash"], expected_review_hash)
         self.assertEqual(loop["candidate_rotation_receipt"]["failed_contract_ids"], [])
@@ -1470,11 +1470,11 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertEqual(loop["single_candidate_continuity_receipt"]["public_safety_status"], "pass")
         self.assertEqual(
             loop["single_candidate_continuity_receipt"]["selected_work_id"],
-            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate",
+            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate",
         )
         self.assertEqual(
             loop["single_candidate_continuity_receipt"]["highest_priority_work_id"],
-            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate",
+            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate",
         )
         self.assertEqual(loop["single_candidate_continuity_receipt"]["ready_work_items"], 0)
         self.assertEqual(loop["single_candidate_continuity_receipt"]["candidate_work_items"], 1)
@@ -1542,12 +1542,18 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             "35d7de0",
         )
         self.assertEqual(
+            loop["docs_traceability_negative_evidence_receipt"][
+                "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_commit"
+            ],
+            "536a5ae",
+        )
+        self.assertEqual(
             loop["docs_traceability_negative_evidence_receipt"]["selected_work_id"],
-            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate",
+            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate",
         )
         self.assertEqual(
             loop["docs_traceability_negative_evidence_receipt"]["review_gate"],
-            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt",
+            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness",
         )
         self.assertEqual(loop["docs_traceability_negative_evidence_receipt"]["failed_contract_ids"], [])
         self.assertFalse(loop["docs_traceability_negative_evidence_receipt"]["auto_promotion_allowed"])
@@ -1701,18 +1707,30 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             by_id[
                 "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate"
             ]["status"],
-            "candidate",
+            "closed_harnessed",
         )
         self.assertEqual(
             by_id[
                 "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate"
+            ]["closure_evidence"]["commit"],
+            "536a5ae",
+        )
+        self.assertEqual(
+            by_id[
+                "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate"
+            ]["status"],
+            "candidate",
+        )
+        self.assertEqual(
+            by_id[
+                "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate"
             ]["review_gate"],
-            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt",
+            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness",
         )
         self.assertIn(
-            "unibot/autonomous_research_loop.py",
+            "unibot/readiness.py",
             by_id[
-                "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate"
+                "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate"
             ]["allowed_files"],
         )
         self.assertLessEqual(loop["budget_policy"]["cadence"]["max_active_work_item_per_run"], 1)
@@ -1730,10 +1748,10 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("Default reasoning effort: low", markdown)
         self.assertIn("Workspace-card gate linked: True", markdown)
         self.assertIn("Autonomous GitHub push: False", markdown)
-        self.assertIn("Closed harnessed items: 124", markdown)
+        self.assertIn("Closed harnessed items: 125", markdown)
         self.assertIn("Candidate items: 1", markdown)
         self.assertIn(
-            "Next recommended work: autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate",
+            "Next recommended work: autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate",
             markdown,
         )
         self.assertIn(
