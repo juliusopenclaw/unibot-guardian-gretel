@@ -906,6 +906,7 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertTrue(autonomous_loop["evidence"]["docs_traceability_current_candidate_documented"])
         self.assertTrue(autonomous_loop["evidence"]["docs_traceability_previous_closure_documented"])
         self.assertTrue(autonomous_loop["evidence"]["docs_traceability_readiness_gate_match_rule_documented"])
+        self.assertTrue(autonomous_loop["evidence"]["docs_traceability_promotion_blocker_documented"])
         self.assertEqual(autonomous_loop["evidence"]["docs_traceability_failed_contract_ids"], [])
         self.assertEqual(autonomous_loop["evidence"]["workspace_card_budget_alignment_status"], "ready")
         self.assertEqual(autonomous_loop["evidence"]["workspace_card_budget_alignment_public_safety_status"], "pass")
@@ -1212,9 +1213,15 @@ class UniBotReadinessTests(unittest.TestCase):
                 loop["next_recommended_work_id"],
                 loop["candidate_rotation_receipt"]["previous_closed_work_id"],
                 loop["candidate_rotation_receipt"]["previous_closed_commit"],
+                "Candidate lanes are not runnable work; promotion requires a new closed-harnessed receipt or an explicit ready item with bounded scope and tests.",
             ]
         )
-        complete_readiness_doc = "review gate matching the current candidate receipt"
+        complete_readiness_doc = "\n".join(
+            [
+                "review gate matching the current candidate receipt",
+                "Candidate lanes are not runnable work; promotion requires a new closed-harnessed receipt or an explicit ready item with bounded scope and tests.",
+            ]
+        )
 
         ready = build_autonomous_loop_docs_traceability(loop, complete_loop_doc, complete_readiness_doc)
         self.assertEqual(ready["status"], "ready")
@@ -1240,6 +1247,14 @@ class UniBotReadinessTests(unittest.TestCase):
         missing_gate_rule = build_autonomous_loop_docs_traceability(loop, complete_loop_doc, "")
         self.assertEqual(missing_gate_rule["status"], "blocked")
         self.assertIn("readiness_gate_match_rule_documented", missing_gate_rule["failed_contract_ids"])
+
+        missing_promotion_blocker = build_autonomous_loop_docs_traceability(
+            loop,
+            complete_loop_doc,
+            complete_readiness_doc.replace("Candidate lanes are not runnable work;", ""),
+        )
+        self.assertEqual(missing_promotion_blocker["status"], "blocked")
+        self.assertIn("promotion_blocker_documented", missing_promotion_blocker["failed_contract_ids"])
 
     def test_readiness_evidence_snapshot_is_compact_public_safe_and_stable(self) -> None:
         report = run_readiness_check()

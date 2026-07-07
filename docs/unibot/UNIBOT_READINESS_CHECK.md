@@ -106,6 +106,10 @@ The same readiness gate also checks public documentation traceability: the
 current autonomous-loop candidate, the previous closure evidence, and this
 review gate matching the current candidate receipt must be present in the
 public docs before the autonomous loop check can pass.
+Candidate lanes are not runnable work; promotion requires a new
+closed-harnessed receipt or an explicit ready item with bounded scope and
+tests, and that promotion blocker must stay documented in both the autonomous
+loop queue and readiness gate.
 The traceability rule has a negative harness: missing current-candidate,
 previous-closure, or review-gate-rule documentation blocks the autonomous-loop
 readiness check.

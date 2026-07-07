@@ -191,6 +191,12 @@ def build_autonomous_loop_docs_traceability(
     autonomous_loop_doc_text: str,
     readiness_doc_text: str,
 ) -> dict[str, Any]:
+    promotion_blocker_phrase = (
+        "candidate lanes are not runnable work; promotion requires a new closed-harnessed "
+        "receipt or an explicit ready item with bounded scope and tests"
+    )
+    autonomous_loop_doc_lower = " ".join(autonomous_loop_doc_text.lower().split())
+    readiness_doc_lower = " ".join(readiness_doc_text.lower().split())
     traceability = {
         "schema_version": "unibot-autonomous-loop-docs-traceability-v1",
         "status": "ready",
@@ -204,6 +210,8 @@ def build_autonomous_loop_docs_traceability(
         ),
         "readiness_gate_match_rule_documented": "review gate matching the current candidate receipt"
         in readiness_doc_text,
+        "promotion_blocker_documented": promotion_blocker_phrase in autonomous_loop_doc_lower
+        and promotion_blocker_phrase in readiness_doc_lower,
         "raw_private_context_returned": False,
     }
     traceability["failed_contract_ids"] = sorted(
@@ -212,6 +220,7 @@ def build_autonomous_loop_docs_traceability(
             "current_candidate_documented": traceability["current_candidate_documented"],
             "previous_closure_documented": traceability["previous_closure_documented"],
             "readiness_gate_match_rule_documented": traceability["readiness_gate_match_rule_documented"],
+            "promotion_blocker_documented": traceability["promotion_blocker_documented"],
             "raw_private_context_not_returned": not traceability["raw_private_context_returned"],
         }.items()
         if not passed
@@ -4576,6 +4585,9 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 ],
                 "docs_traceability_readiness_gate_match_rule_documented": autonomous_loop_docs_traceability[
                     "readiness_gate_match_rule_documented"
+                ],
+                "docs_traceability_promotion_blocker_documented": autonomous_loop_docs_traceability[
+                    "promotion_blocker_documented"
                 ],
                 "docs_traceability_failed_contract_ids": autonomous_loop_docs_traceability["failed_contract_ids"],
                 "autonomous_github_push": autonomous_research_loop["safety"]["autonomous_github_push"],
