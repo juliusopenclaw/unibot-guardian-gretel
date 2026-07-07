@@ -2157,7 +2157,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "autonomous_queue_docs_traceability_negative_harness_gate",
             "priority": 114,
-            "status": "candidate",
+            "status": "closed_harnessed",
             "goal": "Add a negative harness proving missing autonomous-loop documentation traceability blocks readiness while preserving zero ready work items, one public-safe candidate, bounded file scope, no provider call, no autonomous publication, no exam clearance claim, no grading/proctoring/KI-detection, and no private context ingestion.",
             "allowed_files": [
                 "unibot/readiness.py",
@@ -2166,6 +2166,23 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
             ],
             "acceptance_tests": ["python3 -m pytest tests/test_unibot_readiness.py -q"],
             "review_gate": "autonomous_queue_docs_traceability_negative_harness",
+            "closure_evidence": {
+                "commit": "1f7b05d",
+                "summary": "UniBot readiness now has a negative docs-traceability harness proving missing current-candidate, previous-closure, or review-gate-rule documentation blocks the autonomous-loop readiness check.",
+            },
+        },
+        {
+            "work_id": "autonomous_queue_docs_traceability_negative_evidence_gate",
+            "priority": 115,
+            "status": "candidate",
+            "goal": "Surface the docs-traceability negative harness result in readiness evidence while preserving zero ready work items, one public-safe candidate, bounded file scope, no provider call, no autonomous publication, no exam clearance claim, no grading/proctoring/KI-detection, and no private context ingestion.",
+            "allowed_files": [
+                "unibot/readiness.py",
+                "tests/test_unibot_readiness.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+            ],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_readiness.py -q"],
+            "review_gate": "autonomous_queue_docs_traceability_negative_evidence",
         },
     ]
 
