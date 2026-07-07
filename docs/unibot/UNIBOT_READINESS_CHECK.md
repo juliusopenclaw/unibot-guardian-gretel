@@ -106,6 +106,9 @@ The same readiness gate also checks public documentation traceability: the
 current autonomous-loop candidate, the previous closure evidence, and this
 review gate matching the current candidate receipt must be present in the
 public docs before the autonomous loop check can pass.
+The traceability rule has a negative harness: missing current-candidate,
+previous-closure, or review-gate-rule documentation blocks the autonomous-loop
+readiness check.
 
 The Paperclip evaluation bridge is ready only when Paperclip remains optional,
 non-critical, no-runtime, and no-provider-call by default. Its workspace-card

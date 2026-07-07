@@ -186,6 +186,46 @@ def build_readiness_runtime_guard(public_file_count: int | None = None) -> dict[
     return guard
 
 
+def build_autonomous_loop_docs_traceability(
+    autonomous_research_loop: dict[str, Any],
+    autonomous_loop_doc_text: str,
+    readiness_doc_text: str,
+) -> dict[str, Any]:
+    traceability = {
+        "schema_version": "unibot-autonomous-loop-docs-traceability-v1",
+        "status": "ready",
+        "current_candidate_documented": autonomous_research_loop["next_recommended_work_id"]
+        in autonomous_loop_doc_text,
+        "previous_closure_documented": (
+            autonomous_research_loop["candidate_rotation_receipt"]["previous_closed_work_id"]
+            in autonomous_loop_doc_text
+            and autonomous_research_loop["candidate_rotation_receipt"]["previous_closed_commit"]
+            in autonomous_loop_doc_text
+        ),
+        "readiness_gate_match_rule_documented": "review gate matching the current candidate receipt"
+        in readiness_doc_text,
+        "raw_private_context_returned": False,
+    }
+    traceability["failed_contract_ids"] = sorted(
+        contract_id
+        for contract_id, passed in {
+            "current_candidate_documented": traceability["current_candidate_documented"],
+            "previous_closure_documented": traceability["previous_closure_documented"],
+            "readiness_gate_match_rule_documented": traceability["readiness_gate_match_rule_documented"],
+            "raw_private_context_not_returned": not traceability["raw_private_context_returned"],
+        }.items()
+        if not passed
+    )
+    scan = scan_text(
+        json.dumps(traceability, ensure_ascii=False),
+        "unibot-gretel-autonomous-loop-docs-traceability-readiness",
+    )
+    traceability["public_safety_status"] = scan["status"]
+    if traceability["public_safety_status"] != "pass" or traceability["failed_contract_ids"]:
+        traceability["status"] = "blocked"
+    return traceability
+
+
 def build_readiness_evidence_snapshot(report: dict[str, Any]) -> dict[str, Any]:
     checks = list(report["checks"])
     by_id = {check["check_id"]: check for check in checks}
@@ -489,39 +529,11 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
         ROOT / "docs" / "unibot" / "UNIBOT_GRETEL_AUTONOMOUS_RESEARCH_LOOP.md"
     ).read_text(encoding="utf-8")
     readiness_doc_text = (ROOT / "docs" / "unibot" / "UNIBOT_READINESS_CHECK.md").read_text(encoding="utf-8")
-    autonomous_loop_docs_traceability = {
-        "schema_version": "unibot-autonomous-loop-docs-traceability-v1",
-        "status": "ready",
-        "current_candidate_documented": autonomous_research_loop["next_recommended_work_id"] in autonomous_loop_doc_text,
-        "previous_closure_documented": (
-            autonomous_research_loop["candidate_rotation_receipt"]["previous_closed_work_id"] in autonomous_loop_doc_text
-            and autonomous_research_loop["candidate_rotation_receipt"]["previous_closed_commit"] in autonomous_loop_doc_text
-        ),
-        "readiness_gate_match_rule_documented": "review gate matching the current candidate receipt"
-        in readiness_doc_text,
-        "raw_private_context_returned": False,
-    }
-    autonomous_loop_docs_traceability["failed_contract_ids"] = sorted(
-        contract_id
-        for contract_id, passed in {
-            "current_candidate_documented": autonomous_loop_docs_traceability["current_candidate_documented"],
-            "previous_closure_documented": autonomous_loop_docs_traceability["previous_closure_documented"],
-            "readiness_gate_match_rule_documented": autonomous_loop_docs_traceability[
-                "readiness_gate_match_rule_documented"
-            ],
-            "raw_private_context_not_returned": not autonomous_loop_docs_traceability["raw_private_context_returned"],
-        }.items()
-        if not passed
+    autonomous_loop_docs_traceability = build_autonomous_loop_docs_traceability(
+        autonomous_research_loop,
+        autonomous_loop_doc_text,
+        readiness_doc_text,
     )
-    autonomous_loop_docs_traceability_scan = scan_text(
-        json.dumps(autonomous_loop_docs_traceability, ensure_ascii=False),
-        "unibot-gretel-autonomous-loop-docs-traceability-readiness",
-    )
-    autonomous_loop_docs_traceability["public_safety_status"] = autonomous_loop_docs_traceability_scan["status"]
-    if autonomous_loop_docs_traceability["public_safety_status"] != "pass" or autonomous_loop_docs_traceability[
-        "failed_contract_ids"
-    ]:
-        autonomous_loop_docs_traceability["status"] = "blocked"
     autonomous_candidate_review_hash = hashlib.sha256(
         json.dumps(
             autonomous_research_loop["candidate_review"],

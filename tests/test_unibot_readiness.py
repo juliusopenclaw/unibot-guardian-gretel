@@ -11,12 +11,14 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from unibot.readiness import (  # noqa: E402
+    build_autonomous_loop_docs_traceability,
     build_readiness_evidence_snapshot,
     build_readiness_markdown,
     build_readiness_runtime_guard,
     default_public_paths,
     run_readiness_check,
 )
+from unibot.autonomous_research_loop import build_autonomous_research_loop  # noqa: E402
 from unibot.server import route_request  # noqa: E402
 
 
@@ -1202,6 +1204,42 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertIn("python3 -m pytest tests/test_unibot_readiness.py -q", guard["routine_commands"])
         self.assertIn("full pytest suite", guard["expensive_or_escalated_by_default"])
         self.assertEqual(guard["current_public_file_scan_count"], 123)
+
+    def test_autonomous_loop_docs_traceability_blocks_missing_public_docs(self) -> None:
+        loop = build_autonomous_research_loop()
+        complete_loop_doc = "\n".join(
+            [
+                loop["next_recommended_work_id"],
+                loop["candidate_rotation_receipt"]["previous_closed_work_id"],
+                loop["candidate_rotation_receipt"]["previous_closed_commit"],
+            ]
+        )
+        complete_readiness_doc = "review gate matching the current candidate receipt"
+
+        ready = build_autonomous_loop_docs_traceability(loop, complete_loop_doc, complete_readiness_doc)
+        self.assertEqual(ready["status"], "ready")
+        self.assertEqual(ready["public_safety_status"], "pass")
+        self.assertEqual(ready["failed_contract_ids"], [])
+
+        missing_candidate = build_autonomous_loop_docs_traceability(
+            loop,
+            complete_loop_doc.replace(loop["next_recommended_work_id"], ""),
+            complete_readiness_doc,
+        )
+        self.assertEqual(missing_candidate["status"], "blocked")
+        self.assertIn("current_candidate_documented", missing_candidate["failed_contract_ids"])
+
+        missing_closure = build_autonomous_loop_docs_traceability(
+            loop,
+            complete_loop_doc.replace(loop["candidate_rotation_receipt"]["previous_closed_commit"], ""),
+            complete_readiness_doc,
+        )
+        self.assertEqual(missing_closure["status"], "blocked")
+        self.assertIn("previous_closure_documented", missing_closure["failed_contract_ids"])
+
+        missing_gate_rule = build_autonomous_loop_docs_traceability(loop, complete_loop_doc, "")
+        self.assertEqual(missing_gate_rule["status"], "blocked")
+        self.assertIn("readiness_gate_match_rule_documented", missing_gate_rule["failed_contract_ids"])
 
     def test_readiness_evidence_snapshot_is_compact_public_safe_and_stable(self) -> None:
         report = run_readiness_check()
