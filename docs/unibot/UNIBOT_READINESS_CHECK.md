@@ -109,13 +109,16 @@ readiness-negative harness commit, prior readiness-negative-receipt commit,
 prior readiness-negative-receipt readiness commit, prior
 readiness-negative-receipt-readiness receipt commit, prior
 readiness-negative-receipt-readiness receipt-readiness commit, prior
-readiness-negative-receipt-readiness receipt-readiness receipt commit, current
-candidate, review gate, failed contracts, no-provider/no-publication/no-Final-Go
-flags, and evidence hash must match the main loop receipt before the autonomous
-loop check can pass.
+readiness-negative-receipt-readiness receipt-readiness receipt commit, prior
+readiness-negative-receipt-readiness receipt-readiness readiness commit, prior
+readiness-negative-receipt-readiness receipt-readiness receipt-readiness commit,
+current candidate, review gate, failed contracts, no-provider/no-publication/
+no-Final-Go flags, and evidence hash must match the main loop receipt before
+the autonomous loop check can pass.
 The tail of that chain is exposed in readiness evidence so reviewers can see
 the ordered closure path through `e84d853`, `f5bb021`, `fd5dd4f`, `57d649c`,
-`60ba49e`, `883b80e`, and `468358c` without needing private context.
+`60ba49e`, `883b80e`, `468358c`, `35d7de0`, and `536a5ae` without needing
+private context.
 The negative harness proves that a missing receipt or mismatched evidence hash
 blocks the autonomous-loop readiness check instead of silently preserving a
 green public-draft status.
