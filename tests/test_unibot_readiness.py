@@ -936,6 +936,24 @@ class UniBotReadinessTests(unittest.TestCase):
             "c2fca9a",
         )
         self.assertEqual(
+            autonomous_loop["evidence"][
+                "docs_traceability_negative_evidence_receipt_negative_evidence_readiness_commit"
+            ],
+            "e84d853",
+        )
+        self.assertEqual(
+            autonomous_loop["evidence"][
+                "docs_traceability_negative_evidence_receipt_negative_evidence_readiness_negative_commit"
+            ],
+            "f5bb021",
+        )
+        self.assertEqual(
+            autonomous_loop["evidence"][
+                "docs_traceability_negative_evidence_receipt_negative_evidence_readiness_negative_receipt_commit"
+            ],
+            "fd5dd4f",
+        )
+        self.assertEqual(
             autonomous_loop["evidence"]["docs_traceability_negative_evidence_receipt_selected_work_id"],
             "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_gate",
         )
@@ -1347,6 +1365,26 @@ class UniBotReadinessTests(unittest.TestCase):
             mismatched_check["evidence"]["docs_traceability_negative_evidence_receipt_hash_matches_loop_receipt"]
         )
         self.assertNotEqual(mismatched_report["status"], "public_draft_ready")
+
+        missing_tail_commit_loop = json.loads(json.dumps(build_autonomous_research_loop()))
+        missing_tail_commit_loop["docs_traceability_negative_evidence_receipt"][
+            "negative_evidence_readiness_negative_receipt_commit"
+        ] = ""
+        missing_tail_commit_report = run_with_loop(missing_tail_commit_loop)
+        missing_tail_commit_check = next(
+            check
+            for check in missing_tail_commit_report["checks"]
+            if check["check_id"] == "gretel_autonomous_research_loop"
+        )
+
+        self.assertFalse(missing_tail_commit_check["passed"])
+        self.assertEqual(
+            missing_tail_commit_check["evidence"][
+                "docs_traceability_negative_evidence_receipt_negative_evidence_readiness_negative_receipt_commit"
+            ],
+            "",
+        )
+        self.assertNotEqual(missing_tail_commit_report["status"], "public_draft_ready")
 
     def test_readiness_evidence_snapshot_is_compact_public_safe_and_stable(self) -> None:
         report = run_readiness_check()

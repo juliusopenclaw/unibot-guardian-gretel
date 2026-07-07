@@ -4476,6 +4476,16 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and autonomous_docs_traceability_negative_evidence_receipt.get("provider_call_executed") is False
             and autonomous_docs_traceability_negative_evidence_receipt.get("autonomous_publication_started") is False
             and autonomous_docs_traceability_negative_evidence_receipt.get("final_go") is False
+            and autonomous_docs_traceability_negative_evidence_receipt.get("negative_evidence_readiness_commit", "")
+            != ""
+            and autonomous_docs_traceability_negative_evidence_receipt.get(
+                "negative_evidence_readiness_negative_commit", ""
+            )
+            != ""
+            and autonomous_docs_traceability_negative_evidence_receipt.get(
+                "negative_evidence_readiness_negative_receipt_commit", ""
+            )
+            != ""
             and autonomous_research_loop["receipt"]["docs_traceability_negative_evidence_status"]
             == "docs_traceability_negative_evidence_receipt_ready"
             and autonomous_research_loop["receipt"]["docs_traceability_negative_evidence_hash"]
@@ -4629,6 +4639,15 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 ),
                 "docs_traceability_negative_evidence_receipt_negative_evidence_receipt_commit": autonomous_docs_traceability_negative_evidence_receipt.get(
                     "negative_evidence_receipt_commit", ""
+                ),
+                "docs_traceability_negative_evidence_receipt_negative_evidence_readiness_commit": autonomous_docs_traceability_negative_evidence_receipt.get(
+                    "negative_evidence_readiness_commit", ""
+                ),
+                "docs_traceability_negative_evidence_receipt_negative_evidence_readiness_negative_commit": autonomous_docs_traceability_negative_evidence_receipt.get(
+                    "negative_evidence_readiness_negative_commit", ""
+                ),
+                "docs_traceability_negative_evidence_receipt_negative_evidence_readiness_negative_receipt_commit": autonomous_docs_traceability_negative_evidence_receipt.get(
+                    "negative_evidence_readiness_negative_receipt_commit", ""
                 ),
                 "docs_traceability_negative_evidence_receipt_selected_work_id": autonomous_docs_traceability_negative_evidence_receipt.get(
                     "selected_work_id", ""
