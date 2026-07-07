@@ -66,10 +66,10 @@ artifacts.
 
 - No ready item is currently listed.
 - Candidate:
-  `autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_gate`
-  binds the docs-traceability readiness-negative-receipt readiness closure into
-  the autonomous-loop receipt without authorizing implementation work, provider
-  calls, autonomous publication, exam clearance, grading, proctoring,
+  `autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_gate`
+  surfaces the docs-traceability readiness-negative-receipt-readiness receipt
+  closure in readiness evidence without authorizing implementation work,
+  provider calls, autonomous publication, exam clearance, grading, proctoring,
   KI-detection, or private-context ingestion. Candidate lanes are not runnable
   work; promotion requires a new closed-harnessed receipt or an explicit ready
   item with bounded scope and tests. The `autonomous_queue_candidate_review`
@@ -86,8 +86,9 @@ artifacts.
   negative-evidence receipt commit, the prior negative-evidence readiness
   commit, the prior readiness-negative harness commit, the prior
   readiness-negative-receipt commit, the prior readiness-negative-receipt
-  readiness commit, the current non-runnable candidate, and the review gate
-  into a hash that the main loop receipt carries forward. The
+  readiness commit, the prior readiness-negative-receipt-readiness receipt
+  commit, the current non-runnable candidate, and the review gate into a hash
+  that the main loop receipt carries forward. The
   readiness gate now exposes that receipt status, the tail commit chain
   through `e84d853`, `f5bb021`, and `fd5dd4f`, review gate, failed-contract
   list, auto-promotion block, and loop-hash match as public evidence. The
@@ -154,6 +155,10 @@ artifacts.
   closed in `57d649c` with readiness evidence surfacing the ordered
   docs-traceability tail chain through `e84d853`, `f5bb021`, and `fd5dd4f`, plus
   a negative check that missing tail-commit evidence blocks green readiness.
+- `autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_gate`:
+  closed in `60ba49e` with the autonomous-loop receipt binding the
+  readiness-negative-receipt readiness closure into the docs-traceability
+  negative-evidence receipt and loop hash evidence.
 
 - `exam_workspace_operator_run_local_cycle_workspace_card_operator_receipt_link_alignment`:
   closed in `25ae8f2` with UniBot exam workspace operator-run start view,
