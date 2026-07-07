@@ -65,9 +65,9 @@ artifacts.
 ## Current Work Queue
 
 - No ready item is currently listed.
-- Candidate: `autonomous_queue_continuity_docs_traceability_gate` keeps the
-  readiness-gated single-candidate continuity receipt publicly documented and
-  traceable without authorizing implementation work, provider calls, autonomous
+- Candidate: `autonomous_queue_docs_traceability_negative_harness_gate` proves
+  that missing autonomous-loop documentation traceability blocks readiness
+  without authorizing implementation work, provider calls, autonomous
   publication, exam clearance, grading, proctoring, KI-detection, or
   private-context ingestion. Candidate lanes are not runnable work; promotion
   requires a new closed-harnessed receipt or an explicit ready item with bounded
@@ -105,6 +105,10 @@ artifacts.
 - `autonomous_queue_continuity_readiness_gate`: closed in `2c18440` with
   readiness evidence requiring the continuity receipt's selected status and
   review gate to match the current non-runnable candidate lane before the
+  autonomous-loop gate can pass.
+- `autonomous_queue_continuity_docs_traceability_gate`: closed in `6c16b88`
+  with readiness evidence requiring public docs to name the current autonomous
+  candidate, previous closure evidence, and review-gate match rule before the
   autonomous-loop gate can pass.
 
 - `exam_workspace_operator_run_local_cycle_workspace_card_operator_receipt_link_alignment`:
