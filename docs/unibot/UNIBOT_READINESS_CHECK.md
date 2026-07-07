@@ -115,8 +115,8 @@ contracts, no-provider/no-publication/no-Final-Go flags, and evidence hash must
 match the main loop receipt before the autonomous loop check can pass.
 The tail of that chain is exposed in readiness evidence so reviewers can see
 the ordered closure path through `e84d853`, `f5bb021`, `fd5dd4f`, `57d649c`,
-`60ba49e`, `883b80e`, `468358c`, `35d7de0`, `536a5ae`, `06d9c48`, and
-`3a15aad` without needing private context.
+`60ba49e`, `883b80e`, `468358c`, `35d7de0`, `536a5ae`, `06d9c48`,
+`3a15aad`, and `f31c122` without needing private context.
 The negative harness proves that a missing receipt or mismatched evidence hash
 blocks the autonomous-loop readiness check instead of silently preserving a
 green public-draft status.
