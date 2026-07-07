@@ -90,11 +90,11 @@ artifacts.
   commit, the current non-runnable candidate, and the review gate into a hash
   that the main loop receipt carries forward. The
   readiness gate now exposes that receipt status, the tail commit chain
-  through `e84d853`, `f5bb021`, and `fd5dd4f`, review gate, failed-contract
-  list, auto-promotion block, and loop-hash match as public evidence. The
-  current negative harness proves that removing the receipt, removing the tail
-  closure commit, or breaking its evidence hash blocks the readiness check
-  instead of preserving a green public-draft status.
+  through `e84d853`, `f5bb021`, `fd5dd4f`, `57d649c`, and `60ba49e`, review
+  gate, failed-contract list, auto-promotion block, and loop-hash match as
+  public evidence. The current negative harness proves that removing the
+  receipt, removing the tail closure commit, or breaking its evidence hash
+  blocks the readiness check instead of preserving a green public-draft status.
 
 ## Closed Harnessed Work
 
