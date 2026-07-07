@@ -837,7 +837,7 @@ class UniBotReadinessTests(unittest.TestCase):
         autonomous_loop = next(check for check in report["checks"] if check["check_id"] == "gretel_autonomous_research_loop")
         self.assertEqual(
             autonomous_loop["evidence"]["candidate_receipt_work_id"],
-            "autonomous_queue_continuity_readiness_gate",
+            "autonomous_queue_continuity_docs_traceability_gate",
         )
         self.assertEqual(autonomous_loop["evidence"]["candidate_work_items"], 1)
         self.assertEqual(autonomous_loop["evidence"]["ready_work_items"], 0)
@@ -858,12 +858,12 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertEqual(autonomous_loop["evidence"]["candidate_rotation_public_safety_status"], "pass")
         self.assertEqual(
             autonomous_loop["evidence"]["candidate_rotation_previous_closed_work_id"],
-            "autonomous_queue_single_candidate_continuity_gate",
+            "autonomous_queue_continuity_readiness_gate",
         )
-        self.assertEqual(autonomous_loop["evidence"]["candidate_rotation_previous_closed_commit"], "76bbddb")
+        self.assertEqual(autonomous_loop["evidence"]["candidate_rotation_previous_closed_commit"], "2c18440")
         self.assertEqual(
             autonomous_loop["evidence"]["candidate_rotation_selected_work_id"],
-            "autonomous_queue_continuity_readiness_gate",
+            "autonomous_queue_continuity_docs_traceability_gate",
         )
         self.assertTrue(autonomous_loop["evidence"]["candidate_rotation_hash_present"])
         self.assertEqual(
@@ -882,13 +882,14 @@ class UniBotReadinessTests(unittest.TestCase):
         )
         self.assertEqual(
             autonomous_loop["evidence"]["single_candidate_continuity_selected_work_id"],
-            "autonomous_queue_continuity_readiness_gate",
+            "autonomous_queue_continuity_docs_traceability_gate",
         )
         self.assertEqual(autonomous_loop["evidence"]["single_candidate_continuity_selected_status"], "candidate")
         self.assertEqual(
             autonomous_loop["evidence"]["single_candidate_continuity_review_gate"],
-            "autonomous_queue_continuity_readiness_traceability",
+            "autonomous_queue_continuity_docs_traceability",
         )
+        self.assertTrue(autonomous_loop["evidence"]["single_candidate_continuity_review_gate_matches_candidate_receipt"])
         self.assertEqual(autonomous_loop["evidence"]["single_candidate_continuity_ready_work_items"], 0)
         self.assertEqual(autonomous_loop["evidence"]["single_candidate_continuity_candidate_work_items"], 1)
         self.assertTrue(autonomous_loop["evidence"]["single_candidate_continuity_hash_present"])
