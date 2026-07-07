@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+import unibot.readiness as readiness_module  # noqa: E402
 from unibot.readiness import (  # noqa: E402
     build_autonomous_loop_docs_traceability,
     build_readiness_evidence_snapshot,
@@ -1299,6 +1300,53 @@ class UniBotReadinessTests(unittest.TestCase):
         )
         self.assertEqual(missing_promotion_blocker["status"], "blocked")
         self.assertIn("promotion_blocker_documented", missing_promotion_blocker["failed_contract_ids"])
+
+    def test_readiness_blocks_bad_docs_traceability_negative_evidence_receipt(self) -> None:
+        original_builder = readiness_module.build_autonomous_research_loop
+
+        def run_with_loop(loop: dict[str, object]) -> dict[str, object]:
+            readiness_module.build_autonomous_research_loop = lambda: loop
+            try:
+                return readiness_module.run_readiness_check()
+            finally:
+                readiness_module.build_autonomous_research_loop = original_builder
+
+        missing_loop = json.loads(json.dumps(build_autonomous_research_loop()))
+        del missing_loop["docs_traceability_negative_evidence_receipt"]
+        missing_report = run_with_loop(missing_loop)
+        missing_check = next(
+            check for check in missing_report["checks"] if check["check_id"] == "gretel_autonomous_research_loop"
+        )
+
+        self.assertFalse(missing_check["passed"])
+        self.assertEqual(missing_check["evidence"]["docs_traceability_negative_evidence_receipt_status"], "missing")
+        self.assertFalse(missing_check["evidence"]["docs_traceability_negative_evidence_receipt_hash_present"])
+        self.assertFalse(
+            missing_check["evidence"]["docs_traceability_negative_evidence_receipt_hash_matches_loop_receipt"]
+        )
+        self.assertEqual(
+            missing_check["evidence"]["docs_traceability_negative_evidence_receipt_failed_contract_ids"],
+            ["missing_docs_traceability_negative_evidence_receipt"],
+        )
+        self.assertNotEqual(missing_report["status"], "public_draft_ready")
+
+        mismatched_loop = json.loads(json.dumps(build_autonomous_research_loop()))
+        mismatched_loop["docs_traceability_negative_evidence_receipt"]["evidence_hash"] = "wrong-evidence-hash"
+        mismatched_report = run_with_loop(mismatched_loop)
+        mismatched_check = next(
+            check for check in mismatched_report["checks"] if check["check_id"] == "gretel_autonomous_research_loop"
+        )
+
+        self.assertFalse(mismatched_check["passed"])
+        self.assertEqual(
+            mismatched_check["evidence"]["docs_traceability_negative_evidence_receipt_status"],
+            "docs_traceability_negative_evidence_receipt_ready",
+        )
+        self.assertTrue(mismatched_check["evidence"]["docs_traceability_negative_evidence_receipt_hash_present"])
+        self.assertFalse(
+            mismatched_check["evidence"]["docs_traceability_negative_evidence_receipt_hash_matches_loop_receipt"]
+        )
+        self.assertNotEqual(mismatched_report["status"], "public_draft_ready")
 
     def test_readiness_evidence_snapshot_is_compact_public_safe_and_stable(self) -> None:
         report = run_readiness_check()

@@ -554,6 +554,11 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     autonomous_single_candidate_continuity_hash = autonomous_research_loop["single_candidate_continuity_receipt"][
         "continuity_hash"
     ]
+    autonomous_docs_traceability_negative_evidence_receipt = (
+        autonomous_research_loop.get("docs_traceability_negative_evidence_receipt", {})
+        if isinstance(autonomous_research_loop.get("docs_traceability_negative_evidence_receipt"), dict)
+        else {}
+    )
     paperclip_status_payload = paperclip_status()
     paperclip_bridge = build_paperclip_evaluation_request()
     paperclip_workspace_card_alignment = build_paperclip_workspace_card_control_alignment(
@@ -4463,21 +4468,18 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             == "single_candidate_continuity_ready"
             and autonomous_research_loop["receipt"]["single_candidate_continuity_hash"]
             == autonomous_single_candidate_continuity_hash
-            and autonomous_research_loop["docs_traceability_negative_evidence_receipt"]["status"]
+            and autonomous_docs_traceability_negative_evidence_receipt.get("status")
             == "docs_traceability_negative_evidence_receipt_ready"
-            and autonomous_research_loop["docs_traceability_negative_evidence_receipt"]["public_safety_status"] == "pass"
-            and autonomous_research_loop["docs_traceability_negative_evidence_receipt"]["failed_contract_ids"] == []
-            and autonomous_research_loop["docs_traceability_negative_evidence_receipt"]["auto_promotion_allowed"] is False
-            and autonomous_research_loop["docs_traceability_negative_evidence_receipt"]["provider_call_executed"] is False
-            and autonomous_research_loop["docs_traceability_negative_evidence_receipt"][
-                "autonomous_publication_started"
-            ]
-            is False
-            and autonomous_research_loop["docs_traceability_negative_evidence_receipt"]["final_go"] is False
+            and autonomous_docs_traceability_negative_evidence_receipt.get("public_safety_status") == "pass"
+            and autonomous_docs_traceability_negative_evidence_receipt.get("failed_contract_ids") == []
+            and autonomous_docs_traceability_negative_evidence_receipt.get("auto_promotion_allowed") is False
+            and autonomous_docs_traceability_negative_evidence_receipt.get("provider_call_executed") is False
+            and autonomous_docs_traceability_negative_evidence_receipt.get("autonomous_publication_started") is False
+            and autonomous_docs_traceability_negative_evidence_receipt.get("final_go") is False
             and autonomous_research_loop["receipt"]["docs_traceability_negative_evidence_status"]
             == "docs_traceability_negative_evidence_receipt_ready"
             and autonomous_research_loop["receipt"]["docs_traceability_negative_evidence_hash"]
-            == autonomous_research_loop["docs_traceability_negative_evidence_receipt"]["evidence_hash"]
+            == autonomous_docs_traceability_negative_evidence_receipt.get("evidence_hash", "")
             and autonomous_loop_docs_traceability["status"] == "ready"
             and autonomous_loop_docs_traceability["public_safety_status"] == "pass"
             and autonomous_loop_docs_traceability["failed_contract_ids"] == [],
@@ -4605,41 +4607,41 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                     "promotion_blocker_documented"
                 ],
                 "docs_traceability_failed_contract_ids": autonomous_loop_docs_traceability["failed_contract_ids"],
-                "docs_traceability_negative_evidence_receipt_status": autonomous_research_loop[
-                    "docs_traceability_negative_evidence_receipt"
-                ]["status"],
-                "docs_traceability_negative_evidence_receipt_public_safety_status": autonomous_research_loop[
-                    "docs_traceability_negative_evidence_receipt"
-                ]["public_safety_status"],
-                "docs_traceability_negative_evidence_receipt_hash_present": autonomous_research_loop[
-                    "docs_traceability_negative_evidence_receipt"
-                ]["evidence_hash"]
+                "docs_traceability_negative_evidence_receipt_status": autonomous_docs_traceability_negative_evidence_receipt.get(
+                    "status", "missing"
+                ),
+                "docs_traceability_negative_evidence_receipt_public_safety_status": autonomous_docs_traceability_negative_evidence_receipt.get(
+                    "public_safety_status", "missing"
+                ),
+                "docs_traceability_negative_evidence_receipt_hash_present": autonomous_docs_traceability_negative_evidence_receipt.get(
+                    "evidence_hash", ""
+                )
                 != "",
                 "docs_traceability_negative_evidence_receipt_hash_matches_loop_receipt": autonomous_research_loop[
                     "receipt"
                 ]["docs_traceability_negative_evidence_hash"]
-                == autonomous_research_loop["docs_traceability_negative_evidence_receipt"]["evidence_hash"],
-                "docs_traceability_negative_evidence_receipt_negative_harness_commit": autonomous_research_loop[
-                    "docs_traceability_negative_evidence_receipt"
-                ]["negative_harness_commit"],
-                "docs_traceability_negative_evidence_receipt_negative_evidence_commit": autonomous_research_loop[
-                    "docs_traceability_negative_evidence_receipt"
-                ]["negative_evidence_commit"],
-                "docs_traceability_negative_evidence_receipt_negative_evidence_receipt_commit": autonomous_research_loop[
-                    "docs_traceability_negative_evidence_receipt"
-                ]["negative_evidence_receipt_commit"],
-                "docs_traceability_negative_evidence_receipt_selected_work_id": autonomous_research_loop[
-                    "docs_traceability_negative_evidence_receipt"
-                ]["selected_work_id"],
-                "docs_traceability_negative_evidence_receipt_review_gate": autonomous_research_loop[
-                    "docs_traceability_negative_evidence_receipt"
-                ]["review_gate"],
-                "docs_traceability_negative_evidence_receipt_failed_contract_ids": autonomous_research_loop[
-                    "docs_traceability_negative_evidence_receipt"
-                ]["failed_contract_ids"],
-                "docs_traceability_negative_evidence_receipt_auto_promotion_allowed": autonomous_research_loop[
-                    "docs_traceability_negative_evidence_receipt"
-                ]["auto_promotion_allowed"],
+                == autonomous_docs_traceability_negative_evidence_receipt.get("evidence_hash", ""),
+                "docs_traceability_negative_evidence_receipt_negative_harness_commit": autonomous_docs_traceability_negative_evidence_receipt.get(
+                    "negative_harness_commit", ""
+                ),
+                "docs_traceability_negative_evidence_receipt_negative_evidence_commit": autonomous_docs_traceability_negative_evidence_receipt.get(
+                    "negative_evidence_commit", ""
+                ),
+                "docs_traceability_negative_evidence_receipt_negative_evidence_receipt_commit": autonomous_docs_traceability_negative_evidence_receipt.get(
+                    "negative_evidence_receipt_commit", ""
+                ),
+                "docs_traceability_negative_evidence_receipt_selected_work_id": autonomous_docs_traceability_negative_evidence_receipt.get(
+                    "selected_work_id", ""
+                ),
+                "docs_traceability_negative_evidence_receipt_review_gate": autonomous_docs_traceability_negative_evidence_receipt.get(
+                    "review_gate", ""
+                ),
+                "docs_traceability_negative_evidence_receipt_failed_contract_ids": autonomous_docs_traceability_negative_evidence_receipt.get(
+                    "failed_contract_ids", ["missing_docs_traceability_negative_evidence_receipt"]
+                ),
+                "docs_traceability_negative_evidence_receipt_auto_promotion_allowed": autonomous_docs_traceability_negative_evidence_receipt.get(
+                    "auto_promotion_allowed", None
+                ),
                 "autonomous_github_push": autonomous_research_loop["safety"]["autonomous_github_push"],
                 "workspace_card_status": autonomous_research_loop["workspace_card_budget_alignment"][
                     "workspace_card_status"

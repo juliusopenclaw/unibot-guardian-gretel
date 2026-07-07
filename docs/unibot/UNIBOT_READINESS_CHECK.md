@@ -107,6 +107,9 @@ negative harness commit, prior negative-evidence closure commit, prior
 negative-evidence receipt commit, current candidate, review gate, failed
 contracts, no-provider/no-publication/no-Final-Go flags, and evidence hash must
 match the main loop receipt before the autonomous loop check can pass.
+The negative harness proves that a missing receipt or mismatched evidence hash
+blocks the autonomous-loop readiness check instead of silently preserving a
+green public-draft status.
 The same readiness gate also checks public documentation traceability: the
 current autonomous-loop candidate, the previous closure evidence, and this
 review gate matching the current candidate receipt must be present in the

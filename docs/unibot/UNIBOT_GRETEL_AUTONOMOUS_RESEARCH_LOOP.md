@@ -88,7 +88,9 @@ artifacts.
   that the main loop receipt carries forward. The
   readiness gate now exposes that receipt status, commit chain, review gate,
   failed-contract list, auto-promotion block, and loop-hash match as public
-  evidence.
+  evidence. The current negative harness proves that removing the receipt or
+  breaking its evidence hash blocks the readiness check instead of preserving a
+  green public-draft status.
 
 ## Closed Harnessed Work
 
