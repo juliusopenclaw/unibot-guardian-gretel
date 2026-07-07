@@ -2211,7 +2211,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "autonomous_queue_docs_traceability_negative_evidence_readiness_gate",
             "priority": 117,
-            "status": "candidate",
+            "status": "closed_harnessed",
             "goal": "Surface the docs-traceability negative-evidence receipt in readiness evidence while preserving zero ready work items, one public-safe candidate, bounded file scope, no provider call, no autonomous publication, no exam clearance claim, no grading/proctoring/KI-detection, and no private context ingestion.",
             "allowed_files": [
                 "unibot/readiness.py",
@@ -2223,6 +2223,26 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
                 "python3 -m pytest tests/test_unibot_readiness.py tests/test_unibot_autonomous_research_loop.py -q"
             ],
             "review_gate": "autonomous_queue_docs_traceability_negative_evidence_readiness",
+            "closure_evidence": {
+                "commit": "e84d853",
+                "summary": "UniBot readiness now gates and surfaces the docs-traceability negative-evidence receipt status, commit chain, selected work id, review gate, failed-contract list, auto-promotion block, and loop-hash match.",
+            },
+        },
+        {
+            "work_id": "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_gate",
+            "priority": 118,
+            "status": "candidate",
+            "goal": "Add a negative harness proving the readiness gate blocks a missing or mismatched docs-traceability negative-evidence receipt while preserving zero ready work items, one public-safe candidate, bounded file scope, no provider call, no autonomous publication, no exam clearance claim, no grading/proctoring/KI-detection, and no private context ingestion.",
+            "allowed_files": [
+                "unibot/readiness.py",
+                "tests/test_unibot_readiness.py",
+                "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "docs/unibot/UNIBOT_GRETEL_AUTONOMOUS_RESEARCH_LOOP.md",
+            ],
+            "acceptance_tests": [
+                "python3 -m pytest tests/test_unibot_readiness.py tests/test_unibot_autonomous_research_loop.py -q"
+            ],
+            "review_gate": "autonomous_queue_docs_traceability_negative_evidence_readiness_negative",
         },
     ]
 
@@ -2575,6 +2595,7 @@ def build_autonomous_docs_traceability_negative_evidence_receipt(payload: dict[s
     negative_harness = by_id.get("autonomous_queue_docs_traceability_negative_harness_gate", {})
     negative_evidence = by_id.get("autonomous_queue_docs_traceability_negative_evidence_gate", {})
     negative_evidence_receipt = by_id.get("autonomous_queue_docs_traceability_negative_evidence_receipt_gate", {})
+    negative_evidence_readiness = by_id.get("autonomous_queue_docs_traceability_negative_evidence_readiness_gate", {})
     candidate_receipt = payload.get("candidate_receipt", {})
     candidate_receipt = candidate_receipt if isinstance(candidate_receipt, dict) else {}
     selected_work_id = str(candidate_receipt.get("selected_work_id", ""))
@@ -2586,10 +2607,12 @@ def build_autonomous_docs_traceability_negative_evidence_receipt(payload: dict[s
         and str(negative_evidence.get("closure_evidence", {}).get("commit", "")) != "",
         "negative_evidence_receipt_closed": negative_evidence_receipt.get("status") == "closed_harnessed"
         and str(negative_evidence_receipt.get("closure_evidence", {}).get("commit", "")) != "",
-        "current_candidate_is_readiness_gate": selected_work_id
-        == "autonomous_queue_docs_traceability_negative_evidence_readiness_gate",
-        "current_review_gate_is_readiness_gate": review_gate
-        == "autonomous_queue_docs_traceability_negative_evidence_readiness",
+        "negative_evidence_readiness_closed": negative_evidence_readiness.get("status") == "closed_harnessed"
+        and str(negative_evidence_readiness.get("closure_evidence", {}).get("commit", "")) != "",
+        "current_candidate_is_readiness_negative_gate": selected_work_id
+        == "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_gate",
+        "current_review_gate_is_readiness_negative_gate": review_gate
+        == "autonomous_queue_docs_traceability_negative_evidence_readiness_negative",
         "candidate_receipt_ready": candidate_receipt.get("status") == "candidate_receipt_ready",
         "candidate_not_auto_runnable": candidate_receipt.get("candidate_is_not_auto_ready") is True
         and candidate_receipt.get("auto_promotion_allowed") is False,
@@ -2612,6 +2635,10 @@ def build_autonomous_docs_traceability_negative_evidence_receipt(payload: dict[s
         "negative_evidence_receipt_work_id": "autonomous_queue_docs_traceability_negative_evidence_receipt_gate",
         "negative_evidence_receipt_commit": str(
             negative_evidence_receipt.get("closure_evidence", {}).get("commit", "")
+        ),
+        "negative_evidence_readiness_work_id": "autonomous_queue_docs_traceability_negative_evidence_readiness_gate",
+        "negative_evidence_readiness_commit": str(
+            negative_evidence_readiness.get("closure_evidence", {}).get("commit", "")
         ),
         "selected_work_id": selected_work_id,
         "selected_status": candidate_receipt.get("selected_status", ""),
@@ -2637,6 +2664,8 @@ def build_autonomous_docs_traceability_negative_evidence_receipt(payload: dict[s
                 "negative_evidence_commit": receipt["negative_evidence_commit"],
                 "negative_evidence_receipt_work_id": receipt["negative_evidence_receipt_work_id"],
                 "negative_evidence_receipt_commit": receipt["negative_evidence_receipt_commit"],
+                "negative_evidence_readiness_work_id": receipt["negative_evidence_readiness_work_id"],
+                "negative_evidence_readiness_commit": receipt["negative_evidence_readiness_commit"],
                 "selected_work_id": receipt["selected_work_id"],
                 "selected_status": receipt["selected_status"],
                 "review_gate": receipt["review_gate"],
