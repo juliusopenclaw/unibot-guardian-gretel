@@ -966,6 +966,18 @@ class UniBotReadinessTests(unittest.TestCase):
             "60ba49e",
         )
         self.assertEqual(
+            autonomous_loop["evidence"][
+                "docs_traceability_negative_evidence_receipt_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_commit"
+            ],
+            "883b80e",
+        )
+        self.assertEqual(
+            autonomous_loop["evidence"][
+                "docs_traceability_negative_evidence_receipt_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_commit"
+            ],
+            "468358c",
+        )
+        self.assertEqual(
             autonomous_loop["evidence"]["docs_traceability_negative_evidence_receipt_selected_work_id"],
             "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_gate",
         )
@@ -1417,6 +1429,56 @@ class UniBotReadinessTests(unittest.TestCase):
             "",
         )
         self.assertNotEqual(missing_receipt_visibility_commit_report["status"], "public_draft_ready")
+
+        missing_receipt_visibility_readiness_commit_loop = json.loads(json.dumps(build_autonomous_research_loop()))
+        missing_receipt_visibility_readiness_commit_loop["docs_traceability_negative_evidence_receipt"][
+            "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_commit"
+        ] = ""
+        missing_receipt_visibility_readiness_commit_report = run_with_loop(
+            missing_receipt_visibility_readiness_commit_loop
+        )
+        missing_receipt_visibility_readiness_commit_check = next(
+            check
+            for check in missing_receipt_visibility_readiness_commit_report["checks"]
+            if check["check_id"] == "gretel_autonomous_research_loop"
+        )
+
+        self.assertFalse(missing_receipt_visibility_readiness_commit_check["passed"])
+        self.assertEqual(
+            missing_receipt_visibility_readiness_commit_check["evidence"][
+                "docs_traceability_negative_evidence_receipt_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_commit"
+            ],
+            "",
+        )
+        self.assertNotEqual(
+            missing_receipt_visibility_readiness_commit_report["status"],
+            "public_draft_ready",
+        )
+
+        missing_receipt_visibility_receipt_commit_loop = json.loads(json.dumps(build_autonomous_research_loop()))
+        missing_receipt_visibility_receipt_commit_loop["docs_traceability_negative_evidence_receipt"][
+            "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_commit"
+        ] = ""
+        missing_receipt_visibility_receipt_commit_report = run_with_loop(
+            missing_receipt_visibility_receipt_commit_loop
+        )
+        missing_receipt_visibility_receipt_commit_check = next(
+            check
+            for check in missing_receipt_visibility_receipt_commit_report["checks"]
+            if check["check_id"] == "gretel_autonomous_research_loop"
+        )
+
+        self.assertFalse(missing_receipt_visibility_receipt_commit_check["passed"])
+        self.assertEqual(
+            missing_receipt_visibility_receipt_commit_check["evidence"][
+                "docs_traceability_negative_evidence_receipt_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_commit"
+            ],
+            "",
+        )
+        self.assertNotEqual(
+            missing_receipt_visibility_receipt_commit_report["status"],
+            "public_draft_ready",
+        )
 
     def test_readiness_evidence_snapshot_is_compact_public_safe_and_stable(self) -> None:
         report = run_readiness_check()
