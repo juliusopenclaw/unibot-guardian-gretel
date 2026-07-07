@@ -65,9 +65,10 @@ artifacts.
 ## Current Work Queue
 
 - No ready item is currently listed.
-- Candidate: `autonomous_queue_docs_traceability_negative_evidence_gate`
-  surfaces the docs-traceability negative harness result in readiness evidence
-  without authorizing implementation work, provider calls, autonomous
+- Candidate:
+  `autonomous_queue_docs_traceability_negative_evidence_receipt_gate` binds the
+  docs-traceability negative evidence result to an auditable autonomous-loop
+  receipt without authorizing implementation work, provider calls, autonomous
   publication, exam clearance, grading, proctoring, KI-detection, or
   private-context ingestion. Candidate lanes are not runnable work; promotion
   requires a new closed-harnessed receipt or an explicit ready item with bounded
@@ -114,6 +115,11 @@ artifacts.
   `1f7b05d` with a negative readiness harness proving missing current-candidate,
   previous-closure, or review-gate-rule documentation blocks the autonomous-loop
   readiness check.
+- `autonomous_queue_docs_traceability_negative_evidence_gate`: closed in
+  `b0d9d42` with readiness evidence requiring the docs-traceability promotion
+  blocker to stay documented alongside the current candidate, previous closure,
+  and review-gate rule, plus the negative harness proving omissions block the
+  autonomous-loop readiness check.
 
 - `exam_workspace_operator_run_local_cycle_workspace_card_operator_receipt_link_alignment`:
   closed in `25ae8f2` with UniBot exam workspace operator-run start view,

@@ -1385,15 +1385,18 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
                 "allowed_files"
             ],
         )
-        self.assertEqual(loop["next_recommended_work_id"], "autonomous_queue_docs_traceability_negative_evidence_gate")
-        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 114)
+        self.assertEqual(
+            loop["next_recommended_work_id"],
+            "autonomous_queue_docs_traceability_negative_evidence_receipt_gate",
+        )
+        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 115)
         self.assertEqual(loop["receipt"]["ready_work_items"], 0)
         self.assertEqual(loop["receipt"]["candidate_work_items"], 1)
         self.assertEqual(loop["candidate_receipt"]["status"], "candidate_receipt_ready")
         self.assertEqual(loop["candidate_receipt"]["public_safety_status"], "pass")
         self.assertEqual(
             loop["candidate_receipt"]["selected_work_id"],
-            "autonomous_queue_docs_traceability_negative_evidence_gate",
+            "autonomous_queue_docs_traceability_negative_evidence_receipt_gate",
         )
         self.assertEqual(loop["candidate_receipt"]["selected_status"], "candidate")
         self.assertTrue(loop["candidate_receipt"]["ready_work_items_remain_zero"])
@@ -1408,15 +1411,15 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertLessEqual(loop["candidate_receipt"]["allowed_file_count"], 4)
         self.assertEqual(
             loop["candidate_receipt"]["allowed_files"],
-            by_id["autonomous_queue_docs_traceability_negative_evidence_gate"]["allowed_files"],
+            by_id["autonomous_queue_docs_traceability_negative_evidence_receipt_gate"]["allowed_files"],
         )
         self.assertIn(
-            "tests/test_unibot_readiness.py",
+            "tests/test_unibot_autonomous_research_loop.py",
             loop["candidate_receipt"]["allowed_files"],
         )
         self.assertEqual(
             loop["candidate_receipt"]["review_gate"],
-            "autonomous_queue_docs_traceability_negative_evidence",
+            "autonomous_queue_docs_traceability_negative_evidence_receipt",
         )
         self.assertEqual(loop["receipt"]["candidate_receipt_status"], "candidate_receipt_ready")
         self.assertEqual(loop["receipt"]["candidate_receipt_hash"], loop["candidate_receipt"]["candidate_hash"])
@@ -1450,12 +1453,12 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertEqual(loop["candidate_rotation_receipt"]["public_safety_status"], "pass")
         self.assertEqual(
             loop["candidate_rotation_receipt"]["previous_closed_work_id"],
-            "autonomous_queue_docs_traceability_negative_harness_gate",
+            "autonomous_queue_docs_traceability_negative_evidence_gate",
         )
-        self.assertEqual(loop["candidate_rotation_receipt"]["previous_closed_commit"], "1f7b05d")
+        self.assertEqual(loop["candidate_rotation_receipt"]["previous_closed_commit"], "b0d9d42")
         self.assertEqual(
             loop["candidate_rotation_receipt"]["selected_work_id"],
-            "autonomous_queue_docs_traceability_negative_evidence_gate",
+            "autonomous_queue_docs_traceability_negative_evidence_receipt_gate",
         )
         self.assertEqual(loop["candidate_rotation_receipt"]["candidate_review_hash"], expected_review_hash)
         self.assertEqual(loop["candidate_rotation_receipt"]["failed_contract_ids"], [])
@@ -1464,11 +1467,11 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertEqual(loop["single_candidate_continuity_receipt"]["public_safety_status"], "pass")
         self.assertEqual(
             loop["single_candidate_continuity_receipt"]["selected_work_id"],
-            "autonomous_queue_docs_traceability_negative_evidence_gate",
+            "autonomous_queue_docs_traceability_negative_evidence_receipt_gate",
         )
         self.assertEqual(
             loop["single_candidate_continuity_receipt"]["highest_priority_work_id"],
-            "autonomous_queue_docs_traceability_negative_evidence_gate",
+            "autonomous_queue_docs_traceability_negative_evidence_receipt_gate",
         )
         self.assertEqual(loop["single_candidate_continuity_receipt"]["ready_work_items"], 0)
         self.assertEqual(loop["single_candidate_continuity_receipt"]["candidate_work_items"], 1)
@@ -1511,14 +1514,21 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             by_id["autonomous_queue_docs_traceability_negative_harness_gate"]["closure_evidence"]["commit"],
             "1f7b05d",
         )
-        self.assertEqual(by_id["autonomous_queue_docs_traceability_negative_evidence_gate"]["status"], "candidate")
+        self.assertEqual(by_id["autonomous_queue_docs_traceability_negative_evidence_gate"]["status"], "closed_harnessed")
         self.assertEqual(
-            by_id["autonomous_queue_docs_traceability_negative_evidence_gate"]["review_gate"],
-            "autonomous_queue_docs_traceability_negative_evidence",
+            by_id["autonomous_queue_docs_traceability_negative_evidence_gate"]["closure_evidence"]["commit"],
+            "b0d9d42",
+        )
+        self.assertEqual(
+            by_id["autonomous_queue_docs_traceability_negative_evidence_receipt_gate"]["status"], "candidate"
+        )
+        self.assertEqual(
+            by_id["autonomous_queue_docs_traceability_negative_evidence_receipt_gate"]["review_gate"],
+            "autonomous_queue_docs_traceability_negative_evidence_receipt",
         )
         self.assertIn(
-            "unibot/readiness.py",
-            by_id["autonomous_queue_docs_traceability_negative_evidence_gate"]["allowed_files"],
+            "unibot/autonomous_research_loop.py",
+            by_id["autonomous_queue_docs_traceability_negative_evidence_receipt_gate"]["allowed_files"],
         )
         self.assertLessEqual(loop["budget_policy"]["cadence"]["max_active_work_item_per_run"], 1)
         for item in queue:
@@ -1535,9 +1545,12 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("Default reasoning effort: low", markdown)
         self.assertIn("Workspace-card gate linked: True", markdown)
         self.assertIn("Autonomous GitHub push: False", markdown)
-        self.assertIn("Closed harnessed items: 114", markdown)
+        self.assertIn("Closed harnessed items: 115", markdown)
         self.assertIn("Candidate items: 1", markdown)
-        self.assertIn("Next recommended work: autonomous_queue_docs_traceability_negative_evidence_gate", markdown)
+        self.assertIn(
+            "Next recommended work: autonomous_queue_docs_traceability_negative_evidence_receipt_gate",
+            markdown,
+        )
 
         status, loop = route_request("/api/unibot/autonomous-research-loop", {})
         self.assertEqual(status, 200)
