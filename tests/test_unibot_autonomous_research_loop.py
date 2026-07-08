@@ -99,6 +99,7 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertEqual(report["duplicate_priorities"], [])
         self.assertEqual(report["missing_closure_commit_work_ids"], [])
         self.assertEqual(report["duplicate_closure_commits"], [])
+        self.assertEqual(report["unexpected_status_work_ids"], [])
         self.assertEqual(report["candidate_work_items"], 1)
         self.assertEqual(report["ready_work_items"], 0)
         self.assertEqual(report["selected_work_id"], loop["candidate_receipt"]["selected_work_id"])
@@ -116,6 +117,14 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertEqual(broken_report["status"], "queue_integrity_blocked")
         self.assertIn(report["highest_priority"] - 1, broken_report["missing_priorities"])
         self.assertIn("priority_sequence_contiguous", broken_report["failed_contract_ids"])
+
+        unknown_status_loop = json.loads(json.dumps(loop))
+        unknown_status_loop["work_queue"][0]["status"] = "draft_unreviewed"
+        unknown_status_report = build_autonomous_queue_integrity_report(unknown_status_loop)
+
+        self.assertEqual(unknown_status_report["status"], "queue_integrity_blocked")
+        self.assertEqual(unknown_status_report["unexpected_status_work_ids"], [loop["work_queue"][0]["work_id"]])
+        self.assertIn("known_queue_statuses_only", unknown_status_report["failed_contract_ids"])
 
     def test_autonomous_loop_hash_helpers_separate_budget_and_receipt_state(self) -> None:
         loop = build_autonomous_research_loop()
