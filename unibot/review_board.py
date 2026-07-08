@@ -5,7 +5,11 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .compliance import build_compliance_matrix
-from .bachelor_thesis import build_bachelor_thesis_evidence_index, build_bachelor_thesis_evaluation_claim_alignment
+from .bachelor_thesis import (
+    build_bachelor_thesis_evidence_index,
+    build_bachelor_thesis_evaluation_claim_alignment,
+    build_bachelor_thesis_package,
+)
 from .handoff import build_authority_handoff_packet
 from .materials import sha256_text
 from .pilot import build_pilot_protocol
@@ -20,6 +24,231 @@ REVIEW_BOARD_THESIS_EVALUATION_ALIGNMENT_SCHEMA_VERSION = "unibot-review-board-t
 REVIEW_BOARD_RELEASE_CLAIM_SUMMARY_ALIGNMENT_SCHEMA_VERSION = (
     "unibot-review-board-release-claim-summary-alignment-v1"
 )
+PROFESSOR_UNI_REVIEW_BRIEF_SCHEMA_VERSION = "unibot-professor-uni-review-brief-v1"
+
+
+def build_professor_uni_review_brief(review_board: dict[str, Any] | None = None) -> dict[str, Any]:
+    if review_board is None:
+        review_board = build_review_board_packet(include_professor_uni_review_brief=False)
+    thesis_package = build_bachelor_thesis_package()
+    authorship = thesis_package["authorship_statement"]
+    glm_basis = thesis_package["glm_technology_basis"]
+    reviewer_names = sorted(
+        item.get("reviewer", "")
+        for item in review_board.get("reviewer_packets", [])
+        if isinstance(item, dict) and item.get("reviewer")
+    )
+    sections = [
+        {
+            "section_id": "purpose",
+            "title": "Purpose",
+            "reader_summary": (
+                "UniBot is a Gretel-built Socratic practice and review layer for coding workflows; "
+                "it supports learner reasoning without replacing student work."
+            ),
+            "reviewer_roles": ["Lehreinheit / Modulverantwortliche", "Thesis supervision"],
+            "required_readiness_check_ids": ["gretel_bachelor_thesis_package", "evaluation_packet", "review_board_packet"],
+            "source_card_ids": ["dfg-gwp", "unesco-genai-2023", "vanlehn-2011"],
+            "human_gates": ["human_submission_review_required"],
+            "question_for_reviewer": "Is the Socratic practice purpose appropriate for the intended teaching context?",
+        },
+        {
+            "section_id": "boundaries",
+            "title": "Boundaries",
+            "reader_summary": (
+                "The brief does not claim exam clearance, grading, proctoring, KI-detection evidence, "
+                "or official university approval."
+            ),
+            "reviewer_roles": ["Pruefungsamt", "Lehreinheit / Modulverantwortliche"],
+            "required_readiness_check_ids": ["exam_boundary", "compliance_matrix", "review_board_packet"],
+            "source_card_ids": ["eu-ai-act-2024", "hg-nrw-64", "uoc-hilfsmittel", "uoc-ki-faq"],
+            "human_gates": ["written_university_clearance_required_before_exam_use", "human_submission_review_required"],
+            "question_for_reviewer": "Which written boundary text is required before any course or exam-adjacent use?",
+        },
+        {
+            "section_id": "data_protection",
+            "title": "Data Protection",
+            "reader_summary": (
+                "The public package uses synthetic data by default and requires Datenschutz review before "
+                "any real pilot records or course-related personal data are processed."
+            ),
+            "reviewer_roles": ["Datenschutz", "IT / SZI"],
+            "required_readiness_check_ids": ["data_protection_screening", "public_safety", "redteam"],
+            "source_card_ids": ["gdpr-2016-679", "dsk-ai-privacy-2024", "chrome-limited-use"],
+            "human_gates": ["datenschutz_review_required_before_real_pilot", "public_safety_required"],
+            "question_for_reviewer": "Are minimisation, retention, withdrawal, and storage boundaries sufficient for a real pilot?",
+        },
+        {
+            "section_id": "evaluation",
+            "title": "Evaluation",
+            "reader_summary": (
+                "Evaluation evidence is limited to synthetic formative practice, learner-agency boundaries, "
+                "red-team checks, and reproducible readiness gates."
+            ),
+            "reviewer_roles": ["Lehreinheit / Modulverantwortliche", "Thesis supervision"],
+            "required_readiness_check_ids": ["evaluation_packet", "adaptive_task_plan", "gretel_bachelor_thesis_package"],
+            "source_card_ids": ["dfg-gwp", "vanlehn-2011", "kulik-fletcher-2016"],
+            "human_gates": ["human_submission_review_required"],
+            "question_for_reviewer": "Which measures would be acceptable for a thesis-style formative pilot?",
+        },
+        {
+            "section_id": "risks",
+            "title": "Risks",
+            "reader_summary": (
+                "Known risks include overclaiming learning gains, confusing practice with assessment, "
+                "privacy leakage, and unsafe use of external model providers."
+            ),
+            "reviewer_roles": ["Pruefungsamt", "Datenschutz", "IT / SZI", "Thesis supervision"],
+            "required_readiness_check_ids": [
+                "redteam",
+                "gretel_glm_evolve_lane",
+                "source_card_drift_guard",
+                "review_board_packet",
+            ],
+            "source_card_ids": ["eu-ai-act-2024", "gdpr-2016-679", "unesco-genai-2023"],
+            "human_gates": [
+                "provider_call_requires_explicit_go_and_redaction_receipt",
+                "written_university_clearance_required_before_exam_use",
+                "human_submission_review_required",
+            ],
+            "question_for_reviewer": "Which risks must be added, mitigated, or treated as blockers before real users are involved?",
+        },
+        {
+            "section_id": "pilot_conditions",
+            "title": "Pilot Conditions",
+            "reader_summary": (
+                "A real pilot is blocked until voluntary participation, transparent consent, Datenschutz, "
+                "ethics or supervision review, and written authority boundaries are documented."
+            ),
+            "reviewer_roles": ["Datenschutz", "Lehreinheit / Modulverantwortliche", "Thesis supervision"],
+            "required_readiness_check_ids": ["pilot_protocol", "data_protection_screening", "review_board_packet"],
+            "source_card_ids": ["unesco-genai-2023", "gdpr-2016-679", "uoc-ki-lehre"],
+            "human_gates": [
+                "datenschutz_review_required_before_real_pilot",
+                "ethics_or_supervisor_review_required_before_real_pilot",
+                "written_university_clearance_required_before_exam_use",
+            ],
+            "question_for_reviewer": "What must be true before a voluntary real pilot may begin?",
+        },
+    ]
+    required_source_card_ids = sorted({source_id for section in sections for source_id in section["source_card_ids"]})
+    missing_source_card_ids = sorted(source_id for source_id in required_source_card_ids if get_source_card(source_id) is None)
+    required_human_gates = sorted({gate for section in sections for gate in section["human_gates"]})
+    required_readiness_check_ids = sorted({check_id for section in sections for check_id in section["required_readiness_check_ids"]})
+    blocked_claims = [
+        "exam clearance",
+        "official grading",
+        "proctoring",
+        "KI-detection evidence",
+        "Datenschutz approval",
+        "real pilot approval",
+        "provider approval",
+        "real thesis submission",
+    ]
+    pilot_go_no_go = {
+        "synthetic_demo_ready": "local practice demo" in review_board.get("ready_for", []),
+        "real_pilot_allowed_now": False,
+        "required_before_real_pilot": [
+            "ethics_or_supervisor_review_required_before_real_pilot",
+            "datenschutz_review_required_before_real_pilot",
+            "written_university_clearance_required_before_exam_use_if_course_or_exam_adjacent",
+            "frozen_synthetic_task_set_and_codebook",
+            "withdrawal_and_redaction_process",
+            "human_submission_review_required",
+        ],
+    }
+    payload = {
+        "schema_version": PROFESSOR_UNI_REVIEW_BRIEF_SCHEMA_VERSION,
+        "sections": sections,
+        "authorship_statement": authorship,
+        "glm_technology_basis": {
+            "primary_model_hint": glm_basis["primary_model_hint"],
+            "use_mode": glm_basis["use_mode"],
+            "provider_call_default": glm_basis["provider_call_default"],
+        },
+        "reviewer_names": reviewer_names,
+        "required_human_gates": required_human_gates,
+        "blocked_claims": blocked_claims,
+        "pilot_go_no_go": pilot_go_no_go,
+        "review_board_status": review_board.get("status", ""),
+        "exam_deployment_status": review_board.get("exam_deployment_status", ""),
+        "public_language": review_board.get("public_language", {}),
+    }
+    payload_scan = scan_text(
+        json.dumps(payload, ensure_ascii=False, sort_keys=True),
+        "unibot-professor-uni-review-brief",
+    )
+    required_section_ids = {
+        "purpose",
+        "boundaries",
+        "data_protection",
+        "evaluation",
+        "risks",
+        "pilot_conditions",
+    }
+    section_ids = {section["section_id"] for section in sections}
+    required_reviewers = {
+        "Pruefungsamt",
+        "Datenschutz",
+        "IT / SZI",
+        "Lehreinheit / Modulverantwortliche",
+        "Thesis supervision",
+    }
+    contracts = {
+        "review_board_draft_ready": review_board.get("status") == "draft_for_institutional_review"
+        and review_board.get("public_safety_status") == "pass",
+        "exam_deployment_not_cleared": review_board.get("exam_deployment_status") == "not_cleared",
+        "teaching_and_thesis_reviewers_present": required_reviewers.issubset(set(reviewer_names)),
+        "six_review_sections_present": len(sections) == 6 and required_section_ids == section_ids,
+        "gretel_authorship_visible": authorship.get("builder") == "Gretel"
+        and authorship.get("documentation_author") == "Gretel"
+        and "not by Julius" in authorship.get("programmer_claim", ""),
+        "glm_proposal_only": glm_basis.get("provider_call_default") == "disabled"
+        and "redacted proposal" in glm_basis.get("use_mode", ""),
+        "human_gates_preserved": {
+            "human_submission_review_required",
+            "datenschutz_review_required_before_real_pilot",
+            "ethics_or_supervisor_review_required_before_real_pilot",
+            "written_university_clearance_required_before_exam_use",
+            "provider_call_requires_explicit_go_and_redaction_receipt",
+        }.issubset(set(required_human_gates)),
+        "real_pilot_blocked_until_review": pilot_go_no_go["real_pilot_allowed_now"] is False
+        and "datenschutz_review_required_before_real_pilot" in pilot_go_no_go["required_before_real_pilot"]
+        and "ethics_or_supervisor_review_required_before_real_pilot" in pilot_go_no_go["required_before_real_pilot"],
+        "no_high_stakes_claims": {"exam clearance", "official grading", "proctoring", "KI-detection evidence"}.issubset(
+            set(blocked_claims)
+        )
+        and "exam deployment" in review_board.get("not_ready_for", []),
+        "source_cards_resolved": missing_source_card_ids == [],
+        "payload_public_safe": payload_scan["status"] == "pass",
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    status = "ready" if not missing_source_card_ids and not failed_contract_ids else "needs_review"
+    return {
+        "schema_version": PROFESSOR_UNI_REVIEW_BRIEF_SCHEMA_VERSION,
+        "status": status,
+        "status_label_de": "Professoren-/Uni-Review-Brief, keine Freigabe",
+        "section_count": len(sections),
+        "sections": sections,
+        "authorship_statement": authorship,
+        "glm_technology_basis": payload["glm_technology_basis"],
+        "reviewer_names": reviewer_names,
+        "required_readiness_check_ids": required_readiness_check_ids,
+        "required_human_gates": required_human_gates,
+        "blocked_claims": blocked_claims,
+        "pilot_go_no_go": pilot_go_no_go,
+        "missing_source_card_ids": missing_source_card_ids,
+        "failed_contract_ids": failed_contract_ids,
+        "contracts": contracts,
+        "public_safety_status": payload_scan["status"],
+        "brief_hash": sha256_text(json.dumps(payload, ensure_ascii=False, sort_keys=True)),
+        "policy": (
+            "This professor/Uni brief is a compact review aid for human supervisors and university roles. "
+            "It marks the package as Gretel-built and Gretel-documented, keeps GLM proposal-only, and does "
+            "not authorize real submission, provider calls, real pilots, grading, proctoring, KI detection, "
+            "or exam clearance."
+        ),
+    }
 
 
 def build_review_board_release_claim_summary_alignment(
@@ -504,6 +733,7 @@ def build_review_board_packet(
     python_exam_local_cycle_readiness_handoff: dict[str, Any] | None = None,
     python_exam_local_cycle_operator_workspace_card: dict[str, Any] | None = None,
     selected_skill_tag: str = "",
+    include_professor_uni_review_brief: bool = True,
 ) -> dict[str, Any]:
     handoff = build_authority_handoff_packet()
     compliance = build_compliance_matrix()
@@ -762,6 +992,14 @@ def build_review_board_packet(
     review_board["evidence_summary"]["release_claim_summary_alignment_public_safety_status"] = review_board[
         "release_claim_summary_alignment"
     ]["public_safety_status"]
+    if include_professor_uni_review_brief:
+        review_board["professor_uni_review_brief"] = build_professor_uni_review_brief(review_board)
+        review_board["evidence_summary"]["professor_uni_review_brief_status"] = review_board["professor_uni_review_brief"][
+            "status"
+        ]
+        review_board["evidence_summary"]["professor_uni_review_brief_public_safety_status"] = review_board[
+            "professor_uni_review_brief"
+        ]["public_safety_status"]
     scan = scan_text(json.dumps(review_board, ensure_ascii=False), "unibot-review-board-packet")
     review_board["public_safety_status"] = scan["status"]
     if scan["status"] != "pass":
@@ -794,6 +1032,7 @@ def build_review_board_packet_markdown() -> str:
     alignment = packet["evidence_alignment"]
     thesis_evaluation_alignment = packet["thesis_evaluation_claim_alignment"]
     release_claim_alignment = packet["release_claim_summary_alignment"]
+    professor_uni_brief = packet["professor_uni_review_brief"]
     alignment_lines = "\n".join(
         f"- {item['reviewer']}: claims {', '.join(item['claim_ids'])}; checks {', '.join(item['readiness_check_ids'])}"
         for item in alignment["reviewer_alignment"]
@@ -803,6 +1042,9 @@ def build_review_board_packet_markdown() -> str:
     )
     release_claim_lines = "\n".join(
         f"- {section['section_id']}: {section['summary_claim']}" for section in release_claim_alignment["sections"]
+    )
+    professor_uni_lines = "\n".join(
+        f"- {section['section_id']}: {section['reader_summary']}" for section in professor_uni_brief["sections"]
     )
     chain = packet.get("local_cycle_chain_snapshot", {})
     chain_summary = chain.get("chain_snapshot_summary", {}) if isinstance(chain.get("chain_snapshot_summary"), dict) else {}
@@ -844,6 +1086,14 @@ def build_review_board_packet_markdown() -> str:
         f"- Public safety: {release_claim_alignment['public_safety_status']}\n"
         f"- Human gates: {', '.join(release_claim_alignment['required_human_gates'])}\n"
         f"{release_claim_lines}\n\n"
+        "## Professor/Uni Review Brief\n\n"
+        f"- Status: {professor_uni_brief['status']}\n"
+        f"- Public safety: {professor_uni_brief['public_safety_status']}\n"
+        f"- Builder: {professor_uni_brief['authorship_statement']['builder']}\n"
+        f"- Documentation author: {professor_uni_brief['authorship_statement']['documentation_author']}\n"
+        f"- Real pilot allowed now: {professor_uni_brief['pilot_go_no_go']['real_pilot_allowed_now']}\n"
+        f"- Human gates: {', '.join(professor_uni_brief['required_human_gates'])}\n"
+        f"{professor_uni_lines}\n\n"
         "## Local Cycle Chain\n\n"
         f"- Status: {chain.get('status', 'missing')}\n"
         f"- Snapshot hash: {chain_summary.get('snapshot_hash', '')}\n"

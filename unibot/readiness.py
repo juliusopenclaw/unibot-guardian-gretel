@@ -4157,7 +4157,13 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and review_board_packet["release_claim_summary_alignment"]["status"] == "ready"
             and review_board_packet["release_claim_summary_alignment"]["public_safety_status"] == "pass"
             and review_board_packet["release_claim_summary_alignment"]["missing_source_card_ids"] == []
-            and review_board_packet["release_claim_summary_alignment"]["failed_contract_ids"] == [],
+            and review_board_packet["release_claim_summary_alignment"]["failed_contract_ids"] == []
+            and review_board_packet["professor_uni_review_brief"]["status"] == "ready"
+            and review_board_packet["professor_uni_review_brief"]["public_safety_status"] == "pass"
+            and review_board_packet["professor_uni_review_brief"]["section_count"] >= 6
+            and review_board_packet["professor_uni_review_brief"]["missing_source_card_ids"] == []
+            and review_board_packet["professor_uni_review_brief"]["failed_contract_ids"] == []
+            and review_board_packet["professor_uni_review_brief"]["pilot_go_no_go"]["real_pilot_allowed_now"] is False,
             "evidence": {
                 "status": review_board_packet["status"],
                 "public_safety_status": review_board_packet["public_safety_status"],
@@ -4205,6 +4211,31 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "workspace_card_review_board_gate_contract": review_board_packet["release_claim_summary_alignment"][
                     "contracts"
                 ]["workspace_card_review_board_gate_linked"],
+                "professor_uni_review_brief_status": review_board_packet["professor_uni_review_brief"]["status"],
+                "professor_uni_review_brief_public_safety_status": review_board_packet["professor_uni_review_brief"][
+                    "public_safety_status"
+                ],
+                "professor_uni_review_brief_section_count": review_board_packet["professor_uni_review_brief"][
+                    "section_count"
+                ],
+                "professor_uni_review_brief_human_gates": review_board_packet["professor_uni_review_brief"][
+                    "required_human_gates"
+                ],
+                "professor_uni_review_brief_blocked_claims": review_board_packet["professor_uni_review_brief"][
+                    "blocked_claims"
+                ],
+                "professor_uni_review_brief_real_pilot_allowed_now": review_board_packet["professor_uni_review_brief"][
+                    "pilot_go_no_go"
+                ]["real_pilot_allowed_now"],
+                "professor_uni_review_brief_contracts_ready": all(
+                    review_board_packet["professor_uni_review_brief"]["contracts"].values()
+                ),
+                "professor_uni_review_brief_builder": review_board_packet["professor_uni_review_brief"][
+                    "authorship_statement"
+                ]["builder"],
+                "professor_uni_review_brief_documentation_author": review_board_packet["professor_uni_review_brief"][
+                    "authorship_statement"
+                ]["documentation_author"],
             },
         },
         {

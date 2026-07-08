@@ -753,6 +753,18 @@ class UniBotReadinessTests(unittest.TestCase):
         review_board = next(check for check in report["checks"] if check["check_id"] == "review_board_packet")
         self.assertEqual(review_board["evidence"]["evidence_alignment_status"], "ready")
         self.assertGreaterEqual(review_board["evidence"]["readiness_snapshot_gate_count"], 10)
+        self.assertEqual(review_board["evidence"]["professor_uni_review_brief_status"], "ready")
+        self.assertEqual(review_board["evidence"]["professor_uni_review_brief_public_safety_status"], "pass")
+        self.assertGreaterEqual(review_board["evidence"]["professor_uni_review_brief_section_count"], 6)
+        self.assertFalse(review_board["evidence"]["professor_uni_review_brief_real_pilot_allowed_now"])
+        self.assertTrue(review_board["evidence"]["professor_uni_review_brief_contracts_ready"])
+        self.assertEqual(review_board["evidence"]["professor_uni_review_brief_builder"], "Gretel")
+        self.assertEqual(review_board["evidence"]["professor_uni_review_brief_documentation_author"], "Gretel")
+        self.assertIn("exam clearance", review_board["evidence"]["professor_uni_review_brief_blocked_claims"])
+        self.assertIn(
+            "datenschutz_review_required_before_real_pilot",
+            review_board["evidence"]["professor_uni_review_brief_human_gates"],
+        )
         github_bundle = next(check for check in report["checks"] if check["check_id"] == "github_issue_bundle")
         self.assertEqual(github_bundle["evidence"]["evidence_traceability_status"], "ready")
         self.assertTrue(github_bundle["evidence"]["manual_publish_only"])

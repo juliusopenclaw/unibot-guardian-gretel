@@ -20,6 +20,12 @@ What it does:
 - Surface the bachelor-thesis evaluation claim alignment so teaching and thesis
   reviewers see learner-agency evidence without turning it into exam or grading
   claims.
+- Surface a compact Professor/Uni Review Brief that explains purpose,
+  boundaries, data protection, evaluation, risks, and pilot conditions in one
+  reviewer-facing layer.
+- Preserve the public authorship label: the package is Gretel-built and
+  Gretel-documented; Julius or another human reviewer remains the submission,
+  ethics, legal, release, and real-pilot gate.
 - Keep language non-committal (`beantragt / nicht offiziell freigegeben`) until
   written approvals exist.
 
@@ -60,6 +66,21 @@ Thesis evaluation claim alignment content:
 - `failed_reviewer_ids` and `failed_contract_ids`: block review readiness when
   the learner-agency claim is missing or high-stakes red lines are weakened
 
+Professor/Uni Review Brief content:
+
+- `authorship_statement`: keeps the Gretel-built and Gretel-documented label
+  visible in the reviewer packet
+- `glm_technology_basis`: keeps GLM in redacted proposal-only mode with provider
+  calls disabled by default
+- `sections`: six reviewer-facing sections for purpose, boundaries, data
+  protection, evaluation, risks, and pilot conditions
+- `pilot_go_no_go`: states that a synthetic demo may be ready while a real pilot
+  is still blocked until Datenschutz, ethics/supervision, written authority
+  boundaries, consent, withdrawal, and human review are documented
+- `blocked_claims`: blocks exam clearance, official grading, proctoring,
+  KI-detection evidence, Datenschutz approval, real pilot approval, provider
+  approval, and real thesis submission claims
+
 Readiness for publication is a separate check:
 
 - `reviewer_packets` count >= 6
@@ -70,6 +91,8 @@ Readiness for publication is a separate check:
   missing thesis claims
 - `thesis_evaluation_claim_alignment` ready, public-safe, and without missing
   source cards, reviewer mappings, or failed contracts
+- `professor_uni_review_brief` ready, public-safe, six-section complete,
+  source-card complete, human-gated, and with real-pilot approval still blocked
 
 The packet is intentionally not an approval and does not replace formal
 authority decisions. It prepares the right questions in a structured, reproducible,

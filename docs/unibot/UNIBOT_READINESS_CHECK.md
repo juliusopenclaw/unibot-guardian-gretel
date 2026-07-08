@@ -32,6 +32,9 @@ It aggregates:
 - pilot protocol
 - data-protection screening
 - review board packet
+- Professor/Uni Review Brief for purpose, boundaries, data protection,
+  evaluation, risks, pilot conditions, Gretel authorship, and real-pilot
+  blockers
 - stakeholder submission bundle and release-claim alignment
 - stakeholder decision request and receipt-boundary alignment
 - stakeholder decision journal and hash-only process-evidence alignment
@@ -76,6 +79,14 @@ It aggregates:
 draft review and local practice demo. It does not mean exam deployment, official
 grading, proctoring, KI-detection use, legal approval, or exam-authority
 clearance.
+
+The Professor/Uni Review Brief is ready only when the Review Board remains a
+draft, exam deployment remains not cleared, teaching/thesis/privacy/IT/exam
+reviewers are present, the six sections are complete, the package is still
+labelled Gretel-built and Gretel-documented, GLM remains proposal-only with
+provider calls disabled by default, human gates are preserved, real pilot use is
+blocked pending review, high-stakes claims stay blocked, and source cards and
+public-safety checks pass.
 
 The Gretel/GLM proposal lane is ready only when it remains proposal-only,
 public-safe, no-provider-call by default, and blocked from autonomous apply,

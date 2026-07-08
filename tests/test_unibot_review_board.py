@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from unibot.review_board import (  # noqa: E402
+    build_professor_uni_review_brief,
     build_review_board_evidence_alignment,
     build_review_board_packet,
     build_review_board_packet_markdown,
@@ -62,6 +63,19 @@ class UniBotReviewBoardTests(unittest.TestCase):
         self.assertEqual(packet["release_claim_summary_alignment"]["missing_source_card_ids"], [])
         self.assertEqual(packet["release_claim_summary_alignment"]["failed_contract_ids"], [])
         self.assertTrue(packet["release_claim_summary_alignment"]["workspace_card_review_board_gate_linked"])
+        self.assertEqual(packet["professor_uni_review_brief"]["status"], "ready")
+        self.assertEqual(packet["professor_uni_review_brief"]["public_safety_status"], "pass")
+        self.assertEqual(packet["professor_uni_review_brief"]["section_count"], 6)
+        self.assertEqual(packet["professor_uni_review_brief"]["missing_source_card_ids"], [])
+        self.assertEqual(packet["professor_uni_review_brief"]["failed_contract_ids"], [])
+        self.assertEqual(packet["professor_uni_review_brief"]["authorship_statement"]["builder"], "Gretel")
+        self.assertIn("not by Julius", packet["professor_uni_review_brief"]["authorship_statement"]["programmer_claim"])
+        self.assertFalse(packet["professor_uni_review_brief"]["pilot_go_no_go"]["real_pilot_allowed_now"])
+        self.assertIn("exam clearance", packet["professor_uni_review_brief"]["blocked_claims"])
+        self.assertIn(
+            "datenschutz_review_required_before_real_pilot",
+            packet["professor_uni_review_brief"]["required_human_gates"],
+        )
 
     def test_review_board_evidence_alignment_maps_reviewers_to_readiness_gates(self) -> None:
         packet = build_review_board_packet()
@@ -160,6 +174,58 @@ class UniBotReviewBoardTests(unittest.TestCase):
         self.assertTrue(review_board_release_summary_hash(packet))
         self.assertNotEqual(review_board_reviewer_packet_hash(packet), review_board_release_summary_hash(packet))
 
+    def test_professor_uni_review_brief_surfaces_authority_questions(self) -> None:
+        packet = build_review_board_packet()
+        brief = build_professor_uni_review_brief(packet)
+        sections = {section["section_id"]: section for section in brief["sections"]}
+
+        self.assertEqual(brief["schema_version"], "unibot-professor-uni-review-brief-v1")
+        self.assertEqual(brief["status"], "ready")
+        self.assertEqual(brief["status_label_de"], "Professoren-/Uni-Review-Brief, keine Freigabe")
+        self.assertEqual(brief["public_safety_status"], "pass")
+        self.assertEqual(brief["missing_source_card_ids"], [])
+        self.assertEqual(brief["failed_contract_ids"], [])
+        self.assertTrue(all(brief["contracts"].values()))
+        self.assertEqual(brief["authorship_statement"]["builder"], "Gretel")
+        self.assertEqual(brief["authorship_statement"]["documentation_author"], "Gretel")
+        self.assertIn("redacted proposal", brief["glm_technology_basis"]["use_mode"])
+        self.assertEqual(brief["glm_technology_basis"]["provider_call_default"], "disabled")
+        self.assertIn("purpose", sections)
+        self.assertIn("boundaries", sections)
+        self.assertIn("data_protection", sections)
+        self.assertIn("evaluation", sections)
+        self.assertIn("risks", sections)
+        self.assertIn("pilot_conditions", sections)
+        self.assertIn("Lehreinheit / Modulverantwortliche", brief["reviewer_names"])
+        self.assertIn("Thesis supervision", brief["reviewer_names"])
+        self.assertIn("review_board_packet", brief["required_readiness_check_ids"])
+        self.assertIn("pilot_protocol", brief["required_readiness_check_ids"])
+        self.assertIn("human_submission_review_required", brief["required_human_gates"])
+        self.assertIn("provider_call_requires_explicit_go_and_redaction_receipt", brief["required_human_gates"])
+        self.assertIn(
+            "ethics_or_supervisor_review_required_before_real_pilot",
+            brief["pilot_go_no_go"]["required_before_real_pilot"],
+        )
+        self.assertFalse(brief["pilot_go_no_go"]["real_pilot_allowed_now"])
+        self.assertTrue(brief["brief_hash"])
+
+    def test_professor_uni_review_brief_blocks_missing_teaching_review_and_exam_clearance(self) -> None:
+        packet = build_review_board_packet()
+        packet["reviewer_packets"] = [
+            reviewer
+            for reviewer in packet["reviewer_packets"]
+            if reviewer["reviewer"] != "Lehreinheit / Modulverantwortliche"
+        ]
+        packet["exam_deployment_status"] = "cleared"
+        packet["not_ready_for"] = ["official grading"]
+
+        brief = build_professor_uni_review_brief(packet)
+
+        self.assertEqual(brief["status"], "needs_review")
+        self.assertIn("teaching_and_thesis_reviewers_present", brief["failed_contract_ids"])
+        self.assertIn("exam_deployment_not_cleared", brief["failed_contract_ids"])
+        self.assertIn("no_high_stakes_claims", brief["failed_contract_ids"])
+
     def test_review_board_release_claim_summary_alignment_rejects_unlinked_workspace_card_hashes(self) -> None:
         packet = build_review_board_packet()
         card = synthetic_review_board_workspace_card()
@@ -187,6 +253,8 @@ class UniBotReviewBoardTests(unittest.TestCase):
         self.assertIn("Evidence Alignment", markdown)
         self.assertIn("Thesis Evaluation Claim Alignment", markdown)
         self.assertIn("Release Claim Summary Alignment", markdown)
+        self.assertIn("Professor/Uni Review Brief", markdown)
+        self.assertIn("Real pilot allowed now: False", markdown)
         self.assertIn("publication_boundary_trace", markdown)
         self.assertIn("Snapshot gate count", markdown)
         self.assertIn("Open Decisions", markdown)
