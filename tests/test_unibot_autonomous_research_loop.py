@@ -1387,19 +1387,19 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             ],
         )
         previous_closed_work_id = (
-            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate"
-        )
-        current_candidate_work_id = (
             "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate"
         )
+        current_candidate_work_id = (
+            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate"
+        )
         current_candidate_review_gate = (
-            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt"
+            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness"
         )
         self.assertEqual(
             loop["next_recommended_work_id"],
             current_candidate_work_id,
         )
-        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 142)
+        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 143)
         self.assertEqual(loop["receipt"]["ready_work_items"], 0)
         self.assertEqual(loop["receipt"]["candidate_work_items"], 1)
         self.assertEqual(loop["candidate_receipt"]["status"], "candidate_receipt_ready")
@@ -1424,7 +1424,7 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             by_id[current_candidate_work_id]["allowed_files"],
         )
         self.assertIn(
-            "unibot/autonomous_research_loop.py",
+            "unibot/readiness.py",
             loop["candidate_receipt"]["allowed_files"],
         )
         self.assertEqual(
@@ -1465,7 +1465,7 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             loop["candidate_rotation_receipt"]["previous_closed_work_id"],
             previous_closed_work_id,
         )
-        self.assertEqual(loop["candidate_rotation_receipt"]["previous_closed_commit"], "7667437")
+        self.assertEqual(loop["candidate_rotation_receipt"]["previous_closed_commit"], "37077b3")
         self.assertEqual(
             loop["candidate_rotation_receipt"]["selected_work_id"],
             current_candidate_work_id,
@@ -1649,6 +1649,12 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
                 "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_commit"
             ],
             "7667437",
+        )
+        self.assertEqual(
+            loop["docs_traceability_negative_evidence_receipt"][
+                "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_commit"
+            ],
+            "37077b3",
         )
         self.assertEqual(
             loop["docs_traceability_negative_evidence_receipt"]["selected_work_id"],
@@ -1884,7 +1890,7 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         )
         self.assertEqual(
             by_id[previous_closed_work_id]["closure_evidence"]["commit"],
-            "7667437",
+            "37077b3",
         )
         self.assertEqual(
             by_id[current_candidate_work_id]["status"],
@@ -1895,7 +1901,7 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             current_candidate_review_gate,
         )
         self.assertIn(
-            "unibot/autonomous_research_loop.py",
+            "unibot/readiness.py",
             by_id[current_candidate_work_id]["allowed_files"],
         )
         self.assertLessEqual(loop["budget_policy"]["cadence"]["max_active_work_item_per_run"], 1)
@@ -1913,10 +1919,10 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("Default reasoning effort: low", markdown)
         self.assertIn("Workspace-card gate linked: True", markdown)
         self.assertIn("Autonomous GitHub push: False", markdown)
-        self.assertIn("Closed harnessed items: 142", markdown)
+        self.assertIn("Closed harnessed items: 143", markdown)
         self.assertIn("Candidate items: 1", markdown)
         self.assertIn(
-            "Next recommended work: autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate",
+            "Next recommended work: autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate",
             markdown,
         )
         self.assertIn(
