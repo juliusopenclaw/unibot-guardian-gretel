@@ -100,7 +100,9 @@ artifacts.
   candidate, and the review gate into a hash that the main loop receipt carries
   forward. The readiness gate now exposes that receipt status, the tail commit chain
   through `e84d853`, `f5bb021`, `fd5dd4f`, `57d649c`, `60ba49e`, `883b80e`,
-  `468358c`, `35d7de0`, `536a5ae`, `06d9c48`, `3a15aad`, `ef199b2`, `f31c122`, `a7775da`, `0d98bc5`, `a95536a`, and `ba2684d`, review gate,
+  `468358c`, `35d7de0`, `536a5ae`, `06d9c48`, `3a15aad`, `ef199b2`,
+  `f31c122`, `a7775da`, `0d98bc5`, `a95536a`, `ba2684d`, and `f01d737`,
+  review gate,
   failed-contract list, auto-promotion block, and loop-hash match as public
   evidence. The docs-traceability negative-evidence receipt now also binds
   `f01d737` as the previous autonomous-loop receipt closure for
