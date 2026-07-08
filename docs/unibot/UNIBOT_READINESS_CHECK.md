@@ -125,6 +125,10 @@ without needing private context.
 The negative harness proves that a missing receipt or mismatched evidence hash
 blocks the autonomous-loop readiness check instead of silently preserving a
 green public-draft status.
+The autonomous-loop readiness gate also requires the queue-integrity report to
+be ready, public safe, hash-matched to the loop receipt, priority-contiguous,
+free of duplicate priorities, free of missing or duplicate closure commits,
+and aligned with the single non-runnable highest-priority candidate.
 The same readiness gate also checks public documentation traceability: the
 current autonomous-loop candidate, the previous closure evidence, and this
 review gate matching the current candidate receipt must be present in the

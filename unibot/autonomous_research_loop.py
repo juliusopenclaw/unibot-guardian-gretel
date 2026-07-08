@@ -3047,6 +3047,7 @@ def build_autonomous_research_loop() -> dict[str, Any]:
     payload["candidate_review"] = build_autonomous_candidate_review(payload)
     payload["candidate_rotation_receipt"] = build_autonomous_candidate_rotation_receipt(payload)
     payload["single_candidate_continuity_receipt"] = build_single_candidate_continuity_receipt(payload)
+    payload["queue_integrity_report"] = build_autonomous_queue_integrity_report(payload)
     payload["docs_traceability_negative_evidence_receipt"] = (
         build_autonomous_docs_traceability_negative_evidence_receipt(payload)
     )
@@ -3347,6 +3348,113 @@ def build_single_candidate_continuity_receipt(payload: dict[str, Any]) -> dict[s
         if scan["status"] != "pass":
             continuity["public_safety_findings"] = scan["findings"]
     return continuity
+
+
+def build_autonomous_queue_integrity_report(payload: dict[str, Any]) -> dict[str, Any]:
+    queue = [item for item in payload.get("work_queue", []) if isinstance(item, dict)]
+    candidate_receipt = payload.get("candidate_receipt", {})
+    candidate_receipt = candidate_receipt if isinstance(candidate_receipt, dict) else {}
+    priorities = [int(item.get("priority", 0) or 0) for item in queue]
+    expected_priorities = list(range(1, len(queue) + 1))
+    missing_priorities = [priority for priority in expected_priorities if priority not in priorities]
+    duplicate_priorities = sorted({priority for priority in priorities if priorities.count(priority) > 1})
+    closed_items = [item for item in queue if item.get("status") == "closed_harnessed"]
+    closure_commits = [
+        str(item.get("closure_evidence", {}).get("commit", ""))
+        for item in closed_items
+        if str(item.get("closure_evidence", {}).get("commit", "")) != ""
+    ]
+    missing_closure_commit_work_ids = [
+        str(item.get("work_id", ""))
+        for item in closed_items
+        if str(item.get("closure_evidence", {}).get("commit", "")) == ""
+    ]
+    duplicate_closure_commits = sorted({commit for commit in closure_commits if closure_commits.count(commit) > 1})
+    candidate_items = [item for item in queue if item.get("status") == "candidate"]
+    ready_items = [item for item in queue if item.get("status") == "ready"]
+    highest_priority_item = max(queue, key=lambda item: int(item.get("priority", 0) or 0), default={})
+    selected_work_id = str(candidate_receipt.get("selected_work_id", ""))
+    contracts = {
+        "priority_sequence_contiguous": priorities == expected_priorities,
+        "no_duplicate_priorities": duplicate_priorities == [],
+        "closed_items_have_commits": missing_closure_commit_work_ids == [],
+        "closure_commits_unique": duplicate_closure_commits == [],
+        "single_candidate_lane_preserved": len(candidate_items) == 1,
+        "zero_ready_items_preserved": len(ready_items) == 0,
+        "candidate_matches_highest_priority_tail": selected_work_id != ""
+        and selected_work_id == str(highest_priority_item.get("work_id", "")),
+        "candidate_receipt_ready": candidate_receipt.get("status") == "candidate_receipt_ready",
+        "candidate_not_auto_runnable": candidate_receipt.get("candidate_is_not_auto_ready") is True
+        and candidate_receipt.get("auto_promotion_allowed") is False,
+        "no_external_effects": payload.get("safety", {}).get("provider_call_executed") is False
+        and payload.get("safety", {}).get("autonomous_github_push") is False
+        and payload.get("safety", {}).get("mail_calendar_chat_actions") is False
+        and payload.get("safety", {}).get("final_go") is False,
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in contracts.items() if not passed)
+    report = {
+        "schema_version": "unibot-gretel-autonomous-queue-integrity-v1",
+        "status": "queue_integrity_ready",
+        "queue_count": len(queue),
+        "closed_harnessed_count": len(closed_items),
+        "ready_work_items": len(ready_items),
+        "candidate_work_items": len(candidate_items),
+        "highest_priority": int(highest_priority_item.get("priority", 0) or 0),
+        "highest_priority_work_id": str(highest_priority_item.get("work_id", "")),
+        "selected_work_id": selected_work_id,
+        "missing_priorities": missing_priorities,
+        "duplicate_priorities": duplicate_priorities,
+        "missing_closure_commit_work_ids": missing_closure_commit_work_ids,
+        "duplicate_closure_commits": duplicate_closure_commits,
+        "contracts": contracts,
+        "failed_contract_ids": failed_contract_ids,
+        "auto_promotion_allowed": False,
+        "provider_call_executed": False,
+        "autonomous_publication_started": False,
+        "final_go": False,
+    }
+    report["queue_hash"] = hashlib.sha256(
+        json.dumps(
+            [
+                {
+                    "work_id": str(item.get("work_id", "")),
+                    "priority": int(item.get("priority", 0) or 0),
+                    "status": str(item.get("status", "")),
+                    "closure_commit": str(item.get("closure_evidence", {}).get("commit", "")),
+                }
+                for item in queue
+            ],
+            ensure_ascii=False,
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    report["integrity_hash"] = hashlib.sha256(
+        json.dumps(
+            {
+                "queue_count": report["queue_count"],
+                "closed_harnessed_count": report["closed_harnessed_count"],
+                "ready_work_items": report["ready_work_items"],
+                "candidate_work_items": report["candidate_work_items"],
+                "highest_priority_work_id": report["highest_priority_work_id"],
+                "selected_work_id": report["selected_work_id"],
+                "missing_priorities": report["missing_priorities"],
+                "duplicate_priorities": report["duplicate_priorities"],
+                "missing_closure_commit_work_ids": report["missing_closure_commit_work_ids"],
+                "duplicate_closure_commits": report["duplicate_closure_commits"],
+                "contracts": report["contracts"],
+                "queue_hash": report["queue_hash"],
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+        ).encode("utf-8")
+    ).hexdigest()
+    scan = scan_text(json.dumps(report, ensure_ascii=False), "autonomous-queue-integrity-report")
+    report["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass" or failed_contract_ids:
+        report["status"] = "queue_integrity_blocked"
+        if scan["status"] != "pass":
+            report["public_safety_findings"] = scan["findings"]
+    return report
 
 
 def build_autonomous_docs_traceability_negative_evidence_receipt(payload: dict[str, Any]) -> dict[str, Any]:
@@ -3908,6 +4016,11 @@ def build_autonomous_loop_receipt(payload: dict[str, Any]) -> dict[str, Any]:
         if isinstance(payload.get("single_candidate_continuity_receipt"), dict)
         else {}
     )
+    queue_integrity_report = (
+        payload.get("queue_integrity_report", {})
+        if isinstance(payload.get("queue_integrity_report"), dict)
+        else {}
+    )
     docs_traceability_negative_evidence = (
         payload.get("docs_traceability_negative_evidence_receipt", {})
         if isinstance(payload.get("docs_traceability_negative_evidence_receipt"), dict)
@@ -3929,6 +4042,8 @@ def build_autonomous_loop_receipt(payload: dict[str, Any]) -> dict[str, Any]:
         "candidate_rotation_hash": candidate_rotation_receipt.get("rotation_hash", ""),
         "single_candidate_continuity_status": single_candidate_continuity.get("status", "missing"),
         "single_candidate_continuity_hash": single_candidate_continuity.get("continuity_hash", ""),
+        "queue_integrity_status": queue_integrity_report.get("status", "missing"),
+        "queue_integrity_hash": queue_integrity_report.get("integrity_hash", ""),
         "docs_traceability_negative_evidence_status": docs_traceability_negative_evidence.get(
             "status", "missing"
         ),

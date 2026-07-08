@@ -52,6 +52,13 @@ loop is bounded and ready for operator prefill without exposing raw workspace
 data, private course text, contact data, local paths, provider prompts, or exam
 artifacts.
 
+The loop also emits a queue-integrity report. It checks the full public work
+queue for contiguous priorities, duplicate priorities, missing closure commits,
+duplicate closure commits, exactly one non-runnable candidate, zero ready work
+items, and candidate-at-tail continuity. Readiness compares the report hash to
+the loop receipt, so a queue-shape regression blocks `public_draft_ready`
+instead of being hidden inside the long receipt tail.
+
 ## Blocked Autonomous Actions
 
 - No autonomous GitHub push or public release.

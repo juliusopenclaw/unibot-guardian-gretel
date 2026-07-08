@@ -911,6 +911,25 @@ class UniBotReadinessTests(unittest.TestCase):
         )
         self.assertTrue(autonomous_loop["evidence"]["single_candidate_continuity_receipt_hash_matches_continuity"])
         self.assertFalse(autonomous_loop["evidence"]["single_candidate_continuity_auto_promotion_allowed"])
+        self.assertEqual(autonomous_loop["evidence"]["queue_integrity_status"], "queue_integrity_ready")
+        self.assertEqual(autonomous_loop["evidence"]["queue_integrity_public_safety_status"], "pass")
+        self.assertGreaterEqual(autonomous_loop["evidence"]["queue_integrity_queue_count"], 156)
+        self.assertEqual(
+            autonomous_loop["evidence"]["queue_integrity_highest_priority_work_id"],
+            current_candidate_work_id,
+        )
+        self.assertEqual(
+            autonomous_loop["evidence"]["queue_integrity_selected_work_id"],
+            current_candidate_work_id,
+        )
+        self.assertEqual(autonomous_loop["evidence"]["queue_integrity_missing_priorities"], [])
+        self.assertEqual(autonomous_loop["evidence"]["queue_integrity_duplicate_priorities"], [])
+        self.assertEqual(autonomous_loop["evidence"]["queue_integrity_missing_closure_commit_work_ids"], [])
+        self.assertEqual(autonomous_loop["evidence"]["queue_integrity_duplicate_closure_commits"], [])
+        self.assertEqual(autonomous_loop["evidence"]["queue_integrity_failed_contract_ids"], [])
+        self.assertTrue(autonomous_loop["evidence"]["queue_integrity_hash_present"])
+        self.assertEqual(autonomous_loop["evidence"]["queue_integrity_receipt_status"], "queue_integrity_ready")
+        self.assertTrue(autonomous_loop["evidence"]["queue_integrity_receipt_hash_matches_report"])
         self.assertEqual(autonomous_loop["evidence"]["docs_traceability_status"], "ready")
         self.assertEqual(autonomous_loop["evidence"]["docs_traceability_public_safety_status"], "pass")
         self.assertTrue(autonomous_loop["evidence"]["docs_traceability_current_candidate_documented"])
@@ -1679,6 +1698,21 @@ class UniBotReadinessTests(unittest.TestCase):
             "",
         )
         self.assertNotEqual(missing_readiness_tail_commit_report["status"], "public_draft_ready")
+
+        missing_queue_integrity_hash_loop = json.loads(json.dumps(build_autonomous_research_loop()))
+        missing_queue_integrity_hash_loop["receipt"]["queue_integrity_hash"] = ""
+        missing_queue_integrity_hash_report = run_with_loop(missing_queue_integrity_hash_loop)
+        missing_queue_integrity_hash_check = next(
+            check
+            for check in missing_queue_integrity_hash_report["checks"]
+            if check["check_id"] == "gretel_autonomous_research_loop"
+        )
+
+        self.assertFalse(missing_queue_integrity_hash_check["passed"])
+        self.assertFalse(
+            missing_queue_integrity_hash_check["evidence"]["queue_integrity_receipt_hash_matches_report"]
+        )
+        self.assertNotEqual(missing_queue_integrity_hash_report["status"], "public_draft_ready")
 
         missing_receipt_binding_tail_commit_loop = json.loads(json.dumps(build_autonomous_research_loop()))
         missing_receipt_binding_tail_commit_loop["docs_traceability_negative_evidence_receipt"][

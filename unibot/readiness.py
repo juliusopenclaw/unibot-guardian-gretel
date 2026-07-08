@@ -554,6 +554,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
     autonomous_single_candidate_continuity_hash = autonomous_research_loop["single_candidate_continuity_receipt"][
         "continuity_hash"
     ]
+    autonomous_queue_integrity_hash = autonomous_research_loop["queue_integrity_report"]["integrity_hash"]
     autonomous_docs_traceability_negative_evidence_receipt = (
         autonomous_research_loop.get("docs_traceability_negative_evidence_receipt", {})
         if isinstance(autonomous_research_loop.get("docs_traceability_negative_evidence_receipt"), dict)
@@ -4468,6 +4469,19 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             == "single_candidate_continuity_ready"
             and autonomous_research_loop["receipt"]["single_candidate_continuity_hash"]
             == autonomous_single_candidate_continuity_hash
+            and autonomous_research_loop["queue_integrity_report"]["status"] == "queue_integrity_ready"
+            and autonomous_research_loop["queue_integrity_report"]["public_safety_status"] == "pass"
+            and autonomous_research_loop["queue_integrity_report"]["failed_contract_ids"] == []
+            and autonomous_research_loop["queue_integrity_report"]["missing_priorities"] == []
+            and autonomous_research_loop["queue_integrity_report"]["duplicate_priorities"] == []
+            and autonomous_research_loop["queue_integrity_report"]["missing_closure_commit_work_ids"] == []
+            and autonomous_research_loop["queue_integrity_report"]["duplicate_closure_commits"] == []
+            and autonomous_research_loop["queue_integrity_report"]["selected_work_id"]
+            == autonomous_research_loop["candidate_receipt"]["selected_work_id"]
+            and autonomous_research_loop["queue_integrity_report"]["highest_priority_work_id"]
+            == autonomous_research_loop["candidate_receipt"]["selected_work_id"]
+            and autonomous_research_loop["receipt"]["queue_integrity_status"] == "queue_integrity_ready"
+            and autonomous_research_loop["receipt"]["queue_integrity_hash"] == autonomous_queue_integrity_hash
             and autonomous_docs_traceability_negative_evidence_receipt.get("status")
             == "docs_traceability_negative_evidence_receipt_ready"
             and autonomous_docs_traceability_negative_evidence_receipt.get("public_safety_status") == "pass"
@@ -4739,6 +4753,41 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "single_candidate_continuity_auto_promotion_allowed": autonomous_research_loop[
                     "single_candidate_continuity_receipt"
                 ]["auto_promotion_allowed"],
+                "queue_integrity_status": autonomous_research_loop["queue_integrity_report"]["status"],
+                "queue_integrity_public_safety_status": autonomous_research_loop["queue_integrity_report"][
+                    "public_safety_status"
+                ],
+                "queue_integrity_queue_count": autonomous_research_loop["queue_integrity_report"]["queue_count"],
+                "queue_integrity_closed_harnessed_count": autonomous_research_loop["queue_integrity_report"][
+                    "closed_harnessed_count"
+                ],
+                "queue_integrity_highest_priority_work_id": autonomous_research_loop["queue_integrity_report"][
+                    "highest_priority_work_id"
+                ],
+                "queue_integrity_selected_work_id": autonomous_research_loop["queue_integrity_report"][
+                    "selected_work_id"
+                ],
+                "queue_integrity_missing_priorities": autonomous_research_loop["queue_integrity_report"][
+                    "missing_priorities"
+                ],
+                "queue_integrity_duplicate_priorities": autonomous_research_loop["queue_integrity_report"][
+                    "duplicate_priorities"
+                ],
+                "queue_integrity_missing_closure_commit_work_ids": autonomous_research_loop[
+                    "queue_integrity_report"
+                ]["missing_closure_commit_work_ids"],
+                "queue_integrity_duplicate_closure_commits": autonomous_research_loop["queue_integrity_report"][
+                    "duplicate_closure_commits"
+                ],
+                "queue_integrity_failed_contract_ids": autonomous_research_loop["queue_integrity_report"][
+                    "failed_contract_ids"
+                ],
+                "queue_integrity_hash_present": autonomous_queue_integrity_hash != "",
+                "queue_integrity_receipt_status": autonomous_research_loop["receipt"]["queue_integrity_status"],
+                "queue_integrity_receipt_hash_matches_report": autonomous_research_loop["receipt"][
+                    "queue_integrity_hash"
+                ]
+                == autonomous_queue_integrity_hash,
                 "docs_traceability_status": autonomous_loop_docs_traceability["status"],
                 "docs_traceability_public_safety_status": autonomous_loop_docs_traceability["public_safety_status"],
                 "docs_traceability_current_candidate_documented": autonomous_loop_docs_traceability[

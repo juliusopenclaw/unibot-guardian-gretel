@@ -17,6 +17,7 @@ from unibot.autonomous_research_loop import (  # noqa: E402
     build_autonomous_candidate_rotation_receipt,
     build_autonomous_candidate_review,
     build_autonomous_docs_traceability_negative_evidence_receipt,
+    build_autonomous_queue_integrity_report,
     build_autonomous_research_loop,
     build_autonomous_loop_workspace_card_alignment,
     build_autonomous_research_markdown,
@@ -86,6 +87,35 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertTrue(alignment["workspace_card_autonomous_loop_gate_linked"])
         self.assertFalse(alignment["raw_workspace_card_returned"])
         self.assertIn("exam deployment", alignment["blocked_claims"])
+
+    def test_autonomous_queue_integrity_report_guards_scientific_chain_shape(self) -> None:
+        loop = build_autonomous_research_loop()
+        report = loop["queue_integrity_report"]
+
+        self.assertEqual(report["schema_version"], "unibot-gretel-autonomous-queue-integrity-v1")
+        self.assertEqual(report["status"], "queue_integrity_ready")
+        self.assertEqual(report["public_safety_status"], "pass")
+        self.assertEqual(report["missing_priorities"], [])
+        self.assertEqual(report["duplicate_priorities"], [])
+        self.assertEqual(report["missing_closure_commit_work_ids"], [])
+        self.assertEqual(report["duplicate_closure_commits"], [])
+        self.assertEqual(report["candidate_work_items"], 1)
+        self.assertEqual(report["ready_work_items"], 0)
+        self.assertEqual(report["selected_work_id"], loop["candidate_receipt"]["selected_work_id"])
+        self.assertEqual(report["highest_priority_work_id"], loop["candidate_receipt"]["selected_work_id"])
+        self.assertTrue(report["integrity_hash"])
+        self.assertEqual(loop["receipt"]["queue_integrity_status"], "queue_integrity_ready")
+        self.assertEqual(loop["receipt"]["queue_integrity_hash"], report["integrity_hash"])
+
+        broken_loop = json.loads(json.dumps(loop))
+        broken_loop["work_queue"] = [
+            item for item in broken_loop["work_queue"] if item.get("priority") != report["highest_priority"] - 1
+        ]
+        broken_report = build_autonomous_queue_integrity_report(broken_loop)
+
+        self.assertEqual(broken_report["status"], "queue_integrity_blocked")
+        self.assertIn(report["highest_priority"] - 1, broken_report["missing_priorities"])
+        self.assertIn("priority_sequence_contiguous", broken_report["failed_contract_ids"])
 
     def test_autonomous_loop_hash_helpers_separate_budget_and_receipt_state(self) -> None:
         loop = build_autonomous_research_loop()
