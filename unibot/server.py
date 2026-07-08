@@ -122,7 +122,12 @@ from .paperclip_evaluation_bridge import (
     paperclip_status,
     validate_paperclip_evaluation_request,
 )
-from .pilot import build_pilot_protocol, build_pilot_protocol_markdown
+from .pilot import (
+    build_controlled_pilot_clearance_receipt_template,
+    build_controlled_pilot_launch_gate,
+    build_pilot_protocol,
+    build_pilot_protocol_markdown,
+)
 from .privacy import build_data_protection_screening, build_data_protection_screening_markdown
 from .private_tutor_use_flow import build_private_tutor_use_flow_dry_run
 from .private_extraction_runner import run_private_extraction_batch
@@ -3694,6 +3699,16 @@ def route_request(path: str, payload: dict[str, Any] | None = None, method: str 
         return 200, build_pilot_protocol()
     if path == "/api/unibot/pilot-protocol-markdown":
         return 200, {"status": "ok", "markdown": build_pilot_protocol_markdown()}
+    if path == "/api/unibot/pilot/clearance-receipt-template":
+        return 200, build_controlled_pilot_clearance_receipt_template()
+    if path == "/api/unibot/pilot/launch-gate":
+        clearance_receipt = payload.get("clearance_receipt", payload)
+        if not isinstance(clearance_receipt, dict):
+            return 400, {
+                "status": "invalid-clearance-receipt",
+                "policy": "clearance_receipt must be a field-level object and must not contain raw approval text",
+            }
+        return 200, build_controlled_pilot_launch_gate(clearance_receipt=clearance_receipt)
     if path == "/api/unibot/data-protection-screening":
         return 200, build_data_protection_screening()
     if path == "/api/unibot/data-protection-screening-markdown":

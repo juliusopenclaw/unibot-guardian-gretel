@@ -96,6 +96,9 @@ text, starts no pilot, grants no AI authority, preserves Datenschutz,
 ethics/supervision, university-boundary, public-safety, and no-grade/no-exam
 human gates, and blocks high-stakes receipt claims such as grading, proctoring,
 KI-detection, misconduct detection, exam deployment, or exam clearance.
+Its public API exposes a field-level clearance receipt template and a launch
+gate validator; both are review surfaces only and do not submit, send, approve,
+or start a pilot.
 
 The Gretel/GLM proposal lane is ready only when it remains proposal-only,
 public-safe, no-provider-call by default, and blocked from autonomous apply,

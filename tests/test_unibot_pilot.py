@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from unibot.pilot import (  # noqa: E402
+    build_controlled_pilot_clearance_receipt_template,
     build_controlled_pilot_launch_gate,
     build_pilot_evidence_alignment,
     build_pilot_protocol,
@@ -173,6 +174,54 @@ class UniBotPilotProtocolTests(unittest.TestCase):
         self.assertFalse(gate["protection_contracts"]["receipt_public_safe"])
         self.assertFalse(gate["raw_receipt_returned"])
         self.assertNotIn(unsafe_contact, json.dumps(gate, ensure_ascii=False))
+
+    def test_controlled_pilot_clearance_receipt_template_is_public_safe_and_non_launching(self) -> None:
+        template = build_controlled_pilot_clearance_receipt_template()
+
+        self.assertEqual(
+            template["schema_version"],
+            "unibot-controlled-pilot-clearance-receipt-template-v1",
+        )
+        self.assertEqual(template["status"], "template_ready_no_raw_text")
+        self.assertEqual(template["public_safety_status"], "pass")
+        self.assertEqual(template["receipt_endpoint"], "/api/unibot/pilot/launch-gate")
+        self.assertFalse(template["raw_approval_text_allowed"])
+        self.assertFalse(template["real_pilot_started"])
+        self.assertFalse(template["real_pilot_allowed_by_ai"])
+        self.assertTrue(template["human_review_required"])
+        self.assertGreaterEqual(len(template["clearance_items"]), 9)
+        self.assertEqual(set(template["clearance_receipt"]), {item["item_id"] for item in template["clearance_items"]})
+        self.assertTrue(all(value is False for value in template["clearance_receipt"].values()))
+        self.assertIn("raw approval letters", template["must_not_include"])
+        self.assertIn("exam clearance claims", template["must_not_include"])
+
+    def test_controlled_pilot_launch_gate_api_routes_field_receipts_without_raw_text(self) -> None:
+        status, template = route_request("/api/unibot/pilot/clearance-receipt-template", {})
+        self.assertEqual(status, 200)
+        self.assertEqual(template["status"], "template_ready_no_raw_text")
+
+        status, gate = route_request(
+            "/api/unibot/pilot/launch-gate",
+            {"clearance_receipt": complete_clearance_receipt()},
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(gate["status"], "ready_for_manual_pilot_go_review_not_started")
+        self.assertTrue(gate["receipt_hash_present"])
+        self.assertFalse(gate["real_pilot_started"])
+        self.assertFalse(gate["real_pilot_allowed_by_ai"])
+        self.assertFalse(gate["raw_receipt_returned"])
+
+        status, invalid = route_request("/api/unibot/pilot/launch-gate", {"clearance_receipt": ["not", "fields"]})
+        self.assertEqual(status, 400)
+        self.assertEqual(invalid["status"], "invalid-clearance-receipt")
+
+        unsafe_contact = "student" + "@example.com"
+        receipt = complete_clearance_receipt()
+        receipt["private_contact"] = unsafe_contact
+        status, blocked = route_request("/api/unibot/pilot/launch-gate", {"clearance_receipt": receipt})
+        self.assertEqual(status, 200)
+        self.assertEqual(blocked["status"], "blocked_receipt_public_safety")
+        self.assertNotIn(unsafe_contact, json.dumps(blocked, ensure_ascii=False))
 
     def test_pilot_markdown_and_api_routes(self) -> None:
         markdown = build_pilot_protocol_markdown()

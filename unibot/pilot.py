@@ -18,6 +18,9 @@ PILOT_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
     "unibot-pilot-release-review-board-claim-alignment-v1"
 )
 CONTROLLED_PILOT_LAUNCH_GATE_SCHEMA_VERSION = "unibot-controlled-pilot-launch-gate-v1"
+CONTROLLED_PILOT_CLEARANCE_RECEIPT_TEMPLATE_SCHEMA_VERSION = (
+    "unibot-controlled-pilot-clearance-receipt-template-v1"
+)
 
 CONTROLLED_PILOT_REQUIRED_CLEARANCE_ITEMS = [
     {
@@ -410,6 +413,53 @@ def build_controlled_pilot_launch_gate(
             "KI detection, or exam deployment."
         ),
     }
+
+
+def build_controlled_pilot_clearance_receipt_template() -> dict[str, Any]:
+    clearance_receipt = {item["item_id"]: False for item in CONTROLLED_PILOT_REQUIRED_CLEARANCE_ITEMS}
+    template_items = [
+        {
+            "item_id": item["item_id"],
+            "label": item["label"],
+            "human_gate": item["human_gate"],
+            "expected_value": True,
+            "default_value": False,
+            "evidence_policy": "field-level confirmation only; keep raw approval text in institutional records",
+        }
+        for item in CONTROLLED_PILOT_REQUIRED_CLEARANCE_ITEMS
+    ]
+    template = {
+        "schema_version": CONTROLLED_PILOT_CLEARANCE_RECEIPT_TEMPLATE_SCHEMA_VERSION,
+        "status": "template_ready_no_raw_text",
+        "clearance_receipt": clearance_receipt,
+        "clearance_items": template_items,
+        "receipt_endpoint": "/api/unibot/pilot/launch-gate",
+        "human_review_required": True,
+        "raw_approval_text_allowed": False,
+        "real_pilot_started": False,
+        "real_pilot_allowed_by_ai": False,
+        "must_not_include": [
+            "raw approval letters",
+            "personal contact data",
+            "private course files",
+            "medical or accommodation details",
+            "grades or exam work",
+            "exam clearance claims",
+            "provider prompts",
+        ],
+        "policy": (
+            "Use this template only as a public-safe checklist for human clearance review. "
+            "Submitting all fields as true can only move the launch gate to manual review, not start a pilot."
+        ),
+    }
+    scan = scan_text(
+        json.dumps(template, ensure_ascii=False, sort_keys=True),
+        "controlled-pilot-clearance-receipt-template",
+    )
+    template["public_safety_status"] = scan["status"]
+    if scan["status"] != "pass":
+        template["status"] = "blocked_public_safety"
+    return template
 
 
 def build_pilot_evidence_alignment(protocol: dict[str, Any] | None = None) -> dict[str, Any]:
