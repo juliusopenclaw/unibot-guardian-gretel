@@ -1387,19 +1387,19 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             ],
         )
         previous_closed_work_id = (
-            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate"
-        )
-        current_candidate_work_id = (
             "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate"
         )
+        current_candidate_work_id = (
+            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate"
+        )
         current_candidate_review_gate = (
-            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness"
+            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt"
         )
         self.assertEqual(
             loop["next_recommended_work_id"],
             current_candidate_work_id,
         )
-        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 147)
+        self.assertEqual(loop["receipt"]["closed_harnessed_work_items"], 148)
         self.assertEqual(loop["receipt"]["ready_work_items"], 0)
         self.assertEqual(loop["receipt"]["candidate_work_items"], 1)
         self.assertEqual(loop["candidate_receipt"]["status"], "candidate_receipt_ready")
@@ -1424,7 +1424,7 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             by_id[current_candidate_work_id]["allowed_files"],
         )
         self.assertIn(
-            "unibot/readiness.py",
+            "unibot/autonomous_research_loop.py",
             loop["candidate_receipt"]["allowed_files"],
         )
         self.assertEqual(
@@ -1465,7 +1465,7 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             loop["candidate_rotation_receipt"]["previous_closed_work_id"],
             previous_closed_work_id,
         )
-        self.assertEqual(loop["candidate_rotation_receipt"]["previous_closed_commit"], "52f4ec8")
+        self.assertEqual(loop["candidate_rotation_receipt"]["previous_closed_commit"], "a6f26c3")
         self.assertEqual(
             loop["candidate_rotation_receipt"]["selected_work_id"],
             current_candidate_work_id,
@@ -1679,6 +1679,12 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
                 "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_commit"
             ],
             "52f4ec8",
+        )
+        self.assertEqual(
+            loop["docs_traceability_negative_evidence_receipt"][
+                "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_commit"
+            ],
+            "a6f26c3",
         )
         self.assertEqual(
             loop["docs_traceability_negative_evidence_receipt"]["selected_work_id"],
@@ -1914,7 +1920,7 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         )
         self.assertEqual(
             by_id[previous_closed_work_id]["closure_evidence"]["commit"],
-            "52f4ec8",
+            "a6f26c3",
         )
         self.assertEqual(
             by_id[current_candidate_work_id]["status"],
@@ -1925,7 +1931,7 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
             current_candidate_review_gate,
         )
         self.assertIn(
-            "unibot/readiness.py",
+            "unibot/autonomous_research_loop.py",
             by_id[current_candidate_work_id]["allowed_files"],
         )
         self.assertLessEqual(loop["budget_policy"]["cadence"]["max_active_work_item_per_run"], 1)
@@ -1943,10 +1949,10 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertIn("Default reasoning effort: low", markdown)
         self.assertIn("Workspace-card gate linked: True", markdown)
         self.assertIn("Autonomous GitHub push: False", markdown)
-        self.assertIn("Closed harnessed items: 147", markdown)
+        self.assertIn("Closed harnessed items: 148", markdown)
         self.assertIn("Candidate items: 1", markdown)
         self.assertIn(
-            "Next recommended work: autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate",
+            "Next recommended work: autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate",
             markdown,
         )
         self.assertIn(
