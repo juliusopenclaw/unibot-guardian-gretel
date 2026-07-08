@@ -4558,6 +4558,16 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 "",
             )
             != ""
+            and autonomous_docs_traceability_negative_evidence_receipt.get(
+                "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_commit",
+                "",
+            )
+            != ""
+            and autonomous_docs_traceability_negative_evidence_receipt.get(
+                "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_commit",
+                "",
+            )
+            != ""
             and autonomous_research_loop["receipt"]["docs_traceability_negative_evidence_status"]
             == "docs_traceability_negative_evidence_receipt_ready"
             and autonomous_research_loop["receipt"]["docs_traceability_negative_evidence_hash"]
@@ -4776,6 +4786,14 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 ),
                 "docs_traceability_negative_evidence_receipt_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_commit": autonomous_docs_traceability_negative_evidence_receipt.get(
                     "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_commit",
+                    "",
+                ),
+                "docs_traceability_negative_evidence_receipt_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_commit": autonomous_docs_traceability_negative_evidence_receipt.get(
+                    "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_commit",
+                    "",
+                ),
+                "docs_traceability_negative_evidence_receipt_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_commit": autonomous_docs_traceability_negative_evidence_receipt.get(
+                    "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_commit",
                     "",
                 ),
                 "docs_traceability_negative_evidence_receipt_selected_work_id": autonomous_docs_traceability_negative_evidence_receipt.get(
