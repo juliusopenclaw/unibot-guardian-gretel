@@ -66,9 +66,10 @@ artifacts.
 
 - No ready item is currently listed.
 - Candidate:
-  `autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate`
-  binds the docs-traceability readiness-negative-receipt-readiness receipt
-  visibility receipt readiness receipt receipt receipt receipt receipt closure into the autonomous-loop receipt
+  `autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate`
+  surfaces the docs-traceability readiness-negative-receipt-readiness receipt
+  visibility receipt readiness receipt receipt receipt receipt receipt
+  receipt-binding closure in readiness evidence
   without authorizing
   implementation work, provider calls, autonomous publication, exam clearance,
   grading, proctoring, KI-detection, or private-context ingestion. Candidate
@@ -102,10 +103,10 @@ artifacts.
   `468358c`, `35d7de0`, `536a5ae`, `06d9c48`, `3a15aad`, `ef199b2`, `f31c122`, `a7775da`, `0d98bc5`, and `a95536a`, review gate,
   failed-contract list, auto-promotion block, and loop-hash match as public
   evidence. The docs-traceability negative-evidence receipt now also binds
-  `47305cd` as the previous readiness-surface closure; the current
-  candidate is the receipt-binding step for that new tail. The candidate
-  rotation receipt records `47305cd` as the previous closed readiness-surface item
-  before selecting the current non-runnable receipt-binding candidate. The
+  `ba2684d` as the previous autonomous-loop receipt closure; the current
+  candidate is the readiness-surface step for that new tail. The candidate
+  rotation receipt records `ba2684d` as the previous closed receipt-binding item
+  before selecting the current non-runnable readiness-surface candidate. The
   current negative harness proves that removing the receipt,
   removing the tail closure commit, or breaking its evidence hash blocks the
   readiness check instead of preserving a green public-draft status.
@@ -230,6 +231,10 @@ artifacts.
   closed in `47305cd` with readiness evidence surfacing `a95536a`, plus a
   negative check that missing final receipt-binding tail evidence blocks green
   readiness.
+- `autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate`:
+  closed in `ba2684d` with the autonomous-loop receipt binding the
+  readiness-surface closure `47305cd` into the docs-traceability
+  negative-evidence receipt and loop hash evidence.
 
 - `exam_workspace_operator_run_local_cycle_workspace_card_operator_receipt_link_alignment`:
   closed in `25ae8f2` with UniBot exam workspace operator-run start view,
