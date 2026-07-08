@@ -839,13 +839,13 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertFalse(glm["evidence"]["raw_workspace_card_returned"])
         autonomous_loop = next(check for check in report["checks"] if check["check_id"] == "gretel_autonomous_research_loop")
         previous_closed_work_id = (
-            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate"
-        )
-        current_candidate_work_id = (
             "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate"
         )
+        current_candidate_work_id = (
+            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate"
+        )
         current_candidate_review_gate = (
-            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness"
+            "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt"
         )
         self.assertEqual(
             autonomous_loop["evidence"]["candidate_receipt_work_id"],
@@ -872,7 +872,7 @@ class UniBotReadinessTests(unittest.TestCase):
             autonomous_loop["evidence"]["candidate_rotation_previous_closed_work_id"],
             previous_closed_work_id,
         )
-        self.assertEqual(autonomous_loop["evidence"]["candidate_rotation_previous_closed_commit"], "f966650")
+        self.assertEqual(autonomous_loop["evidence"]["candidate_rotation_previous_closed_commit"], "7667437")
         self.assertEqual(
             autonomous_loop["evidence"]["candidate_rotation_selected_work_id"],
             current_candidate_work_id,
