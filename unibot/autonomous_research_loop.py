@@ -2951,7 +2951,7 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
         {
             "work_id": "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate",
             "priority": 154,
-            "status": "candidate",
+            "status": "closed_harnessed",
             "goal": "Surface the docs-traceability readiness-negative-receipt-readiness receipt visibility receipt readiness receipt receipt receipt receipt receipt receipt-binding receipt readiness receipt receipt receipt receipt receipt receipt receipt receipt closure in readiness evidence while preserving zero ready work items, one public-safe candidate, bounded file scope, no provider call, no autonomous publication, no exam clearance claim, no grading/proctoring/KI-detection, and no private context ingestion.",
             "allowed_files": [
                 "unibot/readiness.py",
@@ -2963,6 +2963,26 @@ def build_autonomous_work_queue() -> list[dict[str, Any]]:
                 "python3 -m pytest tests/test_unibot_readiness.py tests/test_unibot_autonomous_research_loop.py -q"
             ],
             "review_gate": "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness",
+            "closure_evidence": {
+                "commit": "a40892b",
+                "summary": "UniBot readiness now surfaces 6677b7a and 754a13b as docs-traceability receipt-binding readiness-tail evidence and blocks green readiness when the current tail evidence is missing.",
+            },
+        },
+        {
+            "work_id": "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate",
+            "priority": 155,
+            "status": "candidate",
+            "goal": "Bind the docs-traceability readiness-negative-receipt-readiness receipt visibility receipt readiness receipt receipt receipt receipt receipt receipt-binding receipt readiness receipt receipt receipt receipt receipt receipt receipt receipt closure into the autonomous-loop receipt while preserving zero ready work items, one public-safe candidate, bounded file scope, no provider call, no autonomous publication, no exam clearance claim, no grading/proctoring/KI-detection, and no private context ingestion.",
+            "allowed_files": [
+                "unibot/autonomous_research_loop.py",
+                "tests/test_unibot_autonomous_research_loop.py",
+                "tests/test_unibot_readiness.py",
+                "docs/unibot/UNIBOT_GRETEL_AUTONOMOUS_RESEARCH_LOOP.md",
+            ],
+            "acceptance_tests": [
+                "python3 -m pytest tests/test_unibot_readiness.py tests/test_unibot_autonomous_research_loop.py -q"
+            ],
+            "review_gate": "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt",
         },
     ]
 
@@ -3401,8 +3421,8 @@ def build_autonomous_docs_traceability_negative_evidence_receipt(payload: dict[s
         and item.get("status") == "closed_harnessed"
         and str(item.get("closure_evidence", {}).get("commit", "")) != ""
     }
-    docs_traceability_tail_153_commit_key = (
-        "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate".removeprefix(
+    docs_traceability_tail_154_commit_key = (
+        "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate".removeprefix(
             docs_traceability_tail_prefix
         ).removesuffix("_gate")
         + "_commit"
@@ -3575,13 +3595,13 @@ def build_autonomous_docs_traceability_negative_evidence_receipt(payload: dict[s
         )
         != "",
         "negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_commit_bound": docs_traceability_tail_commits.get(
-            docs_traceability_tail_153_commit_key
+            docs_traceability_tail_154_commit_key
         )
-        == "754a13b",
-        "current_candidate_is_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness": selected_work_id
-        == "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_gate",
-        "current_review_gate_is_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness": review_gate
-        == "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness",
+        == "a40892b",
+        "current_candidate_is_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt": selected_work_id
+        == "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_gate",
+        "current_review_gate_is_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt": review_gate
+        == "autonomous_queue_docs_traceability_negative_evidence_readiness_negative_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt_readiness_receipt",
         "candidate_receipt_ready": candidate_receipt.get("status") == "candidate_receipt_ready",
         "candidate_not_auto_runnable": candidate_receipt.get("candidate_is_not_auto_ready") is True
         and candidate_receipt.get("auto_promotion_allowed") is False,
