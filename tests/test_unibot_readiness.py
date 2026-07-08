@@ -802,6 +802,18 @@ class UniBotReadinessTests(unittest.TestCase):
         pilot = next(check for check in report["checks"] if check["check_id"] == "pilot_protocol")
         self.assertEqual(pilot["evidence"]["pilot_evidence_alignment_status"], "ready")
         self.assertIn("datenschutz_review_required_before_real_pilot", pilot["evidence"]["pilot_alignment_human_gates"])
+        self.assertEqual(pilot["evidence"]["controlled_pilot_launch_gate_status"], "blocked_pending_human_clearance")
+        self.assertEqual(pilot["evidence"]["controlled_pilot_launch_gate_public_safety_status"], "pass")
+        self.assertEqual(pilot["evidence"]["controlled_pilot_launch_gate_receipt_public_safety_status"], "pass")
+        self.assertGreaterEqual(pilot["evidence"]["controlled_pilot_launch_gate_missing_clearance_count"], 1)
+        self.assertFalse(pilot["evidence"]["controlled_pilot_launch_gate_real_pilot_started"])
+        self.assertFalse(pilot["evidence"]["controlled_pilot_launch_gate_real_pilot_allowed_by_ai"])
+        self.assertFalse(pilot["evidence"]["controlled_pilot_launch_gate_raw_receipt_returned"])
+        self.assertEqual(pilot["evidence"]["controlled_pilot_launch_gate_failed_contract_ids"], [])
+        self.assertIn(
+            "ethics_or_supervisor_review_required_before_real_pilot",
+            pilot["evidence"]["controlled_pilot_launch_gate_required_human_gates"],
+        )
         data_protection = next(check for check in report["checks"] if check["check_id"] == "data_protection_screening")
         self.assertEqual(data_protection["evidence"]["data_protection_evidence_alignment_status"], "ready")
         self.assertIn(

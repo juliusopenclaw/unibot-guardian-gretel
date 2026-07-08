@@ -6,6 +6,7 @@ from typing import Any
 
 from .compliance import build_compliance_matrix
 from .evaluation import build_evaluation_packet
+from .materials import sha256_text
 from .public_safety import scan_text
 from .redteam import run_redteam_smoke
 from .source_cards import get_source_card
@@ -16,6 +17,68 @@ PILOT_EVIDENCE_ALIGNMENT_SCHEMA_VERSION = "unibot-pilot-evidence-alignment-v1"
 PILOT_RELEASE_REVIEW_BOARD_ALIGNMENT_SCHEMA_VERSION = (
     "unibot-pilot-release-review-board-claim-alignment-v1"
 )
+CONTROLLED_PILOT_LAUNCH_GATE_SCHEMA_VERSION = "unibot-controlled-pilot-launch-gate-v1"
+
+CONTROLLED_PILOT_REQUIRED_CLEARANCE_ITEMS = [
+    {
+        "item_id": "voluntary_participation_confirmed",
+        "label": "voluntary participation and withdrawal remain explicit",
+        "human_gate": "ethics_or_supervisor_review_required_before_real_pilot",
+    },
+    {
+        "item_id": "transparent_information_sheet_confirmed",
+        "label": "participant information sheet is approved and plain-language",
+        "human_gate": "human_submission_review_required",
+    },
+    {
+        "item_id": "no_grade_or_exam_effect_confirmed",
+        "label": "pilot has no grade, exam, support-decision, or disciplinary effect",
+        "human_gate": "written_university_clearance_required_before_exam_use",
+    },
+    {
+        "item_id": "synthetic_tasks_only_confirmed",
+        "label": "pilot uses frozen synthetic tasks and no real graded work",
+        "human_gate": "human_submission_review_required",
+    },
+    {
+        "item_id": "datenschutz_review_documented",
+        "label": "Datenschutz has reviewed storage, retention, access, and minimisation",
+        "human_gate": "datenschutz_review_required_before_real_pilot",
+    },
+    {
+        "item_id": "ethics_or_supervisor_review_documented",
+        "label": "ethics or thesis supervision review decision is documented",
+        "human_gate": "ethics_or_supervisor_review_required_before_real_pilot",
+    },
+    {
+        "item_id": "withdrawal_redaction_process_tested",
+        "label": "withdrawal and redaction process has been tested",
+        "human_gate": "datenschutz_review_required_before_real_pilot",
+    },
+    {
+        "item_id": "authority_boundary_review_documented",
+        "label": "responsible university authority boundary review is documented",
+        "human_gate": "written_university_clearance_required_before_exam_use",
+    },
+    {
+        "item_id": "public_safety_review_passed",
+        "label": "public-safety review passed before any participant-facing material",
+        "human_gate": "public_safety_required",
+    },
+]
+
+HIGH_STAKES_PILOT_CLAIM_TERMS = [
+    "exam clearance",
+    "exam deployment",
+    "official grading",
+    "grading",
+    "grade effect",
+    "proctoring",
+    "ki-detection",
+    "ai-detection",
+    "misconduct detection",
+    "disciplinary",
+]
 
 PILOT_ALIGNMENT_SECTIONS = [
     {
@@ -243,12 +306,110 @@ def build_pilot_protocol() -> dict[str, Any]:
         "policy": "Pilot protocol is a public-safe planning draft only, not ethics clearance, not data-protection approval, and not exam clearance.",
     }
     protocol["pilot_evidence_alignment"] = build_pilot_evidence_alignment(protocol)
+    protocol["controlled_pilot_launch_gate"] = build_controlled_pilot_launch_gate(protocol)
     scan = scan_text(json.dumps(protocol, ensure_ascii=False), "pilot-protocol")
     protocol["public_safety_status"] = scan["status"]
     if scan["status"] != "pass":
         protocol["status"] = "blocked_public_safety"
         protocol["public_safety_findings"] = scan["findings"]
     return protocol
+
+
+def build_controlled_pilot_launch_gate(
+    protocol: dict[str, Any] | None = None,
+    clearance_receipt: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    pilot = protocol or build_pilot_protocol()
+    receipt = clearance_receipt if isinstance(clearance_receipt, dict) else {}
+    receipt_payload = json.dumps(receipt, ensure_ascii=False, sort_keys=True)
+    receipt_scan = scan_text(receipt_payload, "controlled-pilot-clearance-receipt")
+    receipt_text = receipt_payload.lower()
+    high_stakes_terms_found = sorted(term for term in HIGH_STAKES_PILOT_CLAIM_TERMS if term in receipt_text)
+    clearance_items = []
+    for item in CONTROLLED_PILOT_REQUIRED_CLEARANCE_ITEMS:
+        confirmed = receipt.get(item["item_id"]) is True
+        clearance_items.append(
+            {
+                "item_id": item["item_id"],
+                "label": item["label"],
+                "human_gate": item["human_gate"],
+                "status": "confirmed" if confirmed else "missing",
+            }
+        )
+    missing_clearance_item_ids = sorted(
+        item["item_id"] for item in clearance_items if item["status"] != "confirmed"
+    )
+    required_human_gates = sorted({item["human_gate"] for item in CONTROLLED_PILOT_REQUIRED_CLEARANCE_ITEMS})
+    protection_contracts = {
+        "protocol_draft_ready": pilot.get("status") == "draft_not_ethics_or_authority_cleared",
+        "protocol_public_safe": pilot.get("public_safety_status", "pass") == "pass",
+        "exam_deployment_not_cleared": pilot.get("exam_deployment_status") == "not_cleared",
+        "real_pilot_not_started": True,
+        "ai_does_not_authorize_pilot": True,
+        "high_stakes_modes_not_claimed": high_stakes_terms_found == [],
+        "receipt_public_safe": receipt_scan["status"] == "pass",
+        "raw_receipt_not_returned": True,
+    }
+    failed_contract_ids = sorted(contract_id for contract_id, passed in protection_contracts.items() if not passed)
+    if receipt_scan["status"] != "pass":
+        status = "blocked_receipt_public_safety"
+    elif high_stakes_terms_found:
+        status = "blocked_claim_boundary"
+    elif failed_contract_ids:
+        status = "blocked_protocol_boundary"
+    elif missing_clearance_item_ids:
+        status = "blocked_pending_human_clearance"
+    else:
+        status = "ready_for_manual_pilot_go_review_not_started"
+    gate_payload = {
+        "schema_version": CONTROLLED_PILOT_LAUNCH_GATE_SCHEMA_VERSION,
+        "status": status,
+        "clearance_items": clearance_items,
+        "missing_clearance_item_ids": missing_clearance_item_ids,
+        "required_human_gates": required_human_gates,
+        "failed_contract_ids": failed_contract_ids,
+        "high_stakes_terms_found": high_stakes_terms_found,
+        "receipt_hash_present": bool(receipt),
+        "receipt_hash": sha256_text(receipt_payload) if receipt else "",
+        "protocol_status": pilot.get("status", ""),
+        "exam_deployment_status": pilot.get("exam_deployment_status", ""),
+    }
+    gate_scan = scan_text(
+        json.dumps(gate_payload, ensure_ascii=False, sort_keys=True),
+        "controlled-pilot-launch-gate",
+    )
+    if gate_scan["status"] != "pass" and status != "blocked_receipt_public_safety":
+        status = "blocked_gate_public_safety"
+        gate_payload["status"] = status
+    return {
+        "schema_version": CONTROLLED_PILOT_LAUNCH_GATE_SCHEMA_VERSION,
+        "status": status,
+        "status_label_de": "Kontrollierter Pilot bleibt ohne menschliche Freigaben blockiert",
+        "pilot_mode": "voluntary_transparent_formative_synthetic_only",
+        "clearance_items": clearance_items,
+        "missing_clearance_item_ids": missing_clearance_item_ids,
+        "missing_clearance_count": len(missing_clearance_item_ids),
+        "required_human_gates": required_human_gates,
+        "protection_contracts": protection_contracts,
+        "failed_contract_ids": failed_contract_ids,
+        "high_stakes_terms_found": high_stakes_terms_found,
+        "receipt_hash_present": bool(receipt),
+        "receipt_hash": gate_payload["receipt_hash"],
+        "clearance_receipt_public_safety_status": receipt_scan["status"],
+        "public_safety_status": gate_scan["status"],
+        "real_pilot_started": False,
+        "real_pilot_allowed_by_ai": False,
+        "raw_receipt_returned": False,
+        "ready_for": ["manual review of a clearance receipt"]
+        if status == "ready_for_manual_pilot_go_review_not_started"
+        else [],
+        "not_ready_for": ["real pilot start by AI", "exam deployment", "grading", "proctoring", "KI-detection"],
+        "policy": (
+            "The controlled pilot launch gate classifies clearance receipts without returning raw receipt text. "
+            "It never starts a real pilot and never grants AI authority for pilot launch, grading, proctoring, "
+            "KI detection, or exam deployment."
+        ),
+    }
 
 
 def build_pilot_evidence_alignment(protocol: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -366,6 +527,10 @@ def build_pilot_protocol_markdown() -> str:
         f"- `{card['source_id']}`: {card['product_rule']}" for card in protocol["source_cards"]
     )
     alignment = protocol["pilot_evidence_alignment"]
+    launch_gate = protocol["controlled_pilot_launch_gate"]
+    launch_gate_items = "\n".join(
+        f"- `{item['item_id']}`: {item['status']} ({item['human_gate']})" for item in launch_gate["clearance_items"]
+    )
     return (
         "# UniBot Pilot Protocol\n\n"
         f"Status: {protocol['status_label_de']}\n\n"
@@ -394,6 +559,14 @@ def build_pilot_protocol_markdown() -> str:
         f"- Sections: {alignment['section_count']}\n"
         f"- Release review-board claim alignment: {alignment['pilot_release_review_board_claim_contract']['expected_schema_version']}\n"
         f"- Human gates: {', '.join(alignment['required_human_gates'])}\n\n"
+        "## Controlled Pilot Launch Gate\n\n"
+        f"- Status: {launch_gate['status']}\n"
+        f"- Public safety: {launch_gate['public_safety_status']}\n"
+        f"- Receipt public safety: {launch_gate['clearance_receipt_public_safety_status']}\n"
+        f"- Real pilot started: {launch_gate['real_pilot_started']}\n"
+        f"- Real pilot allowed by AI: {launch_gate['real_pilot_allowed_by_ai']}\n"
+        f"- Missing clearance count: {launch_gate['missing_clearance_count']}\n"
+        f"{launch_gate_items}\n\n"
         "## Source Cards\n\n"
         f"{source_lines}\n\n"
         f"Policy: {protocol['policy']}\n"

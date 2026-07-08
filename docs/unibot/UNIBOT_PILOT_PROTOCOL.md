@@ -76,6 +76,40 @@ The alignment must remain `ready` before public draft review. It is still only
 a review aid: it is not ethics clearance, Datenschutz approval, participant
 recruitment approval, or exam clearance.
 
+## Controlled Pilot Launch Gate
+
+The generated protocol also includes `controlled_pilot_launch_gate`.
+
+Default state:
+
+- `status`: `blocked_pending_human_clearance`
+- `real_pilot_started`: `False`
+- `real_pilot_allowed_by_ai`: `False`
+- `raw_receipt_returned`: `False`
+
+The gate expects only field-level clearance receipts, never raw approval text.
+It tracks whether the following human-controlled items are documented:
+
+- voluntary participation and withdrawal
+- approved participant information sheet
+- no grade, exam, support-decision, or disciplinary effect
+- frozen synthetic tasks only
+- Datenschutz review
+- ethics or supervisor review
+- tested withdrawal and redaction process
+- responsible university boundary review
+- public-safety review
+
+If every item is confirmed, the status can move only to
+`ready_for_manual_pilot_go_review_not_started`. It still does not start a real
+pilot and still does not authorize exam deployment, grading, proctoring, or
+KI-detection.
+
+If a clearance receipt contains high-stakes claims such as exam clearance,
+official grading, proctoring, misconduct detection, or private/public-unsafe
+data, the gate blocks the receipt and returns only safe status, hash, and
+contract information.
+
 ## Release Rule
 
 The protocol is ready for public draft review only when the public-safety scan

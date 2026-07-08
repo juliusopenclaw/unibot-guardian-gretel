@@ -4091,7 +4091,15 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
             and pilot_protocol["pilot_evidence_alignment"]["missing_protocol_keys"] == []
             and pilot_protocol["pilot_evidence_alignment"]["missing_source_card_ids"] == []
             and pilot_protocol["pilot_evidence_alignment"]["missing_release_review_board_claim_check_ids"] == []
-            and pilot_protocol["pilot_evidence_alignment"]["missing_release_review_board_claim_human_gates"] == [],
+            and pilot_protocol["pilot_evidence_alignment"]["missing_release_review_board_claim_human_gates"] == []
+            and pilot_protocol["controlled_pilot_launch_gate"]["status"] == "blocked_pending_human_clearance"
+            and pilot_protocol["controlled_pilot_launch_gate"]["public_safety_status"] == "pass"
+            and pilot_protocol["controlled_pilot_launch_gate"]["clearance_receipt_public_safety_status"] == "pass"
+            and pilot_protocol["controlled_pilot_launch_gate"]["real_pilot_started"] is False
+            and pilot_protocol["controlled_pilot_launch_gate"]["real_pilot_allowed_by_ai"] is False
+            and pilot_protocol["controlled_pilot_launch_gate"]["raw_receipt_returned"] is False
+            and pilot_protocol["controlled_pilot_launch_gate"]["missing_clearance_count"] >= 1
+            and pilot_protocol["controlled_pilot_launch_gate"]["failed_contract_ids"] == [],
             "evidence": {
                 "status": pilot_protocol["status"],
                 "public_safety_status": pilot_protocol["public_safety_status"],
@@ -4104,6 +4112,31 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
                 ]["expected_schema_version"],
                 "pilot_alignment_section_count": pilot_protocol["pilot_evidence_alignment"]["section_count"],
                 "pilot_alignment_human_gates": pilot_protocol["pilot_evidence_alignment"]["required_human_gates"],
+                "controlled_pilot_launch_gate_status": pilot_protocol["controlled_pilot_launch_gate"]["status"],
+                "controlled_pilot_launch_gate_public_safety_status": pilot_protocol["controlled_pilot_launch_gate"][
+                    "public_safety_status"
+                ],
+                "controlled_pilot_launch_gate_receipt_public_safety_status": pilot_protocol[
+                    "controlled_pilot_launch_gate"
+                ]["clearance_receipt_public_safety_status"],
+                "controlled_pilot_launch_gate_missing_clearance_count": pilot_protocol["controlled_pilot_launch_gate"][
+                    "missing_clearance_count"
+                ],
+                "controlled_pilot_launch_gate_required_human_gates": pilot_protocol["controlled_pilot_launch_gate"][
+                    "required_human_gates"
+                ],
+                "controlled_pilot_launch_gate_real_pilot_started": pilot_protocol["controlled_pilot_launch_gate"][
+                    "real_pilot_started"
+                ],
+                "controlled_pilot_launch_gate_real_pilot_allowed_by_ai": pilot_protocol[
+                    "controlled_pilot_launch_gate"
+                ]["real_pilot_allowed_by_ai"],
+                "controlled_pilot_launch_gate_raw_receipt_returned": pilot_protocol["controlled_pilot_launch_gate"][
+                    "raw_receipt_returned"
+                ],
+                "controlled_pilot_launch_gate_failed_contract_ids": pilot_protocol["controlled_pilot_launch_gate"][
+                    "failed_contract_ids"
+                ],
             },
         },
         {

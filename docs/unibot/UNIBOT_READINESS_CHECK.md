@@ -30,6 +30,8 @@ It aggregates:
 - release and contributor runbook
 - compliance matrix
 - pilot protocol
+- controlled pilot launch gate for field-level human clearance receipts without
+  raw approval text or AI launch authority
 - data-protection screening
 - review board packet
 - Professor/Uni Review Brief for purpose, boundaries, data protection,
@@ -87,6 +89,13 @@ labelled Gretel-built and Gretel-documented, GLM remains proposal-only with
 provider calls disabled by default, human gates are preserved, real pilot use is
 blocked pending review, high-stakes claims stay blocked, and source cards and
 public-safety checks pass.
+
+The controlled pilot launch gate is ready for public-draft status only when it
+keeps a real pilot blocked pending human clearance, returns no raw clearance
+text, starts no pilot, grants no AI authority, preserves Datenschutz,
+ethics/supervision, university-boundary, public-safety, and no-grade/no-exam
+human gates, and blocks high-stakes receipt claims such as grading, proctoring,
+KI-detection, misconduct detection, exam deployment, or exam clearance.
 
 The Gretel/GLM proposal lane is ready only when it remains proposal-only,
 public-safe, no-provider-call by default, and blocked from autonomous apply,

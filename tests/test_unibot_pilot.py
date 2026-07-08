@@ -9,9 +9,28 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.pilot import build_pilot_evidence_alignment, build_pilot_protocol, build_pilot_protocol_markdown  # noqa: E402
+from unibot.pilot import (  # noqa: E402
+    build_controlled_pilot_launch_gate,
+    build_pilot_evidence_alignment,
+    build_pilot_protocol,
+    build_pilot_protocol_markdown,
+)
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
+
+
+def complete_clearance_receipt() -> dict[str, bool]:
+    return {
+        "voluntary_participation_confirmed": True,
+        "transparent_information_sheet_confirmed": True,
+        "no_grade_or_exam_effect_confirmed": True,
+        "synthetic_tasks_only_confirmed": True,
+        "datenschutz_review_documented": True,
+        "ethics_or_supervisor_review_documented": True,
+        "withdrawal_redaction_process_tested": True,
+        "authority_boundary_review_documented": True,
+        "public_safety_review_passed": True,
+    }
 
 
 class UniBotPilotProtocolTests(unittest.TestCase):
@@ -31,6 +50,17 @@ class UniBotPilotProtocolTests(unittest.TestCase):
         self.assertEqual(protocol["pilot_evidence_alignment"]["public_safety_status"], "pass")
         self.assertEqual(protocol["pilot_evidence_alignment"]["missing_release_review_board_claim_check_ids"], [])
         self.assertEqual(protocol["pilot_evidence_alignment"]["missing_release_review_board_claim_human_gates"], [])
+        self.assertEqual(protocol["controlled_pilot_launch_gate"]["status"], "blocked_pending_human_clearance")
+        self.assertEqual(protocol["controlled_pilot_launch_gate"]["public_safety_status"], "pass")
+        self.assertEqual(protocol["controlled_pilot_launch_gate"]["clearance_receipt_public_safety_status"], "pass")
+        self.assertGreaterEqual(protocol["controlled_pilot_launch_gate"]["missing_clearance_count"], 9)
+        self.assertFalse(protocol["controlled_pilot_launch_gate"]["real_pilot_started"])
+        self.assertFalse(protocol["controlled_pilot_launch_gate"]["real_pilot_allowed_by_ai"])
+        self.assertFalse(protocol["controlled_pilot_launch_gate"]["raw_receipt_returned"])
+        self.assertIn(
+            "datenschutz_review_required_before_real_pilot",
+            protocol["controlled_pilot_launch_gate"]["required_human_gates"],
+        )
 
     def test_pilot_protocol_boundaries_exclude_high_stakes_and_private_data(self) -> None:
         protocol = build_pilot_protocol()
@@ -98,6 +128,52 @@ class UniBotPilotProtocolTests(unittest.TestCase):
             by_section["review_board_thesis_evaluation_pilot_boundary"]["readiness_check_ids"],
         )
 
+    def test_controlled_pilot_launch_gate_accepts_complete_clearance_for_manual_review_only(self) -> None:
+        protocol = build_pilot_protocol()
+        gate = build_controlled_pilot_launch_gate(protocol, complete_clearance_receipt())
+
+        self.assertEqual(gate["schema_version"], "unibot-controlled-pilot-launch-gate-v1")
+        self.assertEqual(gate["status"], "ready_for_manual_pilot_go_review_not_started")
+        self.assertEqual(gate["pilot_mode"], "voluntary_transparent_formative_synthetic_only")
+        self.assertEqual(gate["missing_clearance_item_ids"], [])
+        self.assertEqual(gate["missing_clearance_count"], 0)
+        self.assertEqual(gate["failed_contract_ids"], [])
+        self.assertTrue(all(gate["protection_contracts"].values()))
+        self.assertTrue(gate["receipt_hash_present"])
+        self.assertTrue(gate["receipt_hash"])
+        self.assertFalse(gate["real_pilot_started"])
+        self.assertFalse(gate["real_pilot_allowed_by_ai"])
+        self.assertFalse(gate["raw_receipt_returned"])
+        self.assertIn("manual review of a clearance receipt", gate["ready_for"])
+        self.assertIn("real pilot start by AI", gate["not_ready_for"])
+
+    def test_controlled_pilot_launch_gate_blocks_high_stakes_receipt_claims(self) -> None:
+        protocol = build_pilot_protocol()
+        receipt = complete_clearance_receipt()
+        receipt["requested_mode"] = "official grading and exam clearance"
+        gate = build_controlled_pilot_launch_gate(protocol, receipt)
+
+        self.assertEqual(gate["status"], "blocked_claim_boundary")
+        self.assertIn("exam clearance", gate["high_stakes_terms_found"])
+        self.assertIn("official grading", gate["high_stakes_terms_found"])
+        self.assertIn("high_stakes_modes_not_claimed", gate["failed_contract_ids"])
+        self.assertFalse(gate["protection_contracts"]["high_stakes_modes_not_claimed"])
+        self.assertFalse(gate["real_pilot_allowed_by_ai"])
+
+    def test_controlled_pilot_launch_gate_blocks_unsafe_receipt_without_returning_raw_text(self) -> None:
+        protocol = build_pilot_protocol()
+        receipt = complete_clearance_receipt()
+        unsafe_contact = "student" + "@example.com"
+        receipt["private_contact"] = unsafe_contact
+        gate = build_controlled_pilot_launch_gate(protocol, receipt)
+
+        self.assertEqual(gate["status"], "blocked_receipt_public_safety")
+        self.assertEqual(gate["clearance_receipt_public_safety_status"], "blocked")
+        self.assertIn("receipt_public_safe", gate["failed_contract_ids"])
+        self.assertFalse(gate["protection_contracts"]["receipt_public_safe"])
+        self.assertFalse(gate["raw_receipt_returned"])
+        self.assertNotIn(unsafe_contact, json.dumps(gate, ensure_ascii=False))
+
     def test_pilot_markdown_and_api_routes(self) -> None:
         markdown = build_pilot_protocol_markdown()
 
@@ -105,6 +181,8 @@ class UniBotPilotProtocolTests(unittest.TestCase):
         self.assertIn("Consent Checklist", markdown)
         self.assertIn("Ethics Review Triggers", markdown)
         self.assertIn("Evidence Alignment", markdown)
+        self.assertIn("Controlled Pilot Launch Gate", markdown)
+        self.assertIn("Real pilot allowed by AI: False", markdown)
         self.assertIn("Release review-board claim alignment: unibot-pilot-release-review-board-claim-alignment-v1", markdown)
         self.assertIn("Exam deployment: not_cleared", markdown)
 
