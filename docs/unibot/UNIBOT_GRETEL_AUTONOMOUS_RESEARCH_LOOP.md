@@ -102,8 +102,8 @@ artifacts.
   through `e84d853`, `f5bb021`, `fd5dd4f`, `57d649c`, `60ba49e`, `883b80e`,
   `468358c`, `35d7de0`, `536a5ae`, `06d9c48`, `3a15aad`, `ef199b2`,
   `f31c122`, `a7775da`, `0d98bc5`, `a95536a`, `ba2684d`, `f01d737`, and
-  `2e60207`, `d36dbfd`, `f966650`, `8fab4a0`, `00fb3d9`, `48b5144`, and
-  `52f4ec8`,
+  `2e60207`, `d36dbfd`, `f966650`, `8fab4a0`, `00fb3d9`, `48b5144`,
+  `52f4ec8`, and `180d5c5`,
   review gate,
   failed-contract list, auto-promotion block, and loop-hash match as public
   evidence. The docs-traceability negative-evidence receipt now also binds
@@ -115,7 +115,7 @@ artifacts.
   receipt-binding item before selecting the current non-runnable readiness
   candidate. The
   current negative harness proves that removing the receipt,
-  removing the tail closure commit through `52f4ec8`, or breaking its evidence
+  removing the tail closure commit through `180d5c5`, or breaking its evidence
   hash blocks the readiness check instead of preserving a green public-draft
   status.
 
