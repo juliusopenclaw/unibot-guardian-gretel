@@ -71,6 +71,8 @@ class UniBotApiAndPublicSafetyTests(unittest.TestCase):
                 "api" + "_key = sk-test",
                 "RAW_EXTERNAL" + "_AI_OUTPUT: here is the complete answer",
                 "knowledge/private_course" + "_materials/course.pdf",
+                "knowledge/exam" + "_workspace/private-run",
+                "Ver-" + "Sacrum private marker",
                 "/" + "Users/student/private/notebook.ipynb",
                 "Dia" + "gnose: private detail",
             ]
@@ -83,6 +85,7 @@ class UniBotApiAndPublicSafetyTests(unittest.TestCase):
         self.assertIn("secret_assignment", finding_types)
         self.assertIn("raw_external_ai_transcript", finding_types)
         self.assertIn("private_course_material_reference", finding_types)
+        self.assertIn("private_project_marker", finding_types)
         self.assertIn("local_path", finding_types)
         self.assertIn("personal_health_or_accommodation_record", finding_types)
 

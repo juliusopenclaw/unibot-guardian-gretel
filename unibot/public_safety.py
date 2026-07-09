@@ -15,12 +15,24 @@ PRIVATE_COURSE_PATH_PATTERN = "|".join(
     ]
 )
 
+PRIVATE_PROJECT_MARKER_PATTERN = "|".join(
+    re.escape(marker)
+    for marker in [
+        "F" + "M",
+        "Ver-" + "Sacrum",
+        "Ver " + "Sacrum",
+        "knowledge/exam" + "_workspace",
+        "knowledge\\exam" + "_workspace",
+    ]
+)
+
 PUBLIC_SAFETY_PATTERNS = [
     ("email_address", r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"),
     ("phone_number", r"\b(?:tel|phone|telefon|mobil|mobile)\s*[:=]?\s*(?:\+?\d[\d\s()./-]{7,}\d)"),
     ("local_path", rf"(?:/(?:Users|users)/|C:\\\\(?:Users|users)\\\\|{FILE_SCHEME_PATTERN})"),
     ("secret_assignment", r"\b(?:api[_-]?key|token|password|passwd|secret)\b\s*[:=]\s*[^\s]+"),
     ("private_course_material_reference", rf"\b(?:{PRIVATE_COURSE_PATH_PATTERN})"),
+    ("private_project_marker", rf"\b(?:{PRIVATE_PROJECT_MARKER_PATTERN})\b"),
     ("raw_external_ai_transcript", r"\b(?:RAW_EXTERNAL_AI_OUTPUT|raw_external_ai_output|gemini_raw_response)\b\s*[:=]"),
     (
         "personal_health_or_accommodation_record",
