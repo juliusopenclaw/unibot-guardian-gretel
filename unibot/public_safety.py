@@ -29,7 +29,7 @@ PRIVATE_PROJECT_MARKER_PATTERN = "|".join(
 PUBLIC_SAFETY_PATTERNS = [
     ("email_address", r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"),
     ("phone_number", r"\b(?:tel|phone|telefon|mobil|mobile)\s*[:=]?\s*(?:\+?\d[\d\s()./-]{7,}\d)"),
-    ("local_path", rf"(?:/(?:Users|users)/|C:\\\\(?:Users|users)\\\\|{FILE_SCHEME_PATTERN})"),
+    ("local_path", rf"(?:/(?:Users|users)/|[A-Za-z]:\\(?:Users|users)\\|{FILE_SCHEME_PATTERN})"),
     ("secret_assignment", r"\b(?:api[_-]?key|token|password|passwd|secret)\b\s*[:=]\s*[^\s]+"),
     ("private_course_material_reference", rf"\b(?:{PRIVATE_COURSE_PATH_PATTERN})"),
     ("private_project_marker", rf"\b(?:{PRIVATE_PROJECT_MARKER_PATTERN})\b"),
