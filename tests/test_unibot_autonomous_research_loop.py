@@ -126,6 +126,15 @@ class UniBotAutonomousResearchLoopTests(unittest.TestCase):
         self.assertEqual(unknown_status_report["unexpected_status_work_ids"], [loop["work_queue"][0]["work_id"]])
         self.assertIn("known_queue_statuses_only", unknown_status_report["failed_contract_ids"])
 
+        duplicate_commit_loop = json.loads(json.dumps(loop))
+        first_commit = duplicate_commit_loop["work_queue"][0]["closure_evidence"]["commit"]
+        duplicate_commit_loop["work_queue"][1]["closure_evidence"]["commit"] = first_commit
+        duplicate_commit_report = build_autonomous_queue_integrity_report(duplicate_commit_loop)
+
+        self.assertEqual(duplicate_commit_report["status"], "queue_integrity_blocked")
+        self.assertEqual(duplicate_commit_report["duplicate_closure_commits"], [first_commit])
+        self.assertIn("closure_commits_unique", duplicate_commit_report["failed_contract_ids"])
+
     def test_autonomous_loop_hash_helpers_separate_budget_and_receipt_state(self) -> None:
         loop = build_autonomous_research_loop()
 
