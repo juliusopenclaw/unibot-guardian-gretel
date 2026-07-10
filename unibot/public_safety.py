@@ -10,6 +10,7 @@ LOCAL_PATH_PATTERN = "|".join(
     [
         r"/(?:Users|users)/",
         r"/home/[A-Za-z0-9._-]+/",
+        r"/(?:private/)?var/folders/[A-Za-z0-9._/-]+",
         r"[A-Za-z]:\\(?:Users|users)\\",
         FILE_SCHEME_PATTERN,
     ]

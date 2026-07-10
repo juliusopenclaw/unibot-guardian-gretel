@@ -75,6 +75,8 @@ class UniBotApiAndPublicSafetyTests(unittest.TestCase):
                 "Ver-" + "Sacrum private marker",
                 "/" + "Users/student/private/notebook.ipynb",
                 "/" + "home/student/private/notebook.ipynb",
+                "/" + "private/va" + "r/folders/zz/private-notebook.ipynb",
+                "/" + "va" + "r/folders/zz/private-notebook.ipynb",
                 "C:" + "\\Users\\student\\private\\notebook.ipynb",
                 "Dia" + "gnose: private detail",
             ]
