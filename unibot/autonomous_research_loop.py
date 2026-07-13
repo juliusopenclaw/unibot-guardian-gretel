@@ -3372,11 +3372,18 @@ def build_autonomous_queue_integrity_report(payload: dict[str, Any]) -> dict[str
     duplicate_closure_commits = sorted({commit for commit in closure_commits if closure_commits.count(commit) > 1})
     candidate_items = [item for item in queue if item.get("status") == "candidate"]
     ready_items = [item for item in queue if item.get("status") == "ready"]
+    allowed_statuses = {"closed_harnessed", "candidate", "ready"}
+    unexpected_status_work_ids = sorted(
+        str(item.get("work_id", ""))
+        for item in queue
+        if str(item.get("status", "")) not in allowed_statuses
+    )
     highest_priority_item = max(queue, key=lambda item: int(item.get("priority", 0) or 0), default={})
     selected_work_id = str(candidate_receipt.get("selected_work_id", ""))
     contracts = {
         "priority_sequence_contiguous": priorities == expected_priorities,
         "no_duplicate_priorities": duplicate_priorities == [],
+        "known_queue_statuses_only": unexpected_status_work_ids == [],
         "closed_items_have_commits": missing_closure_commit_work_ids == [],
         "closure_commits_unique": duplicate_closure_commits == [],
         "single_candidate_lane_preserved": len(candidate_items) == 1,
@@ -3406,6 +3413,7 @@ def build_autonomous_queue_integrity_report(payload: dict[str, Any]) -> dict[str
         "duplicate_priorities": duplicate_priorities,
         "missing_closure_commit_work_ids": missing_closure_commit_work_ids,
         "duplicate_closure_commits": duplicate_closure_commits,
+        "unexpected_status_work_ids": unexpected_status_work_ids,
         "contracts": contracts,
         "failed_contract_ids": failed_contract_ids,
         "auto_promotion_allowed": False,
@@ -3441,6 +3449,7 @@ def build_autonomous_queue_integrity_report(payload: dict[str, Any]) -> dict[str
                 "duplicate_priorities": report["duplicate_priorities"],
                 "missing_closure_commit_work_ids": report["missing_closure_commit_work_ids"],
                 "duplicate_closure_commits": report["duplicate_closure_commits"],
+                "unexpected_status_work_ids": report["unexpected_status_work_ids"],
                 "contracts": report["contracts"],
                 "queue_hash": report["queue_hash"],
             },

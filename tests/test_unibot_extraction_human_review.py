@@ -101,7 +101,7 @@ class UniBotExtractionHumanReviewTests(unittest.TestCase):
         decision = {
             **valid_review_decision(str(receipt["job_id"])),
             "raw_text": "must not be persisted",
-            "local_path": "/private/course/file.pdf",
+            "local_path": "/" + "private/course/file.pdf",
         }
 
         validation = validate_extraction_human_review_decision(
