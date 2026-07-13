@@ -16,6 +16,7 @@ from .companion import DEFAULT_EXTENSION_ID, companion_status, install_companion
 from .gateway import GatewayError, launch_gateway
 from .glm_provider import PROVIDER_SCOPE, ZaiGLMProvider, keychain_key_available
 from .notebook_intake import NotebookIntakeError, import_notebook
+from .provider_state import park_provider, provider_status, unpark_provider
 from .public_safety import scan_text
 from .server import run as run_server
 
@@ -65,6 +66,12 @@ def build_parser() -> argparse.ArgumentParser:
     preflight.add_argument("--json", action="store_true")
     status = autonomy_commands.add_parser("status")
     status.add_argument("--repo", type=Path, default=Path.cwd())
+    provider = autonomy_commands.add_parser("provider", help="park or inspect the optional GLM provider")
+    provider_commands = provider.add_subparsers(dest="provider_command", required=True)
+    provider_commands.add_parser("park")
+    provider_commands.add_parser("status")
+    provider_unpark = provider_commands.add_parser("unpark")
+    provider_unpark.add_argument("--scope", required=True)
     run = autonomy_commands.add_parser("run")
     run.add_argument("--repo", type=Path, default=Path.cwd())
     run.add_argument("--work-id", default="")
@@ -111,9 +118,24 @@ def main(argv: Sequence[str] | None = None) -> int:
             _print_json(payload)
             return 0 if payload["status"] == "ready" else 2
         if args.command == "autonomy" and args.autonomy_command == "status":
-            _print_json(autonomy_status(args.repo))
+            payload = autonomy_status(args.repo)
+            payload["provider"] = provider_status()
+            _print_json(payload)
             return 0
+        if args.command == "autonomy" and args.autonomy_command == "provider":
+            if args.provider_command == "park":
+                payload = park_provider()
+            elif args.provider_command == "unpark":
+                payload = unpark_provider(args.scope)
+            else:
+                payload = provider_status()
+            _print_json(payload)
+            return 0 if payload["status"] in {"parked_awaiting_zai_balance", "unparked_public_unibot_only"} else 2
         if args.command == "autonomy" and args.autonomy_command == "run":
+            state = provider_status()
+            if not state["provider_call_allowed"]:
+                _print_json({"status": "blocked", "reason": state["status"], "provider": state})
+                return 2
             if args.provider_go != PROVIDER_SCOPE:
                 _print_json({"status": "blocked", "reason": "public-unibot-only provider scope required"})
                 return 2

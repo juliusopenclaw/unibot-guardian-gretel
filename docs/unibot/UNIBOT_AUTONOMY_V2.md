@@ -1,11 +1,13 @@
 # UniBot Autonomy v2
 
-Status: active public-safe development policy
+Status: provider parked; deterministic local development active
 
 ## Roles
 
-- Gretel is the AI implementation and documentation agent.
-- GLM-5.2 produces a redacted proposal and an independent review.
+- Gretel/Codex is the AI implementation and documentation agent.
+- GLM-5.2 may later produce a redacted proposal and an independent review. It
+  did not contribute to the UniBot 2.1 Alpha or the current provider-parking
+  implementation.
 - Julius or another named human reviewer owns merge, publication, ethics,
   legal assessment, and real university submission.
 
@@ -41,10 +43,27 @@ repository changes, rollout credit, or public traceback content.
 
 ## Provider Boundary
 
-The provider scope is exactly `public-unibot-only`. The key is read from a
-dedicated macOS Keychain item and is never stored in this repository, a dotenv
-file, a prompt, a run artifact, or a log. GLM receives no tools and no raw
-filesystem access.
+The provider is currently `parked_awaiting_zai_balance`. Every autonomy run
+checks that fail-closed state before provider scope, macOS Keychain, SDK, price,
+or network logic. These local controls are available:
+
+```text
+unibot autonomy provider park
+unibot autonomy provider status
+unibot autonomy provider unpark --scope public-unibot-only
+```
+
+The state file lives outside Git and iCloud in the user's local Application
+Support directory, contains no key, and is written atomically with mode `0600`.
+A missing, malformed, symbolic-link, or overly permissive state fails closed.
+`UNIBOT_PROVIDER_STATE_PATH` exists for isolated tests and managed local
+deployments; it must never point into a public repository or synced learner
+data directory.
+
+Later unparked operation requires the provider scope exactly
+`public-unibot-only`. The key is read from a dedicated macOS Keychain item and
+is never stored in this repository, a dotenv file, a prompt, a run artifact, or
+a log. GLM receives no tools and no raw filesystem access.
 
 Blocked context includes private course or exam material, learner records,
 mailbox or calendar data, health or accommodation data, local paths,
