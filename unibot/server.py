@@ -1,8 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import hmac
 import json
+import re
+import secrets
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
@@ -99,6 +105,7 @@ from .gretel_glm_evolve import (
 )
 from .handoff import build_authority_handoff_markdown, build_authority_handoff_packet
 from .ledger import append_ledger_event, export_public_ledger_summary, read_ledger, summarize_ledger
+from .learning_session import HELP_LEVELS_V1, LearningSession
 from .loop_lab import run_loop_lab
 from .material_coverage_run import build_course_material_coverage_run
 from .materials import (
@@ -109,6 +116,7 @@ from .materials import (
     validate_material_record,
 )
 from .notebooks import audit_practice_notebook, generate_practice_notebook
+from .notebook_intake import NotebookIntakeError, import_notebook
 from .ocr_first_operator import run_controlled_ocr_first_batch_1
 from .orchestration import (
     build_context_packet,
@@ -206,6 +214,7 @@ from .timeline_export_receipt_journal import (
 )
 from .timeline_export_review_packet import build_timeline_export_review_packet
 from .review_chain_integrity import build_review_chain_integrity_check
+from .socratic_tutor import build_tutor_turn
 from .triage import build_feedback_triage, build_feedback_triage_markdown
 from .tutor_coverage import build_course_tutor_coverage_plan
 from .tutor_index import build_private_index_tutor_response_dry_run, build_private_tutor_index_dry_run
@@ -224,6 +233,10 @@ from exam_mode import (
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
+MAX_REQUEST_BODY_BYTES = 64 * 1024
+PAIRING_TTL_SECONDS = 10 * 60
+PAIRING_ATTEMPT_LIMIT = 5
+CHROME_EXTENSION_ORIGIN = re.compile(r"^chrome-extension://[a-p]{32}$")
 
 
 def payload_receipts_with_journal(payload: dict[str, Any], key: str = "receipts") -> tuple[list[dict[str, Any]] | None, str]:
@@ -242,13 +255,45 @@ def route_request(path: str, payload: dict[str, Any] | None = None, method: str 
     query_payload = {key: values[-1] for key, values in parse_qs(parsed.query).items() if values}
     payload = {**query_payload, **(payload or {})}
     path = parsed.path
-    if method == "GET" and path in {"/health", "/api/unibot/health"}:
+    if method == "GET" and path in {"/health", "/api/unibot/health", "/api/v2/health"}:
         return 200, {
             "status": "ok",
             "service": "unibot-guardian-local",
             "storage": "local-only",
             "raw_output_policy": "hash-only by default",
+            "api_version": "v2",
+            "authentication": "one-time pairing and session token",
         }
+    if path == "/api/v2/socratic/help":
+        help_level = str(payload.get("help_level", payload.get("requested_help_level", "A2"))).upper()
+        if help_level not in {"A0", "A1", "A2"}:
+            return 400, {
+                "status": "blocked-help-level",
+                "allowed_help_levels": ["A0", "A1", "A2"],
+                "exam_deployment_status": "not_cleared",
+            }
+        return 200, guardian_practice_flow(
+            task=str(payload.get("task", "")),
+            external_output=str(payload.get("external_output", "")),
+            requested_help_level=help_level,
+            mode="practice_overlay",
+            tool=str(payload.get("tool", "browser_mantle_v2")),
+            source_card_ids=list(payload.get("source_card_ids", []) or []),
+            accessibility_used=bool(payload.get("accessibility_used", False)),
+            approval_reference=None,
+            student_reflection=str(payload.get("student_reflection", "")),
+        )
+    if path == "/api/v2/notebooks/import":
+        source = str(payload.get("url", payload.get("source", ""))).strip()
+        if not source.startswith("https://"):
+            return 400, {"status": "public-https-url-required"}
+        try:
+            manifest = import_notebook(source, Path.cwd() / ".unibot" / "notebooks")
+        except (NotebookIntakeError, FileExistsError) as exc:
+            return 400, {"status": "notebook-import-blocked", "reason": str(exc)}
+        return 200, dict(manifest)
+    if path == "/api/v2/session/export":
+        return 200, export_public_ledger_summary()
     if path == "/api/unibot/prompt-card":
         return 200, generate_socratic_prompt_card(
             task=str(payload.get("task", "")),
@@ -3803,50 +3848,292 @@ def route_request(path: str, payload: dict[str, Any] | None = None, method: str 
     return 404, {"status": "not-found", "path": path}
 
 
+class UniBotHTTPServer(ThreadingHTTPServer):
+    daemon_threads = True
+    allow_reuse_address = True
+
+    def __init__(
+        self,
+        server_address: tuple[str, int],
+        request_handler: type[BaseHTTPRequestHandler],
+        *,
+        session_token: str | None = None,
+        pairing_code: str | None = None,
+        allowed_origins: set[str] | None = None,
+    ) -> None:
+        super().__init__(server_address, request_handler)
+        self.session_token = session_token or secrets.token_urlsafe(32)
+        self.pairing_code = pairing_code or f"{secrets.randbelow(100_000_000):08d}"
+        self.pairing_expires_at = time.monotonic() + PAIRING_TTL_SECONDS
+        self.pairing_attempts = 0
+        self.allowed_origins = set(allowed_origins or set())
+        self.paired_origin = ""
+        session_hash = hashlib.sha256(self.session_token.encode("utf-8")).hexdigest()[:16]
+        self.session_ledger_path = Path.cwd() / ".unibot" / "sessions" / f"{session_hash}.jsonl"
+        self.learning_session: LearningSession | None = None
+
+
 class UniBotRequestHandler(BaseHTTPRequestHandler):
-    server_version = "UniBotGuardian/0.1"
+    server_version = "UniBotGuardian/0.2"
+
+    def setup(self) -> None:
+        super().setup()
+        self.connection.settimeout(10)
 
     def do_OPTIONS(self) -> None:
+        if not self._host_allowed():
+            self._write_json(403, {"status": "blocked-host"})
+            return
+        origin = self.headers.get("Origin", "")
+        path = urlparse(self.path).path
+        if not self._origin_allowed(origin) and not (path == "/api/v2/pair" and self._pair_origin_allowed(origin)):
+            self._write_json(403, {"status": "blocked-origin"})
+            return
         self.send_response(204)
-        self._send_cors_headers()
+        self._send_cors_headers(origin, allow_pair_origin=path == "/api/v2/pair")
+        self._send_security_headers()
         self.end_headers()
 
     def do_GET(self) -> None:
+        if not self._host_allowed():
+            self._write_json(403, {"status": "blocked-host"})
+            return
+        path = urlparse(self.path).path
+        if path not in {"/health", "/api/unibot/health", "/api/v2/health"}:
+            if not self._request_authorized():
+                return
+        if path == "/api/v2/session":
+            self._write_json(200, self._session_summary())
+            return
+        if path == "/api/v2/session/export":
+            server = self._security_server()
+            response = server.learning_session.report() if server and server.learning_session else self._session_summary()
+            self._write_json(200, response)
+            return
         status, response = route_request(self.path, method="GET")
         self._write_json(status, response)
 
     def do_POST(self) -> None:
-        length = int(self.headers.get("content-length", "0") or 0)
-        raw_body = self.rfile.read(length) if length else b"{}"
-        try:
-            payload = json.loads(raw_body.decode("utf-8"))
-        except json.JSONDecodeError:
-            self._write_json(400, {"status": "invalid-json"})
+        if not self._host_allowed():
+            self._write_json(403, {"status": "blocked-host"})
+            return
+        payload = self._read_payload()
+        if payload is None:
+            return
+        path = urlparse(self.path).path
+        if path == "/api/v2/pair":
+            self._handle_pair(payload)
+            return
+        if not self._request_authorized():
+            return
+        server = self._security_server()
+        if path == "/api/v2/session/contracts":
+            if server is None:
+                self._write_json(503, {"status": "secure-server-configuration-required"})
+                return
+            try:
+                server.learning_session = LearningSession.start(
+                    payload,
+                    storage_root=server.session_ledger_path.parent / "learning",
+                )
+            except ValueError as exc:
+                self._write_json(400, {"status": "invalid-session-contract", "reason": str(exc)})
+                return
+            self._write_json(201, {"status": "active", "contract": server.learning_session.contract})
+            return
+        if path == "/api/v2/socratic/help" and server and server.learning_session:
+            try:
+                response = build_tutor_turn(server.learning_session, payload)
+            except ValueError as exc:
+                self._write_json(400, {"status": "tutor-turn-blocked", "reason": str(exc)})
+                return
+            self._write_json(200, response)
+            return
+        if path == "/api/v2/session/export":
+            response = server.learning_session.report() if server and server.learning_session else self._session_summary()
+            self._write_json(200, response)
+            return
+        if path == "/api/v2/session":
+            self._write_json(200, self._session_summary())
             return
         status, response = route_request(self.path, payload=payload, method="POST")
+        if path == "/api/v2/socratic/help" and status == 200 and isinstance(response.get("guardian_event"), dict):
+            server = self._security_server()
+            if server is None:
+                self._write_json(503, {"status": "secure-server-configuration-required"})
+                return
+            stored = append_ledger_event(response["guardian_event"], path=server.session_ledger_path)
+            response["session_ledger"] = {
+                "status": stored["status"],
+                "raw_output_stored": False,
+                "local_path_returned": False,
+            }
         self._write_json(status, response)
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
         return
 
-    def _send_cors_headers(self) -> None:
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "content-type")
+    def _security_server(self) -> UniBotHTTPServer | None:
+        return self.server if isinstance(self.server, UniBotHTTPServer) else None
 
-    def _write_json(self, status: int, response: dict[str, Any]) -> None:
+    def _host_allowed(self) -> bool:
+        host_header = self.headers.get("Host", "")
+        try:
+            hostname = urlparse(f"//{host_header}").hostname or ""
+        except ValueError:
+            return False
+        server = self._security_server()
+        bound_host = str(server.server_address[0]) if server else ""
+        return hostname.lower() in {"127.0.0.1", "localhost", "::1", bound_host.lower()}
+
+    def _origin_allowed(self, origin: str) -> bool:
+        if not origin:
+            return True
+        server = self._security_server()
+        return server is not None and origin in server.allowed_origins
+
+    def _pair_origin_allowed(self, origin: str) -> bool:
+        return not origin or bool(CHROME_EXTENSION_ORIGIN.fullmatch(origin))
+
+    def _request_authorized(self) -> bool:
+        server = self._security_server()
+        if server is None:
+            self._write_json(503, {"status": "secure-server-configuration-required"})
+            return False
+        origin = self.headers.get("Origin", "")
+        if not self._origin_allowed(origin):
+            self._write_json(403, {"status": "blocked-origin"})
+            return False
+        presented = self.headers.get("X-UniBot-Token", "")
+        if not presented or not hmac.compare_digest(presented, server.session_token):
+            self._write_json(401, {"status": "session-token-required"})
+            return False
+        return True
+
+    def _read_payload(self) -> dict[str, Any] | None:
+        try:
+            length = int(self.headers.get("Content-Length", "0") or 0)
+        except ValueError:
+            self._write_json(400, {"status": "invalid-content-length"})
+            return None
+        if length < 0 or length > MAX_REQUEST_BODY_BYTES:
+            self._write_json(413, {"status": "request-body-too-large"})
+            return None
+        content_type = self.headers.get("Content-Type", "application/json").split(";", 1)[0].strip().lower()
+        if content_type != "application/json":
+            self._write_json(415, {"status": "application-json-required"})
+            return None
+        raw_body = self.rfile.read(length) if length else b"{}"
+        try:
+            payload = json.loads(raw_body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            self._write_json(400, {"status": "invalid-json"})
+            return None
+        if not isinstance(payload, dict):
+            self._write_json(400, {"status": "json-object-required"})
+            return None
+        return payload
+
+    def _handle_pair(self, payload: dict[str, Any]) -> None:
+        server = self._security_server()
+        origin = self.headers.get("Origin", "")
+        if server is None:
+            self._write_json(503, {"status": "secure-server-configuration-required"})
+            return
+        if not self._pair_origin_allowed(origin):
+            self._write_json(403, {"status": "blocked-origin"})
+            return
+        if time.monotonic() > server.pairing_expires_at:
+            self._write_json(410, {"status": "pairing-code-expired"}, allow_pair_origin=True)
+            return
+        if server.pairing_attempts >= PAIRING_ATTEMPT_LIMIT:
+            self._write_json(429, {"status": "pairing-attempt-limit"}, allow_pair_origin=True)
+            return
+        server.pairing_attempts += 1
+        supplied_code = str(payload.get("pairing_code", ""))
+        if not hmac.compare_digest(supplied_code, server.pairing_code):
+            self._write_json(401, {"status": "invalid-pairing-code"}, allow_pair_origin=True)
+            return
+        if origin:
+            server.allowed_origins = {origin}
+            server.paired_origin = origin
+        server.pairing_code = ""
+        self._write_json(
+            200,
+            {
+                "status": "paired",
+                "session_token": server.session_token,
+                "allowed_origin": server.paired_origin,
+                "allowed_help_levels": list(HELP_LEVELS_V1),
+                "exam_deployment_status": "not_cleared",
+            },
+            allow_pair_origin=True,
+        )
+
+    def _session_summary(self) -> dict[str, Any]:
+        server = self._security_server()
+        if server is None:
+            return {"status": "secure-server-configuration-required"}
+        summary = export_public_ledger_summary(path=server.session_ledger_path)
+        response = {
+            **summary,
+            "status": "paired" if not server.pairing_code else "awaiting_pairing",
+            "allowed_origin": server.paired_origin,
+            "allowed_help_levels": list(HELP_LEVELS_V1),
+            "exam_deployment_status": "not_cleared",
+        }
+        if server.learning_session:
+            response["learning_contract"] = server.learning_session.contract
+            response["learning_summary"] = server.learning_session.summary()
+        return response
+
+    def _send_cors_headers(self, origin: str, *, allow_pair_origin: bool = False) -> None:
+        if origin and (self._origin_allowed(origin) or (allow_pair_origin and self._pair_origin_allowed(origin))):
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "content-type, x-unibot-token")
+
+    def _send_security_headers(self) -> None:
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+
+    def _write_json(self, status: int, response: dict[str, Any], *, allow_pair_origin: bool = False) -> None:
         body = json.dumps(response, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
-        self._send_cors_headers()
+        self._send_cors_headers(self.headers.get("Origin", ""), allow_pair_origin=allow_pair_origin)
+        self._send_security_headers()
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
 
 
-def run(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT) -> None:
-    server = ThreadingHTTPServer((host, port), UniBotRequestHandler)
-    print(f"UniBot Guardian local API listening on http://{host}:{port}")
+def create_server(
+    host: str = DEFAULT_HOST,
+    port: int = DEFAULT_PORT,
+    *,
+    session_token: str | None = None,
+    pairing_code: str | None = None,
+    allowed_origins: set[str] | None = None,
+) -> UniBotHTTPServer:
+    if host not in {"127.0.0.1", "localhost", "::1"}:
+        raise ValueError("UniBot API may bind to loopback only")
+    return UniBotHTTPServer(
+        (host, port),
+        UniBotRequestHandler,
+        session_token=session_token,
+        pairing_code=pairing_code,
+        allowed_origins=allowed_origins,
+    )
+
+
+def run(host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, *, show_pairing_code: bool = True) -> None:
+    server = create_server(host, port)
+    print(f"UniBot Guardian local API listening on http://{host}:{server.server_address[1]}")
+    if show_pairing_code:
+        print(f"One-time pairing code: {server.pairing_code}")
     server.serve_forever()
 
 
@@ -3854,8 +4141,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run the separate UniBot Guardian local API.")
     parser.add_argument("--host", default=DEFAULT_HOST)
     parser.add_argument("--port", default=DEFAULT_PORT, type=int)
+    parser.add_argument("--pair", action="store_true", help="show the one-time browser pairing code")
     args = parser.parse_args()
-    run(args.host, args.port)
+    run(args.host, args.port, show_pairing_code=True)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,35 @@
+name: Product improvement
+description: Propose a bounded, testable UniBot product improvement.
+title: "[Product]: "
+labels: ["product"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Observable problem
+      description: Describe a public-safe learner or reviewer problem.
+    validations:
+      required: true
+  - type: textarea
+    id: delta
+    attributes:
+      label: Product delta
+      description: State what a user or reviewer can do better afterward.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance evidence
+      description: Name tests, scenarios, or measurements that prove the delta.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Public-safety confirmation
+      options:
+        - label: This issue contains no private course, personal, credential, or real exam data.
+          required: true
+        - label: This issue does not request grading, proctoring, AI detection, or exam clearance.
+          required: true

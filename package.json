@@ -1,0 +1,13 @@
+{
+  "name": "unibot-guardian-browser-tests",
+  "private": true,
+  "version": "0.3.0",
+  "type": "module",
+  "scripts": {
+    "test:browser": "playwright test tests/browser",
+    "test:extension-package": "node tests/browser/extension-package.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1"
+  }
+}

@@ -118,6 +118,23 @@ def build_bachelor_thesis_evidence_index() -> dict[str, Any]:
             "source_card_ids": ["dfg-gwp", "zai-glm-52"],
             "human_gate": "human_submission_review_required",
         },
+        {
+            "claim_id": "complete_gretel_thesis_manuscript",
+            "claim": (
+                "The public package includes a chaptered Gretel-authored manuscript covering research question, "
+                "related work, method, system, evaluation, results, limitations, ethics, privacy, and reproducibility."
+            ),
+            "evidence_type": "public_manuscript_and_test",
+            "artifact_refs": [
+                "docs/thesis/UNIBOT_GRETEL_BACHELOR_THESIS_MANUSCRIPT.md",
+                "unibot/bachelor_thesis.py",
+                "tests/test_unibot_bachelor_thesis.py",
+            ],
+            "readiness_check_ids": ["gretel_bachelor_thesis_package"],
+            "acceptance_tests": ["python3 -m pytest tests/test_unibot_bachelor_thesis.py -q"],
+            "source_card_ids": ["dfg-gwp", "vanlehn-2011", "gdpr-2016-679", "zai-glm-52"],
+            "human_gate": "human_submission_review_required",
+        },
     ]
     index = {
         "schema_version": "unibot-gretel-bachelor-thesis-evidence-index-v1",
@@ -298,6 +315,8 @@ def default_bachelor_thesis_hash_basis(evidence_index: dict[str, Any]) -> dict[s
         "authorship_statement": {
             "builder": "Gretel",
             "documentation_author": "Gretel",
+            "builder_identity": "AI implementation and documentation agent",
+            "orchestration_surface": "Codex local automation",
             "programmer_claim": "This public package is labelled as built and documented by Gretel, not by Julius.",
             "institutional_status": "not a real thesis submission and not institutionally approved by this artifact",
         },
@@ -305,6 +324,8 @@ def default_bachelor_thesis_hash_basis(evidence_index: dict[str, Any]) -> dict[s
             "primary_model_hint": "zai/glm-5.2",
             "provider": "Z.AI",
             "provider_call_default": "disabled",
+            "provider_scope_when_enabled": "public-unibot-only",
+            "model_permissions": "proposal and independent review only; no tools, apply, push, merge, or Final-Go",
             "official_source_card_ids": ["zai-glm-52", "zai-glm-52-migration", "zai-glm-pricing"],
         },
         "research_question": (
@@ -459,6 +480,8 @@ def build_bachelor_thesis_package() -> dict[str, Any]:
         "authorship_statement": {
             "builder": "Gretel",
             "documentation_author": "Gretel",
+            "builder_identity": "AI implementation and documentation agent",
+            "orchestration_surface": "Codex local automation",
             "programmer_claim": "This public package is labelled as built and documented by Gretel, not by Julius.",
             "human_role": "Julius or another human reviewer remains the review, ethics, legal, and real submission gate.",
             "institutional_status": "not a real thesis submission and not institutionally approved by this artifact",
@@ -468,9 +491,11 @@ def build_bachelor_thesis_package() -> dict[str, Any]:
             "provider": "Z.AI",
             "use_mode": "redacted proposal, architecture, harness, and documentation review",
             "provider_call_default": "disabled",
+            "provider_scope_when_enabled": "public-unibot-only",
+            "model_permissions": "proposal and independent review only; no tools, apply, push, merge, or Final-Go",
             "reason": "GLM-5.2 is treated as the long-context coding proposal model for public-safe UniBot work packets.",
             "official_source_card_ids": ["zai-glm-52", "zai-glm-52-migration", "zai-glm-pricing"],
-            "verified_on": "2026-07-02",
+            "verified_on": "2026-07-11",
         },
         "research_question": (
             "How can a public, source-bound AI practice layer support coding learners without replacing "
@@ -508,7 +533,17 @@ def build_bachelor_thesis_package() -> dict[str, Any]:
                 "docs/unibot/UNIBOT_GRETEL_BACHELOR_THESIS_PACKAGE.md",
                 "docs/unibot/UNIBOT_PUBLICATION_PACKAGE.md",
                 "docs/unibot/UNIBOT_READINESS_CHECK.md",
+                "docs/thesis/UNIBOT_GRETEL_BACHELOR_THESIS_MANUSCRIPT.md",
             ],
+        },
+        "manuscript": {
+            "status": "complete_public_draft_requires_human_supervision_review",
+            "path": "docs/thesis/UNIBOT_GRETEL_BACHELOR_THESIS_MANUSCRIPT.md",
+            "language": "German",
+            "chapter_count": 12,
+            "contains_empirical_student_study": False,
+            "contains_exam_security_proof": False,
+            "legal_submission_by_gretel": False,
         },
         "deliverables": [
             "Public Python package",
@@ -519,12 +554,15 @@ def build_bachelor_thesis_package() -> dict[str, Any]:
             "Review-board and authority handoff drafts",
             "Gretel/GLM proposal lane",
             "Bachelor-thesis-style documentation package",
+            "Chaptered Gretel-authored bachelor-thesis-level manuscript",
         ],
         "review_gates": {
             "public_safety_required": True,
             "written_university_clearance_required_before_exam_use": True,
             "human_submission_review_required": True,
             "no_autonomous_github_publish": True,
+            "draft_pull_request_allowed_after_rollout_gates": True,
+            "autonomous_merge": False,
             "no_final_go_by_gretel_or_glm": True,
             "provider_call_requires_explicit_go_and_redaction_receipt": True,
         },

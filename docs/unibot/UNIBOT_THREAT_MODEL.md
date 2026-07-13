@@ -30,10 +30,12 @@ grading, proctoring, or KI-detection evidence.
 | External AI gives a complete solution. | Postfilter blocks final solutions, complete code, values, and final interpretations; only a Socratic hint is shown. |
 | Student pastes private data into Gemini or UniBot. | Privacy detector flags emails, phone numbers, matriculation hints, health/accommodation terms, local paths, and secrets. |
 | Overlay is mistaken for exam security. | Product language states practice overlay only; exam mode requires controlled channel or managed environment plus written approval. |
-| Colab DOM changes break detection. | Extension offers copy/paste fallback and does not claim full capture. |
+| Colab DOM changes break detection. | Separate Colab, Jupyter, and manual-selection adapters report confidence; low-confidence capture is rejected. |
 | AI-generated sources are false. | Source-risk category blocks weak citation claims and requires real course or official documentation. |
 | Accessibility help is treated as cheating. | Accessibility support is score-neutral and separate from subject-matter help. |
-| Independence Score becomes a grade. | Score is private, formative, local-only, and never an official assessment. |
+| Assistance exposure becomes a grade. | The report separates help cost, attempt hashes, revisions, and transfer evidence; it explicitly rejects automatic grading and authorship claims. |
+| A malicious page calls the local tutor. | The alpha extension uses Native Messaging with an exact extension origin. The HTTP compatibility path retains pairing, origin pinning, and session tokens. |
+| Raw notebook text leaks through logs. | Runtime text is held in memory; local records and voluntary reports contain metadata and hashes only. |
 | Public release leaks private material. | Public build excludes emails, private course files, health data, local paths, and raw AI transcripts. |
 | Exam mode uses not-cleared KI. | `exam_controlled` blocks external KI unless a written clearance reference is present. |
 
@@ -44,6 +46,12 @@ it cannot guarantee that every model response is intercepted before display. A
 real exam-grade variant must use a controlled model gateway, managed browser, or
 managed Jupyter environment where raw model output is unavailable until UniBot
 has filtered it.
+
+Mantle 2.1 is therefore a practice product. Native Messaging removes the
+hard-coded loopback port but does not turn Colab into a controlled exam runtime.
+The extension does not claim full capture. The voluntary report remains
+private, formative, local-only by default and becomes shareable only through a
+learner-triggered metadata export.
 
 ## Red-Team Smoke Cases
 

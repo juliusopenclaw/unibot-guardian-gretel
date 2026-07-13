@@ -12,9 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from unibot.public_safety import scan_public_files, scan_text  # noqa: E402
-from http.server import ThreadingHTTPServer  # noqa: E402
-
-from unibot.server import UniBotRequestHandler, route_request  # noqa: E402
+from unibot.server import create_server, route_request  # noqa: E402
 from unibot.source_cards import (  # noqa: E402
     build_source_card_drift_report,
     get_source_card,
@@ -97,7 +95,7 @@ class UniBotApiAndPublicSafetyTests(unittest.TestCase):
         files = [
             *sorted((ROOT / "docs" / "unibot").glob("*.md")),
             *sorted((ROOT / "unibot").glob("*.py")),
-            *sorted((ROOT / "unibot" / "browser_extension").glob("*")),
+            *sorted(path for path in (ROOT / "unibot" / "browser_extension").glob("**/*") if path.is_file()),
         ]
         scan = scan_public_files(files)
         self.assertEqual(scan["status"], "pass", scan["findings"])
@@ -153,7 +151,7 @@ class UniBotApiAndPublicSafetyTests(unittest.TestCase):
         self.assertEqual(response["public_safety_status"], "pass")
 
     def test_http_handler_roundtrip(self) -> None:
-        server = ThreadingHTTPServer(("127.0.0.1", 0), UniBotRequestHandler)
+        server = create_server("127.0.0.1", 0, session_token="synthetic-session-token")
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
         try:
@@ -168,7 +166,10 @@ class UniBotApiAndPublicSafetyTests(unittest.TestCase):
             request = urllib.request.Request(
                 url,
                 data=body,
-                headers={"content-type": "application/json"},
+                headers={
+                    "content-type": "application/json",
+                    "x-unibot-token": "synthetic-session-token",
+                },
                 method="POST",
             )
             with urllib.request.urlopen(request, timeout=5) as response:

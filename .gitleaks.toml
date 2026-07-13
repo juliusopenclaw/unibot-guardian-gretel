@@ -1,0 +1,14 @@
+title = "UniBot public repository Gitleaks policy"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Chrome Manifest V3 public extension verification key"
+condition = "AND"
+regexTarget = "line"
+paths = ['''^unibot/browser_extension/manifest\.json$''']
+regexes = ['''"key"\s*:\s*"MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A''']

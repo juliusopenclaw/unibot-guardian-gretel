@@ -8,13 +8,35 @@ It is built for public review, reproducible synthetic evaluation, and university
 authority discussion. It is not a proctoring system, an AI detector, an automatic
 grader, or an exam-clearance decision system.
 
+Implementation and documentation are led by **Gretel, an AI agent**. GLM-5.2
+is used only for redacted proposals and independent reviews. Human reviewers
+retain merge, publication, ethics, legal, and real-submission authority. The
+full provenance statement is in `AUTHORS.md`.
+
 ## Start
 
-- Start local API:
-  - `python3 -m unibot.server`
-  - Health check: `GET /api/unibot/health` on `127.0.0.1:8765`
+- Install for development: `python3 -m pip install --upgrade 'pip>=26.1.2'` and
+  `python3 -m pip install -e '.[dev,glm,gateway]'`
+- Install the local Mac companion: `unibot companion install`
+- In Chrome, load `unibot/browser_extension` as an unpacked extension for the
+  public alpha. Its fixed alpha ID is bound to the installed native host.
+- Open `~/Applications/UniBot Companion.app` or click the extension and start a
+  fixed or adaptive A0-A4 learning session.
+- Start the paired local API: `unibot serve --pair`
+- Import a public notebook: `unibot notebook import <https-url-or-local-file>`
+- Inspect the autonomous lane: `unibot autonomy preflight`
+- Health check for the developer API: `GET /api/v2/health` on the selected
+  loopback port. Port `8765` remains the CLI default but is not used by the
+  Chrome companion transport.
 - API base path is rooted under:
-  - `127.0.0.1:8765/api/unibot/...`
+  - `127.0.0.1:8765/api/v2/...`
+- Legacy `/api/unibot/...` routes remain available for one alpha compatibility
+  cycle but require the same local session token over HTTP.
+
+The production-facing alpha extension communicates through Chrome Native
+Messaging. It does not store a loopback token or depend on a hard-coded port.
+Notebook cell, task, and learner-attempt text stay in process memory; local
+session files and voluntary exports contain metadata and hashes only.
 
 ## Tests
 
@@ -25,6 +47,9 @@ grader, or an exam-clearance decision system.
 - Loop Lab v2 eval smoke:
   - `python3 scripts/unibot_loop_lab_smoke.py --json`
 - Full local smoke + red-team checks are executed by this command as part of the script.
+- Focused Mantle 2.1 checks: `python3 -m pytest tests/test_unibot_mantle_v21.py -q`
+- Browser interaction checks: `npm run test:browser`
+- Headed MV3 package check: `npm run test:extension-package`
 
 ## Open Science Boundary
 
@@ -36,6 +61,10 @@ grader, or an exam-clearance decision system.
   `docs/unibot/UNIBOT_GRETEL_BACHELOR_THESIS_PACKAGE.md`.
 - The budgeted Gretel autonomous research loop is in
   `docs/unibot/UNIBOT_GRETEL_AUTONOMOUS_RESEARCH_LOOP.md`.
+- The active v2 policy and product queue are in
+  `docs/unibot/UNIBOT_AUTONOMY_V2.md` and `unibot/autonomy_work_items.json`.
+- The local companion, A0-A4 contract, report semantics, and known browser
+  boundary are documented in `docs/unibot/UNIBOT_MANTLE_V21.md`.
 - Public work uses synthetic tasks, source cards, test fixtures, and redacted
   review artifacts only.
 - Exam-controlled use remains `not_cleared` until written authority clearance
@@ -52,6 +81,6 @@ grader, or an exam-clearance decision system.
 
 - The main Gretel project includes only a neutral link to this project.
 - This repo is intended for independent development and scientific documentation.
-- GLM can suggest plans and tests through the redacted proposal lane, but it
-  must not apply code, publish issues, send messages, claim clearance, or ask
-  for private context.
+- GLM can suggest plans and tests through the redacted proposal lane. Gretel
+  applies reviewed changes in an isolated branch; neither system may merge,
+  claim clearance, or request private context.
