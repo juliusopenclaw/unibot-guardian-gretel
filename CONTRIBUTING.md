@@ -2,6 +2,11 @@
 
 Thank you for helping build a safer, source-grounded, open-science tutor layer.
 
+Implementation and documentation are led by Gretel, an AI agent. GLM-5.2 may
+propose or review a bounded public-safe change. Julius or another named human
+reviewer remains responsible for merge, publication, ethics, legal assessment,
+and any real submission. See `AUTHORS.md`.
+
 ## Scope
 
 Good contributions include:
@@ -27,6 +32,12 @@ filesystem details, credentials, or confidential Gretel case material.
 - Keep exam deployment status `not_cleared` unless written authority clearance
   exists and is reviewed outside the codebase.
 - Model-generated ideas are proposals only until reviewed and tested.
+- A work item must name a product or research delta. Receipt-only, hash-only,
+  or readiness-only churn is not accepted unless it repairs a failing safety
+  gate.
+- Automated work is limited to one item and four candidate files per cycle.
+- Automated changes use a `gretel/` branch and a draft pull request. They never
+  merge themselves.
 
 ## Local Checks
 
@@ -48,3 +59,5 @@ the smoke script before review.
 - Documentation describes the boundary and limitations.
 - No claim of proctoring, grading, AI detection evidence, accommodation
   decision, legal advice, or exam clearance was introduced.
+- The pull request identifies Gretel, the model role, provider-call status,
+  tests, remaining uncertainty, and the human decision required.

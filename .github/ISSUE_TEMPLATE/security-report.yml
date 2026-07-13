@@ -1,0 +1,28 @@
+name: Public-safe security report
+description: Report a vulnerability using synthetic, redacted evidence only.
+title: "[Security]: "
+labels: ["security"]
+body:
+  - type: markdown
+    attributes:
+      value: Do not include credentials, private course material, personal data, or real exam work.
+  - type: textarea
+    id: boundary
+    attributes:
+      label: Affected boundary
+      description: Describe the component and expected safe behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Synthetic reproduction
+      description: Give a minimal reproduction using invented data.
+    validations:
+      required: true
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+    validations:
+      required: true

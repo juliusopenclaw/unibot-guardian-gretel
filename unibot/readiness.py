@@ -132,14 +132,16 @@ ROOT = Path(__file__).resolve().parents[1]
 def default_public_paths(include_tests: bool = True) -> list[Path]:
     paths = [
         ROOT / "README.md",
+        ROOT / "AUTHORS.md",
         ROOT / "CONTRIBUTING.md",
         ROOT / "SECURITY.md",
         ROOT / "CODE_OF_CONDUCT.md",
         ROOT / "LICENSE",
         ROOT / "pyproject.toml",
-        *sorted((ROOT / "docs" / "unibot").glob("*.md")),
+        *sorted((ROOT / "docs").glob("**/*.md")),
         *sorted((ROOT / "unibot").glob("*.py")),
-        *sorted(path for path in (ROOT / "unibot" / "browser_extension").glob("*") if path.is_file()),
+        *sorted(path for path in (ROOT / "unibot" / "browser_extension").glob("**/*") if path.is_file()),
+        ROOT / "unibot" / "autonomy_work_items.json",
     ]
     if include_tests:
         paths.extend(sorted((ROOT / "tests").glob("test_unibot_*.py")))
@@ -3905,7 +3907,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
         },
         {
             "check_id": "browser_manifest_content_boundary",
-            "passed": browser_manifest["permissions"] == ["activeTab", "storage", "sidePanel"]
+            "passed": browser_manifest["permissions"] == ["activeTab", "nativeMessaging", "storage", "sidePanel"]
             and "<all_urls>" not in json.dumps(browser_manifest, ensure_ascii=False)
             and "https://colab.research.google.com/*" in browser_manifest["host_permissions"]
             and "http://localhost/*" in browser_manifest["host_permissions"]

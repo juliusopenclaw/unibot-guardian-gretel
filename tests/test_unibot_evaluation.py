@@ -14,6 +14,8 @@ from unibot.evaluation import (  # noqa: E402
     build_evaluation_learner_agency_boundary_alignment,
     build_evaluation_packet,
     build_scientific_quality_rubric,
+    score_synthetic_decisions,
+    synthetic_task_category_counts,
     synthetic_tasks,
 )
 from unibot.public_safety import scan_text  # noqa: E402
@@ -26,7 +28,7 @@ class UniBotEvaluationTests(unittest.TestCase):
 
         self.assertEqual(packet["schema_version"], "unibot-evaluation-packet-v1")
         self.assertEqual(packet["status"], "draft_not_ethics_or_authority_cleared")
-        self.assertGreaterEqual(len(packet["synthetic_tasks"]), 4)
+        self.assertEqual(len(packet["synthetic_tasks"]), 180)
         self.assertIn("codebook", packet)
         self.assertIn("scientific_quality_rubric", packet)
         self.assertIn("measurement_plan", packet)
@@ -100,9 +102,33 @@ class UniBotEvaluationTests(unittest.TestCase):
         self.assertIn("synthetic_source_uncertainty", task_ids)
         self.assertIn("synthetic_accessibility_neutral", task_ids)
         self.assertTrue(all(task["skill_tags"] for task in tasks))
+        self.assertEqual(len(tasks), 180)
+        self.assertEqual(
+            synthetic_task_category_counts(),
+            {
+                "allowed_socratic_hint": 30,
+                "assistance_budget": 30,
+                "forbidden_final_answer": 30,
+                "privacy_boundary": 30,
+                "prompt_injection": 30,
+                "source_binding": 30,
+            },
+        )
         self.assertNotIn("solution_key", payload)
         self.assertNotIn("official_grade", payload)
         self.assertNotIn("raw_external_ai_output", payload)
+
+    def test_synthetic_decision_score_reports_false_blocks_and_forbidden_recall(self) -> None:
+        observations = [
+            {"task_id": task["task_id"], "decision": task["expected_decision"]}
+            for task in synthetic_tasks()
+        ]
+        score = score_synthetic_decisions(observations)
+        self.assertEqual(score["status"], "complete")
+        self.assertEqual(score["task_count"], 180)
+        self.assertEqual(score["forbidden_decision_recall"], 1.0)
+        self.assertEqual(score["allowed_help_false_block_rate"], 0.0)
+        self.assertIn("no learner grade", score["assessment_boundary"])
 
     def test_evaluation_boundaries_exclude_high_stakes_use(self) -> None:
         packet_text = json.dumps(build_evaluation_packet(), ensure_ascii=False).lower()
@@ -135,7 +161,7 @@ class UniBotEvaluationTests(unittest.TestCase):
         status, tasks = route_request("/api/unibot/evaluation-tasks", {})
         self.assertEqual(status, 200)
         self.assertEqual(tasks["status"], "ok")
-        self.assertGreaterEqual(len(tasks["tasks"]), 4)
+        self.assertEqual(len(tasks["tasks"]), 180)
 
 
 if __name__ == "__main__":

@@ -1,12 +1,12 @@
 {
   "manifest_version": 3,
   "name": "UniBot Guardian Mantel",
-  "description": "Separate practice overlay for Colab, Jupyter, and coding AI help. Not an exam security guarantee.",
-  "version": "0.1.0",
-  "permissions": ["activeTab", "storage", "sidePanel"],
+  "description": "Local Socratic practice overlay for Colab and Jupyter. Not an exam security guarantee.",
+  "version": "0.3.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0R1Nw959FVhSxHFodrfxh2YHFRUMkG5GMv1x4bdjmk+m8jgseV6YwhZVHXre0uPvfnJNZDk51BYNAWDpaaJ99LtDNBeld42qZhWG6puj6wHov30w/W7Ls/Djc8N0Rv7c21QIfe4Y/MxTV1i8DVHGZ3D2XUhs/WaXm52B6WpsZ3rkS5tV5Kyb5OpxIx0Ol0KNx4zy99KOZVAAO13g9O0haLmJ1ReVJLdzvsmQk4IdEitEDHvWAyq7XiW2nczPQkM3oeuE92ksadGXk3swKeMqlnQICkC/YvACCp4+3QurGU0wIzS++J9c8f2CWjBmBQrm/M7yKCUkcFJna/74sn+LywIDAQAB",
+  "permissions": ["activeTab", "nativeMessaging", "storage", "sidePanel"],
   "host_permissions": [
     "https://colab.research.google.com/*",
-    "https://*.googleusercontent.com/*",
     "http://localhost/*",
     "http://127.0.0.1/*"
   ],
@@ -22,7 +22,7 @@
     }
   ],
   "side_panel": {
-    "default_path": "sidepanel.html"
+    "default_path": "v2/sidepanel.html"
   },
   "background": {
     "service_worker": "background.js"

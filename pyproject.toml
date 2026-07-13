@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "unibot-guardian"
-version = "0.1.0"
+version = "0.3.0"
 description = "Open-science Socratic integrity layer for coding-practice AI workflows."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "Apache-2.0" }
+license = { file = "LICENSE" }
 authors = [
-  { name = "UniBot Guardian contributors" }
+  { name = "Gretel UniBot AI agent and contributors" }
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -21,18 +21,55 @@ classifiers = [
   "Topic :: Education",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-dependencies = []
+dependencies = [
+  "nbformat>=5.10,<6",
+]
+
+[project.scripts]
+unibot = "unibot.cli:main"
+unibot-native-host = "unibot.companion:main"
 
 [project.optional-dependencies]
+glm = [
+  "zai-sdk==0.2.3",
+]
+gateway = [
+  "jupyterlab>=4.2,<5",
+]
 dev = [
+  "mypy>=1.10",
+  "pip-audit>=2.7",
   "pytest>=8.2",
   "pytest-cov>=5.0",
+  "ruff>=0.5",
 ]
 
 [tool.setuptools]
 packages = ["unibot"]
 py-modules = ["exam_mode"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+unibot = [
+  "autonomy_work_items.json",
+  "browser_extension/*.js",
+  "browser_extension/*.json",
+  "browser_extension/*.html",
+  "browser_extension/v2/*.js",
+  "browser_extension/v2/*.html",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.mypy]
+python_version = "3.11"
+follow_imports = "skip"
+warn_unused_ignores = true
+check_untyped_defs = true
+disallow_untyped_defs = true

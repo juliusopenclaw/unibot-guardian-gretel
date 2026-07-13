@@ -1,0 +1,149 @@
+import { expect, test } from "@playwright/test";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const extensionRoot = path.join(root, "unibot", "browser_extension");
+
+test("content script captures the active Jupyter cell without output text", async ({ page }) => {
+  await page.setContent(`
+    <main class="jp-Notebook">
+      <section class="jp-Notebook-cell jp-CodeCell jp-mod-active">
+        <div class="cm-content">values = [1, 2, 3]</div>
+        <div class="output_area">private rendered output</div>
+      </section>
+    </main>
+  `);
+  await page.evaluate(() => {
+    window.__unibotListener = null;
+    window.chrome = {
+      runtime: {
+        onMessage: {
+          addListener(listener) {
+            window.__unibotListener = listener;
+          }
+        }
+      }
+    };
+  });
+  await page.addScriptTag({ path: path.join(extensionRoot, "content.js") });
+  const response = await page.evaluate(() => new Promise((resolve) => {
+    window.__unibotListener({ type: "UNIBOT_GET_SELECTION" }, {}, resolve);
+  }));
+
+  expect(response.selectedCell.cellType).toBe("code");
+  expect(response.selectedCell.cellIndex).toBe(0);
+  expect(response.selectedCell.source).toContain("values = [1, 2, 3]");
+  expect(response.selectedCell.source).not.toContain("private rendered output");
+});
+
+test("sidepanel starts a native session, captures a cell, requests A0-A4 help, and renders review metadata", async ({ page }) => {
+  await page.addInitScript(() => {
+    let onNativeMessage = null;
+    const nativePort = {
+      onMessage: { addListener(listener) { onNativeMessage = listener; } },
+      onDisconnect: { addListener() {} },
+      postMessage(message) {
+        let response = { request_id: message.request_id, status: "ready" };
+        if (message.type === "session.start") {
+          response = {
+            request_id: message.request_id,
+            status: "active",
+            contract: {
+              session_id: "synthetic-session",
+              assistance_mode: message.payload.assistance_mode,
+              max_help_level: message.payload.max_help_level
+            }
+          };
+        } else if (message.type === "tutor.turn") {
+          if (!["A0", "A1", "A2", "A3", "A4"].includes(message.payload.requested_help_level)) {
+            throw new Error("unexpected help level");
+          }
+          response = {
+            request_id: message.request_id,
+            status: "ok",
+            turn: {
+              effective_help_level: message.payload.requested_help_level,
+              hint_markdown: "Welche Laenge erwartest du vor dem Zugriff?",
+              source_anchors: [{ label: "Python Tutorial" }],
+              assistance_points_for_task: 5,
+              assistance_points_delta: 5,
+              next_allowed_help_level: "A3",
+              blocked_reasons: []
+            }
+          };
+        } else if (message.type === "session.report") {
+          response = {
+            request_id: message.request_id,
+            status: "ok",
+            report: {
+              event_count: 1,
+              own_attempt_count: 1,
+              by_help_level: { A2: 1 },
+              assistance_points_used: 5
+            }
+          };
+        }
+        queueMicrotask(() => onNativeMessage(response));
+      }
+    };
+    window.chrome = {
+      runtime: {
+        connectNative(name) {
+          if (name !== "de.gretel.unibot_companion") throw new Error("unexpected native host");
+          return nativePort;
+        },
+        lastError: null
+      },
+      tabs: {
+        async query() { return [{ id: 7 }]; },
+        async sendMessage() {
+          return {
+            title: "Synthetic Jupyter",
+            selectedCell: {
+              source: "values = [1, 2, 3]",
+              cellType: "code",
+              cellIndex: 2,
+              adapter: "jupyterlab",
+              confidence: "high"
+            }
+          };
+        }
+      }
+    };
+  });
+
+  await page.goto(pathToFileURL(path.join(extensionRoot, "v2", "sidepanel.html")).href);
+  await expect(page.locator("#connectionStatus")).toHaveText("Lokal bereit");
+  await page.locator("#startSession").click();
+  await expect(page.locator("#connectionStatus")).toHaveText("Sitzung aktiv");
+
+  await page.getByRole("button", { name: "Hilfe", exact: true }).click();
+  await page.locator("#capture").click();
+  await expect(page.locator("#cellMeta")).toContainText("Zelle 2");
+  await page.locator("#task").fill("Warum entsteht ein Indexfehler?");
+  await page.locator("#attempt").fill("Ich pruefe zuerst die Listenlaenge.");
+  await page.locator("#ask").click();
+  await expect(page.locator("#helpOutput")).toContainText("Welche Laenge");
+  await expect(page.locator("#helpOutput")).toContainText("5 Punkte");
+
+  await page.getByRole("button", { name: "Rueckblick", exact: true }).click();
+  await page.locator("#refreshReview").click();
+  await expect(page.locator("#reviewOutput")).toContainText("Ereignisse: 1");
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+  expect(overflow).toBe(false);
+});
+
+test("sidepanel remains usable at the narrow supported width", async ({ page }) => {
+  await page.setViewportSize({ width: 300, height: 700 });
+  await page.addInitScript(() => {
+    window.chrome = {
+      storage: { local: { async get() { return {}; }, async set() {} } },
+      tabs: { async query() { return []; }, async sendMessage() { return {}; } }
+    };
+  });
+  await page.goto(pathToFileURL(path.join(extensionRoot, "v2", "sidepanel.html")).href);
+  await expect(page.locator("h1")).toHaveText("UniBot Guardian");
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+  expect(overflow).toBe(false);
+});

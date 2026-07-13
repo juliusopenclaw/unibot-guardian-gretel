@@ -24,18 +24,20 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - run: python -m pip install --upgrade pip
-      - run: python -m pip install -e '.[dev]'
-      - name: Run baseline security and product gates
+      - run: python -m pip install -e '.[dev,glm]'
+      - name: Run cross-version product gates
         run: >
           python -m pytest -q
           tests/test_unibot_api_and_public_safety.py
-          tests/test_unibot_autonomous_research_loop.py
-          tests/test_unibot_browser_extension.py
-          tests/test_unibot_gretel_glm_evolve.py
-          tests/test_unibot_guardian.py
-          tests/test_unibot_pipeline_smoke.py
-          tests/test_unibot_privacy.py
-          tests/test_unibot_redteam.py
+          tests/test_unibot_api_security_v2.py
+          tests/test_unibot_autonomy_v2.py
+          tests/test_unibot_bachelor_thesis.py
+          tests/test_unibot_browser_extension_v2.py
+          tests/test_unibot_cli_v2.py
+          tests/test_unibot_evaluation.py
+          tests/test_unibot_gateway_v2.py
+          tests/test_unibot_glm_provider_v2.py
+          tests/test_unibot_notebook_intake.py
 
   quality:
     name: Public safety and quality
@@ -50,10 +52,12 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: python -m pip install --upgrade pip
-      - run: python -m pip install -e '.[dev]' pip-audit
-      - run: python -m pytest -q tests/test_unibot_api_and_public_safety.py tests/test_unibot_privacy.py tests/test_unibot_redteam.py
-      - run: python scripts/unibot_pipeline_smoke.py --json
+      - run: python -m pip install -e '.[dev,glm]'
+      - run: python -m ruff check unibot/autonomy_v2.py unibot/glm_provider.py unibot/notebook_intake.py unibot/gateway.py unibot/cli.py
+      - run: python -m mypy unibot/autonomy_v2.py unibot/glm_provider.py unibot/notebook_intake.py unibot/gateway.py unibot/cli.py
       - run: python -m pip_audit
+      - run: python -m unibot.cli autonomy preflight --json
+      - run: python -m unibot.cli public-safety
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -61,14 +65,13 @@ jobs:
   browser-e2e:
     name: Browser mantle E2E
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-node@v6
         with:
-          python-version: "3.12"
-          cache: pip
-      - run: python -m pip install --upgrade pip
-      - run: python -m pip install -e '.[dev]'
-      - name: Baseline browser-extension integration contract
-        run: python -m pytest -q tests/test_unibot_browser_extension.py
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser

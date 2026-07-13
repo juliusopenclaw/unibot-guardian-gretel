@@ -188,9 +188,9 @@ SOURCE_CARDS = [
         url="https://docs.z.ai/guides/llm/glm-5.2",
         source_kind="technical-doc",
         authority_type="vendor",
-        product_rule="GLM-5.2 may be used only through redacted proposal packets for long-context architecture, harness, and documentation review.",
+        product_rule="GLM-5.2 may be used only through redacted proposal and independent-review packets with no tools, apply, push, merge, or Final-Go authority.",
         risk_level="high",
-        last_checked="2026-07-02",
+        last_checked="2026-07-11",
     ),
     SourceCard(
         source_id="zai-glm-52-migration",
@@ -200,7 +200,7 @@ SOURCE_CARDS = [
         authority_type="vendor",
         product_rule="Model-specific parameters and migration behavior must be documented before any live provider call.",
         risk_level="high",
-        last_checked="2026-07-02",
+        last_checked="2026-07-11",
     ),
     SourceCard(
         source_id="zai-glm-pricing",
@@ -208,9 +208,9 @@ SOURCE_CARDS = [
         url="https://docs.z.ai/guides/overview/pricing",
         source_kind="technical-doc",
         authority_type="vendor",
-        product_rule="Provider calls remain disabled by default and require explicit approval plus a budget-aware redaction receipt.",
+        product_rule="Public-only provider calls require explicit scope, a fresh price check, and the 20 USD monthly budget guard.",
         risk_level="high",
-        last_checked="2026-07-02",
+        last_checked="2026-07-11",
     ),
     SourceCard(
         source_id="chrome-content-scripts",

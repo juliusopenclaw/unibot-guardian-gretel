@@ -45,6 +45,14 @@ class UniBotBachelorThesisTests(unittest.TestCase):
         self.assertTrue(package["evaluation_claim_alignment"]["workspace_card_readiness_gate_linked"])
         self.assertTrue(package["evaluation_claim_alignment"]["workspace_card_bachelor_thesis_gate_linked"])
         self.assertFalse(package["evaluation_claim_alignment"]["raw_workspace_card_returned"])
+        self.assertEqual(package["authorship_statement"]["builder_identity"], "AI implementation and documentation agent")
+        self.assertEqual(package["manuscript"]["chapter_count"], 12)
+        self.assertEqual(
+            package["manuscript"]["path"],
+            "docs/thesis/UNIBOT_GRETEL_BACHELOR_THESIS_MANUSCRIPT.md",
+        )
+        self.assertFalse(package["manuscript"]["legal_submission_by_gretel"])
+        self.assertFalse(package["review_gates"]["autonomous_merge"])
 
     def test_evidence_index_maps_claims_to_sources_tests_and_human_gates(self) -> None:
         index = build_bachelor_thesis_evidence_index()
@@ -66,6 +74,7 @@ class UniBotBachelorThesisTests(unittest.TestCase):
         self.assertIn("evaluation_packet", by_id["evaluation_learner_agency_boundary"]["readiness_check_ids"])
         self.assertIn("adaptive_task_plan", by_id["evaluation_learner_agency_boundary"]["readiness_check_ids"])
         self.assertIn("workspace_card_thesis_glm_link", by_id)
+        self.assertIn("complete_gretel_thesis_manuscript", by_id)
         self.assertIn(
             "python_exam_local_cycle_operator_workspace_card",
             by_id["workspace_card_thesis_glm_link"]["readiness_check_ids"],
@@ -184,6 +193,17 @@ class UniBotBachelorThesisTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(response["status"], "ok")
         self.assertIn("Programmer claim", response["markdown"])
+
+    def test_full_manuscript_has_required_chapters_and_transparent_ai_boundary(self) -> None:
+        manuscript = (ROOT / "docs" / "thesis" / "UNIBOT_GRETEL_BACHELOR_THESIS_MANUSCRIPT.md").read_text(
+            encoding="utf-8"
+        )
+        for chapter in range(1, 13):
+            self.assertIn(f"## {chapter}.", manuscript)
+        self.assertIn("Implementierung und Dokumentation: Gretel, KI-Agent", manuscript)
+        self.assertIn("Vorschlags- und Gegenpruefungsmodell: Z.AI GLM-5.2", manuscript)
+        self.assertIn("keine rechtswirksame Hochschulabgabe", manuscript)
+        self.assertIn("180 synthetische Szenarien", manuscript)
 
 
 if __name__ == "__main__":

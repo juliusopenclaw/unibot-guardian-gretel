@@ -1,0 +1,258 @@
+{
+  "schema_version": "unibot-autonomy-work-queue-v2",
+  "active_milestone": "scientific_guardian_quality",
+  "items": [
+    {
+      "work_id": "security_boundary_v2",
+      "priority": 1,
+      "status": "done",
+      "work_kind": "security",
+      "source": "active_milestone",
+      "goal": "Protect the loopback API against cross-origin requests and unauthenticated writes.",
+      "hypothesis": "Origin pinning, one-time pairing, and a session token prevent arbitrary web pages from invoking local UniBot actions.",
+      "product_delta": "A learner can pair the browser mantle with one local API session while unrelated web origins are rejected.",
+      "allowed_files": [
+        "unibot/server.py",
+        "tests/test_unibot_api_security_v2.py",
+        "unibot/browser_extension/v2/sidepanel.js",
+        "docs/unibot/UNIBOT_AUTONOMY_V2.md"
+      ],
+      "acceptance_tests": [
+        "python -m pytest tests/test_unibot_api_security_v2.py -q"
+      ],
+      "risk": "high",
+      "sources": [
+        "https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS"
+      ]
+    },
+    {
+      "work_id": "safe_notebook_intake_v1",
+      "priority": 2,
+      "status": "done",
+      "work_kind": "product",
+      "source": "active_milestone",
+      "goal": "Import a public or local notebook into a sanitized, hashed practice artifact.",
+      "hypothesis": "Strict URL, size, redirect, notebook-schema, output-stripping, and privacy checks make public notebook intake reviewable.",
+      "product_delta": "A learner can import a public notebook without retaining execution outputs or silently reaching an internal network address.",
+      "allowed_files": [
+        "unibot/notebook_intake.py",
+        "unibot/cli.py",
+        "tests/test_unibot_notebook_intake.py",
+        "docs/unibot/UNIBOT_AUTONOMY_V2.md"
+      ],
+      "acceptance_tests": [
+        "python -m pytest tests/test_unibot_notebook_intake.py -q"
+      ],
+      "risk": "high",
+      "sources": [
+        "https://nbformat.readthedocs.io/en/latest/format_description.html"
+      ]
+    },
+    {
+      "work_id": "browser_mantle_v2",
+      "priority": 3,
+      "status": "done",
+      "work_kind": "product",
+      "source": "active_milestone",
+      "goal": "Provide a focused three-step browser mantle for pairing, Socratic help, and review.",
+      "hypothesis": "A small A0-A2-only flow reduces operator error and keeps selected notebook-cell context visible.",
+      "product_delta": "A learner can pair once, capture the active notebook cell, request bounded help, and export a metadata-only review.",
+      "allowed_files": [
+        "unibot/browser_extension/content.js",
+        "unibot/browser_extension/manifest.json",
+        "unibot/browser_extension/v2/sidepanel.html",
+        "unibot/browser_extension/v2/sidepanel.js"
+      ],
+      "acceptance_tests": [
+        "python -m pytest tests/test_unibot_browser_extension_v2.py -q"
+      ],
+      "risk": "medium",
+      "sources": [
+        "https://developer.chrome.com/docs/extensions/reference/api/sidePanel"
+      ]
+    },
+    {
+      "work_id": "controlled_gateway_foundation",
+      "priority": 4,
+      "status": "done",
+      "work_kind": "product",
+      "source": "active_milestone",
+      "goal": "Launch a local practice-only Jupyter surface from a sanitized notebook manifest.",
+      "hypothesis": "A terminal-free, loopback-only launcher provides a reproducible practice boundary while preserving the explicit not-cleared exam status.",
+      "product_delta": "A reviewer can inspect or launch the exact local gateway command and see which controls remain outside UniBot.",
+      "allowed_files": [
+        "unibot/gateway.py",
+        "unibot/cli.py",
+        "tests/test_unibot_gateway_v2.py",
+        "docs/unibot/UNIBOT_AUTONOMY_V2.md"
+      ],
+      "acceptance_tests": [
+        "python -m pytest tests/test_unibot_gateway_v2.py -q"
+      ],
+      "risk": "high",
+      "sources": [
+        "https://jupyter-server.readthedocs.io/en/latest/operators/security.html"
+      ]
+    },
+    {
+      "work_id": "scientific_evaluation_120",
+      "priority": 5,
+      "status": "done",
+      "work_kind": "research",
+      "source": "active_milestone",
+      "goal": "Expand the fixed public evaluation corpus to at least 120 synthetic scenarios.",
+      "hypothesis": "A balanced synthetic corpus exposes false allows and false blocks that a small smoke set cannot measure.",
+      "product_delta": "Scientific reviewers receive stable scenario categories and measurable safety and learner-agency outcomes.",
+      "allowed_files": [
+        "unibot/evaluation.py",
+        "tests/test_unibot_evaluation.py",
+        "docs/unibot/UNIBOT_DEMO_TEST_PLAN.md",
+        "docs/unibot/UNIBOT_AUTONOMY_V2.md"
+      ],
+      "acceptance_tests": [
+        "python -m pytest tests/test_unibot_evaluation.py -q"
+      ],
+      "risk": "medium",
+      "sources": [
+        "https://www.nist.gov/itl/ai-risk-management-framework"
+      ]
+    },
+    {
+      "work_id": "gretel_thesis_manuscript_v1",
+      "priority": 6,
+      "status": "done",
+      "work_kind": "research",
+      "source": "active_milestone",
+      "goal": "Publish a complete bachelor-thesis-level manuscript with transparent AI provenance.",
+      "hypothesis": "A chaptered manuscript connected to executable evidence is more reviewable than a package index alone.",
+      "product_delta": "A supervisor can review research question, method, system, evaluation, limitations, ethics, and reproducibility in one manuscript.",
+      "allowed_files": [
+        "docs/thesis/UNIBOT_GRETEL_BACHELOR_THESIS_MANUSCRIPT.md",
+        "unibot/bachelor_thesis.py",
+        "tests/test_unibot_bachelor_thesis.py",
+        "AUTHORS.md"
+      ],
+      "acceptance_tests": [
+        "python -m pytest tests/test_unibot_bachelor_thesis.py -q"
+      ],
+      "risk": "medium",
+      "sources": [
+        "https://www.dfg.de/en/research-funding/funding-principles/good-scientific-practice"
+      ]
+    },
+    {
+      "work_id": "guardian_semantic_precision_benchmark",
+      "priority": 7,
+      "status": "ready",
+      "work_kind": "research",
+      "source": "measured_product_gap",
+      "goal": "Measure and reduce semantic false allows and false blocks in the Socratic Guardian.",
+      "hypothesis": "Category-balanced expected decisions reveal brittle regular-expression behavior and support bounded semantic improvements.",
+      "product_delta": "Reviewers can compare forbidden-answer recall and allowed-help false-block rates by scenario category.",
+      "allowed_files": [
+        "unibot/guardian.py",
+        "unibot/evaluation.py",
+        "tests/test_unibot_guardian.py",
+        "tests/test_unibot_evaluation.py"
+      ],
+      "acceptance_tests": [
+        "python -m pytest tests/test_unibot_guardian.py tests/test_unibot_evaluation.py -q"
+      ],
+      "risk": "medium",
+      "sources": [
+        "https://www.nist.gov/itl/ai-risk-management-framework"
+      ]
+    },
+    {
+      "work_id": "native_companion_release_hardening",
+      "priority": 8,
+      "status": "candidate",
+      "work_kind": "security",
+      "source": "measured_product_gap",
+      "goal": "Harden and independently verify the fixed-origin Chrome Native Messaging companion installation.",
+      "hypothesis": "A stable extension ID, exact allowed origin, bounded message framing, and package canary remove the hard-coded port without broadening browser access.",
+      "product_delta": "A learner can start the local tutor through Chrome without selecting a loopback port or storing a session token in the extension.",
+      "allowed_files": [
+        "unibot/companion.py",
+        "unibot/browser_extension/manifest.json",
+        "tests/test_unibot_mantle_v21.py",
+        "tests/browser/extension-package.mjs"
+      ],
+      "acceptance_tests": [
+        "python -m pytest tests/test_unibot_mantle_v21.py -q",
+        "npm run test:extension-package"
+      ],
+      "risk": "high",
+      "sources": [
+        "https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging"
+      ]
+    },
+    {
+      "work_id": "mantle_v21_live_colab_canary",
+      "priority": 9,
+      "status": "candidate",
+      "work_kind": "product",
+      "source": "measured_product_gap",
+      "goal": "Measure active-cell capture confidence against a current public Colab notebook without collecting notebook output.",
+      "hypothesis": "Versioned adapters plus an explicit low-confidence fallback prevent silent capture of the wrong Colab content.",
+      "product_delta": "A learner can select a Colab cell and see adapter, cell type, index, and confidence before any local tutor request.",
+      "allowed_files": [
+        "unibot/browser_extension/content.js",
+        "tests/browser/mantle-v2.spec.js",
+        "docs/unibot/UNIBOT_MANTLE_V21.md"
+      ],
+      "acceptance_tests": [
+        "npm run test:browser"
+      ],
+      "risk": "medium",
+      "sources": [
+        "https://research.google.com/colaboratory/faq.html"
+      ]
+    },
+    {
+      "work_id": "scientific_evaluation_180",
+      "priority": 10,
+      "status": "done",
+      "work_kind": "research",
+      "source": "active_milestone",
+      "goal": "Expand the release evaluation to 180 balanced Socratic, privacy, source, injection, solution, and budget scenarios.",
+      "hypothesis": "Thirty gold-labelled cases per failure family provide interpretable leakage, source-binding, and false-block measurements.",
+      "product_delta": "Reviewers receive category-level release metrics for the A0-A4 tutor and assistance-budget contract.",
+      "allowed_files": [
+        "unibot/evaluation.py",
+        "tests/test_unibot_evaluation.py",
+        "tests/test_unibot_mantle_v21.py",
+        "docs/unibot/UNIBOT_DEMO_TEST_PLAN.md"
+      ],
+      "acceptance_tests": [
+        "python -m pytest tests/test_unibot_evaluation.py tests/test_unibot_mantle_v21.py -q"
+      ],
+      "risk": "medium",
+      "sources": [
+        "https://www.nist.gov/itl/ai-risk-management-framework"
+      ]
+    },
+    {
+      "work_id": "local_language_realizer_benchmark",
+      "priority": 11,
+      "status": "candidate",
+      "work_kind": "research",
+      "source": "measured_product_gap",
+      "goal": "Benchmark optional on-device wording against the deterministic tutor without allowing code, calculation, or factual generation.",
+      "hypothesis": "A local wording-only realizer can improve readability while the deterministic hint plan and postfilter retain authority.",
+      "product_delta": "A learner receives clearer local phrasing only when it passes the same source and solution-leakage gates as the deterministic baseline.",
+      "allowed_files": [
+        "unibot/socratic_tutor.py",
+        "tests/test_unibot_mantle_v21.py",
+        "docs/unibot/UNIBOT_MANTLE_V21.md"
+      ],
+      "acceptance_tests": [
+        "python -m pytest tests/test_unibot_mantle_v21.py -q"
+      ],
+      "risk": "medium",
+      "sources": [
+        "https://developer.apple.com/documentation/foundationmodels/generating-content-and-performing-tasks-with-foundation-models"
+      ]
+    }
+  ]
+}

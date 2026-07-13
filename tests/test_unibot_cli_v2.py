@@ -1,0 +1,39 @@
+from __future__ import annotations
+
+import io
+import json
+import tempfile
+import unittest
+from contextlib import redirect_stdout
+from pathlib import Path
+
+from unibot.cli import main, public_repository_safety
+
+
+class UniBotCliV2Tests(unittest.TestCase):
+    def test_autonomy_status_is_machine_readable_and_never_grants_merge(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary, io.StringIO() as output, redirect_stdout(output):
+            exit_code = main(["autonomy", "status", "--repo", temporary])
+            payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["schema_version"], "unibot-autonomy-v2")
+        self.assertFalse(payload["autonomous_merge"])
+        self.assertEqual(payload["rollout"]["phase"], "shadow")
+
+    def test_provider_run_without_exact_scope_fails_before_keychain_or_network(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary, io.StringIO() as output, redirect_stdout(output):
+            exit_code = main(["autonomy", "run", "--repo", temporary])
+            payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 2)
+        self.assertEqual(payload["status"], "blocked")
+        self.assertIn("public-unibot-only", payload["reason"])
+
+    def test_public_repository_safety_uses_relative_source_names(self) -> None:
+        repo = Path(__file__).resolve().parents[1]
+        result = public_repository_safety(repo)
+        self.assertEqual(result["status"], "pass", result["findings"])
+        self.assertTrue(all(not str(item["source"]).startswith("/") for item in result["findings"]))
+
+
+if __name__ == "__main__":
+    unittest.main()
