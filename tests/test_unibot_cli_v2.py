@@ -28,6 +28,41 @@ class UniBotCliV2Tests(unittest.TestCase):
         self.assertEqual(payload["status"], "blocked")
         self.assertIn("public-unibot-only", payload["reason"])
 
+    def test_v3_provider_and_rollout_commands_start_local_and_parked(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary, io.StringIO() as output, redirect_stdout(output):
+            state = Path(temporary) / "state.sqlite3"
+            provider = Path(temporary) / "provider.json"
+            exit_code = main(
+                [
+                    "autonomy",
+                    "provider",
+                    "status",
+                    "--state-db",
+                    str(state),
+                    "--provider-state",
+                    str(provider),
+                ]
+            )
+            payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["state"], "parked_awaiting_zai_balance")
+        self.assertFalse(payload["call_allowed"])
+        self.assertFalse(payload["network_call_executed"])
+
+        with tempfile.TemporaryDirectory() as temporary, io.StringIO() as output, redirect_stdout(output):
+            exit_code = main(["autonomy", "rollout", "status", "--state-db", str(Path(temporary) / "state.sqlite3")])
+            payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["rollout"]["lanes"]["shadow"]["successful_runs"], 0)
+        self.assertFalse(payload["watcher_active"])
+
+        with tempfile.TemporaryDirectory() as temporary, io.StringIO() as output, redirect_stdout(output):
+            exit_code = main(["autonomy", "loop", "start", "--state-db", str(Path(temporary) / "state.sqlite3")])
+            payload = json.loads(output.getvalue())
+        self.assertEqual(exit_code, 2)
+        self.assertEqual(payload["reason"], "rollout_gates_incomplete")
+        self.assertFalse(payload["loop"]["active"])
+
     def test_public_repository_safety_uses_relative_source_names(self) -> None:
         repo = Path(__file__).resolve().parents[1]
         result = public_repository_safety(repo)

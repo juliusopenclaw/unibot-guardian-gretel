@@ -106,6 +106,17 @@ class UniBotApiAndPublicSafetyTests(unittest.TestCase):
         self.assertEqual(status, 404)
         self.assertEqual(response["status"], "not-found")
 
+    def test_v3_autonomy_status_routes_do_not_call_a_provider(self) -> None:
+        status, provider = route_request("/api/unibot/autonomy/provider/status", {})
+        self.assertEqual(status, 200)
+        self.assertFalse(provider["network_call_executed"])
+        self.assertFalse(provider["key_stored"])
+
+        status, rollout = route_request("/api/unibot/autonomy/rollout/status", {})
+        self.assertEqual(status, 200)
+        self.assertFalse(rollout["watcher_active"])
+        self.assertIn("shadow", rollout["rollout"]["lanes"])
+
     def test_source_cards_are_machine_readable(self) -> None:
         cards = list_source_cards()
         ids = {card["source_id"] for card in cards}

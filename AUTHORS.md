@@ -15,6 +15,8 @@ documented AI contribution to this public research artifact.
 Z.AI GLM-5.2 may provide redacted architecture proposals and independent
 reviews. It receives public project context only. It has no filesystem,
 provider-tool, GitHub, merge, university-submission, or Final-Go authority.
+The v3 foundation currently keeps GLM parked; it made no contribution to this
+implementation stage.
 
 ## Human Responsibility
 

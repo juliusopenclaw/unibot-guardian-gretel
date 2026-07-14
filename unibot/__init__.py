@@ -6,6 +6,26 @@ Jupyter, and browser-based coding helpers.
 """
 
 from .adaptive_tasks import generate_adaptive_practice_plan
+from .autonomy_v3 import (
+    AutonomyController,
+    AutonomyLease,
+    AutonomyRunV3,
+    AutonomyStore,
+    CodexReviewV1,
+    GLMReviewV2,
+    ImplementationEvidenceV1,
+    ProviderGate,
+    TestRegistry,
+    WorkItemV3,
+    autonomy_doctor,
+    autonomy_loop_status,
+    build_draft_pr_preview,
+    default_test_registry,
+    derive_implementation_evidence,
+    prepare_autonomy_loop,
+    request_autonomy_loop_start,
+    validate_glm_proposal,
+)
 from .compliance import (
     build_compliance_drift_alignment,
     build_compliance_matrix,
@@ -72,6 +92,12 @@ from .guardian import (
     guardian_practice_flow,
     recommend_next_tasks,
     update_local_skill_state,
+)
+from .guardian_benchmark import (
+    GuardianBenchmarkCase,
+    evaluate_guardian_benchmark,
+    guardian_semantic_precision_work_item,
+    held_out_cases,
 )
 from .evaluation import build_evaluation_markdown, build_evaluation_packet, synthetic_tasks
 from .extraction_decision import build_extraction_decision_packet, validate_extraction_decision_record
@@ -252,6 +278,24 @@ from .review_chain_integrity import build_review_chain_integrity_check
 from .tutor_index import build_private_index_tutor_response_dry_run, build_private_tutor_index_dry_run
 
 __all__ = [
+    "AutonomyController",
+    "AutonomyLease",
+    "AutonomyRunV3",
+    "AutonomyStore",
+    "CodexReviewV1",
+    "GLMReviewV2",
+    "ImplementationEvidenceV1",
+    "ProviderGate",
+    "TestRegistry",
+    "WorkItemV3",
+    "autonomy_doctor",
+    "autonomy_loop_status",
+    "build_draft_pr_preview",
+    "default_test_registry",
+    "derive_implementation_evidence",
+    "prepare_autonomy_loop",
+    "request_autonomy_loop_start",
+    "validate_glm_proposal",
     "EXAM_CONTROLLED",
     "PRACTICE_OVERLAY",
     "SELFTEST_GUARDIAN",
@@ -296,6 +340,10 @@ __all__ = [
     "guardian_practice_flow",
     "recommend_next_tasks",
     "update_local_skill_state",
+    "GuardianBenchmarkCase",
+    "evaluate_guardian_benchmark",
+    "guardian_semantic_precision_work_item",
+    "held_out_cases",
     "route_request",
     "scan_public_files",
     "scan_text",

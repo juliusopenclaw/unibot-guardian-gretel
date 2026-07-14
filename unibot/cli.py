@@ -2,10 +2,22 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Sequence
 
+from .autonomy_v3 import (
+    AutonomyController,
+    AutonomyStore,
+    ProviderGate,
+    WorkItemV3,
+    autonomy_doctor,
+    autonomy_loop_status,
+    default_test_registry,
+    prepare_autonomy_loop,
+    request_autonomy_loop_start,
+)
 from .autonomy_v2 import (
     autonomy_status,
     repository_preflight,
@@ -14,6 +26,7 @@ from .autonomy_v2 import (
 )
 from .companion import DEFAULT_EXTENSION_ID, companion_status, install_companion, run_native_host
 from .gateway import GatewayError, launch_gateway
+from .guardian_benchmark import guardian_semantic_precision_work_item
 from .glm_provider import PROVIDER_SCOPE, ZaiGLMProvider, keychain_key_available
 from .notebook_intake import NotebookIntakeError, import_notebook
 from .public_safety import scan_text
@@ -73,6 +86,46 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--implementation-summary", type=Path)
     run.add_argument("--provider-go", default="")
 
+    provider = autonomy_commands.add_parser("provider", help="inspect or explicitly park the v3 provider gate")
+    provider_commands = provider.add_subparsers(dest="provider_command", required=True)
+    for name in ("status", "park"):
+        command = provider_commands.add_parser(name)
+        command.add_argument("--state-db", type=Path)
+        command.add_argument("--provider-state", type=Path)
+    unpark = provider_commands.add_parser("unpark")
+    unpark.add_argument("--scope", required=True)
+    unpark.add_argument("--state-db", type=Path)
+    unpark.add_argument("--provider-state", type=Path)
+
+    rollout = autonomy_commands.add_parser("rollout", help="inspect the offline-first v3 rollout gates")
+    rollout_commands = rollout.add_subparsers(dest="rollout_command", required=True)
+    for name in ("status", "shadow", "local"):
+        command = rollout_commands.add_parser(name)
+        command.add_argument("--state-db", type=Path)
+        command.add_argument("--repo", type=Path, default=Path.cwd())
+
+    autonomy_doctor_parser = autonomy_commands.add_parser("doctor", help="run local v3 safety diagnostics")
+    autonomy_doctor_parser.add_argument("--state-db", type=Path)
+
+    loop = autonomy_commands.add_parser("loop", help="prepare or inspect the disabled local v3 watcher")
+    loop_commands = loop.add_subparsers(dest="loop_command", required=True)
+    for name in ("install", "start", "status", "tick", "stop"):
+        command = loop_commands.add_parser(name)
+        command.add_argument("--state-db", type=Path)
+
+    work = autonomy_commands.add_parser("work", help="store a bounded v3 work item locally")
+    work_commands = work.add_subparsers(dest="work_command", required=True)
+    claim = work_commands.add_parser("claim")
+    claim.add_argument("--work-item", type=Path, required=True)
+    claim.add_argument("--state-db", type=Path)
+    release = work_commands.add_parser("release")
+    release.add_argument("--work-id", required=True)
+    release.add_argument("--state-db", type=Path)
+
+    audit = autonomy_commands.add_parser("audit", help="read one local v3 run record")
+    audit.add_argument("run_id")
+    audit.add_argument("--state-db", type=Path)
+
     notebook = commands.add_parser("notebook", help="import a sanitized public or local notebook")
     notebook_commands = notebook.add_subparsers(dest="notebook_command", required=True)
     notebook_import = notebook_commands.add_parser("import")
@@ -113,9 +166,145 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "autonomy" and args.autonomy_command == "status":
             _print_json(autonomy_status(args.repo))
             return 0
+        if args.command == "autonomy" and args.autonomy_command == "provider":
+            store = AutonomyStore(args.state_db)
+            try:
+                gate = ProviderGate(args.provider_state, store=store)
+                if args.provider_command == "status":
+                    _print_json(gate.status())
+                    return 0
+                if args.provider_command == "park":
+                    _print_json(gate.park())
+                    return 0
+                try:
+                    _print_json(gate.unpark(args.scope))
+                    return 0
+                except ValueError as exc:
+                    _print_json({"status": "blocked", "reason": str(exc)})
+                    return 2
+            finally:
+                store.close()
+        if args.command == "autonomy" and args.autonomy_command == "rollout":
+            store = AutonomyStore(args.state_db)
+            try:
+                recovered = store.recover_interrupted_runs()
+                rollout = store.rollout_status()
+                if args.rollout_command == "status":
+                    _print_json({"status": "ok", "rollout": rollout, "recovered_runs": recovered, "watcher_active": False})
+                    return 0
+                if args.rollout_command == "shadow":
+                    repo = args.repo.resolve()
+                    branch = subprocess.run(
+                        ["git", "-C", str(repo), "branch", "--show-current"],
+                        check=False,
+                        capture_output=True,
+                        text=True,
+                        shell=False,
+                    ).stdout.strip()
+                    if branch != "main":
+                        _print_json(
+                            {
+                                "status": "blocked",
+                                "reason": "official_main_base_required",
+                                "requested_lane": "shadow",
+                                "rollout": rollout,
+                                "provider_calls": 0,
+                                "github_actions": 0,
+                            }
+                        )
+                        return 2
+                    base_commit = subprocess.run(
+                        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                        shell=False,
+                    ).stdout.strip()
+                    item = guardian_semantic_precision_work_item(base_commit)
+                    result = AutonomyController(repo_root=repo, store=store).run_shadow_rollout(
+                        item,
+                        test_registry_factory=default_test_registry,
+                    )
+                    _print_json(result)
+                    return 0 if result["status"] == "shadow_green" else 2
+                _print_json(
+                    {
+                        "status": "blocked",
+                        "reason": "explicit_registered_runner_required",
+                        "requested_lane": args.rollout_command,
+                        "rollout": rollout,
+                        "provider_calls": 0,
+                        "github_actions": 0,
+                        "watcher_active": False,
+                    }
+                )
+                return 2
+            finally:
+                store.close()
+        if args.command == "autonomy" and args.autonomy_command == "doctor":
+            store = AutonomyStore(args.state_db)
+            try:
+                _print_json({**autonomy_doctor(store), "rollout": store.rollout_status(), "watcher_active": False})
+                return 0
+            finally:
+                store.close()
+        if args.command == "autonomy" and args.autonomy_command == "loop":
+            store = AutonomyStore(args.state_db)
+            try:
+                if args.loop_command == "install":
+                    _print_json(prepare_autonomy_loop(store))
+                    return 0
+                if args.loop_command == "status":
+                    _print_json(autonomy_loop_status(store))
+                    return 0
+                if args.loop_command == "start":
+                    _print_json(request_autonomy_loop_start(store))
+                    return 2
+                _print_json(
+                    {
+                        "status": "idle",
+                        "reason": "watcher_remains_disabled_until_rollout_and_human_launchd_gate",
+                        "loop": autonomy_loop_status(store)["loop"],
+                        "provider_calls": 0,
+                        "github_actions": 0,
+                    }
+                )
+                return 0
+            finally:
+                store.close()
+        if args.command == "autonomy" and args.autonomy_command == "work":
+            store = AutonomyStore(args.state_db)
+            try:
+                if args.work_command == "claim":
+                    item = WorkItemV3.from_dict(json.loads(args.work_item.read_text(encoding="utf-8")))
+                    store.save_work_item(item)
+                    _print_json({"status": "queued", "work_item": item.to_dict(), "automatic_merge": False})
+                    return 0
+                released = store.release_work_item(args.work_id)
+                _print_json({"status": "released" if released else "not_found", "work_id": args.work_id})
+                return 0 if released else 2
+            finally:
+                store.close()
+        if args.command == "autonomy" and args.autonomy_command == "audit":
+            store = AutonomyStore(args.state_db)
+            try:
+                run = store.get_run(args.run_id)
+                _print_json({"status": "ok" if run else "not_found", "run": run, "automatic_merge": False})
+                return 0 if run else 2
+            finally:
+                store.close()
         if args.command == "autonomy" and args.autonomy_command == "run":
             if args.provider_go != PROVIDER_SCOPE:
                 _print_json({"status": "blocked", "reason": "public-unibot-only provider scope required"})
+                return 2
+            store = AutonomyStore()
+            try:
+                provider_gate = ProviderGate(store=store)
+                provider_status = provider_gate.status()
+            finally:
+                store.close()
+            if not provider_status["call_allowed"]:
+                _print_json({"status": "blocked", "reason": provider_status["reason"], "provider": provider_status})
                 return 2
             if not keychain_key_available():
                 _print_json({"status": "blocked", "reason": "configured macOS keychain item is unavailable"})
