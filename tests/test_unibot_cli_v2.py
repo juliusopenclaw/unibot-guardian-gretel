@@ -11,6 +11,22 @@ from unibot.cli import main, public_repository_safety
 
 
 class UniBotCliV2Tests(unittest.TestCase):
+    def test_guardian_evaluation_command_reports_only_safe_aggregate_metrics(self) -> None:
+        with io.StringIO() as output, redirect_stdout(output):
+            exit_code = main(["evaluate", "guardian", "--json"])
+            payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["schema_version"], "GuardianBenchmarkV1")
+        self.assertEqual(payload["status"], "pass")
+        self.assertEqual(payload["case_count"], 60)
+        self.assertEqual(payload["metrics"]["solution_block_recall"], 1.0)
+        self.assertEqual(payload["metrics"]["source_binding_precision"], 1.0)
+        self.assertEqual(payload["metrics"]["allowed_false_block_rate"], 0.0)
+        self.assertFalse(payload["notebook_code_executed"])
+        self.assertFalse(payload["raw_case_text_in_report"])
+        self.assertFalse(payload["provider_context_contains_held_out_cases"])
+
     def test_autonomy_status_is_machine_readable_and_never_grants_merge(self) -> None:
         with tempfile.TemporaryDirectory() as temporary, io.StringIO() as output, redirect_stdout(output):
             exit_code = main(["autonomy", "status", "--repo", temporary])

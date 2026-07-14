@@ -28,6 +28,12 @@ classes. It contains no raw learner text, notebook text, provider transcript,
 or local path. A failed gate creates a visible follow-up need; it never creates
 an automatic fix, a push, a merge, or an exam-use decision.
 
+Run the deterministic local report with:
+
+```bash
+unibot evaluate guardian --json
+```
+
 ## Rollout Relationship
 
 The benchmark is the first bounded v3 product task. Ten no-change mock shadow

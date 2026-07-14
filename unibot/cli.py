@@ -26,7 +26,7 @@ from .autonomy_v2 import (
 )
 from .companion import DEFAULT_EXTENSION_ID, companion_status, install_companion, run_native_host
 from .gateway import GatewayError, launch_gateway
-from .guardian_benchmark import guardian_semantic_precision_work_item
+from .guardian_benchmark import evaluate_guardian_benchmark, guardian_semantic_precision_work_item
 from .glm_provider import PROVIDER_SCOPE, ZaiGLMProvider, keychain_key_available
 from .notebook_intake import NotebookIntakeError, import_notebook
 from .public_safety import scan_text
@@ -125,6 +125,11 @@ def build_parser() -> argparse.ArgumentParser:
     audit = autonomy_commands.add_parser("audit", help="read one local v3 run record")
     audit.add_argument("run_id")
     audit.add_argument("--state-db", type=Path)
+
+    evaluate = commands.add_parser("evaluate", help="run deterministic local evaluation suites")
+    evaluate_commands = evaluate.add_subparsers(dest="evaluate_command", required=True)
+    evaluate_guardian = evaluate_commands.add_parser("guardian", help="measure Guardian semantic precision")
+    evaluate_guardian.add_argument("--json", action="store_true")
 
     notebook = commands.add_parser("notebook", help="import a sanitized public or local notebook")
     notebook_commands = notebook.add_subparsers(dest="notebook_command", required=True)
@@ -325,6 +330,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
             _print_json({"summary": summary.__dict__, **result})
             return 0 if not result["validation_errors"] else 2
+        if args.command == "evaluate" and args.evaluate_command == "guardian":
+            payload = evaluate_guardian_benchmark()
+            _print_json(payload)
+            return 0 if payload["status"] == "pass" else 2
         if args.command == "notebook" and args.notebook_command == "import":
             _print_json(dict(import_notebook(args.source, args.output_root)))
             return 0

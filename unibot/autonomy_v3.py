@@ -1,11 +1,11 @@
-from __future__ import annotations
-
 """Local, review-first orchestration contracts for the UniBot v3 loop.
 
 This module deliberately contains no network client and no shell command input
 path. Provider calls, Codex sessions, and GitHub publishing are injected behind
 small interfaces so the safety properties can be tested with synthetic data.
 """
+
+from __future__ import annotations
 
 import hashlib
 import json
@@ -25,7 +25,7 @@ from typing import Any, Callable, Iterable, Iterator, Protocol
 try:  # macOS and other POSIX systems
     import fcntl
 except ImportError:  # pragma: no cover - retained for Windows packaging
-    fcntl = None
+    fcntl = None  # type: ignore[assignment]
 
 from .public_safety import scan_text
 
@@ -912,7 +912,10 @@ def derive_implementation_evidence(
         raise AutonomyValidationError("actual_diff_exceeds_file_limit")
     if not set(changed).issubset(allowed):
         raise AutonomyValidationError("actual_diff_outside_allowed_files")
-    digest = bytearray(_git_output(root, ["diff", "--binary", base_commit, "--"], binary=True))
+    binary_diff = _git_output(root, ["diff", "--binary", base_commit, "--"], binary=True)
+    if not isinstance(binary_diff, bytes):  # pragma: no cover - guarded by the binary argument
+        raise AutonomyValidationError("git_binary_evidence_invalid")
+    digest = bytearray(binary_diff)
     for relative in sorted(untracked):
         path = root / relative
         if path.is_symlink() or not path.is_file():
