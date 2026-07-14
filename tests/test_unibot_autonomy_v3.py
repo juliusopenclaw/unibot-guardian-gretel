@@ -61,7 +61,7 @@ class AutonomyV3Tests(unittest.TestCase):
         holder = tempfile.TemporaryDirectory()
         root = Path(holder.name)
         (root / "public.py").write_text("VALUE = 1\n", encoding="utf-8")
-        subprocess.run(["git", "-C", str(root), "init", "-q"], check=True)
+        subprocess.run(["git", "-C", str(root), "init", "-q", "--initial-branch=main"], check=True)
         subprocess.run(["git", "-C", str(root), "config", "user.email", "test.example.invalid"], check=True)
         subprocess.run(["git", "-C", str(root), "config", "user.name", "UniBot Test"], check=True)
         subprocess.run(["git", "-C", str(root), "add", "public.py"], check=True)
