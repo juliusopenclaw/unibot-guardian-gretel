@@ -30,6 +30,8 @@ full provenance statement is in `AUTHORS.md`.
   public alpha. Its fixed alpha ID is bound to the installed native host.
 - Create a reviewable MV3 package without the rest of the repository:
   `unibot extension package --output ./unibot-mantle.zip`
+- Create the public extension plus institutional review handoff:
+  `unibot release candidate --output ./unibot-review-candidate`
 - Open `~/Applications/UniBot Companion.app` or click the extension and start a
   fixed or adaptive A0-A4 learning session.
 - Start the paired local API: `unibot serve --pair`

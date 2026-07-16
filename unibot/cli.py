@@ -39,6 +39,7 @@ from .extension_package import package_extension
 from .glm_provider import PROVIDER_SCOPE, ZaiGLMProvider, keychain_key_available
 from .notebook_intake import NotebookIntakeError, import_notebook
 from .public_safety import scan_text
+from .release_candidate import write_release_candidate_bundle
 from .server import run as run_server
 
 
@@ -194,6 +195,11 @@ def build_parser() -> argparse.ArgumentParser:
     extension_commands = extension.add_subparsers(dest="extension_command", required=True)
     extension_package = extension_commands.add_parser("package", help="write a deterministic MV3 ZIP package")
     extension_package.add_argument("--output", type=Path, required=True)
+
+    release = commands.add_parser("release", help="prepare a public-safe human review handoff")
+    release_commands = release.add_subparsers(dest="release_command", required=True)
+    release_candidate = release_commands.add_parser("candidate", help="write the extension and institutional review bundle")
+    release_candidate.add_argument("--output", type=Path, required=True)
     return parser
 
 
@@ -452,6 +458,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0 if payload["status"] == "written" else 2
         if args.command == "extension" and args.extension_command == "package":
             payload = package_extension(args.output)
+            _print_json(payload)
+            return 0 if payload["status"] == "written" else 2
+        if args.command == "release" and args.release_command == "candidate":
+            payload = write_release_candidate_bundle(args.output)
             _print_json(payload)
             return 0 if payload["status"] == "written" else 2
     except (GatewayError, NotebookIntakeError, RuntimeError, ValueError, OSError) as exc:

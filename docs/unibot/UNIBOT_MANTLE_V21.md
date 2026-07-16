@@ -85,6 +85,20 @@ timestamp for reproducibility, records a SHA-256 hash, and keeps the exam
 deployment status `not_cleared`. It does not contain the Companion runtime,
 learner data, notebooks, or private project files.
 
+For a meeting with the Prüfungsamt, Inklusionsbüro, Datenschutz, IT/SZI, and
+the teaching unit, the extension package and the public-safe institutional
+review packet can be assembled locally with:
+
+```text
+unibot release candidate --output ./unibot-review-candidate
+```
+
+The resulting handoff contains five files: the MV3 ZIP, the institutional
+presentation JSON and Markdown, the institutional manifest, and a release
+manifest binding their hashes. It remains a public-draft handoff only; it is
+not an exam approval, legal opinion, accessibility certification, or automatic
+publication.
+
 The extension does not use a hard-coded API port. The older paired HTTP API
 remains available for development and one alpha compatibility cycle.
 
