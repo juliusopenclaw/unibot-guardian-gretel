@@ -38,9 +38,10 @@ binds actual local gate results to the same clean source commit:
 unibot release evidence --output ../unibot-release-evidence.json --repo .
 ```
 
-It runs the fixed Python, browser, extension-package, Chrome-canary, pipeline,
-public-safety, Guardian-benchmark, and source-card gates. It stores only gate
-status, safe aggregate metrics, duration, and SHA-256 hashes of command output;
+It runs the fixed autonomy-preflight, Ruff, mypy, pip-audit, Python, browser,
+extension-package, Chrome-canary, pipeline, public-safety, Guardian-benchmark,
+and source-card gates. It stores only gate status, safe aggregate metrics,
+duration, and SHA-256 hashes of command output;
 raw logs, notebook text, learner attempts, credentials, and local paths are not
 stored. The evidence file must remain outside the checkout so that adding it
 cannot make the measured source tree dirty. A changed commit, dirty worktree,

@@ -18,6 +18,10 @@ from .source_cards import build_source_card_drift_report
 
 RELEASE_EVIDENCE_SCHEMA_VERSION = "UniBotReleaseEvidenceV1"
 REQUIRED_GATE_IDS = (
+    "autonomy_preflight",
+    "ruff",
+    "mypy",
+    "dependency_audit",
     "python_suite",
     "browser_suite",
     "extension_package",
@@ -28,6 +32,28 @@ REQUIRED_GATE_IDS = (
     "source_card_drift",
 )
 _RAW_KEYS = frozenset({"stdout", "stderr", "raw_output", "command", "path", "local_path"})
+QUALITY_FILES = (
+    "unibot/autonomy_v2.py",
+    "unibot/autonomy_v3.py",
+    "unibot/glm_provider.py",
+    "unibot/guardian_benchmark.py",
+    "unibot/notebook_intake.py",
+    "unibot/gateway.py",
+    "unibot/cli.py",
+    "unibot/clearance.py",
+    "unibot/companion.py",
+    "unibot/extension_package.py",
+    "unibot/release_candidate.py",
+    "unibot/release_evidence.py",
+    "unibot/release_handoff.py",
+    "unibot/release_pr.py",
+    "unibot/compliance.py",
+    "unibot/learning_session.py",
+    "unibot/release_runbook.py",
+    "unibot/server.py",
+    "unibot/socratic_tutor.py",
+    "unibot/source_cards.py",
+)
 
 
 def _canonical_json(value: Any) -> str:
@@ -141,6 +167,10 @@ def _pipeline_metrics(text: str) -> dict[str, Any]:
 
 def _chrome_metrics(text: str) -> dict[str, Any]:
     return _status_metrics(text, ("status", "sidepanel_rendered", "native_companion_connected", "learning_session_resumed"))
+
+
+def _status_only_metrics(_text: str) -> dict[str, Any]:
+    return {"status": "pass"}
 
 
 def _run_gate(
@@ -263,6 +293,7 @@ def write_release_evidence(output_path: str | Path, *, repository: str | Path) -
         return {"schema_version": RELEASE_EVIDENCE_SCHEMA_VERSION, "status": "blocked", "reason": "source_worktree_not_clean"}
 
     environment = os.environ.copy()
+    quality_python = environment.get("UNIBOT_QUALITY_PYTHON", sys.executable)
     chrome_executable = environment.get("UNIBOT_CHROME_EXECUTABLE")
     if not chrome_executable:
         default_chrome = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
@@ -270,6 +301,45 @@ def write_release_evidence(output_path: str | Path, *, repository: str | Path) -
             environment["UNIBOT_CHROME_EXECUTABLE"] = str(default_chrome)
 
     gates = [
+        _run_gate(
+            "autonomy_preflight",
+            "autonomy_preflight_json",
+            [sys.executable, "-m", "unibot.cli", "autonomy", "preflight", "--json"],
+            repo,
+            timeout_seconds=60,
+            parser=lambda text: _status_metrics(
+                text,
+                ("status", "ready_for_shadow", "provider_call_executed", "direct_main_change_blocked"),
+            ),
+            success=lambda metrics: metrics.get("status") == "ready"
+            and metrics.get("ready_for_shadow") is True
+            and metrics.get("provider_call_executed") is False
+            and metrics.get("direct_main_change_blocked") is True,
+        ),
+        _run_gate(
+            "ruff",
+            "ruff_quality_check",
+            [quality_python, "-m", "ruff", "check", *QUALITY_FILES],
+            repo,
+            timeout_seconds=120,
+            parser=_status_only_metrics,
+        ),
+        _run_gate(
+            "mypy",
+            "mypy_quality_check",
+            [quality_python, "-m", "mypy", *QUALITY_FILES],
+            repo,
+            timeout_seconds=180,
+            parser=_status_only_metrics,
+        ),
+        _run_gate(
+            "dependency_audit",
+            "pip_audit_quality_check",
+            [quality_python, "-m", "pip_audit"],
+            repo,
+            timeout_seconds=120,
+            parser=_status_only_metrics,
+        ),
         _run_gate(
             "python_suite",
             "python_full_suite",

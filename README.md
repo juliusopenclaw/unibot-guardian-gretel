@@ -102,6 +102,9 @@ upload.
   output hashes, and the source commit. It never stores raw logs, notebook
   text, learner attempts, credentials, or local paths. Evidence is technical
   reproducibility, not institutional approval or exam clearance.
+- The evidence gates include the autonomy preflight, Ruff, mypy, pip-audit,
+  the full Python suite, browser/package checks, the local Chrome canary,
+  pipeline smoke, public safety, Guardian benchmark, and source-card drift.
 
 ## Open Science Boundary
 
