@@ -63,13 +63,13 @@
       <h1>UniBot Guardian</h1>
       <div id="connectionStatus" class="status" role="status" aria-live="polite" aria-atomic="true" data-state="idle">Nicht gekoppelt</div>
     </header>
-    <nav aria-label="Arbeitsbereiche">
-      <button type="button" data-tab="session" aria-controls="session" aria-selected="true">Sitzung</button>
-      <button type="button" data-tab="help" aria-controls="help" aria-selected="false">Hilfe</button>
-      <button type="button" data-tab="review" aria-controls="review" aria-selected="false">Rueckblick</button>
+    <nav role="tablist" aria-label="Arbeitsbereiche">
+      <button id="session-tab" role="tab" type="button" data-tab="session" aria-controls="session" aria-selected="true">Sitzung</button>
+      <button id="help-tab" role="tab" type="button" data-tab="help" aria-controls="help" aria-selected="false" tabindex="-1">Hilfe</button>
+      <button id="review-tab" role="tab" type="button" data-tab="review" aria-controls="review" aria-selected="false" tabindex="-1">Rueckblick</button>
     </nav>
     <main>
-      <section id="session" data-panel role="tabpanel" aria-labelledby="session-heading">
+      <section id="session" data-panel role="tabpanel" aria-labelledby="session-tab" tabindex="0">
         <h2 id="session-heading">Lernsitzung</h2>
         <label for="pseudonym">Pseudonym</label>
         <input id="pseudonym" maxlength="80" value="Lernende Person">
@@ -100,7 +100,7 @@
         <output id="notebookOutput" role="status" aria-live="polite" aria-atomic="true">Noch kein Notebook importiert.</output>
       </section>
 
-      <section id="help" data-panel role="tabpanel" aria-labelledby="help-heading" hidden>
+      <section id="help" data-panel role="tabpanel" aria-labelledby="help-tab" tabindex="0" hidden>
         <h2 id="help-heading">Sokratische Hilfe</h2>
         <button id="capture" class="command secondary" type="button">Aktive Zelle erfassen</button>
         <div id="cellMeta" class="cell-meta">Keine Zelle erfasst</div>
@@ -123,7 +123,7 @@
         <output id="helpOutput" role="status" aria-live="polite" aria-atomic="true">Noch keine Anfrage.</output>
       </section>
 
-      <section id="review" data-panel role="tabpanel" aria-labelledby="review-heading" hidden>
+      <section id="review" data-panel role="tabpanel" aria-labelledby="review-tab" tabindex="0" hidden>
         <h2 id="review-heading">Sitzungsrueckblick</h2>
         <button id="refreshReview" class="command secondary" type="button">Aktualisieren</button>
         <button id="exportReview" class="command" type="button">Metadaten exportieren</button>

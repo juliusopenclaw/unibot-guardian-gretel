@@ -7,7 +7,10 @@ const state = {
   contract: null,
   notebookId: "",
   selectedCell: null,
-  lastReview: null
+  lastReview: null,
+  reconnectTimer: null,
+  reconnectAttempt: 0,
+  connecting: false
 };
 
 const elements = {
@@ -49,13 +52,35 @@ function selectedAssistanceMode() {
   return document.querySelector("input[name='assistanceMode']:checked").value;
 }
 
+function scheduleReconnect() {
+  if (state.reconnectTimer || state.port || state.connecting || !chrome.runtime?.connectNative) return;
+  const delay = Math.min(5000, 500 * (2 ** Math.min(state.reconnectAttempt, 3)));
+  state.reconnectAttempt += 1;
+  state.reconnectTimer = setTimeout(() => {
+    state.reconnectTimer = null;
+    connectCompanion();
+  }, delay);
+}
+
 function connectCompanion() {
+  if (state.port || state.connecting) return;
   if (!chrome.runtime?.connectNative) {
     setConnection("Begleiter fehlt", "error");
     elements.sessionOutput.textContent = "UniBot Companion ist nicht installiert.";
     return;
   }
-  state.port = chrome.runtime.connectNative(NATIVE_HOST);
+  state.connecting = true;
+  let port;
+  try {
+    port = chrome.runtime.connectNative(NATIVE_HOST);
+  } catch (error) {
+    state.connecting = false;
+    setConnection("Begleiter fehlt", "error");
+    elements.sessionOutput.textContent = error.message;
+    scheduleReconnect();
+    return;
+  }
+  state.port = port;
   state.port.onMessage.addListener((message) => {
     const request = state.pending.get(message.request_id);
     if (!request) return;
@@ -72,12 +97,15 @@ function connectCompanion() {
     }
     state.pending.clear();
     state.port = null;
-    state.contract = null;
+    state.connecting = false;
     setConnection("Begleiter getrennt", "error");
+    scheduleReconnect();
   });
   nativeRequest("companion.status").then(async (status) => {
     if (status.status !== "ready") throw new Error(status.error || "Lokaler Begleiter ist blockiert.");
     setConnection("Lokal bereit", "ready");
+    state.reconnectAttempt = 0;
+    state.connecting = false;
     if (status.resume_available) {
       const resumed = await nativeRequest("session.resume", {
         session_id: status.active_session_metadata?.session_id || ""
@@ -96,8 +124,13 @@ function connectCompanion() {
       elements.notebookOutput.textContent = "Lokales Jupyter-Gateway ist aktiv.";
     }
   }).catch((error) => {
+    state.connecting = false;
     setConnection("Begleiter fehlt", "error");
     elements.sessionOutput.textContent = error.message;
+    if (state.port) {
+      state.port.disconnect?.();
+    }
+    scheduleReconnect();
   });
 }
 
@@ -275,7 +308,9 @@ document.querySelectorAll("nav button[data-tab]").forEach((button) => {
   button.addEventListener("click", () => {
     document.querySelectorAll("nav button[data-tab]").forEach((item) => {
       item.setAttribute("aria-selected", String(item === button));
+      item.setAttribute("tabindex", item === button ? "0" : "-1");
     });
+    button.focus();
     document.querySelectorAll("[data-panel]").forEach((panel) => {
       panel.hidden = panel.id !== button.dataset.tab;
     });

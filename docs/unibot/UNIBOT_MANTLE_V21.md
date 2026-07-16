@@ -50,7 +50,8 @@ learning, or independent work.
   written to the record. The notebook retention clock starts again when the
   gateway ends.
 - The Sidepanel exposes semantic tab/panel relationships, live status regions,
-  visible keyboard focus, and a tested narrow layout. The Playwright check is
+  visible keyboard focus, a tested narrow layout, and bounded automatic
+  reconnection after a native-host restart. The Playwright check is
   concrete browser evidence, not a claim of completed institutional WCAG
   certification; that review remains a human accessibility gate.
 - Companion installation copies the public `unibot` package and its

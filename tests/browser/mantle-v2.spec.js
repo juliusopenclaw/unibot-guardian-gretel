@@ -118,7 +118,7 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
   await page.locator("#startSession").click();
   await expect(page.locator("#connectionStatus")).toHaveText("Sitzung aktiv");
 
-  await page.getByRole("button", { name: "Hilfe", exact: true }).click();
+  await page.getByRole("tab", { name: "Hilfe", exact: true }).click();
   await page.locator("#capture").click();
   await expect(page.locator("#cellMeta")).toContainText("Zelle 2");
   await page.locator("#task").fill("Warum entsteht ein Indexfehler?");
@@ -127,7 +127,7 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
   await expect(page.locator("#helpOutput")).toContainText("Welche Laenge");
   await expect(page.locator("#helpOutput")).toContainText("5 Punkte");
 
-  await page.getByRole("button", { name: "Rueckblick", exact: true }).click();
+  await page.getByRole("tab", { name: "Rueckblick", exact: true }).click();
   await page.locator("#refreshReview").click();
   await expect(page.locator("#reviewOutput")).toContainText("Ereignisse: 1");
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
@@ -164,4 +164,55 @@ test("sidepanel exposes accessible status semantics and visible keyboard focus",
   });
   expect(focusStyle.outlineStyle).not.toBe("none");
   expect(parseFloat(focusStyle.outlineWidth)).toBeGreaterThanOrEqual(2);
+});
+
+test("sidepanel reconnects and resumes a local session after companion restart", async ({ page }) => {
+  await page.addInitScript(() => {
+    let onNativeMessage = null;
+    let onDisconnect = null;
+    let connectionCount = 0;
+    const nativePort = {
+      onMessage: { addListener(listener) { onNativeMessage = listener; } },
+      onDisconnect: { addListener(listener) { onDisconnect = listener; } },
+      disconnect() { onDisconnect?.(); },
+      postMessage(message) {
+        let response = { request_id: message.request_id, status: "stopped" };
+        if (message.type === "companion.status") {
+          response = connectionCount === 1
+            ? { request_id: message.request_id, status: "ready", resume_available: false }
+            : {
+                request_id: message.request_id,
+                status: "ready",
+                resume_available: true,
+                active_session_metadata: { session_id: "resumable-session" }
+              };
+        } else if (message.type === "session.resume") {
+          response = {
+            request_id: message.request_id,
+            status: "active",
+            contract: { session_id: "resumable-session", max_help_level: "A2" },
+            report: { event_count: 2, own_attempt_count: 2, by_help_level: { A1: 1 }, assistance_points_used: 0 }
+          };
+        }
+        queueMicrotask(() => onNativeMessage?.(response));
+      }
+    };
+    window.__disconnectNative = () => nativePort.disconnect();
+    window.chrome = {
+      runtime: {
+        connectNative(name) {
+          if (name !== "de.gretel.unibot_companion") throw new Error("unexpected native host");
+          connectionCount += 1;
+          return nativePort;
+        },
+        lastError: null
+      }
+    };
+  });
+
+  await page.goto(pathToFileURL(path.join(extensionRoot, "v2", "sidepanel.html")).href);
+  await expect(page.locator("#connectionStatus")).toHaveText("Lokal bereit");
+  await page.evaluate(() => window.__disconnectNative());
+  await expect(page.locator("#connectionStatus")).toHaveText("Sitzung fortgesetzt", { timeout: 5000 });
+  await expect(page.locator("#reviewOutput")).toContainText("Ereignisse: 2");
 });
