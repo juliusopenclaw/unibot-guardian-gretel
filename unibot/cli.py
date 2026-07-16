@@ -28,7 +28,9 @@ from .autonomy_v2 import (
 )
 from .companion import DEFAULT_EXTENSION_ID, companion_diagnose, companion_status, install_companion, run_native_host
 from .clearance import (
+    build_accessibility_review_walkthrough,
     build_institutional_review_decision_template_markdown,
+    build_institutional_plain_language_brief,
     build_institutional_presentation_markdown,
     build_institutional_presentation_packet,
     build_regulatory_profile,
@@ -198,6 +200,12 @@ def build_parser() -> argparse.ArgumentParser:
     institution_commands.add_parser("profile", help="show RegulatoryProfileV1")
     presentation = institution_commands.add_parser("presentation", help="show the review meeting packet")
     presentation.add_argument("--markdown", action="store_true")
+    brief = institution_commands.add_parser("brief", help="show the plain-language institutional brief")
+    brief.add_argument("--markdown", action="store_true")
+    accessibility = institution_commands.add_parser(
+        "accessibility-walkthrough", help="show the human accessibility review walkthrough"
+    )
+    accessibility.add_argument("--markdown", action="store_true")
     decision_template = institution_commands.add_parser(
         "decision-template", help="show the blank human review outcome template"
     )
@@ -490,6 +498,28 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print(json.dumps({"status": payload["status"], "markdown": build_institutional_presentation_markdown(payload)}, ensure_ascii=True, indent=2))
             else:
                 _print_json(payload)
+            return 0 if payload["status"] == "ready_for_human_review" else 2
+        if args.command == "institution" and args.institution_command == "brief":
+            payload = build_institutional_presentation_packet()
+            _print_json(
+                {
+                    "status": payload["status"],
+                    "deployment_status": payload["deployment_status"],
+                    "artifact_type": "unibot_institutional_plain_language_brief",
+                    "markdown": build_institutional_plain_language_brief(payload),
+                }
+            )
+            return 0 if payload["status"] == "ready_for_human_review" else 2
+        if args.command == "institution" and args.institution_command == "accessibility-walkthrough":
+            payload = build_institutional_presentation_packet()
+            _print_json(
+                {
+                    "status": payload["status"],
+                    "deployment_status": payload["deployment_status"],
+                    "artifact_type": "unibot_institutional_accessibility_walkthrough",
+                    "markdown": build_accessibility_review_walkthrough(payload),
+                }
+            )
             return 0 if payload["status"] == "ready_for_human_review" else 2
         if args.command == "institution" and args.institution_command == "decision-template":
             payload = build_institutional_review_decision_template()

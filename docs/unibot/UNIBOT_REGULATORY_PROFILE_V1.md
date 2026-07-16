@@ -128,6 +128,8 @@ RegulatoryProfileV1, Clearance-Board, Readiness und Release-Runbook:
 unibot institution profile
 unibot institution presentation
 unibot institution presentation --markdown
+unibot institution brief --markdown
+unibot institution accessibility-walkthrough --markdown
 unibot institution decision-template --markdown
 unibot institution bundle --output ./unibot-institution-review
 ```

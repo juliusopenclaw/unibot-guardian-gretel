@@ -107,6 +107,26 @@ class UniBotCliV2Tests(unittest.TestCase):
         self.assertIn("not_cleared", markdown_payload["markdown"])
 
         with io.StringIO() as output, redirect_stdout(output):
+            exit_code = main(["institution", "brief", "--markdown"])
+            brief_payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(brief_payload["artifact_type"], "unibot_institutional_plain_language_brief")
+        self.assertIn("Kurzinfo", brief_payload["markdown"])
+        self.assertEqual(brief_payload["deployment_status"], "not_cleared")
+
+        with io.StringIO() as output, redirect_stdout(output):
+            exit_code = main(["institution", "accessibility-walkthrough", "--markdown"])
+            accessibility_payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(
+            accessibility_payload["artifact_type"], "unibot_institutional_accessibility_walkthrough"
+        )
+        self.assertIn("Accessibility-Walkthrough", accessibility_payload["markdown"])
+        self.assertIn("not_tested", accessibility_payload["markdown"])
+
+        with io.StringIO() as output, redirect_stdout(output):
             exit_code = main(["institution", "decision-template"])
             template_payload = json.loads(output.getvalue())
 
