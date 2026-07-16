@@ -111,9 +111,13 @@ und ein bereinigtes `gretel-proposed`-Artefakt, niemals einen Code-Push.
 
 Jeder Controller-Lauf klont den freigegebenen Basis-Commit in eine kurzlebige,
 remote-freie Arbeitskopie ausserhalb von Git und iCloud und entfernt sie danach.
-Schatten- und lokale Rollout-Zaehler werden nur nach einem tatsaechlichen
-erfolgreichen Lauf fortgeschrieben. Der lokale Waechter bleibt deaktiviert,
-bis beide Zehner-Gates und drei nachgewiesene menschliche Canary-Merges vorliegen.
+Schatten- und lokale Rollout-Zaehler unterscheiden Gesamtzahl, Fehlerzahl und
+`consecutive_successes`. Ein Fehler setzt die aktuelle Erfolgsserie auf null;
+die Freigabe verlangt danach erneut zehn unmittelbar aufeinanderfolgende grüne
+Läufe. So kann eine alte grüne Serie einen späteren Fehler nicht verdecken. Die
+lokale Datenbank migriert ältere Rollouttabellen fail-closed mit einer neuen
+Serie von null. Der lokale Wächter bleibt deaktiviert, bis beide Zehner-Gates
+und drei nachgewiesene menschliche Canary-Merges vorliegen.
 
 Die gegenwärtige Implementierung stellt die Verträge und Gates bereit; echte
 Z.AI-Credentials, eine repo-beschränkte GitHub App, Branchschutz und menschliche
