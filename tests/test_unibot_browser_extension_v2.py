@@ -35,8 +35,14 @@ class BrowserExtensionV2Tests(unittest.TestCase):
         self.assertIn('nativeRequest("session.start"', script)
         self.assertIn('nativeRequest("notebook.import"', script)
         self.assertIn('nativeRequest("gateway.launch"', script)
+        self.assertIn('nativeRequest("gateway.status"', script)
+        self.assertIn('nativeRequest("gateway.stop"', script)
         self.assertIn('nativeRequest("tutor.turn"', script)
         self.assertIn('nativeRequest("session.report"', script)
+        self.assertIn('nativeRequest("session.resume"', script)
+        self.assertIn('nativeRequest("session.delete"', script)
+        self.assertIn("deleteSession", html)
+        self.assertIn("stopGateway", html)
         self.assertNotIn("127.0.0.1:8765", script)
 
     def test_content_script_extracts_active_notebook_cell_not_output(self) -> None:

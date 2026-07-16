@@ -21,6 +21,7 @@ const elements = {
   notebookSource: document.querySelector("#notebookSource"),
   importNotebook: document.querySelector("#importNotebook"),
   openGateway: document.querySelector("#openGateway"),
+  stopGateway: document.querySelector("#stopGateway"),
   notebookOutput: document.querySelector("#notebookOutput"),
   capture: document.querySelector("#capture"),
   cellMeta: document.querySelector("#cellMeta"),
@@ -31,6 +32,7 @@ const elements = {
   helpOutput: document.querySelector("#helpOutput"),
   refreshReview: document.querySelector("#refreshReview"),
   exportReview: document.querySelector("#exportReview"),
+  deleteSession: document.querySelector("#deleteSession"),
   reviewOutput: document.querySelector("#reviewOutput")
 };
 
@@ -73,9 +75,26 @@ function connectCompanion() {
     state.contract = null;
     setConnection("Begleiter getrennt", "error");
   });
-  nativeRequest("companion.status").then(() => {
+  nativeRequest("companion.status").then(async (status) => {
+    if (status.status !== "ready") throw new Error(status.error || "Lokaler Begleiter ist blockiert.");
     setConnection("Lokal bereit", "ready");
-    elements.sessionOutput.textContent = "Begleiter bereit. Lernsitzung starten.";
+    if (status.resume_available) {
+      const resumed = await nativeRequest("session.resume", {
+        session_id: status.active_session_metadata?.session_id || ""
+      });
+      state.contract = resumed.contract;
+      state.lastReview = resumed.report;
+      setConnection("Sitzung fortgesetzt", "ready");
+      elements.sessionOutput.textContent = "Vorhandene Lernsitzung wurde lokal fortgesetzt.";
+      elements.reviewOutput.textContent = renderReview(state.lastReview);
+    } else {
+      elements.sessionOutput.textContent = "Begleiter bereit. Lernsitzung starten.";
+    }
+    const gateway = await nativeRequest("gateway.status");
+    if (gateway.status === "active") {
+      elements.stopGateway.disabled = false;
+      elements.notebookOutput.textContent = "Lokales Jupyter-Gateway ist aktiv.";
+    }
   }).catch((error) => {
     setConnection("Begleiter fehlt", "error");
     elements.sessionOutput.textContent = error.message;
@@ -153,11 +172,20 @@ async function importNotebook() {
 async function openGateway() {
   if (!state.notebookId) throw new Error("Notebook zuerst importieren");
   const response = await nativeRequest("gateway.launch", { notebook_id: state.notebookId });
+  elements.stopGateway.disabled = false;
   elements.notebookOutput.textContent = [
     "Lokales Jupyter gestartet",
     `Notebook: ${response.gateway.artifact_name}`,
     "Terminal deaktiviert. Pruefungseinsatz nicht freigegeben."
   ].join("\n");
+}
+
+async function stopGateway() {
+  const response = await nativeRequest("gateway.stop");
+  elements.stopGateway.disabled = true;
+  elements.notebookOutput.textContent = response.status === "stopped"
+    ? "Lokales Jupyter-Gateway wurde gestoppt."
+    : "Kein lokales Jupyter-Gateway aktiv.";
 }
 
 function renderTurn(turn) {
@@ -220,6 +248,19 @@ function exportReview() {
   URL.revokeObjectURL(url);
 }
 
+async function deleteSession() {
+  if (!state.contract) throw new Error("Keine Lernsitzung ausgewählt");
+  if (!window.confirm("Lernsitzung und lokale Metadaten sofort löschen?")) return;
+  await nativeRequest("session.delete", { session_id: state.contract.session_id });
+  state.contract = null;
+  state.lastReview = null;
+  state.selectedCell = null;
+  elements.sessionOutput.textContent = "Lernsitzung und lokale Metadaten wurden gelöscht.";
+  elements.reviewOutput.textContent = "Keine Sitzungsdaten.";
+  elements.helpOutput.textContent = "Noch keine Anfrage.";
+  setConnection("Lokal bereit", "ready");
+}
+
 function guarded(action, output) {
   return async () => {
     try {
@@ -244,9 +285,11 @@ document.querySelectorAll("nav button[data-tab]").forEach((button) => {
 elements.startSession.addEventListener("click", guarded(startSession, elements.sessionOutput));
 elements.importNotebook.addEventListener("click", guarded(importNotebook, elements.notebookOutput));
 elements.openGateway.addEventListener("click", guarded(openGateway, elements.notebookOutput));
+elements.stopGateway.addEventListener("click", guarded(stopGateway, elements.notebookOutput));
 elements.capture.addEventListener("click", guarded(captureCell, elements.helpOutput));
 elements.ask.addEventListener("click", guarded(requestHelp, elements.helpOutput));
 elements.refreshReview.addEventListener("click", guarded(refreshReview, elements.reviewOutput));
 elements.exportReview.addEventListener("click", guarded(exportReview, elements.reviewOutput));
+elements.deleteSession.addEventListener("click", guarded(deleteSession, elements.reviewOutput));
 
 connectCompanion();

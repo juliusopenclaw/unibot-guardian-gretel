@@ -38,6 +38,17 @@ learning, or independent work.
 - The deterministic tutor analyzes Python syntax, visible traceback terms,
   skill tags, local formula cards, and versioned official source anchors.
 - Raw task, cell, attempt, and tutor transcript text are not persisted.
+- The Companion writes only a hash-bound session contract, metadata event
+  journal, and active/stopped state. A new Chrome panel can send
+  `session.resume` and recover the active contract after a Companion restart.
+- `session.delete` removes the contract, state, event journal, and associated
+  sanitized notebook copy immediately. Ended sessions are cleaned after seven
+  days; sanitized notebook copies are cleaned after 24 hours.
+- A real local Jupyter process is represented only by a restricted process
+  record. `gateway.status` and `gateway.stop` allow the Companion to recover or
+  terminate that process after a Chrome restart; the Jupyter token is never
+  written to the record. The notebook retention clock starts again when the
+  gateway ends.
 - The local JSONL record contains only hashes, levels, source IDs, timestamps,
   assistance points, and status. Files are owner-readable only.
 - The voluntary report contains the pseudonym chosen for the session, contract

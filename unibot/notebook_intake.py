@@ -294,8 +294,14 @@ def import_notebook(
     }
     if scan_text(json.dumps(manifest, ensure_ascii=False), "notebook-manifest")["status"] != "pass":
         raise NotebookIntakeError("notebook manifest failed the public-safety screen")
-    target = output_root.expanduser().resolve() / sanitized_hash[:16]
+    output_root = output_root.expanduser()
+    if output_root.exists() and output_root.is_symlink():
+        raise NotebookIntakeError("notebook output root symlinks are not accepted")
+    output_root.mkdir(parents=True, exist_ok=True)
+    output_root.chmod(0o700)
+    target = output_root.resolve() / sanitized_hash[:16]
     target.mkdir(parents=True, exist_ok=True)
+    target.chmod(0o700)
     notebook_path = target / artifact_name
     manifest_path = target / "manifest.json"
     notebook_path.write_text(json.dumps(sanitized, ensure_ascii=True, indent=2) + "\n", encoding="utf-8")

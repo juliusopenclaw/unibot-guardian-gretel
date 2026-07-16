@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import io
+import os
 import struct
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -152,7 +154,8 @@ class UniBotMantleV21Tests(unittest.TestCase):
 
     def test_companion_protocol_is_local_and_returns_metadata_report(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
-            runtime = CompanionRuntime(storage_root=Path(temporary))
+            storage_root = Path(temporary)
+            runtime = CompanionRuntime(storage_root=storage_root)
             started = runtime.handle(
                 {
                     "request_id": "1",
@@ -177,6 +180,153 @@ class UniBotMantleV21Tests(unittest.TestCase):
         self.assertEqual(turn["status"], "ok")
         self.assertEqual(report["report"]["event_count"], 1)
         self.assertFalse(report["report"]["raw_cell_text_included"])
+
+    def test_companion_resumes_metadata_only_session_after_runtime_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            storage_root = Path(temporary)
+            runtime = CompanionRuntime(storage_root=storage_root)
+            started = runtime.handle(
+                {
+                    "request_id": "resume-1",
+                    "type": "session.start",
+                    "payload": {"assistance_mode": "fixed", "fixed_help_level": "A1", "max_help_level": "A2"},
+                }
+            )
+            session_id = started["contract"]["session_id"]
+            runtime.handle(
+                {
+                    "request_id": "resume-2",
+                    "type": "tutor.turn",
+                    "payload": {
+                        "task": "Wie pruefe ich eine Liste?",
+                        "learner_attempt": "Ich pruefe zuerst len.",
+                        "cell_context": "values = [1, 2, 3]",
+                        "task_id": "sichtbarer-aufgabentext-darf-nicht-persistieren",
+                        "requested_help_level": "A1",
+                    },
+                }
+            )
+            restarted = CompanionRuntime(storage_root=storage_root)
+            status = restarted.handle({"request_id": "resume-3", "type": "companion.status", "payload": {}})
+            resumed = restarted.handle(
+                {"request_id": "resume-4", "type": "session.resume", "payload": {"session_id": session_id}}
+            )
+            stored = "\n".join(path.read_text(encoding="utf-8") for path in storage_root.glob("*.jsonl"))
+
+        self.assertEqual(status["status"], "ready")
+        self.assertTrue(status["resume_available"])
+        self.assertEqual(status["active_session_metadata"]["session_id"], session_id)
+        self.assertEqual(resumed["status"], "active")
+        self.assertTrue(resumed["resumed"])
+        self.assertEqual(resumed["report"]["event_count"], 1)
+        self.assertNotIn("sichtbarer-aufgabentext", stored)
+        self.assertNotIn("Ich pruefe zuerst", stored)
+
+    def test_companion_session_delete_removes_contract_state_and_journal(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            storage_root = Path(temporary)
+            runtime = CompanionRuntime(storage_root=storage_root)
+            started = runtime.handle(
+                {"request_id": "delete-1", "type": "session.start", "payload": {}}
+            )
+            deleted = runtime.handle(
+                {
+                    "request_id": "delete-2",
+                    "type": "session.delete",
+                    "payload": {"session_id": started["contract"]["session_id"]},
+                }
+            )
+            status = runtime.handle({"request_id": "delete-3", "type": "companion.status", "payload": {}})
+
+        self.assertEqual(deleted["status"], "deleted")
+        self.assertFalse(status["resume_available"])
+        self.assertEqual(list(storage_root.glob("*")), [])
+
+    def test_companion_delete_removes_linked_notebook_after_runtime_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "practice.ipynb"
+            notebook = nbformat.v4.new_notebook(cells=[nbformat.v4.new_code_cell("values = [1, 2, 3]")])
+            nbformat.write(notebook, source)
+            runtime = CompanionRuntime(storage_root=root / "sessions")
+            started = runtime.handle({"request_id": "linked-1", "type": "session.start", "payload": {}})
+            imported = runtime.handle(
+                {
+                    "request_id": "linked-2",
+                    "type": "notebook.import",
+                    "payload": {"source": str(source)},
+                }
+            )
+            notebook_path = root / "notebooks" / imported["notebook_id"]
+            self.assertTrue(notebook_path.is_dir())
+
+            restarted = CompanionRuntime(storage_root=root / "sessions")
+            restarted.handle(
+                {
+                    "request_id": "linked-3",
+                    "type": "session.resume",
+                    "payload": {"session_id": started["contract"]["session_id"]},
+                }
+            )
+            deleted = restarted.handle(
+                {
+                    "request_id": "linked-4",
+                    "type": "session.delete",
+                    "payload": {"session_id": started["contract"]["session_id"]},
+                }
+            )
+
+        self.assertEqual(deleted["status"], "deleted")
+        self.assertFalse(notebook_path.exists())
+
+    def test_companion_gateway_status_and_stop_persist_no_token(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "practice.ipynb"
+            notebook = nbformat.v4.new_notebook(cells=[nbformat.v4.new_code_cell("values = [1, 2, 3]")])
+            nbformat.write(notebook, source)
+            process = subprocess.Popen(["sleep", "30"], start_new_session=True)
+            try:
+                runtime = CompanionRuntime(storage_root=root / "sessions")
+                runtime.handle({"request_id": "gateway-1", "type": "session.start", "payload": {}})
+                imported = runtime.handle(
+                    {
+                        "request_id": "gateway-2",
+                        "type": "notebook.import",
+                        "payload": {"source": str(source)},
+                    }
+                )
+                notebook_id = imported["notebook_id"]
+                with patch(
+                    "unibot.companion.launch_gateway",
+                    return_value={
+                        "status": "local_practice_gateway_started",
+                        "artifact_name": f"{notebook_id}.ipynb",
+                        "process_id": process.pid,
+                        "process_group_id": os.getpgid(process.pid),
+                    },
+                ):
+                    launched = runtime.handle(
+                        {
+                            "request_id": "gateway-3",
+                            "type": "gateway.launch",
+                            "payload": {"notebook_id": notebook_id},
+                        }
+                    )
+                    status = runtime.handle({"request_id": "gateway-4", "type": "gateway.status", "payload": {}})
+                    stopped = runtime.handle({"request_id": "gateway-5", "type": "gateway.stop", "payload": {}})
+                state_text = "".join(path.read_text(encoding="utf-8") for path in (root / "sessions").glob("*"))
+            finally:
+                if process.poll() is None:
+                    process.terminate()
+                    process.wait(timeout=3)
+
+        self.assertEqual(launched["status"], "ok")
+        self.assertEqual(status["status"], "active")
+        self.assertEqual(stopped["status"], "stopped")
+        self.assertIsNotNone(process.poll())
+        self.assertNotIn("JUPYTER_TOKEN", state_text)
+        self.assertFalse((root / "sessions" / "gateway.state.json").exists())
 
     def test_companion_imports_local_notebook_by_id_and_builds_gateway_plan(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

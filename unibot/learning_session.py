@@ -3,16 +3,21 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import stat
 import secrets
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import re
 from typing import Any, Literal, TypedDict, cast
 
 
 HELP_COSTS_V1 = {"A0": 0, "A1": 0, "A2": 5, "A3": 12, "A4": 25}
 HELP_LEVELS_V1 = tuple(HELP_COSTS_V1)
 COST_POLICY_VERSION = "unibot-help-cost-v1"
+SESSION_STATE_SCHEMA_VERSION = "unibot-session-state-v1"
+SESSION_RETENTION_DAYS = 7
+_SESSION_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{8,80}$")
 
 
 class SessionContractV1(TypedDict):
@@ -67,6 +72,197 @@ def _help_level(value: Any, *, fallback: str = "A2") -> str:
     return candidate if candidate in HELP_COSTS_V1 else fallback
 
 
+def _session_id(value: Any) -> str:
+    candidate = str(value or "").strip()
+    if not _SESSION_ID_PATTERN.fullmatch(candidate):
+        raise ValueError("session_id is invalid")
+    return candidate
+
+
+def _notebook_id(value: Any) -> str:
+    candidate = str(value or "").strip()
+    if not re.fullmatch(r"[0-9a-f]{16}", candidate):
+        raise ValueError("notebook_id is invalid")
+    return candidate
+
+
+def _session_paths(storage_root: Path, session_id: str) -> tuple[Path, Path, Path]:
+    safe_id = _session_id(session_id)
+    return (
+        storage_root / f"{safe_id}.contract.json",
+        storage_root / f"{safe_id}.state.json",
+        storage_root / f"{safe_id}.jsonl",
+    )
+
+
+def _write_private_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{secrets.token_hex(6)}.tmp")
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        os.chmod(path, 0o600)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
+def _read_private_json(path: Path) -> dict[str, Any]:
+    if path.is_symlink() or not path.is_file():
+        raise ValueError("session metadata file is missing or symlinked")
+    if stat.S_IMODE(path.stat().st_mode) != 0o600:
+        raise ValueError("session metadata file permissions must be 0600")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("session metadata must be an object")
+    return payload
+
+
+def _state_record(
+    session_id: str,
+    status: str,
+    *,
+    contract_hash: str,
+    notebook_ids: list[str] | tuple[str, ...] = (),
+) -> dict[str, Any]:
+    if status not in {"active", "stopped"}:
+        raise ValueError("unsupported session state")
+    return {
+        "schema_version": SESSION_STATE_SCHEMA_VERSION,
+        "session_id": _session_id(session_id),
+        "status": status,
+        "contract_hash": str(contract_hash),
+        "notebook_ids": sorted({_notebook_id(item) for item in notebook_ids if str(item)}),
+        "updated_at_utc": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def _validated_contract(storage_root: Path, session_id: str) -> dict[str, Any]:
+    contract_path, _, _ = _session_paths(storage_root, session_id)
+    contract = _read_private_json(contract_path)
+    contract_hash = str(contract.get("contract_hash", ""))
+    without_hash = dict(contract)
+    without_hash.pop("contract_hash", None)
+    if not contract_hash or _canonical_hash(without_hash) != contract_hash:
+        raise ValueError("session contract hash mismatch")
+    if str(contract.get("session_id", "")) != session_id:
+        raise ValueError("session contract id mismatch")
+    return contract
+
+
+def session_notebook_ids(storage_root: Path, session_id: str) -> list[str]:
+    """Return only the sanitized notebook identifiers linked to a session."""
+    safe_id = _session_id(session_id)
+    _, state_path, _ = _session_paths(storage_root, safe_id)
+    state = _read_private_json(state_path)
+    if state.get("schema_version") != SESSION_STATE_SCHEMA_VERSION:
+        raise ValueError("unsupported session state schema")
+    if state.get("contract_hash") != _validated_contract(storage_root, safe_id).get("contract_hash"):
+        raise ValueError("session state contract binding mismatch")
+    notebook_ids = state.get("notebook_ids", [])
+    if not isinstance(notebook_ids, list) or not all(isinstance(item, str) for item in notebook_ids):
+        raise ValueError("session notebook metadata is invalid")
+    return sorted({_notebook_id(item) for item in notebook_ids})
+
+
+def register_session_notebook(storage_root: Path, session_id: str, notebook_id: str) -> None:
+    """Bind a sanitized notebook identifier to the active session metadata."""
+    safe_id = _session_id(session_id)
+    safe_notebook_id = _notebook_id(notebook_id)
+    _, state_path, _ = _session_paths(storage_root, safe_id)
+    state = _read_private_json(state_path)
+    if state.get("status") != "active":
+        raise ValueError("only active sessions can register notebooks")
+    existing = session_notebook_ids(storage_root, safe_id)
+    _write_private_json(
+        state_path,
+        _state_record(
+            safe_id,
+            "active",
+            contract_hash=str(state.get("contract_hash", "")),
+            notebook_ids=[*existing, safe_notebook_id],
+        ),
+    )
+
+
+def active_session_metadata(storage_root: Path) -> list[dict[str, str]]:
+    """Return only resumable session metadata, never notebook or learner text."""
+    if not storage_root.exists():
+        return []
+    if storage_root.is_symlink() or not storage_root.is_dir():
+        raise ValueError("session storage root is missing or symlinked")
+    if stat.S_IMODE(storage_root.stat().st_mode) != 0o700:
+        raise ValueError("session storage root permissions must be 0700")
+    active: list[dict[str, str]] = []
+    for state_path in sorted(storage_root.glob("*.state.json")):
+        state = _read_private_json(state_path)
+        if state.get("schema_version") != SESSION_STATE_SCHEMA_VERSION:
+            raise ValueError("unsupported session state schema")
+        session_id = _session_id(state.get("session_id"))
+        if state.get("status") != "active":
+            continue
+        contract = _validated_contract(storage_root, session_id)
+        if state.get("contract_hash") != contract.get("contract_hash"):
+            raise ValueError("session state contract binding mismatch")
+        active.append(
+            {
+                "session_id": session_id,
+                "contract_hash": str(contract.get("contract_hash", "")),
+                "course_id": str(contract.get("course_id", "")),
+                "updated_at_utc": str(state.get("updated_at_utc", "")),
+            }
+        )
+    return active
+
+
+def delete_session_artifacts(storage_root: Path, session_id: str) -> bool:
+    """Delete one session's metadata and event journal without following links."""
+    if storage_root.is_symlink() or not storage_root.is_dir():
+        raise ValueError("session storage root is missing or symlinked")
+    paths = _session_paths(storage_root, session_id)
+    present = False
+    for path in paths:
+        if path.exists() or path.is_symlink():
+            if path.is_symlink():
+                raise ValueError("refusing to delete symlinked session metadata")
+            if not path.is_file():
+                raise ValueError("session metadata path is not a file")
+            path.unlink()
+            present = True
+    return present
+
+
+def cleanup_expired_sessions(storage_root: Path, *, retention_days: int = SESSION_RETENTION_DAYS) -> list[str]:
+    """Remove ended sessions after the declared retention window."""
+    if not storage_root.exists():
+        return []
+    if storage_root.is_symlink() or not storage_root.is_dir():
+        raise ValueError("session storage root is missing or symlinked")
+    if stat.S_IMODE(storage_root.stat().st_mode) != 0o700:
+        raise ValueError("session storage root permissions must be 0700")
+    cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
+    removed: list[str] = []
+    for state_path in sorted(storage_root.glob("*.state.json")):
+        state = _read_private_json(state_path)
+        if state.get("schema_version") != SESSION_STATE_SCHEMA_VERSION or state.get("status") != "stopped":
+            continue
+        try:
+            updated = datetime.fromisoformat(str(state.get("updated_at_utc", "")))
+        except ValueError:
+            continue
+        if updated.tzinfo is None or updated >= cutoff:
+            continue
+        session_id = _session_id(state.get("session_id"))
+        if delete_session_artifacts(storage_root, session_id):
+            removed.append(session_id)
+    return removed
+
+
 def create_session_contract(payload: dict[str, Any] | None = None) -> SessionContractV1:
     payload = payload or {}
     assistance_mode = str(payload.get("assistance_mode", "fixed")).strip().lower()
@@ -108,6 +304,8 @@ def create_session_contract(payload: dict[str, Any] | None = None) -> SessionCon
 class LearningSession:
     contract: SessionContractV1
     storage_path: Path | None = None
+    contract_path: Path | None = None
+    state_path: Path | None = None
     events: list[HelpEventV2] = field(default_factory=list)
     stopped: bool = False
 
@@ -120,11 +318,65 @@ class LearningSession:
     ) -> "LearningSession":
         contract = create_session_contract(payload)
         storage_path = None
+        contract_path = None
+        state_path = None
         if storage_root is not None:
+            if storage_root.exists() and storage_root.is_symlink():
+                raise ValueError("session storage root must not be a symlink")
             storage_root.mkdir(parents=True, exist_ok=True)
             os.chmod(storage_root, 0o700)
-            storage_path = storage_root / f"{contract['session_id']}.jsonl"
-        return cls(contract=contract, storage_path=storage_path)
+            contract_path, state_path, storage_path = _session_paths(storage_root, contract["session_id"])
+        session = cls(
+            contract=contract,
+            storage_path=storage_path,
+            contract_path=contract_path,
+            state_path=state_path,
+        )
+        if contract_path is not None and state_path is not None:
+            _write_private_json(contract_path, dict(contract))
+            _write_private_json(
+                state_path,
+                _state_record(contract["session_id"], "active", contract_hash=contract["contract_hash"]),
+            )
+        return session
+
+    @classmethod
+    def resume(cls, storage_root: Path, session_id: str | None = None) -> "LearningSession":
+        active = active_session_metadata(storage_root)
+        if session_id:
+            safe_id = _session_id(session_id)
+        elif len(active) == 1:
+            safe_id = active[0]["session_id"]
+        elif not active:
+            raise ValueError("no active learning session to resume")
+        else:
+            raise ValueError("multiple active learning sessions require an explicit session_id")
+        contract_path, state_path, storage_path = _session_paths(storage_root, safe_id)
+        state = _read_private_json(state_path)
+        if state.get("schema_version") != SESSION_STATE_SCHEMA_VERSION or state.get("status") != "active":
+            raise ValueError("learning session is not resumable")
+        contract_payload = _validated_contract(storage_root, safe_id)
+        if state.get("contract_hash") != contract_payload.get("contract_hash"):
+            raise ValueError("session state contract binding mismatch")
+        events: list[HelpEventV2] = []
+        if storage_path.exists():
+            if storage_path.is_symlink() or stat.S_IMODE(storage_path.stat().st_mode) != 0o600:
+                raise ValueError("session event journal permissions are invalid")
+            for line in storage_path.read_text(encoding="utf-8").splitlines():
+                record = json.loads(line)
+                if not isinstance(record, dict) or record.get("schema_version") != "unibot-local-learning-record-v1":
+                    raise ValueError("unsupported session event record")
+                event = record.get("event")
+                if not isinstance(event, dict) or event.get("session_id") != safe_id:
+                    raise ValueError("session event binding mismatch")
+                events.append(cast(HelpEventV2, event))
+        return cls(
+            contract=cast(SessionContractV1, contract_payload),
+            storage_path=storage_path,
+            contract_path=contract_path,
+            state_path=state_path,
+            events=events,
+        )
 
     def task_events(self, task_id: str) -> list[HelpEventV2]:
         return [event for event in self.events if event["task_id"] == task_id]
@@ -177,6 +429,9 @@ class LearningSession:
         descriptor = os.open(self.storage_path, flags, 0o600)
         with os.fdopen(descriptor, "a", encoding="utf-8") as handle:
             handle.write(json.dumps(record, ensure_ascii=True, sort_keys=True) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(self.storage_path, 0o600)
 
     def summary(self) -> dict[str, Any]:
         by_level: dict[str, int] = {}
@@ -226,4 +481,15 @@ class LearningSession:
 
     def stop(self) -> dict[str, Any]:
         self.stopped = True
+        if self.state_path is not None:
+            current_state = _read_private_json(self.state_path)
+            _write_private_json(
+                self.state_path,
+                _state_record(
+                    self.contract["session_id"],
+                    "stopped",
+                    contract_hash=self.contract["contract_hash"],
+                    notebook_ids=current_state.get("notebook_ids", []),
+                ),
+            )
         return {"status": "stopped", "session_id": self.contract["session_id"], "report": self.report()}

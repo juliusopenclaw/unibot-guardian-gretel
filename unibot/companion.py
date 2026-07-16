@@ -2,16 +2,29 @@ from __future__ import annotations
 
 import json
 import os
+import hashlib
 import shlex
+import shutil
+import signal
 import socket
 import struct
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any, BinaryIO, cast
 
 from .gateway import launch_gateway
-from .learning_session import HELP_LEVELS_V1, LearningSession
+from .learning_session import (
+    HELP_LEVELS_V1,
+    LearningSession,
+    SESSION_RETENTION_DAYS,
+    active_session_metadata,
+    cleanup_expired_sessions,
+    delete_session_artifacts,
+    register_session_notebook,
+    session_notebook_ids,
+)
 from .notebook_intake import import_notebook
 from .socratic_tutor import TutorTurnRequestV1, build_tutor_turn
 
@@ -23,13 +36,137 @@ APPLICATION_SUPPORT = Path.home() / "Library" / "Application Support" / "UniBot 
 CHROME_NATIVE_HOSTS = Path.home() / "Library" / "Application Support" / "Google" / "Chrome" / "NativeMessagingHosts"
 CHROMIUM_NATIVE_HOSTS = Path.home() / "Library" / "Application Support" / "Chromium" / "NativeMessagingHosts"
 DEFAULT_APP_PATH = Path.home() / "Applications" / "UniBot Companion.app"
+NOTEBOOK_RETENTION_HOURS = 24
+GATEWAY_STATE_SCHEMA_VERSION = "unibot-gateway-state-v1"
+
+
+def cleanup_expired_notebooks(
+    notebook_root: Path,
+    *,
+    retention_hours: int = NOTEBOOK_RETENTION_HOURS,
+    active_notebook_ids: set[str] | frozenset[str] = frozenset(),
+) -> list[str]:
+    """Delete old sanitized notebook directories without following symlinks."""
+    if not notebook_root.exists():
+        return []
+    if notebook_root.is_symlink() or not notebook_root.is_dir():
+        raise ValueError("notebook storage root is missing or symlinked")
+    cutoff = time.time() - (retention_hours * 60 * 60)
+    removed: list[str] = []
+    for child in sorted(notebook_root.iterdir()):
+        if child.is_symlink() or not child.is_dir():
+            continue
+        if child.name in active_notebook_ids:
+            continue
+        manifest = child / "manifest.json"
+        if manifest.is_symlink():
+            raise ValueError("refusing to clean symlinked notebook manifest")
+        if manifest.is_file() and manifest.stat().st_mtime < cutoff:
+            shutil.rmtree(child)
+            removed.append(child.name)
+    return removed
+
+
+def _write_gateway_state(path: Path, payload: dict[str, Any]) -> None:
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        os.chmod(path, 0o600)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
+def _read_gateway_state(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    if path.is_symlink() or not path.is_file() or path.stat().st_mode & 0o077:
+        raise ValueError("gateway state permissions are invalid")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict) or payload.get("schema_version") != GATEWAY_STATE_SCHEMA_VERSION:
+        raise ValueError("unsupported gateway state")
+    return payload
 
 
 class CompanionRuntime:
     def __init__(self, *, storage_root: Path | None = None) -> None:
-        self.storage_root = storage_root or APPLICATION_SUPPORT / "sessions"
+        configured_storage_root = storage_root or APPLICATION_SUPPORT / "sessions"
+        self.storage_root = configured_storage_root.expanduser()
+        if self.storage_root.is_symlink():
+            raise ValueError("session storage root must not be a symlink")
+        self.storage_root.mkdir(parents=True, exist_ok=True)
+        os.chmod(self.storage_root, 0o700)
+        self.expired_sessions = cleanup_expired_sessions(self.storage_root, retention_days=SESSION_RETENTION_DAYS)
+        self.gateway_state_path = self.storage_root / "gateway.state.json"
+        self.notebook_root = (
+            APPLICATION_SUPPORT / "notebooks"
+            if storage_root is None
+            else self.storage_root.parent / "notebooks"
+        ).expanduser()
+        self.notebook_root.mkdir(parents=True, exist_ok=True)
+        os.chmod(self.notebook_root, 0o700)
+        active_gateway = self._reconcile_gateway_state()
+        self.expired_notebooks = cleanup_expired_notebooks(
+            self.notebook_root,
+            active_notebook_ids={str(active_gateway["notebook_id"])} if active_gateway else frozenset(),
+        )
         self.session: LearningSession | None = None
         self.notebook_manifests: dict[str, Path] = {}
+
+    @staticmethod
+    def _process_alive(state: dict[str, Any]) -> bool:
+        try:
+            process_id = int(state["process_id"])
+            process_group_id = int(state["process_group_id"])
+            if process_id <= 0 or process_group_id <= 0 or process_group_id == os.getpgrp():
+                return False
+            if os.getpgid(process_id) != process_group_id:
+                return False
+            os.kill(process_id, 0)
+        except (KeyError, OSError, TypeError, ValueError):
+            return False
+        return True
+
+    def _mark_gateway_ended(self, state: dict[str, Any]) -> None:
+        notebook_id = str(state.get("notebook_id", ""))
+        if len(notebook_id) != 16 or any(character not in "0123456789abcdef" for character in notebook_id):
+            return
+        manifest = self.notebook_root / notebook_id / "manifest.json"
+        if manifest.is_symlink():
+            raise ValueError("refusing to touch symlinked notebook manifest")
+        if manifest.is_file():
+            os.utime(manifest, None)
+
+    def _reconcile_gateway_state(self) -> dict[str, Any] | None:
+        state = _read_gateway_state(self.gateway_state_path)
+        if state is None:
+            return None
+        if self._process_alive(state):
+            return state
+        self._mark_gateway_ended(state)
+        self.gateway_state_path.unlink(missing_ok=True)
+        return None
+
+    def _stop_gateway_state(self, state: dict[str, Any]) -> bool:
+        stopped = False
+        if self._process_alive(state):
+            process_group_id = int(state["process_group_id"])
+            os.killpg(process_group_id, signal.SIGTERM)
+            deadline = time.time() + 2
+            while time.time() < deadline and self._process_alive(state):
+                time.sleep(0.05)
+            if self._process_alive(state):
+                os.killpg(process_group_id, signal.SIGKILL)
+            stopped = True
+        self._mark_gateway_ended(state)
+        self.gateway_state_path.unlink(missing_ok=True)
+        return stopped
 
     def handle(self, message: dict[str, Any]) -> dict[str, Any]:
         request_id = str(message.get("request_id", ""))
@@ -39,21 +176,67 @@ class CompanionRuntime:
             return self._response(request_id, "invalid-payload", error="payload must be an object")
         try:
             if message_type == "companion.status":
+                active = active_session_metadata(self.storage_root)
+                if len(active) > 1:
+                    return self._response(
+                        request_id,
+                        "blocked",
+                        error="Multiple active sessions require an explicit session_id.",
+                        resume_available=False,
+                        active_session_count=len(active),
+                    )
                 return self._response(
                     request_id,
                     "ready",
                     native_transport=True,
-                    session_active=bool(self.session and not self.session.stopped),
+                    session_active=bool(self.session and not self.session.stopped) or bool(active),
+                    resume_available=bool(active),
+                    active_session_metadata=active[0] if active else None,
                     allowed_help_levels=list(HELP_LEVELS_V1),
                     exam_deployment_status="not_cleared",
                 )
+            if message_type == "gateway.status":
+                gateway = self._reconcile_gateway_state()
+                return self._response(
+                    request_id,
+                    "active" if gateway else "stopped",
+                    gateway={
+                        "notebook_id": str(gateway["notebook_id"]),
+                        "process_id": int(gateway["process_id"]),
+                        "port": int(gateway["port"]),
+                    }
+                    if gateway
+                    else None,
+                )
             if message_type == "session.start":
+                if active_session_metadata(self.storage_root):
+                    return self._response(
+                        request_id,
+                        "session-exists",
+                        error="An active learning session exists; resume or delete it first.",
+                    )
                 self.session = LearningSession.start(payload, storage_root=self.storage_root)
+                for notebook_id in self.notebook_manifests:
+                    register_session_notebook(self.storage_root, self.session.contract["session_id"], notebook_id)
                 return self._response(request_id, "active", contract=self.session.contract)
+            if message_type == "session.resume":
+                session_id = str(payload.get("session_id", "")).strip() or None
+                self.session = LearningSession.resume(self.storage_root, session_id=session_id)
+                return self._response(
+                    request_id,
+                    "active",
+                    resumed=True,
+                    contract=self.session.contract,
+                    report=self.session.report(),
+                )
             if message_type == "tutor.turn":
                 if self.session is None or self.session.stopped:
                     return self._response(request_id, "session-required", error="Start the learning session first.")
-                request = cast(TutorTurnRequestV1, payload)
+                request_payload = dict(payload)
+                explicit_task_id = str(request_payload.get("task_id", "")).strip()
+                if explicit_task_id:
+                    request_payload["task_id"] = hashlib.sha256(explicit_task_id.encode("utf-8")).hexdigest()[:16]
+                request = cast(TutorTurnRequestV1, request_payload)
                 return self._response(request_id, "ok", turn=build_tutor_turn(self.session, request))
             if message_type == "session.report":
                 if self.session is None:
@@ -69,25 +252,77 @@ class CompanionRuntime:
                     session_id=stopped["session_id"],
                     report=stopped["report"],
                 )
+            if message_type == "session.delete":
+                session_id = str(payload.get("session_id", "")).strip()
+                if not session_id and self.session is not None:
+                    session_id = self.session.contract["session_id"]
+                if not session_id:
+                    return self._response(request_id, "not-found", error="No learning session is selected.")
+                notebook_ids = session_notebook_ids(self.storage_root, session_id)
+                gateway = self._reconcile_gateway_state()
+                if gateway and str(gateway.get("notebook_id")) in notebook_ids:
+                    self._stop_gateway_state(gateway)
+                deleted = delete_session_artifacts(self.storage_root, session_id)
+                for notebook_id in notebook_ids:
+                    notebook_path = (self.notebook_root / notebook_id).resolve()
+                    if notebook_path.parent != self.notebook_root.resolve():
+                        raise ValueError("notebook path escaped local storage")
+                    if notebook_path.is_symlink():
+                        raise ValueError("refusing to delete symlinked notebook artifact")
+                    if notebook_path.is_dir():
+                        shutil.rmtree(notebook_path)
+                self.notebook_manifests.clear()
+                if self.session is not None and self.session.contract["session_id"] == session_id:
+                    self.session = None
+                return self._response(request_id, "deleted" if deleted else "not-found", session_id=session_id)
             if message_type == "notebook.import":
                 source = str(payload.get("source", "")).strip()
                 if not source:
                     source = choose_local_notebook()
                 if not source:
                     return self._response(request_id, "cancelled", error="Notebook selection was cancelled.")
-                output_root = APPLICATION_SUPPORT / "notebooks"
-                manifest = import_notebook(source, output_root)
+                manifest = import_notebook(source, self.notebook_root)
                 notebook_id = str(manifest["sanitized_sha256"])[:16]
-                self.notebook_manifests[notebook_id] = output_root / notebook_id / "manifest.json"
+                self.notebook_manifests[notebook_id] = self.notebook_root / notebook_id / "manifest.json"
+                if self.session is not None and not self.session.stopped:
+                    register_session_notebook(self.storage_root, self.session.contract["session_id"], notebook_id)
                 return self._response(request_id, "ok", notebook_id=notebook_id, manifest=dict(manifest))
             if message_type == "gateway.launch":
                 notebook_id = str(payload.get("notebook_id", ""))
                 manifest_path = self.notebook_manifests.get(notebook_id)
                 if manifest_path is None:
                     return self._response(request_id, "notebook-required", error="Import a notebook first.")
+                if self.session is not None and not self.session.stopped:
+                    register_session_notebook(self.storage_root, self.session.contract["session_id"], notebook_id)
                 port = int(payload.get("port") or available_loopback_port())
+                existing_gateway = self._reconcile_gateway_state()
+                if existing_gateway:
+                    return self._response(
+                        request_id,
+                        "gateway-exists",
+                        error="A local Jupyter gateway is already active; stop it first.",
+                    )
                 result = launch_gateway(manifest_path, port=port, dry_run=bool(payload.get("dry_run", False)))
+                if not bool(payload.get("dry_run", False)):
+                    process_id = int(result.get("process_id", 0))
+                    _write_gateway_state(
+                        self.gateway_state_path,
+                        {
+                            "schema_version": GATEWAY_STATE_SCHEMA_VERSION,
+                            "notebook_id": notebook_id,
+                            "process_id": process_id,
+                            "process_group_id": int(result.get("process_group_id", process_id)),
+                            "port": port,
+                            "started_at_utc": time.time(),
+                        },
+                    )
                 return self._response(request_id, "ok", gateway=result)
+            if message_type == "gateway.stop":
+                gateway = self._reconcile_gateway_state()
+                if gateway is None:
+                    return self._response(request_id, "not-found", error="Kein lokales Jupyter-Gateway aktiv.")
+                stopped = self._stop_gateway_state(gateway)
+                return self._response(request_id, "stopped", process_was_running=stopped)
             return self._response(request_id, "unknown-message", error="Unsupported companion message type.")
         except (OSError, RuntimeError, TypeError, ValueError) as exc:
             return self._response(request_id, "blocked", error=str(exc))

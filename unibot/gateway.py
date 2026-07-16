@@ -128,6 +128,7 @@ def launch_gateway(manifest_path: Path, *, port: int = 8888, dry_run: bool = Fal
         **plan,
         "status": "local_practice_gateway_started",
         "process_id": process.pid,
+        "process_group_id": os.getpgid(process.pid),
         "browser_opened": True,
         "public_url": f"http://127.0.0.1:{port}/",
         "session_value_returned": False,
