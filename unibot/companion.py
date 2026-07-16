@@ -221,6 +221,8 @@ class CompanionRuntime:
                     resume_available=bool(active),
                     active_session_metadata=active[0] if active else None,
                     allowed_help_levels=list(HELP_LEVELS_V1),
+                    local_practice_status="ready_for_local_practice",
+                    distribution_status="blocked_human_release_gates",
                     exam_deployment_status="not_cleared",
                 )
             if message_type == "companion.diagnose":

@@ -62,6 +62,10 @@ learning, or independent work.
   reconnection after a native-host restart. The Playwright check is
   concrete browser evidence, not a claim of completed institutional WCAG
   certification; that review remains a human accessibility gate.
+- The header states two release boundaries in plain language: local practice
+  can be ready while general distribution is still not approved. This is
+  repeated after reconnecting so a technically healthy local Companion cannot
+  be mistaken for a generally released or exam-approved product.
 - Companion installation copies the public `unibot` package and its
   `exam_mode.py` dependency into a restricted local runtime under macOS
   Application Support. Native-host and app launchers point to that copy rather

@@ -17,6 +17,7 @@ const state = {
 
 const elements = {
   connectionStatus: document.querySelector("#connectionStatus"),
+  releaseStatus: document.querySelector("#releaseStatus"),
   pseudonym: document.querySelector("#pseudonym"),
   courseId: document.querySelector("#courseId"),
   maxHelpLevel: document.querySelector("#maxHelpLevel"),
@@ -52,6 +53,21 @@ function setConnection(text, status) {
   elements.connectionStatus.dataset.state = status;
 }
 
+function renderCompanionReleaseStatus(status) {
+  const localStatus = {
+    ready_for_local_practice: "Lokaler Uebungsbetrieb: bereit",
+    attention: "Lokaler Uebungsbetrieb: Diagnose erforderlich",
+    not_installed: "Lokaler Uebungsbetrieb: Companion fehlt"
+  }[status.local_practice_status] || "Lokaler Uebungsbetrieb: Status unbekannt";
+  const distributionStatus = {
+    blocked_human_release_gates: "Allgemeine Verteilung: noch nicht freigegeben",
+    ready_for_distribution: "Allgemeine Verteilung: menschliche Freigabe liegt vor"
+  }[status.distribution_status] || "Allgemeine Verteilung: Status unbekannt";
+  elements.releaseStatus.textContent = `${localStatus}. ${distributionStatus}.`;
+  elements.releaseStatus.dataset.state = status.local_practice_status === "ready_for_local_practice"
+    && status.distribution_status === "blocked_human_release_gates" ? "ready" : "attention";
+}
+
 function selectedHelpLevel() {
   return document.querySelector("input[name='helpLevel']:checked").value;
 }
@@ -74,6 +90,7 @@ function connectCompanion() {
   if (state.port || state.connecting) return;
   if (!chrome.runtime?.connectNative) {
     setConnection("Begleiter fehlt", "error");
+    renderCompanionReleaseStatus({ local_practice_status: "not_installed", distribution_status: "blocked_human_release_gates" });
     elements.sessionOutput.textContent = "UniBot Companion ist nicht installiert.";
     return;
   }
@@ -84,6 +101,7 @@ function connectCompanion() {
   } catch (error) {
     state.connecting = false;
     setConnection("Begleiter fehlt", "error");
+    renderCompanionReleaseStatus({ local_practice_status: "not_installed", distribution_status: "blocked_human_release_gates" });
     elements.sessionOutput.textContent = error.message;
     scheduleReconnect();
     return;
@@ -111,6 +129,7 @@ function connectCompanion() {
   });
   nativeRequest("companion.status").then(async (status) => {
     if (status.status !== "ready") throw new Error(status.error || "Lokaler Begleiter ist blockiert.");
+    renderCompanionReleaseStatus(status);
     setConnection("Lokal bereit", "ready");
     state.reconnectAttempt = 0;
     state.connecting = false;
@@ -134,6 +153,7 @@ function connectCompanion() {
   }).catch((error) => {
     state.connecting = false;
     setConnection("Begleiter fehlt", "error");
+    renderCompanionReleaseStatus({ local_practice_status: "attention", distribution_status: "blocked_human_release_gates" });
     elements.sessionOutput.textContent = error.message;
     if (state.port) {
       state.port.disconnect?.();

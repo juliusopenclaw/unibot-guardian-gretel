@@ -18,6 +18,9 @@
       .status { margin-top: 8px; font-size: 12px; color: #586174; }
       .status[data-state="ready"] { color: #17623b; }
       .status[data-state="error"] { color: #a2262f; }
+      .release-status { margin-top: 8px; padding-top: 8px; border-top: 1px solid #e2e5eb; font-size: 11px; line-height: 1.4; color: #586174; }
+      .release-status[data-state="ready"] { color: #17623b; }
+      .release-status[data-state="attention"] { color: #8a4b08; }
       nav { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid #d9dde5; background: #ffffff; }
       nav button { min-height: 42px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: #4b5568; }
       nav button[aria-selected="true"] { border-bottom-color: #215bb7; color: #173f80; font-weight: 700; }
@@ -63,6 +66,7 @@
     <header>
       <h1>UniBot Guardian</h1>
       <div id="connectionStatus" class="status" role="status" aria-live="polite" aria-atomic="true" data-state="idle">Nicht gekoppelt</div>
+      <div id="releaseStatus" class="release-status" role="status" aria-live="polite" aria-atomic="true" data-state="attention">Lokaler Uebungsbetrieb: wird geprueft. Allgemeine Verteilung: noch nicht freigegeben.</div>
     </header>
     <nav role="tablist" aria-label="Arbeitsbereiche" aria-orientation="horizontal">
       <button id="session-tab" role="tab" type="button" data-tab="session" aria-controls="session" aria-selected="true">Sitzung</button>

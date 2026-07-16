@@ -239,6 +239,8 @@ class UniBotMantleV21Tests(unittest.TestCase):
             stored = "\n".join(path.read_text(encoding="utf-8") for path in storage_root.glob("*.jsonl"))
 
         self.assertEqual(status["status"], "ready")
+        self.assertEqual(status["local_practice_status"], "ready_for_local_practice")
+        self.assertEqual(status["distribution_status"], "blocked_human_release_gates")
         self.assertTrue(status["resume_available"])
         self.assertEqual(status["active_session_metadata"]["session_id"], session_id)
         self.assertEqual(resumed["status"], "active")

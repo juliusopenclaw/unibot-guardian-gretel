@@ -79,7 +79,12 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
       onMessage: { addListener(listener) { onNativeMessage = listener; } },
       onDisconnect: { addListener() {} },
       postMessage(message) {
-        let response = { request_id: message.request_id, status: "ready" };
+        let response = {
+          request_id: message.request_id,
+          status: "ready",
+          local_practice_status: "ready_for_local_practice",
+          distribution_status: "blocked_human_release_gates"
+        };
         if (message.type === "session.start") {
           response = {
             request_id: message.request_id,
@@ -152,6 +157,7 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
 
   await page.goto(pathToFileURL(path.join(extensionRoot, "v2", "sidepanel.html")).href);
   await expect(page.locator("#connectionStatus")).toHaveText("Lokal bereit");
+  await expect(page.locator("#releaseStatus")).toHaveText("Lokaler Uebungsbetrieb: bereit. Allgemeine Verteilung: noch nicht freigegeben.");
   await page.locator("#startSession").click();
   await expect(page.locator("#connectionStatus")).toHaveText("Sitzung aktiv");
 
@@ -196,7 +202,12 @@ test("sidepanel imports a local notebook through the path-free chunked native ha
       onDisconnect: { addListener() {} },
       postMessage(message) {
         nativeTypes.push(message.type);
-        let response = { request_id: message.request_id, status: "ready" };
+        let response = {
+          request_id: message.request_id,
+          status: "ready",
+          local_practice_status: "ready_for_local_practice",
+          distribution_status: "blocked_human_release_gates"
+        };
         if (message.type === "notebook.upload.start" || message.type === "notebook.upload.chunk") {
           response = { request_id: message.request_id, status: "uploading" };
         } else if (message.type === "notebook.upload.finish") {
@@ -312,13 +323,26 @@ test("sidepanel reconnects and resumes a local session after companion restart",
       onDisconnect: { addListener(listener) { onDisconnect = listener; } },
       disconnect() { onDisconnect?.(); },
       postMessage(message) {
-        let response = { request_id: message.request_id, status: "stopped" };
+        let response = {
+          request_id: message.request_id,
+          status: "stopped",
+          local_practice_status: "ready_for_local_practice",
+          distribution_status: "blocked_human_release_gates"
+        };
         if (message.type === "companion.status") {
           response = connectionCount === 1
-            ? { request_id: message.request_id, status: "ready", resume_available: false }
+            ? {
+                request_id: message.request_id,
+                status: "ready",
+                local_practice_status: "ready_for_local_practice",
+                distribution_status: "blocked_human_release_gates",
+                resume_available: false
+              }
             : {
                 request_id: message.request_id,
                 status: "ready",
+                local_practice_status: "ready_for_local_practice",
+                distribution_status: "blocked_human_release_gates",
                 resume_available: true,
                 active_session_metadata: { session_id: "resumable-session" }
               };
@@ -348,6 +372,7 @@ test("sidepanel reconnects and resumes a local session after companion restart",
 
   await page.goto(pathToFileURL(path.join(extensionRoot, "v2", "sidepanel.html")).href);
   await expect(page.locator("#connectionStatus")).toHaveText("Lokal bereit");
+  await expect(page.locator("#releaseStatus")).toContainText("Allgemeine Verteilung: noch nicht freigegeben");
   await page.evaluate(() => window.__disconnectNative());
   await expect(page.locator("#connectionStatus")).toHaveText("Sitzung fortgesetzt", { timeout: 5000 });
   await expect(page.locator("#reviewOutput")).toContainText("Ereignisse: 2");
