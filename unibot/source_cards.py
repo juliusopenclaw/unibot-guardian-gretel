@@ -74,7 +74,7 @@ SOURCE_CARDS = [
     SourceCard(
         source_id="uoc-medfak-ki-doku-2026",
         title="University of Cologne Medical Faculty AI documentation guidance (policy dated 11 July 2025)",
-        url="https://medfak.uni-koeln.de/sites/MedFakDekanat/Forschung/Promotion/KI-Richtlinie_MedFak.pdf",
+        url="https://medfak.uni-koeln.de/sites/MedFakDekanat/studium_lehre/KI-Richtlinie_MedFak.pdf",
         source_kind="university-policy",
         authority_type="university-medical-faculty",
         product_rule="Document AI tools, purpose, assistance, sources, and human validation transparently for academic work.",
@@ -99,6 +99,7 @@ SOURCE_CARDS = [
         authority_type="state-law",
         product_rule="Exam and accommodation use must remain tied to the applicable university authority and exam regulation.",
         risk_level="high",
+        last_checked="2026-07-16",
     ),
     SourceCard(
         source_id="hg-nrw-62b",
@@ -108,6 +109,7 @@ SOURCE_CARDS = [
         authority_type="state-law",
         product_rule="Accommodation interests stay in the institutional inclusion process; UniBot may document support categories but not decide them.",
         risk_level="high",
+        last_checked="2026-07-16",
     ),
     SourceCard(
         source_id="hg-nrw-64",
@@ -117,6 +119,7 @@ SOURCE_CARDS = [
         authority_type="state-law",
         product_rule="Exam procedures, aids, breaches, and online-exam privacy must fit the applicable exam regulation before any exam mode.",
         risk_level="high",
+        last_checked="2026-07-16",
     ),
     SourceCard(
         source_id="uoc-ki-lehre",
@@ -126,6 +129,7 @@ SOURCE_CARDS = [
         authority_type="university",
         product_rule="AI use must be transparent and exam-rule aware.",
         risk_level="high",
+        last_checked="2026-07-16",
     ),
     SourceCard(
         source_id="uoc-hilfsmittel",
@@ -135,6 +139,7 @@ SOURCE_CARDS = [
         authority_type="university-exam-office",
         product_rule="UniBot must not describe an aid as cleared without written exam-authority clearance.",
         risk_level="high",
+        last_checked="2026-07-16",
     ),
     SourceCard(
         source_id="uoc-ki-faq",
@@ -144,6 +149,7 @@ SOURCE_CARDS = [
         authority_type="university",
         product_rule="Exam mode must block external KI unless the applicable rule explicitly allows it.",
         risk_level="high",
+        last_checked="2026-07-16",
     ),
     SourceCard(
         source_id="uoc-nachteilsausgleich",
@@ -223,6 +229,7 @@ SOURCE_CARDS = [
         authority_type="eu-law",
         product_rule="Apply lawfulness, transparency, purpose limitation, minimisation, security, and accountability.",
         risk_level="high",
+        last_checked="2026-07-16",
     ),
     SourceCard(
         source_id="dsk-ai-privacy-2024",
@@ -241,6 +248,7 @@ SOURCE_CARDS = [
         authority_type="eu-law",
         product_rule="Education assessment and test-behaviour monitoring can become high-risk; keep scores private and avoid proctoring.",
         risk_level="high",
+        last_checked="2026-07-16",
     ),
     SourceCard(
         source_id="dfg-gwp",
@@ -249,6 +257,7 @@ SOURCE_CARDS = [
         source_kind="research-integrity",
         authority_type="research-funder",
         product_rule="Document methods, versions, limitations, and reproducible evidence.",
+        last_checked="2026-07-16",
     ),
     SourceCard(
         source_id="google-colab-gemini",

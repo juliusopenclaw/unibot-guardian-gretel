@@ -113,6 +113,11 @@ class UniBotSourceCardTests(unittest.TestCase):
         self.assertNotIn("private_course", payload)
         self.assertNotIn("/" + "Users/", payload)
 
+    def test_public_source_cards_document_every_required_card(self) -> None:
+        documentation = (ROOT / "docs" / "unibot" / "UNIBOT_SOURCE_CARDS.md").read_text(encoding="utf-8")
+        missing = [source_id for source_id in required_source_card_ids() if f"`{source_id}`" not in documentation]
+        self.assertEqual(missing, [])
+
 
 if __name__ == "__main__":
     unittest.main()
