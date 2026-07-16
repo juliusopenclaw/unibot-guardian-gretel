@@ -17,12 +17,19 @@ Prüfungsfreigabe oder eine automatische Veröffentlichung.
 
 - `WorkItemV3` bindet Quelle, Hypothese, Produktdelta, Risiko, erlaubte Dateien,
   registrierte Test-IDs und Basis-Commit an einen unveränderlichen Hash.
+- Jeder ausführbare Auftrag enthält einen `EvolutionChunkContractV1` als
+  Nachweis der drei Golden Rules. Ältere Aufträge bleiben lesbar, werden ohne
+  diesen Vertrag aber nur als `gretel_proposed` gespeichert und nicht ausgeführt.
 - Die Zustandsmaschine lässt nur dokumentierte Übergänge zu. Fehler enden in
   `blocked`, `retryable` oder `gretel_proposed`; es gibt keinen technischen
   `final-go`-Zustand.
 - Eine lokale SQLite-Datenbank speichert nur Verträge, Zustände, Hashes und
   Kostenaggregate. Prompts, Notebookzellen, Transkripte und Sitzungstoken werden
   nicht gespeichert.
+- SQLite-Datei, Providerzustand, Loopzustand und Lease liegen in einem
+  benutzerbezogenen Verzeichnis mit `0700`; Dateien benötigen `0600`.
+  Symlinks, zu offene Rechte, falsche Schemas und beschädigtes JSON werden
+  fail-closed behandelt. JSON-Zustände werden atomar mit `fsync` ersetzt.
 - Ein POSIX-Lease verhindert parallele Produktläufe. Der Controller kann keinen
   zweiten Produkt-PR innerhalb desselben lokalen Laufes erzeugen.
 - Der Providerzustand ist standardmäßig
@@ -49,9 +56,12 @@ unibot autonomy provider park
 unibot autonomy provider unpark --scope public-unibot-only
 unibot autonomy rollout status
 unibot autonomy loop install
-unibot autonomy loop doctor
+unibot autonomy doctor
 unibot autonomy loop tick
 unibot autonomy audit RUN_ID
+unibot autonomy evolve status
+unibot autonomy evolve audit PATTERN_ID
+unibot evaluate 3gr --work-item WORK_ITEM.json --json
 ```
 
 Die API stellt lokale Diagnose-, Provider-, Work-Item-, Rollout- und Audit-Routen unter
@@ -59,6 +69,28 @@ Die API stellt lokale Diagnose-, Provider-, Work-Item-, Rollout- und Audit-Route
 als Shell-, Python- oder Testbefehl ausgeführt. Die `launchd`-Installation wird
 zunächst nur als lokales Manifest vorbereitet; das Laden und Starten eines
 Systemdienstes bleibt eine ausdrückliche menschliche Maschinenaktion.
+
+## Drei Golden Rules (3GR)
+
+`3GR` bedeutet in UniBot ausschließlich:
+
+1. **Generalisieren:** Ein konkreter Fehler wird als wiederverwendbare Regel mit
+   mindestens zwei Transferzielen beschrieben.
+2. **Harness Engineering:** Die Regel wird an registrierte positive und negative
+   Testfälle gebunden.
+3. **Recursive Self-Improvement:** Wiederholungen werden als Metadaten gezählt
+   und erzeugen nur einen menschlich zu prüfenden Verbesserungsbedarf.
+
+Der Lauf speichert hierzu `ThreeGoldenRulesEvidenceV1`: Work-Item-, Vertrags-
+und Test-Hashes, bestandene Test-IDs und den Wiederholungszähler. Rohprompts,
+Notebooktext und die konkrete Regel werden nicht in das Musterledger kopiert.
+Ein Wiederholungsmuster darf niemals selbst Code, Fakten, Releases oder externe
+Aktionen anwenden.
+
+Die später geforderten **drei menschlich gemergten Canary-PRs** sind kein Teil
+von 3GR. Sie sind ein unabhängiges Rollout-Gate. Ihr Zähler akzeptiert nur einen
+bereits als `human_merged` dokumentierten Lauf, grüne Pflichtchecks und eine
+menschliche Zustimmung nach dem letzten Bot-Push; Wiederholungen sind idempotent.
 
 ## GLM und Kosten
 
@@ -74,14 +106,14 @@ und ein bereinigtes `gretel-proposed`-Artefakt, niemals einen Code-Push.
 1. Zehn Mock-/Schattenläufe ohne Änderung und ohne Providerzugriff.
 2. Zehn lokale Codex-Läufe in wegwerfbaren Arbeitskopien.
 3. Ein beaufsichtigter Entwurfs-PR mit tatsächlicher CI.
-4. Drei grüne, menschlich gemergte Canary-PRs.
+4. Drei nachweislich grüne, menschlich gemergte Canary-PRs.
 5. Erst danach kann ein lokaler Wächter dauerhaft aktiviert werden.
 
 Jeder Controller-Lauf klont den freigegebenen Basis-Commit in eine kurzlebige,
 remote-freie Arbeitskopie ausserhalb von Git und iCloud und entfernt sie danach.
 Schatten- und lokale Rollout-Zaehler werden nur nach einem tatsaechlichen
 erfolgreichen Lauf fortgeschrieben. Der lokale Waechter bleibt deaktiviert,
-bis beide Zehner-Gates und die spaeteren menschlichen Canary-Merges vorliegen.
+bis beide Zehner-Gates und drei nachgewiesene menschliche Canary-Merges vorliegen.
 
 Die gegenwärtige Implementierung stellt die Verträge und Gates bereit; echte
 Z.AI-Credentials, eine repo-beschränkte GitHub App, Branchschutz und menschliche

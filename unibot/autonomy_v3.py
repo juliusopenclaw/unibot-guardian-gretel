@@ -13,8 +13,10 @@ import os
 import re
 import shutil
 import sqlite3
+import stat
 import subprocess
 import sys
+import tempfile
 import uuid
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -36,6 +38,9 @@ GLM_REVIEW_SCHEMA_VERSION = "GLMReviewV2"
 CODEX_REVIEW_SCHEMA_VERSION = "CodexReviewV1"
 EVIDENCE_SCHEMA_VERSION = "ImplementationEvidenceV1"
 RUN_SCHEMA_VERSION = "AutonomyRunV3"
+EVOLUTION_CHUNK_SCHEMA_VERSION = "EvolutionChunkContractV1"
+THREE_GOLDEN_RULES_EVIDENCE_SCHEMA_VERSION = "ThreeGoldenRulesEvidenceV1"
+IMPROVEMENT_PATTERN_SCHEMA_VERSION = "ImprovementPatternV1"
 
 PROVIDER_PARKED = "parked_awaiting_zai_balance"
 PROVIDER_ENABLED = "enabled_public_unibot_only"
@@ -45,6 +50,7 @@ MAX_GLM_CALLS = 2
 WARN_USD = 15.0
 HARD_STOP_USD = 20.0
 ROLLOUT_TARGET = 10
+CANARY_MERGE_TARGET = 3
 STALE_RUN_SECONDS = 60 * 60
 
 RUN_STATES = (
@@ -109,6 +115,60 @@ def sha256_json(value: Any) -> str:
     return sha256_bytes(canonical_json(value).encode("utf-8"))
 
 
+def _ensure_private_state_path(path: Path) -> None:
+    if path.parent.is_symlink():
+        raise AutonomyValidationError("state_parent_symlink_not_allowed")
+    if not path.parent.exists():
+        path.parent.mkdir(mode=0o700, parents=True)
+        os.chmod(path.parent, 0o700)
+    parent_stat = path.parent.stat()
+    if parent_stat.st_uid != os.getuid() or stat.S_IMODE(parent_stat.st_mode) != 0o700:
+        raise AutonomyValidationError("state_parent_must_be_owned_and_0700")
+    if path.is_symlink():
+        raise AutonomyValidationError("state_symlink_not_allowed")
+    if path.exists() and stat.S_IMODE(path.stat().st_mode) != 0o600:
+        raise AutonomyValidationError("state_file_permissions_must_be_0600")
+
+
+def _atomic_write_private_json(path: Path, payload: dict[str, Any]) -> None:
+    _ensure_private_state_path(path)
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        os.fchmod(descriptor, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(canonical_json(payload) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        os.chmod(path, 0o600)
+        directory_descriptor = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_descriptor)
+        finally:
+            os.close(directory_descriptor)
+    except BaseException:
+        try:
+            os.close(descriptor)
+        except OSError:
+            pass
+        temporary.unlink(missing_ok=True)
+        raise
+
+
+def _read_private_json(path: Path, *, schema_version: str) -> dict[str, Any]:
+    _ensure_private_state_path(path)
+    if not path.exists():
+        raise AutonomyValidationError("state_file_missing")
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise AutonomyValidationError("state_file_invalid_json") from error
+    if not isinstance(payload, dict) or payload.get("schema_version") != schema_version:
+        raise AutonomyValidationError("state_file_schema_invalid")
+    return payload
+
+
 def safe_slug(value: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", str(value).lower()).strip("-")
     return slug[:60] or "work"
@@ -138,6 +198,110 @@ def _validate_ids(values: Iterable[str], label: str) -> list[str]:
 
 
 @dataclass(frozen=True)
+class EvolutionChunkContractV1:
+    failure_class: str
+    generalized_rule: str
+    transfer_targets: tuple[str, ...]
+    positive_fixture_ids: tuple[str, ...]
+    negative_fixture_ids: tuple[str, ...]
+    recurrence_monitor_id: str
+    human_gate: str = "required"
+
+    def validate(self) -> list[str]:
+        errors: list[str] = []
+        try:
+            _validate_ids((self.failure_class,), "failure_class")
+            transfers = _validate_ids(self.transfer_targets, "transfer_targets")
+            positives = _validate_ids(self.positive_fixture_ids, "positive_fixture_ids")
+            negatives = _validate_ids(self.negative_fixture_ids, "negative_fixture_ids")
+            _validate_ids((self.recurrence_monitor_id,), "recurrence_monitor_id")
+        except AutonomyValidationError as error:
+            errors.append(str(error))
+            transfers, positives, negatives = [], [], []
+        if len(transfers) < 2:
+            errors.append("two_distinct_transfer_targets_required")
+        if not positives or not negatives:
+            errors.append("positive_and_negative_fixtures_required")
+        if set(positives) & set(negatives):
+            errors.append("positive_and_negative_fixtures_must_differ")
+        if not self.generalized_rule.strip():
+            errors.append("generalized_rule_required")
+        elif scan_text(self.generalized_rule, "evolution-generalized-rule")["status"] != "pass":
+            errors.append("generalized_rule_public_safety_failed")
+        if self.human_gate != "required":
+            errors.append("human_gate_must_be_required")
+        return list(dict.fromkeys(errors))
+
+    def to_dict(self, *, include_hash: bool = True) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "schema_version": EVOLUTION_CHUNK_SCHEMA_VERSION,
+            "failure_class": self.failure_class,
+            "generalized_rule": self.generalized_rule,
+            "transfer_targets": list(self.transfer_targets),
+            "positive_fixture_ids": list(self.positive_fixture_ids),
+            "negative_fixture_ids": list(self.negative_fixture_ids),
+            "recurrence_monitor_id": self.recurrence_monitor_id,
+            "human_gate": self.human_gate,
+        }
+        if include_hash:
+            payload["contract_hash"] = sha256_json(payload)
+        return payload
+
+    @property
+    def contract_hash(self) -> str:
+        return sha256_json(self.to_dict(include_hash=False))
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> "EvolutionChunkContractV1":
+        if not isinstance(payload, dict):
+            raise AutonomyValidationError("evolution_chunk_must_be_object")
+        contract = cls(
+            failure_class=str(payload.get("failure_class", "")),
+            generalized_rule=str(payload.get("generalized_rule", "")),
+            transfer_targets=tuple(str(value) for value in payload.get("transfer_targets", [])),
+            positive_fixture_ids=tuple(str(value) for value in payload.get("positive_fixture_ids", [])),
+            negative_fixture_ids=tuple(str(value) for value in payload.get("negative_fixture_ids", [])),
+            recurrence_monitor_id=str(payload.get("recurrence_monitor_id", "")),
+            human_gate=str(payload.get("human_gate", "required")),
+        )
+        errors = contract.validate()
+        if errors:
+            raise AutonomyValidationError(",".join(errors))
+        supplied_hash = payload.get("contract_hash")
+        if supplied_hash is not None and supplied_hash != contract.contract_hash:
+            raise AutonomyValidationError("evolution_contract_hash_mismatch")
+        return contract
+
+
+@dataclass(frozen=True)
+class ThreeGoldenRulesEvidenceV1:
+    work_item_hash: str
+    contract_hash: str
+    test_evidence_hash: str
+    test_ids_passed: tuple[str, ...]
+    recurrence_count: int
+    review_gate: str = "human_required"
+
+    def to_dict(self, *, include_hash: bool = True) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "schema_version": THREE_GOLDEN_RULES_EVIDENCE_SCHEMA_VERSION,
+            "work_item_hash": self.work_item_hash,
+            "contract_hash": self.contract_hash,
+            "test_evidence_hash": self.test_evidence_hash,
+            "test_ids_passed": sorted(self.test_ids_passed),
+            "recurrence_count": int(self.recurrence_count),
+            "generalization_gate": "pass",
+            "harness_gate": "pass",
+            "recursive_self_improvement_gate": "review_required",
+            "review_gate": self.review_gate,
+            "automatic_apply": False,
+        }
+        if include_hash:
+            payload["evidence_hash"] = sha256_json(payload)
+        return payload
+
+
+@dataclass(frozen=True)
 class WorkItemV3:
     work_id: str
     source: str
@@ -150,6 +314,7 @@ class WorkItemV3:
     issue_number: int | None = None
     labels: tuple[str, ...] = ()
     provider_context_files: tuple[str, ...] = ()
+    evolution_chunk: EvolutionChunkContractV1 | None = None
 
     def validate(self) -> list[str]:
         errors: list[str] = []
@@ -184,6 +349,14 @@ class WorkItemV3:
             errors.append(str(error))
         if self.issue_number is not None and self.issue_number < 1:
             errors.append("invalid_issue_number")
+        if self.evolution_chunk is not None:
+            errors.extend(self.evolution_chunk.validate())
+        return list(dict.fromkeys(errors))
+
+    def validate_for_execution(self) -> list[str]:
+        errors = self.validate()
+        if self.evolution_chunk is None:
+            errors.append("legacy_missing_3gr_contract")
         return list(dict.fromkeys(errors))
 
     def to_dict(self, *, include_hash: bool = True) -> dict[str, Any]:
@@ -200,6 +373,7 @@ class WorkItemV3:
             "issue_number": self.issue_number,
             "labels": list(self.labels),
             "provider_context_files": list(self.provider_context_files),
+            "evolution_chunk": self.evolution_chunk.to_dict() if self.evolution_chunk else None,
         }
         if include_hash:
             payload["work_item_hash"] = sha256_json(payload)
@@ -225,13 +399,21 @@ class WorkItemV3:
             issue_number=payload.get("issue_number"),
             labels=tuple(str(value) for value in payload.get("labels", [])),
             provider_context_files=tuple(str(value) for value in payload.get("provider_context_files", [])),
+            evolution_chunk=(
+                EvolutionChunkContractV1.from_dict(payload["evolution_chunk"])
+                if isinstance(payload.get("evolution_chunk"), dict)
+                else None
+            ),
         )
         errors = item.validate()
         if errors:
             raise AutonomyValidationError(",".join(errors))
         supplied_hash = payload.get("work_item_hash")
         if supplied_hash is not None and supplied_hash != item.work_item_hash:
-            raise AutonomyValidationError("work_item_hash_mismatch")
+            legacy_payload = item.to_dict(include_hash=False)
+            legacy_payload.pop("evolution_chunk", None)
+            if "evolution_chunk" in payload or supplied_hash != sha256_json(legacy_payload):
+                raise AutonomyValidationError("work_item_hash_mismatch")
         return item
 
     @property
@@ -419,13 +601,12 @@ def autonomy_loop_status(store: "AutonomyStore", *, support_dir: str | Path | No
     root = Path(support_dir).expanduser() if support_dir else default_support_dir()
     state_path = root / "loop-state.json"
     state: dict[str, Any] = {"active": False, "installed": False}
-    if state_path.exists():
+    if state_path.exists() or state_path.is_symlink():
         try:
-            candidate = json.loads(state_path.read_text(encoding="utf-8"))
-            if isinstance(candidate, dict):
-                state.update({key: candidate[key] for key in ("active", "installed", "updated_at_utc") if key in candidate})
-        except (OSError, json.JSONDecodeError):
-            state = {"active": False, "installed": False, "state_error": "invalid_local_loop_state"}
+            candidate = _read_private_json(state_path, schema_version="AutonomyLoopStateV1")
+            state.update({key: candidate[key] for key in ("active", "installed", "updated_at_utc") if key in candidate})
+        except (AutonomyValidationError, OSError) as error:
+            state = {"active": False, "installed": False, "state_error": str(error)}
     return {
         "schema_version": "AutonomyLoopStateV1",
         "status": "ok",
@@ -439,11 +620,6 @@ def autonomy_loop_status(store: "AutonomyStore", *, support_dir: str | Path | No
 
 def prepare_autonomy_loop(store: "AutonomyStore", *, support_dir: str | Path | None = None) -> dict[str, Any]:
     root = Path(support_dir).expanduser() if support_dir else default_support_dir()
-    root.mkdir(parents=True, exist_ok=True)
-    try:
-        os.chmod(root, 0o700)
-    except OSError:
-        pass
     state = {
         "schema_version": "AutonomyLoopStateV1",
         "active": False,
@@ -452,19 +628,18 @@ def prepare_autonomy_loop(store: "AutonomyStore", *, support_dir: str | Path | N
         "human_launchd_load_required": True,
     }
     state_path = root / "loop-state.json"
-    temporary = state_path.with_name(f".{state_path.name}.tmp")
-    temporary.write_text(canonical_json(state) + "\n", encoding="utf-8")
-    try:
-        os.chmod(temporary, 0o600)
-    except OSError:
-        pass
-    os.replace(temporary, state_path)
+    _atomic_write_private_json(state_path, state)
     return {**autonomy_loop_status(store, support_dir=root), "prepared": True}
 
 
 def request_autonomy_loop_start(store: "AutonomyStore") -> dict[str, Any]:
     rollout = store.rollout_status()
-    reason = "rollout_gates_incomplete" if not rollout["canary_allowed"] else "human_launchd_load_required"
+    if not rollout["canary_allowed"]:
+        reason = "rollout_gates_incomplete"
+    elif not rollout["watcher_activation_allowed"]:
+        reason = "three_human_canary_merges_required"
+    else:
+        reason = "human_launchd_load_required"
     return {
         "schema_version": "AutonomyLoopStateV1",
         "status": "blocked",
@@ -482,11 +657,10 @@ class AutonomyStore:
 
     def __init__(self, path: str | Path | None = None) -> None:
         self.path = Path(path).expanduser() if path else default_support_dir() / "autonomy.sqlite3"
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            os.chmod(self.path.parent, 0o700)
-        except OSError:
-            pass
+        _ensure_private_state_path(self.path)
+        if not self.path.exists():
+            descriptor = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_RDWR, 0o600)
+            os.close(descriptor)
         self.connection = sqlite3.connect(self.path)
         self.connection.execute(
             "CREATE TABLE IF NOT EXISTS runs (run_id TEXT PRIMARY KEY, payload TEXT NOT NULL, created_at TEXT NOT NULL)"
@@ -501,11 +675,16 @@ class AutonomyStore:
             "CREATE TABLE IF NOT EXISTS rollout (lane TEXT PRIMARY KEY, successful_runs INTEGER NOT NULL, "
             "failed_runs INTEGER NOT NULL, last_run_id TEXT NOT NULL, updated_at TEXT NOT NULL)"
         )
+        self.connection.execute(
+            "CREATE TABLE IF NOT EXISTS improvement_patterns (pattern_id TEXT PRIMARY KEY, payload TEXT NOT NULL, "
+            "recurrence_count INTEGER NOT NULL, updated_at TEXT NOT NULL)"
+        )
+        self.connection.execute(
+            "CREATE TABLE IF NOT EXISTS canary_merge_evidence (run_id TEXT PRIMARY KEY, evidence_hash TEXT NOT NULL, "
+            "created_at TEXT NOT NULL)"
+        )
         self.connection.commit()
-        try:
-            os.chmod(self.path, 0o600)
-        except OSError:
-            pass
+        os.chmod(self.path, 0o600)
 
     def save_work_item(self, item: WorkItemV3) -> None:
         self.connection.execute(
@@ -549,6 +728,59 @@ class AutonomyStore:
                 self.connection.commit()
                 return True
         return False
+
+    def record_improvement_pattern(
+        self,
+        contract: EvolutionChunkContractV1,
+        *,
+        work_item_hash: str,
+    ) -> dict[str, Any]:
+        errors = contract.validate()
+        if errors:
+            raise AutonomyValidationError(",".join(errors))
+        pattern_id = contract.failure_class
+        row = self.connection.execute(
+            "SELECT payload,recurrence_count FROM improvement_patterns WHERE pattern_id=?", (pattern_id,)
+        ).fetchone()
+        if row:
+            existing = json.loads(row[0])
+            if existing.get("last_work_item_hash") == work_item_hash:
+                return existing
+        recurrence_count = (int(row[1]) if row else 0) + 1
+        payload = {
+            "schema_version": IMPROVEMENT_PATTERN_SCHEMA_VERSION,
+            "pattern_id": pattern_id,
+            "failure_class": contract.failure_class,
+            "contract_hash": contract.contract_hash,
+            "generalized_rule_hash": sha256_bytes(contract.generalized_rule.encode("utf-8")),
+            "transfer_targets": list(contract.transfer_targets),
+            "recurrence_monitor_id": contract.recurrence_monitor_id,
+            "last_work_item_hash": work_item_hash,
+            "recurrence_count": recurrence_count,
+            "review_status": "review_required" if recurrence_count > 1 else "observed",
+            "automatic_apply": False,
+            "updated_at_utc": utc_now(),
+        }
+        self.connection.execute(
+            "INSERT OR REPLACE INTO improvement_patterns(pattern_id,payload,recurrence_count,updated_at) "
+            "VALUES(?,?,?,?)",
+            (pattern_id, canonical_json(payload), recurrence_count, payload["updated_at_utc"]),
+        )
+        self.connection.commit()
+        return payload
+
+    def get_improvement_pattern(self, pattern_id: str) -> dict[str, Any] | None:
+        row = self.connection.execute(
+            "SELECT payload FROM improvement_patterns WHERE pattern_id=?", (pattern_id,)
+        ).fetchone()
+        return json.loads(row[0]) if row else None
+
+    def list_improvement_patterns(self, limit: int = 100) -> list[dict[str, Any]]:
+        rows = self.connection.execute(
+            "SELECT payload FROM improvement_patterns ORDER BY updated_at DESC LIMIT ?",
+            (max(1, min(int(limit), 100)),),
+        ).fetchall()
+        return [json.loads(row[0]) for row in rows]
 
     def record_cost(self, amount_usd: float, *, month: str | None = None) -> dict[str, Any]:
         month = month or datetime.now(timezone.utc).strftime("%Y-%m")
@@ -603,6 +835,53 @@ class AutonomyStore:
         self.connection.commit()
         return self.rollout_status()
 
+    def record_canary_merge(
+        self,
+        *,
+        run_id: str,
+        reviewer: str,
+        merge_commit: str,
+        checks_green: bool,
+        approved_after_last_push: bool,
+    ) -> dict[str, Any]:
+        if not SAFE_ID.fullmatch(run_id) or not reviewer.strip() or not SAFE_GIT_COMMIT.fullmatch(merge_commit):
+            raise AutonomyValidationError("invalid_canary_merge_evidence")
+        if not checks_green or not approved_after_last_push:
+            raise AutonomyValidationError("canary_merge_requires_green_checks_and_fresh_human_approval")
+        run = self.get_run(run_id)
+        if not run or run.get("state") != "human_merged":
+            raise AutonomyValidationError("canary_run_must_be_recorded_as_human_merged")
+        existing = self.connection.execute(
+            "SELECT evidence_hash FROM canary_merge_evidence WHERE run_id=?", (run_id,)
+        ).fetchone()
+        if existing:
+            return self.rollout_status()
+        row = self.connection.execute(
+            "SELECT successful_runs,failed_runs FROM rollout WHERE lane='canary_merges'"
+        ).fetchone()
+        successful, failed = (int(row[0]), int(row[1])) if row else (0, 0)
+        successful += 1
+        evidence_id = sha256_json(
+            {
+                "run_id": run_id,
+                "reviewer": reviewer,
+                "merge_commit": merge_commit,
+                "checks_green": True,
+                "approved_after_last_push": True,
+            }
+        )
+        self.connection.execute(
+            "INSERT OR REPLACE INTO rollout(lane,successful_runs,failed_runs,last_run_id,updated_at) "
+            "VALUES('canary_merges',?,?,?,?)",
+            (successful, failed, evidence_id, utc_now()),
+        )
+        self.connection.execute(
+            "INSERT INTO canary_merge_evidence(run_id,evidence_hash,created_at) VALUES(?,?,?)",
+            (run_id, evidence_id, utc_now()),
+        )
+        self.connection.commit()
+        return self.rollout_status()
+
     def rollout_status(self) -> dict[str, Any]:
         rows = self.connection.execute(
             "SELECT lane,successful_runs,failed_runs,last_run_id,updated_at FROM rollout"
@@ -613,12 +892,15 @@ class AutonomyStore:
                 "failed_runs": int(failed),
                 "last_run_id": last_run_id,
                 "updated_at_utc": updated_at,
-                "target": ROLLOUT_TARGET,
-                "complete": int(successful) >= ROLLOUT_TARGET and int(failed) == 0,
+                "target": CANARY_MERGE_TARGET if lane == "canary_merges" else ROLLOUT_TARGET,
+                "complete": int(successful)
+                >= (CANARY_MERGE_TARGET if lane == "canary_merges" else ROLLOUT_TARGET)
+                and int(failed) == 0,
             }
             for lane, successful, failed, last_run_id, updated_at in rows
         }
-        for lane in ("shadow", "local"):
+        for lane in ("shadow", "local", "canary_merges"):
+            target = CANARY_MERGE_TARGET if lane == "canary_merges" else ROLLOUT_TARGET
             lanes.setdefault(
                 lane,
                 {
@@ -626,17 +908,18 @@ class AutonomyStore:
                     "failed_runs": 0,
                     "last_run_id": "",
                     "updated_at_utc": "",
-                    "target": ROLLOUT_TARGET,
+                    "target": target,
                     "complete": False,
                 },
             )
         return {
-            "schema_version": "AutonomyRolloutV1",
+            "schema_version": "AutonomyRolloutV2",
             "status": "ok",
             "lanes": lanes,
             "provider_required": False,
             "canary_allowed": lanes["shadow"]["complete"] and lanes["local"]["complete"],
-            "watcher_activation_allowed": False,
+            "watcher_activation_allowed": lanes["canary_merges"]["complete"],
+            "three_golden_rules": "separate_per_work_item_gate",
         }
 
     def recover_interrupted_runs(self, *, stale_after_seconds: int = STALE_RUN_SECONDS) -> list[str]:
@@ -676,37 +959,84 @@ class AutonomyStore:
         self.connection.close()
 
 
+def three_golden_rules_status(store: AutonomyStore) -> dict[str, Any]:
+    patterns = store.list_improvement_patterns()
+    return {
+        "schema_version": "ThreeGoldenRulesStatusV1",
+        "status": "ok",
+        "rules": {
+            "generalize": "turn_a_concrete_failure_into_a_reusable_rule_with_transfer_targets",
+            "harness_engineering": "bind_the_rule_to_positive_and_negative_registered_fixtures",
+            "recursive_self_improvement": "monitor_recurrence_and_create_review_gated_improvement_work",
+        },
+        "pattern_count": len(patterns),
+        "review_required_count": sum(pattern.get("review_status") == "review_required" for pattern in patterns),
+        "patterns": patterns,
+        "automatic_apply": False,
+        "human_review_required": True,
+        "canary_merges_are_a_separate_rollout_gate": True,
+    }
+
+
+def evaluate_three_golden_rules(item: WorkItemV3) -> dict[str, Any]:
+    errors = item.validate_for_execution()
+    contract = item.evolution_chunk
+    gates = {
+        "generalize": bool(contract and contract.generalized_rule.strip() and len(contract.transfer_targets) >= 2),
+        "harness_engineering": bool(contract and contract.positive_fixture_ids and contract.negative_fixture_ids),
+        "recursive_self_improvement": bool(contract and contract.recurrence_monitor_id and contract.human_gate == "required"),
+    }
+    return {
+        "schema_version": "ThreeGoldenRulesEvaluationV1",
+        "status": "pass" if not errors and all(gates.values()) else "blocked",
+        "work_item_hash": item.work_item_hash,
+        "gates": gates,
+        "errors": errors,
+        "automatic_apply": False,
+        "human_review_required": True,
+        "canary_merges_evaluated": False,
+    }
+
+
+def bind_three_golden_rules_evidence(
+    item: WorkItemV3,
+    evidence: ImplementationEvidenceV1,
+    store: AutonomyStore,
+) -> ThreeGoldenRulesEvidenceV1:
+    if item.evolution_chunk is None:
+        raise AutonomyValidationError("legacy_missing_3gr_contract")
+    pattern = store.record_improvement_pattern(item.evolution_chunk, work_item_hash=item.work_item_hash)
+    return ThreeGoldenRulesEvidenceV1(
+        work_item_hash=item.work_item_hash,
+        contract_hash=item.evolution_chunk.contract_hash,
+        test_evidence_hash=evidence.test_evidence_hash,
+        test_ids_passed=tuple(evidence.test_ids_passed),
+        recurrence_count=int(pattern["recurrence_count"]),
+    )
+
+
 class ProviderGate:
     def __init__(self, state_path: str | Path | None = None, store: AutonomyStore | None = None) -> None:
         self.state_path = Path(state_path).expanduser() if state_path else default_support_dir() / "provider-state.json"
-        self.state_path.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            os.chmod(self.state_path.parent, 0o700)
-        except OSError:
-            pass
         self.store = store
 
-    def _read(self) -> str:
-        if not self.state_path.exists():
-            return PROVIDER_PARKED
+    def _read(self) -> tuple[str, str]:
+        if not self.state_path.exists() and not self.state_path.is_symlink():
+            return PROVIDER_PARKED, ""
         try:
-            payload = json.loads(self.state_path.read_text(encoding="utf-8"))
+            payload = _read_private_json(self.state_path, schema_version="ProviderStateV1")
             state = str(payload.get("state", PROVIDER_PARKED))
-        except (OSError, json.JSONDecodeError):
-            return PROVIDER_PARKED
-        return state if state in {PROVIDER_PARKED, PROVIDER_ENABLED} else PROVIDER_PARKED
+        except (AutonomyValidationError, OSError) as error:
+            return PROVIDER_PARKED, str(error)
+        if state not in {PROVIDER_PARKED, PROVIDER_ENABLED}:
+            return PROVIDER_PARKED, "provider_state_invalid_fail_closed"
+        return state, ""
 
     def _write(self, state: str) -> dict[str, Any]:
         if state not in {PROVIDER_PARKED, PROVIDER_ENABLED}:
             raise AutonomyValidationError("invalid_provider_state")
         payload = {"schema_version": "ProviderStateV1", "state": state, "updated_at_utc": utc_now(), "key_stored": False}
-        temporary = self.state_path.with_name(f".{self.state_path.name}.tmp")
-        temporary.write_text(canonical_json(payload) + "\n", encoding="utf-8")
-        try:
-            os.chmod(temporary, 0o600)
-        except OSError:
-            pass
-        os.replace(temporary, self.state_path)
+        _atomic_write_private_json(self.state_path, payload)
         return self.status()
 
     def park(self) -> dict[str, Any]:
@@ -718,15 +1048,18 @@ class ProviderGate:
         return self._write(PROVIDER_ENABLED)
 
     def status(self) -> dict[str, Any]:
-        state = self._read()
+        state, state_error = self._read()
         budget = self.store.budget_status() if self.store else None
-        allowed = state == PROVIDER_ENABLED and not bool(budget and budget["hard_stopped"])
+        allowed = state == PROVIDER_ENABLED and not state_error and not bool(budget and budget["hard_stopped"])
+        reason = state_error or (
+            "parked_before_keychain_sdk_and_network" if state == PROVIDER_PARKED else "public_scope_only"
+        )
         return {
             "schema_version": "ProviderStateV1",
             "state": state,
             "model": MODEL_VERSION,
             "call_allowed": allowed,
-            "reason": "parked_before_keychain_sdk_and_network" if state == PROVIDER_PARKED else "public_scope_only",
+            "reason": reason,
             "key_stored": False,
             "network_call_executed": False,
             "budget": budget,
@@ -746,15 +1079,19 @@ class ProviderGate:
 class AutonomyLease:
     def __init__(self, path: str | Path | None = None) -> None:
         self.path = Path(path).expanduser() if path else default_support_dir() / "autonomy.lock"
-        self.path.parent.mkdir(parents=True, exist_ok=True)
         self.handle: Any = None
 
     def acquire(self) -> None:
-        self.handle = self.path.open("a+", encoding="utf-8")
+        _ensure_private_state_path(self.path)
+        flags = os.O_CREAT | os.O_RDWR | os.O_APPEND
+        if hasattr(os, "O_NOFOLLOW"):
+            flags |= os.O_NOFOLLOW
         try:
-            os.chmod(self.path, 0o600)
-        except OSError:
-            pass
+            descriptor = os.open(self.path, flags, 0o600)
+        except OSError as error:
+            raise AutonomyValidationError("lease_path_open_failed") from error
+        os.fchmod(descriptor, 0o600)
+        self.handle = os.fdopen(descriptor, "a+", encoding="utf-8")
         if fcntl is None:  # pragma: no cover - package target is macOS
             return
         try:
@@ -1175,7 +1512,14 @@ class AutonomyController:
         if errors:
             return {"status": "blocked", "reason": "invalid_work_item", "errors": errors}
         self.store.save_work_item(item)
-        return {"status": "queued", "work_item": item.to_dict()}
+        if item.evolution_chunk is None:
+            return {
+                "status": "gretel_proposed",
+                "reason": "legacy_missing_3gr_contract",
+                "execution_allowed": False,
+                "work_item": item.to_dict(),
+            }
+        return {"status": "queued", "execution_allowed": True, "work_item": item.to_dict()}
 
     def create_run(self, item: WorkItemV3, *, trigger: str) -> AutonomyRunV3:
         run = AutonomyRunV3(run_id=uuid.uuid4().hex, work_item_hash=item.work_item_hash, trigger=trigger)
@@ -1204,7 +1548,7 @@ class AutonomyController:
         It exists solely for the ten local rollout rehearsals that must precede
         a live provider canary.
         """
-        errors = item.validate()
+        errors = item.validate_for_execution()
         if errors:
             return {"status": "blocked", "reason": "invalid_work_item", "errors": errors}
         self.store.save_work_item(item)
@@ -1263,6 +1607,7 @@ class AutonomyController:
                             "run": run.to_dict(),
                         }
                     run.transition("codex_review_green", reason="independent_local_codex_review_approved")
+                    golden_rules_evidence = bind_three_golden_rules_evidence(item, evidence, self.store)
                     self.store.save_run(run)
                     self.store.record_rollout("local", run_id=run.run_id, success=True)
                     return {
@@ -1270,6 +1615,7 @@ class AutonomyController:
                         "run": run.to_dict(),
                         "evidence": evidence.to_dict(),
                         "codex_review": codex_review.to_dict(),
+                        "three_golden_rules_evidence": golden_rules_evidence.to_dict(),
                         "provider_calls": 0,
                         "github_actions": 0,
                         "automatic_merge": False,
@@ -1321,7 +1667,7 @@ class AutonomyController:
         ci_green: bool = False,
         estimated_glm_cost_usd: float = 0.0,
     ) -> dict[str, Any]:
-        errors = item.validate()
+        errors = item.validate_for_execution()
         if errors:
             return {"status": "blocked", "reason": "invalid_work_item", "errors": errors}
         self.store.save_work_item(item)
@@ -1416,14 +1762,21 @@ class AutonomyController:
                             "evidence": evidence.to_dict(),
                             "codex_review": codex_review.to_dict(),
                             "glm_review": glm_review.to_dict(),
+                            "three_golden_rules": evaluate_three_golden_rules(item),
                             "provider_calls": 0,
                             "github_actions": 0,
                             "automatic_merge": False,
                         }
+                    golden_rules_evidence = bind_three_golden_rules_evidence(item, evidence, self.store)
                     if not ci_green:
                         run.transition("retryable", reason="github_ci_not_green")
                         self.store.save_run(run)
-                        return {"status": "retryable", "run": run.to_dict(), "evidence": evidence.to_dict()}
+                        return {
+                            "status": "retryable",
+                            "run": run.to_dict(),
+                            "evidence": evidence.to_dict(),
+                            "three_golden_rules_evidence": golden_rules_evidence.to_dict(),
+                        }
                     run.transition("ci_green", reason="ci_gate_reported_green")
                     run.transition("ready_for_human_merge", reason="draft_pr_preview_ready")
                     run.branch = f"gretel/{safe_slug(item.work_id)}-{run.run_id[:8]}"
@@ -1435,6 +1788,7 @@ class AutonomyController:
                         "evidence": evidence.to_dict(),
                         "codex_review": codex_review.to_dict(),
                         "glm_review": glm_review.to_dict(),
+                        "three_golden_rules_evidence": golden_rules_evidence.to_dict(),
                         "draft_pr": preview,
                     }
             except (AutonomyValidationError, OSError) as error:
@@ -1471,6 +1825,7 @@ def work_item_from_issue(issue: dict[str, Any]) -> WorkItemV3:
     labels = tuple(str(label) for label in issue.get("labels", []) if SAFE_ID.fullmatch(str(label)))
     if "gretel-ready" not in labels:
         raise AutonomyValidationError("issue_missing_gretel_ready_label")
+    evolution_payload = issue.get("evolution_chunk")
     return WorkItemV3(
         work_id=f"issue-{int(issue.get('number', 0) or 0)}",
         source="github_issue",
@@ -1482,6 +1837,11 @@ def work_item_from_issue(issue: dict[str, Any]) -> WorkItemV3:
         base_commit=str(issue.get("base_commit", "")),
         issue_number=int(issue.get("number", 0) or 0),
         labels=labels,
+        evolution_chunk=(
+            EvolutionChunkContractV1.from_dict(evolution_payload)
+            if isinstance(evolution_payload, dict)
+            else None
+        ),
     )
 
 
