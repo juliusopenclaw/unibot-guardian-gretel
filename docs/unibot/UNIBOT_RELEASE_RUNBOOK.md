@@ -75,6 +75,16 @@ outcome IDs, role IDs, condition/question IDs, dates, and hashes. It does not
 store meeting minutes and cannot grant exam, accessibility, privacy, legal, or
 institutional approval.
 
+For a single local handoff, use:
+
+```text
+unibot release handoff --output ./unibot-release-handoff
+```
+
+This atomically builds the candidate, runs the read-only audit, writes the
+human PR draft, and records a hash-only `HANDOFF-MANIFEST.json`. A failed step
+leaves no partial handoff and does not contact GitHub.
+
 The meeting asks five bounded questions: who owns the institutional decision;
 whether the local practice purpose fits the named module; which accessibility
 and assistance functions are appropriate; which data retention and deletion

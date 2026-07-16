@@ -37,6 +37,8 @@ full provenance statement is in `AUTHORS.md`.
   `unibot release audit ./unibot-review-candidate`
 - Create the human-gated GitHub PR text from an audited candidate:
   `unibot release pr-draft --candidate ./unibot-review-candidate --output ./UNIBOT-PR-DRAFT.md`
+- Build the complete local handoff atomically in one step:
+  `unibot release handoff --output ./unibot-release-handoff`
 - Open `~/Applications/UniBot Companion.app` or click the extension and start a
   fixed or adaptive A0-A4 learning session.
 - In the extension, import either an allowlisted public `.ipynb` URL or choose a

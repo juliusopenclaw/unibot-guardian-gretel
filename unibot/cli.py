@@ -44,6 +44,7 @@ from .public_safety import scan_text
 from .release_candidate import write_release_candidate_bundle
 from .release_audit import audit_release_candidate
 from .release_pr import write_release_pr_draft
+from .release_handoff import write_release_handoff
 from .server import run as run_server
 
 
@@ -215,6 +216,11 @@ def build_parser() -> argparse.ArgumentParser:
     release_pr.add_argument("--candidate", type=Path, required=True)
     release_pr.add_argument("--output", type=Path, required=True)
     release_pr.add_argument("--repo", type=Path, default=Path.cwd())
+    release_handoff = release_commands.add_parser(
+        "handoff", help="atomically build the candidate, audit, and human PR handoff"
+    )
+    release_handoff.add_argument("--output", type=Path, required=True)
+    release_handoff.add_argument("--repo", type=Path, default=Path.cwd())
     return parser
 
 
@@ -494,6 +500,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             payload = write_release_pr_draft(args.output, args.candidate, repository=args.repo)
             _print_json(payload)
             return 0 if payload["status"] == "ready_for_human_review" else 2
+        if args.command == "release" and args.release_command == "handoff":
+            payload = write_release_handoff(args.output, repository=args.repo)
+            _print_json(payload)
+            return 0 if payload["status"] == "written" else 2
     except (GatewayError, NotebookIntakeError, RuntimeError, ValueError, OSError) as exc:
         _print_json({"status": "blocked", "reason": str(exc)})
         return 2
