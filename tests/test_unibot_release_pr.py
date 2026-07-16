@@ -32,7 +32,7 @@ class UniBotReleasePrDraftTests(unittest.TestCase):
             self.assertEqual(draft["exam_deployment_status"], "not_cleared")
             self.assertIn("Julius", draft["body"])
             self.assertIn("Gretel / Codex", draft["body"])
-            self.assertIn("Institutional", draft["body"])
+            self.assertIn("Institutionelle Prüfung", draft["body"])
             self.assertNotIn("/" + "Users/", draft["body"])
             self.assertEqual(scan_text(draft["body"], "pr-draft-test")["status"], "pass")
 
@@ -74,8 +74,9 @@ class UniBotReleasePrDraftTests(unittest.TestCase):
                         str(repository),
                     ]
                 )
+                raw_stdout = stdout.getvalue()
             self.assertEqual(exit_code, 0)
-            payload = json.loads(stdout.getvalue())
+            payload = json.loads(raw_stdout)
             self.assertEqual(payload["status"], "ready_for_human_review")
             self.assertIn("UniBot", output.read_text(encoding="utf-8"))
 
