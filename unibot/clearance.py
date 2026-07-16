@@ -789,6 +789,7 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
                     "visible keyboard focus",
                     "tablist arrow-key, Home, and End navigation",
                     "280px minimum layout without horizontal overflow",
+                    "200 percent zoom with the core session and help flow visible",
                 ],
                 "test_file": "tests/browser/mantle-v2.spec.js",
                 "claim_boundary": "Automated evidence does not equal WCAG certification; institutional accessibility review remains open.",

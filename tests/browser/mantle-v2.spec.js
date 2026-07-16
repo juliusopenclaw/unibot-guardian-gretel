@@ -285,6 +285,20 @@ test("sidepanel supports keyboard tab navigation at the minimum supported width"
   expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
 });
 
+test("sidepanel keeps the core flow usable at 200 percent zoom", async ({ page }) => {
+  await page.setViewportSize({ width: 560, height: 900 });
+  await page.goto(pathToFileURL(path.join(extensionRoot, "v2", "sidepanel.html")).href);
+  await page.evaluate(() => {
+    document.documentElement.style.zoom = "2";
+  });
+
+  await expect(page.locator("#startSession")).toBeVisible();
+  await expect(page.locator("#pseudonym")).toBeVisible();
+  await page.getByRole("tab", { name: "Hilfe", exact: true }).click();
+  await expect(page.locator("#capture")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+});
+
 test("sidepanel reconnects and resumes a local session after companion restart", async ({ page }) => {
   await page.addInitScript(() => {
     let onNativeMessage = null;
