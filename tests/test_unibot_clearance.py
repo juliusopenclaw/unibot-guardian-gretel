@@ -255,6 +255,8 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
             self.assertEqual(result["status"], "written")
             self.assertEqual(result["file_count"], 6)
             self.assertEqual(result["exam_deployment_status"], "not_cleared")
+            self.assertRegex(result["source_commit"], r"^[0-9a-f]{40}$")
+            self.assertEqual(result["source_provenance_status"], "verified")
             self.assertFalse(result["raw_learner_content_written"])
             self.assertTrue((bundle_root / "institutional-presentation.json").is_file())
             self.assertTrue((bundle_root / "institutional-presentation.md").is_file())
@@ -263,10 +265,33 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
             self.assertTrue((bundle_root / "institutional-review-decision-template.md").is_file())
             self.assertTrue((bundle_root / "MANIFEST.json").is_file())
             self.assertEqual((bundle_root / "MANIFEST.json").stat().st_mode & 0o077, 0)
+            manifest = json.loads((bundle_root / "MANIFEST.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["source_commit"], result["source_commit"])
+            self.assertEqual(manifest["source_provenance"]["status"], "verified")
             payload = "".join(path.read_text(encoding="utf-8") for path in bundle_root.iterdir())
             self.assertNotIn("/" + "Users/", payload)
             self.assertNotIn("raw notebook text:", payload.lower())
             self.assertEqual(scan_text(payload, "institutional-review-bundle-test")["status"], "pass")
+
+    def test_institutional_review_bundle_blocks_dirty_source_before_writing(self) -> None:
+        import tempfile
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "review-bundle"
+            with patch(
+                "unibot.clearance.public_source_provenance",
+                return_value={
+                    "schema_version": "UniBotPublicSourceProvenanceV1",
+                    "status": "blocked_dirty_worktree",
+                    "commit": "a" * 40,
+                    "working_tree_clean": False,
+                },
+            ):
+                result = write_institutional_review_bundle(output)
+            self.assertEqual(result["status"], "blocked")
+            self.assertEqual(result["reason"], "blocked_dirty_worktree")
+            self.assertFalse(output.exists())
 
     def test_valid_exam_clearance_record_hashes_reference_and_stays_scope_bound(self) -> None:
         validation = validate_clearance_record(valid_exam_clearance_record())

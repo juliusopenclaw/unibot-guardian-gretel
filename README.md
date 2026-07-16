@@ -63,6 +63,8 @@ full provenance statement is in `AUTHORS.md`.
 - Create the blank, hash-only human outcome form: `unibot institution decision-template --markdown`
 - Write a hash-bound, public-safe handoff directory:
   `unibot institution bundle --output ./unibot-institution-review`
+  Its `MANIFEST.json` is bound to the exact clean public Git commit and records
+  no local path, learner content, or institutional decision.
 - Inspect the autonomous lane: `unibot autonomy preflight`
 - Health check for the developer API: `GET /api/v2/health` on the selected
   loopback port. Port `8765` remains the CLI default but is not used by the

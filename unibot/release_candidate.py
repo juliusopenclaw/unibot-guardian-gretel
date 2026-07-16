@@ -4,7 +4,6 @@ import hashlib
 import json
 import os
 import shutil
-import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -13,6 +12,7 @@ from .clearance import write_institutional_review_bundle
 from .extension_package import package_extension
 from .public_demo import build_public_demo_evidence, build_public_demo_markdown
 from .public_safety import scan_text
+from .provenance import public_source_provenance
 
 
 RELEASE_CANDIDATE_SCHEMA_VERSION = "UniBotReleaseCandidateV1"
@@ -92,43 +92,7 @@ def _review_start_here_markdown(source_commit: str) -> str:
 
 def _git_provenance() -> dict[str, Any]:
     """Bind a release candidate to a clean public source revision."""
-    repository_root = Path(__file__).resolve().parents[1]
-    try:
-        commit_result = subprocess.run(
-            ["git", "rev-parse", "--verify", "HEAD"],
-            cwd=repository_root,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        status_result = subprocess.run(
-            ["git", "status", "--porcelain=v1"],
-            cwd=repository_root,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-    except OSError:
-        return {
-            "status": "blocked_source_provenance_unavailable",
-            "commit": None,
-            "working_tree_clean": False,
-        }
-    commit = commit_result.stdout.strip()
-    clean = status_result.returncode == 0 and not status_result.stdout.strip()
-    if commit_result.returncode != 0 or len(commit) != 40 or not clean:
-        return {
-            "status": "blocked_source_provenance_unavailable" if not commit else "blocked_dirty_worktree",
-            "commit": commit if len(commit) == 40 else None,
-            "working_tree_clean": clean,
-        }
-    return {
-        "status": "verified",
-        "commit": commit,
-        "working_tree_clean": True,
-        "implementation_and_documentation": "Gretel / Codex",
-        "human_gate": "Julius remains human project lead and merge/release decision-maker.",
-    }
+    return public_source_provenance()
 
 
 def write_release_candidate_bundle(output_dir: str | Path) -> dict[str, Any]:

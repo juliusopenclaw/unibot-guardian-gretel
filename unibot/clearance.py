@@ -9,6 +9,7 @@ from typing import Any
 from .compliance import build_compliance_matrix
 from .materials import sha256_text
 from .public_safety import scan_text
+from .provenance import public_source_provenance
 from .review_board import build_review_board_packet
 from .source_cards import get_source_card
 
@@ -1190,6 +1191,16 @@ def write_institutional_review_bundle(
     """Write a public-safe, hash-bound institutional review handoff locally."""
     if not public_safe:
         raise ValueError("institutional review bundle requires public_safe=True")
+    provenance = public_source_provenance()
+    if provenance["status"] != "verified":
+        return {
+            "schema_version": INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION,
+            "artifact_type": "unibot_institutional_review_bundle",
+            "status": "blocked",
+            "reason": str(provenance["status"]),
+            "source_provenance": provenance,
+            "exam_deployment_status": "not_cleared",
+        }
     packet = build_institutional_presentation_packet(public_safe=True)
     if packet.get("status") != "ready_for_human_review":
         return {
@@ -1240,6 +1251,8 @@ def write_institutional_review_bundle(
         "packet_schema_version": packet["schema_version"],
         "packet_status": packet["status"],
         "exam_deployment_status": "not_cleared",
+        "source_commit": provenance["commit"],
+        "source_provenance": provenance,
         "files": file_records,
         "evidence_hash": packet["evidence_hash"],
         "authorship": packet["authorship"],
@@ -1269,6 +1282,8 @@ def write_institutional_review_bundle(
         "file_count": len(contents),
         "manifest_sha256": sha256_text(manifest_text),
         "evidence_hash": packet["evidence_hash"],
+        "source_commit": provenance["commit"],
+        "source_provenance_status": provenance["status"],
         "public_safety_status": "pass",
         "raw_learner_content_written": False,
         "local_paths_written_to_bundle": False,

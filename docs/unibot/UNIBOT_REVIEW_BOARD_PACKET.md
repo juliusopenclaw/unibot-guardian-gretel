@@ -97,3 +97,9 @@ Readiness for publication is a separate check:
 The packet is intentionally not an approval and does not replace formal
 authority decisions. It prepares the right questions in a structured, reproducible,
 institutional format.
+
+The standalone institutional bundle additionally records the exact clean public
+source commit in `MANIFEST.json`. A dirty or unverifiable worktree blocks bundle
+creation before any review artifact is written. This binds the meeting packet to
+the code and documentation that were actually reviewed without recording local
+paths or learner content.
