@@ -39,6 +39,7 @@ jobs:
           tests/test_unibot_companion_install.py
           tests/test_unibot_compliance.py
           tests/test_unibot_evaluation.py
+          tests/test_unibot_extension_package.py
           tests/test_unibot_gateway_v2.py
           tests/test_unibot_glm_provider_v2.py
           tests/test_unibot_guardian_benchmark.py
@@ -65,14 +66,14 @@ jobs:
           python -m ruff check
           unibot/autonomy_v2.py unibot/autonomy_v3.py unibot/glm_provider.py
           unibot/guardian_benchmark.py unibot/notebook_intake.py unibot/gateway.py
-          unibot/cli.py unibot/clearance.py unibot/companion.py
+          unibot/cli.py unibot/clearance.py unibot/companion.py unibot/extension_package.py
           unibot/compliance.py unibot/learning_session.py unibot/release_runbook.py
           unibot/server.py unibot/socratic_tutor.py unibot/source_cards.py
       - run: >
           python -m mypy
           unibot/autonomy_v2.py unibot/autonomy_v3.py unibot/glm_provider.py
           unibot/guardian_benchmark.py unibot/notebook_intake.py unibot/gateway.py
-          unibot/cli.py unibot/clearance.py unibot/companion.py
+          unibot/cli.py unibot/clearance.py unibot/companion.py unibot/extension_package.py
           unibot/compliance.py unibot/learning_session.py unibot/release_runbook.py
           unibot/server.py unibot/socratic_tutor.py unibot/source_cards.py
       - run: python -m pip_audit

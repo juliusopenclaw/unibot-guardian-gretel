@@ -73,6 +73,18 @@ exact-origin manifests for Google Chrome and Chromium and creates an
 ad-hoc-signed app in `~/Applications`. A Developer ID signature and Apple
 notarization are still required before general binary distribution.
 
+For an institutional review, the public extension can be packaged without the
+repository with:
+
+```text
+unibot extension package --output ./unibot-mantle.zip
+```
+
+The package contains only the Manifest V3 extension files, uses a fixed ZIP
+timestamp for reproducibility, records a SHA-256 hash, and keeps the exam
+deployment status `not_cleared`. It does not contain the Companion runtime,
+learner data, notebooks, or private project files.
+
 The extension does not use a hard-coded API port. The older paired HTTP API
 remains available for development and one alpha compatibility cycle.
 

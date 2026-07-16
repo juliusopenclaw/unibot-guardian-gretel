@@ -28,6 +28,8 @@ full provenance statement is in `AUTHORS.md`.
   release requirement.
 - In Chrome, load `unibot/browser_extension` as an unpacked extension for the
   public alpha. Its fixed alpha ID is bound to the installed native host.
+- Create a reviewable MV3 package without the rest of the repository:
+  `unibot extension package --output ./unibot-mantle.zip`
 - Open `~/Applications/UniBot Companion.app` or click the extension and start a
   fixed or adaptive A0-A4 learning session.
 - Start the paired local API: `unibot serve --pair`
