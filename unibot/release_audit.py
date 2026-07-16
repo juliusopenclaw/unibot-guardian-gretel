@@ -85,6 +85,7 @@ def audit_release_candidate(candidate_dir: str | Path, *, repository: str | Path
         except (OSError, json.JSONDecodeError):
             issues.append("release_manifest_invalid")
 
+    provenance = manifest.get("source_provenance") if isinstance(manifest, dict) else None
     if manifest:
         if manifest.get("schema_version") != "UniBotReleaseCandidateV1":
             issues.append("release_manifest_schema_mismatch")
@@ -131,10 +132,30 @@ def audit_release_candidate(candidate_dir: str | Path, *, repository: str | Path
         missing = sorted(REQUIRED_ARTIFACT_NAMES - record_names)
         issues.extend(f"required_artifact_not_recorded:{name}" for name in missing)
 
+        institutional_manifest_path = root / "INSTITUTIONAL-MANIFEST.json"
+        if institutional_manifest_path.is_file() and isinstance(provenance, dict):
+            try:
+                institutional_manifest = json.loads(institutional_manifest_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                institutional_manifest = {}
+                issues.append("institutional_manifest_invalid")
+            if not isinstance(institutional_manifest, dict):
+                issues.append("institutional_manifest_not_object")
+            else:
+                if institutional_manifest.get("source_commit") != provenance.get("commit"):
+                    issues.append("institutional_source_commit_mismatch")
+                institutional_provenance = institutional_manifest.get("source_provenance")
+                if not isinstance(institutional_provenance, dict):
+                    issues.append("institutional_source_provenance_missing")
+                else:
+                    if institutional_provenance.get("status") != "verified":
+                        issues.append("institutional_source_provenance_not_verified")
+                    if institutional_provenance.get("commit") != provenance.get("commit"):
+                        issues.append("institutional_provenance_commit_mismatch")
+
     source_commit = None
     source_commit_match: bool | None = None
     source_worktree_clean: bool | None = None
-    provenance = manifest.get("source_provenance") if isinstance(manifest, dict) else None
     if isinstance(provenance, dict):
         source_commit = provenance.get("commit")
         if repository is not None:

@@ -136,6 +136,17 @@ def write_release_candidate_bundle(output_dir: str | Path) -> dict[str, Any]:
                     "reason": "institutional_review_bundle_blocked",
                     "exam_deployment_status": "not_cleared",
                 }
+            if (
+                institutional_result.get("source_commit") != provenance.get("commit")
+                or institutional_result.get("source_provenance_status") != "verified"
+            ):
+                return {
+                    "schema_version": RELEASE_CANDIDATE_SCHEMA_VERSION,
+                    "artifact_type": "unibot_release_candidate_bundle",
+                    "status": "blocked",
+                    "reason": "institutional_source_provenance_mismatch",
+                    "exam_deployment_status": "not_cleared",
+                }
 
             extension_path = staging / "unibot-mantle.zip"
             shutil.copy2(build_dir / "unibot-mantle.zip", extension_path)
