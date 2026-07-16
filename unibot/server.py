@@ -16,7 +16,13 @@ from .adaptive_tasks import generate_adaptive_practice_plan
 from .autonomy_v3 import AutonomyStore, ProviderGate, WorkItemV3, autonomy_doctor
 from .autonomous_research_loop import build_autonomous_research_loop, build_autonomous_research_markdown
 from .bachelor_thesis import build_bachelor_thesis_markdown, build_bachelor_thesis_package
-from .clearance import build_institutional_clearance_board, validate_clearance_record
+from .clearance import (
+    build_institutional_clearance_board,
+    build_institutional_presentation_markdown,
+    build_institutional_presentation_packet,
+    build_regulatory_profile,
+    validate_clearance_record,
+)
 from .compliance import build_compliance_matrix, build_compliance_matrix_markdown
 from .completion_audit import build_completion_audit
 from .course_tutor import (
@@ -3337,6 +3343,22 @@ def route_request(path: str, payload: dict[str, Any] | None = None, method: str 
         return 200, build_institutional_clearance_board(
             public_safe=bool(payload.get("public_safe", True)),
         )
+    if path == "/api/unibot/institutional/profile":
+        return 200, build_regulatory_profile(
+            public_safe=bool(payload.get("public_safe", True)),
+        )
+    if path == "/api/unibot/institutional/presentation":
+        return 200, build_institutional_presentation_packet(
+            public_safe=bool(payload.get("public_safe", True)),
+        )
+    if path == "/api/unibot/institutional/presentation-markdown":
+        packet = build_institutional_presentation_packet(
+            public_safe=bool(payload.get("public_safe", True)),
+        )
+        return 200, {
+            "status": packet["status"],
+            "markdown": build_institutional_presentation_markdown(packet),
+        }
     if path == "/api/unibot/institutional-clearance/validate":
         record = payload.get("record", payload)
         if not isinstance(record, dict):

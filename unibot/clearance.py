@@ -13,6 +13,7 @@ from .source_cards import get_source_card
 
 INSTITUTIONAL_CLEARANCE_SCHEMA_VERSION = "unibot-institutional-clearance-v1"
 REGULATORY_PROFILE_SCHEMA_VERSION = "RegulatoryProfileV1"
+INSTITUTIONAL_PRESENTATION_SCHEMA_VERSION = "InstitutionalPresentationV1"
 
 ALLOWED_DECISION_STATUSES = {"needs_review", "approved", "rejected"}
 STANDARD_HELP_LEVELS = {"A0", "A1", "A2"}
@@ -331,6 +332,170 @@ def validate_regulatory_profile(profile: dict[str, Any] | None) -> dict[str, Any
         summary["issues"] = sorted(set(summary["issues"] + ["public_safety_findings"]))
         summary["public_safety_findings"] = scan["findings"]
     return summary
+
+
+def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict[str, Any]:
+    """Build a compact, source-bound packet for institutional human review."""
+    from .readiness import run_readiness_check
+    from .release_runbook import build_release_runbook
+
+    profile = build_regulatory_profile(public_safe=public_safe)
+    profile_validation = validate_regulatory_profile(profile)
+    board = build_institutional_clearance_board(public_safe=public_safe)
+    runbook = build_release_runbook()
+    readiness = run_readiness_check()
+    evidence = {
+        "regulatory_profile": {
+            "schema_version": profile["schema_version"],
+            "status": profile["status"],
+            "validation_status": profile_validation["status"],
+            "source_card_count": len(profile["source_cards"]),
+            "public_safety_status": profile["public_safety_status"],
+        },
+        "institutional_clearance_board": {
+            "status": board["status"],
+            "public_safety_status": board["public_safety_status"],
+            "exam_deployment_status": board["exam_deployment_status"],
+            "scope_count": len(board["scope_lanes"]),
+        },
+        "readiness": {
+            "status": readiness["status"],
+            "passed_count": readiness["passed_count"],
+            "check_count": readiness["check_count"],
+            "evidence_snapshot_status": readiness["evidence_snapshot"]["status"],
+        },
+        "release_runbook": {
+            "status": runbook["status"],
+            "evidence_alignment_status": runbook["release_evidence_alignment"]["status"],
+            "public_safety_status": runbook["public_safety_status"],
+            "manual_review_required": runbook["manual_review_required"],
+            "exam_deployment_status": runbook["exam_deployment_status"],
+        },
+        "browser_mantle": {
+            "interface": "Chrome MV3 side panel with local companion/native messaging.",
+            "supported_contexts": ["synthetic Jupyter", "synthetic Colab fixture", "manual text selection"],
+            "uncertain_selection": "Ask the learner to select a cell; never guess.",
+            "outputs": "Notebook outputs are not automatically captured.",
+            "manual_live_canary": "Required before any real institutional pilot.",
+        },
+    }
+    evidence_core = json.dumps(evidence, ensure_ascii=False, sort_keys=True)
+    packet = {
+        "schema_version": INSTITUTIONAL_PRESENTATION_SCHEMA_VERSION,
+        "artifact_type": "unibot_institutional_presentation_packet",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "status": "ready_for_human_review",
+        "review_status_label_de": "Vorlage für menschliche Prüfung; keine Freigabe",
+        "deployment_status": "not_cleared",
+        "audience": [
+            "Pruefungsamt",
+            "Inklusionsbuero / Nachteilsausgleich",
+            "Datenschutz",
+            "IT / SZI",
+            "Lehreinheit / Modulverantwortliche",
+            "Thesis supervision",
+        ],
+        "one_page_summary": {
+            "product": "Lokale sokratische Lern- und Übungshilfe für Python-Notebooks.",
+            "learner_flow": [
+                "Notebook in lokaler Jupyter-Umgebung oder synthetischer Browser-Fixture öffnen.",
+                "Eine Zelle ausdrücklich auswählen und den eigenen nächsten Schritt formulieren.",
+                "A0 bis A2 als begrenzte, quellengebundene Hilfe erhalten.",
+                "Hilfenutzung und eigene Versuche als datensparsame Metadaten rückblicken.",
+                "Exportvorschau prüfen und nur freiwillig teilen.",
+            ],
+            "scientific_claim": "Messbare Sicherheits- und Quellenbindung; keine automatische Lernwirksamkeits- oder Notenbehauptung.",
+            "inclusion_claim": "Bedienungshilfen bleiben zugänglich und kostenneutral; UniBot entscheidet keinen Nachteilsausgleich.",
+            "privacy_claim": "Lokaler Tutor ohne Provider; öffentliche Artefakte enthalten nur Code, Quellen und synthetische Evidenz.",
+        },
+        "demo_protocol": {
+            "data": "Nur ein öffentliches, synthetisches Notebook verwenden.",
+            "steps": [
+                "Tutor und Gateway lokal starten.",
+                "Synthetische Notebook-Zelle manuell auswählen.",
+                "A0-, A1- und A2-Hinweis mit Quellenanker zeigen.",
+                "Komplettlösung, Endwert und fertige Interpretation als blockiert zeigen.",
+                "Rückblick, Exportvorschau und sofortige Löschung demonstrieren.",
+            ],
+            "expected_observation": "Die lernende Person bleibt handelnde Autorin; der Bot liefert gestufte Fragen und überprüfbare Anker.",
+            "forbidden_demo_content": ["private course material", "health or accommodation records", "real examination task", "real learner transcript"],
+        },
+        "human_decisions_needed": [
+            "Ist der lokale Übungszweck für das konkrete Modul und die Zielgruppe pädagogisch geeignet?",
+            "Welche Datenarten, Aufbewahrungsfristen, Rollen und Löschbelege sind institutionell zulässig?",
+            "Welche Bedienungs- und Assistenzfunktionen sind im jeweiligen Lehrformat angemessen?",
+            "Welche Quellen- und Hilfestufen sollen im Übungsbetrieb gelten?",
+            "Welche separate schriftliche Entscheidung wäre für einen Prüfungstrack erforderlich?",
+        ],
+        "evidence": evidence,
+        "evidence_hash": sha256_text(evidence_core),
+        "strict_non_goals": [
+            "no automatic grading",
+            "no admissions or eligibility decisions",
+            "no proctoring or surveillance",
+            "no AI-use detection or disciplinary evidence",
+            "no automatic accommodation decision",
+            "no final-answer delivery",
+            "no exam authorization or legal approval",
+        ],
+        "authorship": {
+            "implementation_and_documentation": "Gretel / Codex",
+            "glm_role": "No contribution while GLM is parked; later only proposal and counter-review.",
+            "human_gate": "Julius remains human project lead and merge/release decision-maker.",
+        },
+        "legal_boundary": "Review preparation only; not legal advice, institutional approval, or examination clearance.",
+    }
+    attach_public_scan(packet, public_safe=public_safe, source_name="institutional-presentation-packet")
+    if packet["public_safety_status"] != "pass":
+        packet["status"] = "blocked_public_safety"
+    if profile_validation["status"] != "ok":
+        packet["status"] = "blocked_profile_validation"
+    if readiness["status"] != "public_draft_ready":
+        packet["status"] = "blocked_readiness"
+    if runbook["release_evidence_alignment"]["status"] != "ready":
+        packet["status"] = "blocked_release_evidence"
+    return packet
+
+
+def build_institutional_presentation_markdown(
+    packet: dict[str, Any] | None = None,
+) -> str:
+    """Render the compact packet for a human review meeting."""
+    packet = packet or build_institutional_presentation_packet()
+    summary = packet["one_page_summary"]
+    evidence = packet["evidence"]
+    lines = [
+        "# UniBot Institutional Presentation",
+        "",
+        f"Status: {packet['status']}",
+        f"Einsatzstatus: {packet['deployment_status']}",
+        f"Für: {', '.join(packet['audience'])}",
+        "",
+        "## Zweck",
+        summary["product"],
+        "",
+        "## Ablauf",
+        *[f"- {item}" for item in summary["learner_flow"]],
+        "",
+        "## Nachweise",
+        f"- RegulatoryProfileV1: {evidence['regulatory_profile']['validation_status']}",
+        f"- Readiness: {evidence['readiness']['status']} ({evidence['readiness']['passed_count']}/{evidence['readiness']['check_count']})",
+        f"- Release-Runbook: {evidence['release_runbook']['evidence_alignment_status']}",
+        f"- Browsermantel: {evidence['browser_mantle']['interface']}",
+        "",
+        "## Menschliche Entscheidungen",
+        *[f"- {item}" for item in packet["human_decisions_needed"]],
+        "",
+        "## Grenzen",
+        *[f"- {item}" for item in packet["strict_non_goals"]],
+        "",
+        "## Autorenschaft",
+        f"- Implementierung und Dokumentation: {packet['authorship']['implementation_and_documentation']}",
+        f"- Menschlicher Gate: {packet['authorship']['human_gate']}",
+        "",
+        packet["legal_boundary"],
+    ]
+    return "\n".join(lines) + "\n"
 
 
 def clearance_lane(scope_id: str, scope: dict[str, Any]) -> dict[str, Any]:

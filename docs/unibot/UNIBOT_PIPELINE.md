@@ -90,6 +90,9 @@ for the current public-safe architecture and policy rationale.
   - `POST /api/unibot/course/study-session-review-report`
   - `POST /api/unibot/institutional-clearance/board`
   - `POST /api/unibot/institutional-clearance/validate`
+  - `POST /api/unibot/institutional/profile`
+  - `POST /api/unibot/institutional/presentation`
+  - `POST /api/unibot/institutional/presentation-markdown`
   - `POST /api/unibot/stakeholder/submission-bundle`
   - `POST /api/unibot/stakeholder/submission-bundle-markdown`
   - `POST /api/unibot/stakeholder/decision-request`

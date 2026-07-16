@@ -257,8 +257,11 @@ from .skill_to_workspace_live_flow import build_skill_to_workspace_live_flow
 from .server import route_request
 from .source_cards import build_source_card_drift_report, get_source_card, list_source_cards, required_source_card_ids
 from .clearance import (
+    INSTITUTIONAL_PRESENTATION_SCHEMA_VERSION,
     REGULATORY_PROFILE_SCHEMA_VERSION,
     build_regulatory_profile,
+    build_institutional_presentation_markdown,
+    build_institutional_presentation_packet,
     validate_regulatory_profile,
 )
 from .study_session import (
@@ -369,7 +372,10 @@ __all__ = [
     "required_source_card_ids",
     "build_source_card_drift_report",
     "REGULATORY_PROFILE_SCHEMA_VERSION",
+    "INSTITUTIONAL_PRESENTATION_SCHEMA_VERSION",
     "build_regulatory_profile",
+    "build_institutional_presentation_packet",
+    "build_institutional_presentation_markdown",
     "validate_regulatory_profile",
     "append_ledger_event",
     "read_ledger",

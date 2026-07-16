@@ -10,8 +10,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from unibot.clearance import (  # noqa: E402
+    INSTITUTIONAL_PRESENTATION_SCHEMA_VERSION,
     REGULATORY_PROFILE_SCHEMA_VERSION,
     build_institutional_clearance_board,
+    build_institutional_presentation_markdown,
+    build_institutional_presentation_packet,
     build_regulatory_profile,
     validate_clearance_record,
     validate_regulatory_profile,
@@ -95,6 +98,30 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         self.assertIn("strict_exclusions_incomplete", validation["issues"])
         self.assertIn("source_cards_missing", validation["issues"])
 
+    def test_institutional_presentation_packet_is_human_review_ready_only(self) -> None:
+        packet = build_institutional_presentation_packet()
+        payload = json.dumps(packet, ensure_ascii=False)
+
+        self.assertEqual(packet["schema_version"], INSTITUTIONAL_PRESENTATION_SCHEMA_VERSION)
+        self.assertEqual(packet["status"], "ready_for_human_review")
+        self.assertEqual(packet["deployment_status"], "not_cleared")
+        self.assertEqual(packet["evidence"]["readiness"]["status"], "public_draft_ready")
+        self.assertEqual(packet["evidence"]["regulatory_profile"]["validation_status"], "ok")
+        self.assertEqual(packet["evidence"]["release_runbook"]["evidence_alignment_status"], "ready")
+        self.assertEqual(packet["public_safety_status"], "pass")
+        self.assertIn("Pruefungsamt", packet["audience"])
+        self.assertIn("Inklusionsbuero / Nachteilsausgleich", packet["audience"])
+        self.assertIn("no automatic grading", packet["strict_non_goals"])
+        self.assertNotIn("raw notebook text:", payload.lower())
+        self.assertNotIn("/" + "Users/", payload)
+
+        markdown = build_institutional_presentation_markdown(packet)
+        self.assertIn("# UniBot Institutional Presentation", markdown)
+        self.assertIn("not_cleared", markdown)
+        self.assertIn("RegulatoryProfileV1: ok", markdown)
+        self.assertIn("Pruefungsamt", markdown)
+        self.assertEqual(scan_text(markdown, "institutional-presentation-markdown")['status'], "pass")
+
     def test_valid_exam_clearance_record_hashes_reference_and_stays_scope_bound(self) -> None:
         validation = validate_clearance_record(valid_exam_clearance_record())
         payload = json.dumps(validation, ensure_ascii=False)
@@ -135,6 +162,19 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         )
         self.assertEqual(status, 200)
         self.assertEqual(validation["status"], "ok_exam_controlled_gateway_clearance_record")
+
+        status, profile = route_request("/api/unibot/institutional/profile", {})
+        self.assertEqual(status, 200)
+        self.assertEqual(profile["schema_version"], REGULATORY_PROFILE_SCHEMA_VERSION)
+
+        status, presentation = route_request("/api/unibot/institutional/presentation", {})
+        self.assertEqual(status, 200)
+        self.assertEqual(presentation["status"], "ready_for_human_review")
+
+        status, markdown = route_request("/api/unibot/institutional/presentation-markdown", {})
+        self.assertEqual(status, 200)
+        self.assertEqual(markdown["status"], "ready_for_human_review")
+        self.assertIn("UniBot Institutional Presentation", markdown["markdown"])
 
 
 if __name__ == "__main__":

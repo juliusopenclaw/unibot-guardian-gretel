@@ -81,6 +81,21 @@ Diese Quellen begründen keine automatische Einstufung des konkreten Produkts.
 Die zuständigen Menschen entscheiden über den tatsächlichen institutionellen
 Anwendungsfall.
 
+## Präsentation starten
+
+Für eine Review-Sitzung erzeugt der lokale CLI-Weg ein kompaktes Paket aus
+RegulatoryProfileV1, Clearance-Board, Readiness und Release-Runbook:
+
+```text
+unibot institution profile
+unibot institution presentation
+unibot institution presentation --markdown
+```
+
+Das Paket darf nur mit einem öffentlichen synthetischen Notebook demonstriert
+werden. Es ist zur menschlichen Prüfung vorbereitet, aber keine automatische
+Veröffentlichungs-, Prüfungs- oder Inklusionsfreigabe.
+
 ## Transparente Autorenschaft
 
 Implementierung und Dokumentation: **Gretel / Codex**.

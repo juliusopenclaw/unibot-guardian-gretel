@@ -26,6 +26,8 @@ full provenance statement is in `AUTHORS.md`.
   fixed or adaptive A0-A4 learning session.
 - Start the paired local API: `unibot serve --pair`
 - Import a public notebook: `unibot notebook import <https-url-or-local-file>`
+- Prepare the institutional review profile: `unibot institution profile`
+- Create the compact presentation packet: `unibot institution presentation --markdown`
 - Inspect the autonomous lane: `unibot autonomy preflight`
 - Health check for the developer API: `GET /api/v2/health` on the selected
   loopback port. Port `8765` remains the CLI default but is not used by the
@@ -69,6 +71,8 @@ session files and voluntary exports contain metadata and hashes only.
   `docs/unibot/UNIBOT_AUTONOMY_V2.md` and `unibot/autonomy_work_items.json`.
 - The local companion, A0-A4 contract, report semantics, and known browser
   boundary are documented in `docs/unibot/UNIBOT_MANTLE_V21.md`.
+- The human-review packet for Prüfungsamt and Inklusionsbüro is documented in
+  `docs/unibot/UNIBOT_REGULATORY_PROFILE_V1.md`.
 - Public work uses synthetic tasks, source cards, test fixtures, and redacted
   review artifacts only.
 - Exam-controlled use remains `not_cleared` until written authority clearance

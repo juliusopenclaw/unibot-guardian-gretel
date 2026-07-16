@@ -85,6 +85,26 @@ class UniBotCliV2Tests(unittest.TestCase):
         self.assertEqual(result["status"], "pass", result["findings"])
         self.assertTrue(all(not str(item["source"]).startswith("/") for item in result["findings"]))
 
+    def test_institutional_presentation_cli_stays_human_gated(self) -> None:
+        with io.StringIO() as output, redirect_stdout(output):
+            exit_code = main(["institution", "presentation"])
+            payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["schema_version"], "InstitutionalPresentationV1")
+        self.assertEqual(payload["status"], "ready_for_human_review")
+        self.assertEqual(payload["deployment_status"], "not_cleared")
+        self.assertEqual(payload["evidence"]["readiness"]["status"], "public_draft_ready")
+
+        with io.StringIO() as output, redirect_stdout(output):
+            exit_code = main(["institution", "presentation", "--markdown"])
+            markdown_payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(markdown_payload["status"], "ready_for_human_review")
+        self.assertIn("UniBot Institutional Presentation", markdown_payload["markdown"])
+        self.assertIn("not_cleared", markdown_payload["markdown"])
+
 
 if __name__ == "__main__":
     unittest.main()

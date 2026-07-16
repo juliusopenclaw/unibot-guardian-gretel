@@ -27,6 +27,11 @@ from .autonomy_v2 import (
     run_review_cycle,
 )
 from .companion import DEFAULT_EXTENSION_ID, companion_status, install_companion, run_native_host
+from .clearance import (
+    build_institutional_presentation_markdown,
+    build_institutional_presentation_packet,
+    build_regulatory_profile,
+)
 from .gateway import GatewayError, launch_gateway
 from .guardian_benchmark import evaluate_guardian_benchmark, guardian_semantic_precision_work_item
 from .glm_provider import PROVIDER_SCOPE, ZaiGLMProvider, keychain_key_available
@@ -172,6 +177,12 @@ def build_parser() -> argparse.ArgumentParser:
     companion_commands.add_parser("native-host", help=argparse.SUPPRESS)
 
     commands.add_parser("public-safety", help="scan public repository artifacts")
+
+    institution = commands.add_parser("institution", help="prepare public-safe institutional review artifacts")
+    institution_commands = institution.add_subparsers(dest="institution_command", required=True)
+    institution_commands.add_parser("profile", help="show RegulatoryProfileV1")
+    presentation = institution_commands.add_parser("presentation", help="show the review meeting packet")
+    presentation.add_argument("--markdown", action="store_true")
     return parser
 
 
@@ -409,6 +420,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             payload = public_repository_safety(Path.cwd())
             _print_json(payload)
             return 0 if payload["status"] == "pass" else 2
+        if args.command == "institution" and args.institution_command == "profile":
+            payload = build_regulatory_profile()
+            _print_json(payload)
+            return 0 if payload["status"] == "review_preparation" else 2
+        if args.command == "institution" and args.institution_command == "presentation":
+            payload = build_institutional_presentation_packet()
+            if args.markdown:
+                print(json.dumps({"status": payload["status"], "markdown": build_institutional_presentation_markdown(payload)}, ensure_ascii=True, indent=2))
+            else:
+                _print_json(payload)
+            return 0 if payload["status"] == "ready_for_human_review" else 2
     except (GatewayError, NotebookIntakeError, RuntimeError, ValueError, OSError) as exc:
         _print_json({"status": "blocked", "reason": str(exc)})
         return 2
