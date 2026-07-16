@@ -104,11 +104,16 @@ RegulatoryProfileV1, Clearance-Board, Readiness und Release-Runbook:
 unibot institution profile
 unibot institution presentation
 unibot institution presentation --markdown
+unibot institution bundle --output ./unibot-institution-review
 ```
 
-Das Paket darf nur mit einem öffentlichen synthetischen Notebook demonstriert
-werden. Es ist zur menschlichen Prüfung vorbereitet, aber keine automatische
-Veröffentlichungs-, Prüfungs- oder Inklusionsfreigabe.
+Der Bundle-Befehl schreibt `institutional-presentation.json`,
+`institutional-presentation.md` und ein Hash-Manifest in ein owner-lesbares
+Verzeichnis. Er schreibt nur bei grüner Public-Safety-Prüfung und enthält keine
+Notebook-, Personen- oder lokalen Pfadinhalte. Das Paket darf nur mit einem
+öffentlichen synthetischen Notebook demonstriert werden. Es ist zur
+menschlichen Prüfung vorbereitet, aber keine automatische Veröffentlichungs-,
+Prüfungs- oder Inklusionsfreigabe.
 
 ## Transparente Autorenschaft
 

@@ -34,6 +34,8 @@ full provenance statement is in `AUTHORS.md`.
 - Import a public notebook: `unibot notebook import <https-url-or-local-file>`
 - Prepare the institutional review profile: `unibot institution profile`
 - Create the compact presentation packet: `unibot institution presentation --markdown`
+- Write a hash-bound, public-safe handoff directory:
+  `unibot institution bundle --output ./unibot-institution-review`
 - Inspect the autonomous lane: `unibot autonomy preflight`
 - Health check for the developer API: `GET /api/v2/health` on the selected
   loopback port. Port `8765` remains the CLI default but is not used by the

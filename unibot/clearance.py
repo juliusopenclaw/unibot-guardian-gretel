@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from .compliance import build_compliance_matrix
@@ -14,6 +16,7 @@ from .source_cards import get_source_card
 INSTITUTIONAL_CLEARANCE_SCHEMA_VERSION = "unibot-institutional-clearance-v1"
 REGULATORY_PROFILE_SCHEMA_VERSION = "RegulatoryProfileV1"
 INSTITUTIONAL_PRESENTATION_SCHEMA_VERSION = "InstitutionalPresentationV1"
+INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION = "InstitutionalReviewBundleV1"
 
 ALLOWED_DECISION_STATUSES = {"needs_review", "approved", "rejected"}
 STANDARD_HELP_LEVELS = {"A0", "A1", "A2"}
@@ -514,6 +517,92 @@ def build_institutional_presentation_markdown(
         packet["legal_boundary"],
     ]
     return "\n".join(lines) + "\n"
+
+
+def write_institutional_review_bundle(
+    output_dir: str | Path,
+    *,
+    public_safe: bool = True,
+) -> dict[str, Any]:
+    """Write a public-safe, hash-bound institutional review handoff locally."""
+    if not public_safe:
+        raise ValueError("institutional review bundle requires public_safe=True")
+    packet = build_institutional_presentation_packet(public_safe=True)
+    if packet.get("status") != "ready_for_human_review":
+        return {
+            "schema_version": INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION,
+            "artifact_type": "unibot_institutional_review_bundle",
+            "status": "blocked",
+            "reason": "presentation_packet_not_ready_for_human_review",
+            "packet_status": packet.get("status"),
+            "exam_deployment_status": "not_cleared",
+        }
+    markdown = build_institutional_presentation_markdown(packet)
+    json_text = json.dumps(packet, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    contents = {
+        "institutional-presentation.json": json_text,
+        "institutional-presentation.md": markdown,
+    }
+    file_records: list[dict[str, Any]] = []
+    for name, content in contents.items():
+        scan = scan_text(content, name)
+        if scan["status"] != "pass":
+            return {
+                "schema_version": INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION,
+                "artifact_type": "unibot_institutional_review_bundle",
+                "status": "blocked",
+                "reason": "bundle_public_safety_scan_failed",
+                "finding_count": len(scan["findings"]),
+                "exam_deployment_status": "not_cleared",
+            }
+        file_records.append(
+            {
+                "name": name,
+                "bytes": len(content.encode("utf-8")),
+                "sha256": sha256_text(content),
+                "public_safety_status": scan["status"],
+            }
+        )
+    manifest = {
+        "schema_version": "unibot-institutional-review-bundle-manifest-v1",
+        "artifact_type": "unibot_institutional_review_bundle_manifest",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "packet_schema_version": packet["schema_version"],
+        "packet_status": packet["status"],
+        "exam_deployment_status": "not_cleared",
+        "files": file_records,
+        "evidence_hash": packet["evidence_hash"],
+        "authorship": packet["authorship"],
+        "human_release_gate": "Julius remains human project lead and merge/release decision-maker.",
+    }
+    manifest_text = json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    contents["MANIFEST.json"] = manifest_text
+    root = Path(output_dir).expanduser()
+    if root.is_symlink() or (root.exists() and not root.is_dir()):
+        raise ValueError("institutional review bundle output must be a real directory")
+    root.mkdir(parents=True, exist_ok=True)
+    os.chmod(root, 0o700)
+    for name, content in contents.items():
+        target = root / name
+        temporary = root / f".{name}.{os.getpid()}.tmp"
+        temporary.write_text(content, encoding="utf-8")
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, target)
+        os.chmod(target, 0o600)
+    return {
+        "schema_version": INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION,
+        "artifact_type": "unibot_institutional_review_bundle",
+        "status": "written",
+        "packet_status": packet["status"],
+        "exam_deployment_status": "not_cleared",
+        "file_names": sorted(contents),
+        "file_count": len(contents),
+        "manifest_sha256": sha256_text(manifest_text),
+        "evidence_hash": packet["evidence_hash"],
+        "public_safety_status": "pass",
+        "raw_learner_content_written": False,
+        "local_paths_written_to_bundle": False,
+    }
 
 
 def clearance_lane(scope_id: str, scope: dict[str, Any]) -> dict[str, Any]:

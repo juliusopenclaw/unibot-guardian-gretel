@@ -18,6 +18,7 @@ from unibot.clearance import (  # noqa: E402
     build_regulatory_profile,
     validate_clearance_record,
     validate_regulatory_profile,
+    write_institutional_review_bundle,
 )
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
@@ -131,6 +132,25 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         self.assertIn("Pruefungsamt", markdown)
         self.assertIn("Barrierefreiheit: browser_tested_human_review_required", markdown)
         self.assertEqual(scan_text(markdown, "institutional-presentation-markdown")['status'], "pass")
+
+    def test_institutional_review_bundle_is_hash_bound_and_public_safe(self) -> None:
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as temporary:
+            result = write_institutional_review_bundle(Path(temporary) / "review-bundle")
+            bundle_root = Path(temporary) / "review-bundle"
+            self.assertEqual(result["status"], "written")
+            self.assertEqual(result["file_count"], 3)
+            self.assertEqual(result["exam_deployment_status"], "not_cleared")
+            self.assertFalse(result["raw_learner_content_written"])
+            self.assertTrue((bundle_root / "institutional-presentation.json").is_file())
+            self.assertTrue((bundle_root / "institutional-presentation.md").is_file())
+            self.assertTrue((bundle_root / "MANIFEST.json").is_file())
+            self.assertEqual((bundle_root / "MANIFEST.json").stat().st_mode & 0o077, 0)
+            payload = "".join(path.read_text(encoding="utf-8") for path in bundle_root.iterdir())
+            self.assertNotIn("/" + "Users/", payload)
+            self.assertNotIn("raw notebook text:", payload.lower())
+            self.assertEqual(scan_text(payload, "institutional-review-bundle-test")["status"], "pass")
 
     def test_valid_exam_clearance_record_hashes_reference_and_stays_scope_bound(self) -> None:
         validation = validate_clearance_record(valid_exam_clearance_record())

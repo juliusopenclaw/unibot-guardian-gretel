@@ -31,6 +31,7 @@ from .clearance import (
     build_institutional_presentation_markdown,
     build_institutional_presentation_packet,
     build_regulatory_profile,
+    write_institutional_review_bundle,
 )
 from .gateway import GatewayError, launch_gateway
 from .guardian_benchmark import evaluate_guardian_benchmark, guardian_semantic_precision_work_item
@@ -185,6 +186,8 @@ def build_parser() -> argparse.ArgumentParser:
     institution_commands.add_parser("profile", help="show RegulatoryProfileV1")
     presentation = institution_commands.add_parser("presentation", help="show the review meeting packet")
     presentation.add_argument("--markdown", action="store_true")
+    bundle = institution_commands.add_parser("bundle", help="write the public-safe institutional review handoff")
+    bundle.add_argument("--output", type=Path, required=True)
     return parser
 
 
@@ -437,6 +440,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             else:
                 _print_json(payload)
             return 0 if payload["status"] == "ready_for_human_review" else 2
+        if args.command == "institution" and args.institution_command == "bundle":
+            payload = write_institutional_review_bundle(args.output)
+            _print_json(payload)
+            return 0 if payload["status"] == "written" else 2
     except (GatewayError, NotebookIntakeError, RuntimeError, ValueError, OSError) as exc:
         _print_json({"status": "blocked", "reason": str(exc)})
         return 2
