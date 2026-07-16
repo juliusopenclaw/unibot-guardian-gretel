@@ -32,6 +32,8 @@ full provenance statement is in `AUTHORS.md`.
   `unibot extension package --output ./unibot-mantle.zip`
 - Create the public extension plus institutional review handoff:
   `unibot release candidate --output ./unibot-review-candidate`
+- Start with the nontechnical review guide in the candidate:
+  `REVIEW-START-HERE.md`
 - Verify a candidate's files, hashes, public-safety fields, and source commit
   without changing anything:
   `unibot release audit ./unibot-review-candidate`

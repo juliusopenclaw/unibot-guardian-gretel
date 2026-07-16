@@ -35,7 +35,7 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
             result = write_release_candidate_bundle(output)
 
             self.assertEqual(result["status"], "written")
-            self.assertEqual(result["file_count"], 10)
+            self.assertEqual(result["file_count"], 11)
             self.assertEqual(result["exam_deployment_status"], "not_cleared")
             self.assertEqual(result["provider_calls"], 0)
             self.assertFalse(result["learner_content_included"])
@@ -46,6 +46,7 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
                 [
                     "INSTITUTIONAL-MANIFEST.json",
                     "PUBLIC-DEMO.md",
+                    "REVIEW-START-HERE.md",
                     "RELEASE-MANIFEST.json",
                     "institutional-accessibility-walkthrough.md",
                     "institutional-plain-language-brief.md",
@@ -82,6 +83,11 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
                 "pass",
             )
             self.assertEqual(scan_text((output / "PUBLIC-DEMO.md").read_text(encoding="utf-8"), "PUBLIC-DEMO.md")["status"], "pass")
+            self.assertIn("Hier anfangen", (output / "REVIEW-START-HERE.md").read_text(encoding="utf-8"))
+            self.assertEqual(
+                scan_text((output / "REVIEW-START-HERE.md").read_text(encoding="utf-8"), "REVIEW-START-HERE.md")["status"],
+                "pass",
+            )
 
             for path in output.glob("*.json"):
                 self.assertEqual(scan_text(path.read_text(encoding="utf-8"), path.name)["status"], "pass")
@@ -108,7 +114,7 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
             self.assertEqual(audit["status"], "pass", audit["issues"])
             self.assertTrue(audit["candidate_directory_checked"])
             self.assertTrue(audit["source_commit_match"])
-            self.assertEqual(audit["recorded_file_count"], 9)
+            self.assertEqual(audit["recorded_file_count"], 10)
             self.assertEqual(audit["public_safety_status"], "pass")
             self.assertFalse(audit["side_effects"]["files_written"])
             self.assertFalse(audit["side_effects"]["network_called"])

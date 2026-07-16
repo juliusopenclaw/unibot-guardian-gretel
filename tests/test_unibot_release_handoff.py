@@ -18,7 +18,7 @@ class UniBotReleaseHandoffTests(unittest.TestCase):
             result = write_release_handoff(output, repository=repository)
 
             self.assertEqual(result["status"], "written")
-            self.assertEqual(result["candidate_file_count"], 10)
+            self.assertEqual(result["candidate_file_count"], 11)
             self.assertEqual(result["provider_calls"], 0)
             self.assertFalse(result["automatic_publication"])
             self.assertFalse(result["automatic_merge"])
@@ -29,6 +29,7 @@ class UniBotReleaseHandoffTests(unittest.TestCase):
             self.assertTrue((output / "candidate" / "unibot-mantle.zip").is_file())
             self.assertTrue((output / "candidate" / "synthetic_python_practice.ipynb").is_file())
             self.assertTrue((output / "candidate" / "PUBLIC-DEMO.md").is_file())
+            self.assertTrue((output / "candidate" / "REVIEW-START-HERE.md").is_file())
             self.assertTrue((output / "UNIBOT-PR-DRAFT.md").is_file())
             self.assertTrue((output / "HANDOFF-MANIFEST.json").is_file())
 

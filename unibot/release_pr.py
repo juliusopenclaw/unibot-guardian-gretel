@@ -65,6 +65,14 @@ def build_release_pr_draft(
     demo_fixture_hash = str(manifest.get("demo_fixture_sha256", ""))
     public_demo_hash = str(manifest.get("public_demo_markdown_sha256", ""))
     evidence_hash = str(manifest.get("institutional_evidence_hash", ""))
+    review_start_hash = next(
+        (
+            str(record.get("sha256", ""))
+            for record in manifest.get("files", [])
+            if isinstance(record, dict) and record.get("name") == "REVIEW-START-HERE.md"
+        ),
+        "",
+    )
     institutional_brief_hash = next(
         (
             str(record.get("sha256", ""))
@@ -107,6 +115,7 @@ def build_release_pr_draft(
             f"- MV3-Paket-SHA-256: `{extension_hash}`",
             f"- Öffentliche Demo-Fixture-SHA-256: `{demo_fixture_hash}`",
             f"- Öffentlicher Demo-Ablauf-SHA-256: `{public_demo_hash}`",
+            f"- REVIEW-START-HERE-SHA-256: `{review_start_hash}`",
             f"- Einfache institutionelle Kurzinfo-SHA-256: `{institutional_brief_hash}`",
             f"- Accessibility-Walkthrough-SHA-256: `{accessibility_walkthrough_hash}`",
             f"- Institutioneller Evidenz-Hash: `{evidence_hash}`",
@@ -165,6 +174,7 @@ def build_release_pr_draft(
         "extension_package_sha256": extension_hash,
         "demo_fixture_sha256": demo_fixture_hash,
         "public_demo_markdown_sha256": public_demo_hash,
+        "review_start_here_sha256": review_start_hash,
         "institutional_plain_language_brief_sha256": institutional_brief_hash,
         "institutional_accessibility_walkthrough_sha256": accessibility_walkthrough_hash,
         "institutional_evidence_hash": evidence_hash,

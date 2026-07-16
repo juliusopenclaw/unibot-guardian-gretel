@@ -35,6 +35,61 @@ def _scan_text_file(path: Path, name: str) -> str:
     return _scan_text_file_from_content(path.read_text(encoding="utf-8"), name)
 
 
+def _review_start_here_markdown(source_commit: str) -> str:
+    return "\n".join(
+        [
+            "# UniBot: Hier anfangen",
+            "",
+            "**Status: öffentlicher Entwurf für menschliche Prüfung; keine Prüfungs- oder Rechtsfreigabe.**",
+            "",
+            "Diese Seite ist der kurze Einstieg für Prüfungsamt, Inklusionsbüro, Datenschutz, IT/SZI, Lehre und Thesis-Betreuung.",
+            "UniBot ist eine lokale sokratische Lern- und Übungshilfe für Python-Notebooks. Die Implementierung und Dokumentation stammen von Gretel / Codex.",
+            "GLM ist in dieser Version geparkt und hatte keinen Anteil.",
+            "",
+            "## In 15 Minuten zeigen",
+            "",
+            "1. Öffne `PUBLIC-DEMO.md` und verwende ausschließlich `synthetic_python_practice.ipynb`.",
+            "2. Zeige im Chrome-Seitenpanel die Auswahl einer synthetischen Zelle und die Hilfe A0 bis A2.",
+            "3. Zeige, dass der Tutor keine fertige Lösung, keinen Endwert und keinen ausgeführten Notebookcode liefert.",
+            "4. Öffne danach den `institutional-plain-language-brief.md` und den `institutional-accessibility-walkthrough.md`.",
+            "",
+            "## Was geprüft werden kann",
+            "",
+            "- `unibot-mantle.zip`: die öffentliche MV3-Erweiterung für den lokalen Übungsbetrieb.",
+            "- `RELEASE-MANIFEST.json`: Commit, Größen und SHA-256-Nachweise aller Dateien.",
+            "- `institutional-presentation.md`: Gesamtpaket für die Review-Sitzung.",
+            "- `institutional-accessibility-walkthrough.md`: acht menschlich zu bewertende Barrierefreiheitsprüfungen.",
+            "- `institutional-review-decision-template.md`: absichtlich leer; es kann keine Freigabe automatisch erzeugen.",
+            "",
+            "## Drei Golden Rules",
+            "",
+            "- Keine finale Lösung: vollständiger Aufgabencode, Endwerte und fertige Interpretationen werden blockiert.",
+            "- Keine privaten Daten: keine Notebookinhalte, Namen, Gesundheitsdaten, lokalen Pfade, Schlüssel oder Providerdaten im öffentlichen Paket.",
+            "- Eigenleistung sichtbar halten: eigene Versuche, Hilfestufe, Quellen und Reflexion bleiben getrennt von einer Bewertung.",
+            "",
+            "## Inklusion",
+            "",
+            "Barrierefreie Unterstützung ist score-neutral. UniBot entscheidet keinen Nachteilsausgleich, keine Diagnose und keinen offiziellen Unterstützungsstatus.",
+            "Tastaturbedienung, sichtbarer Fokus, Statusansagen, kleine Fenster und 200-Prozent-Zoom sind technisch getestet; eine rechtliche Konformitätsentscheidung bleibt menschlich.",
+            "",
+            "## Menschliche Entscheidungen",
+            "",
+            "- Passt der lokale Übungszweck zum konkreten Modul und zur Zielgruppe?",
+            "- Welche Daten dürfen lokal verarbeitet und wie lange aufbewahrt werden?",
+            "- Welche Zugänglichkeits- und Unterstützungsfunktionen sind institutionell angemessen?",
+            "- Welche schriftliche Entscheidung wäre für einen separaten Prüfungseinsatz erforderlich?",
+            "- Julius prüft den finalen Diff und entscheidet allein über GitHub-Merge und Veröffentlichung.",
+            "",
+            "## Unveränderliche Grenze",
+            "",
+            "`exam_deployment_status = not_cleared`. UniBot ist kein Prüfer, kein Notengeber, kein Proctoring-System, kein KI-Detektor und keine automatische Nachteilsausgleich-Entscheidung.",
+            "",
+            f"Technische Basis dieses Pakets: `{source_commit}`.",
+            "",
+        ]
+    )
+
+
 def _git_provenance() -> dict[str, Any]:
     """Bind a release candidate to a clean public source revision."""
     repository_root = Path(__file__).resolve().parents[1]
@@ -184,6 +239,23 @@ def write_release_candidate_bundle(output_dir: str | Path) -> dict[str, Any]:
                     "exam_deployment_status": "not_cleared",
                 }
             records.append(_file_record(demo_path, demo_path.name, public_safety_status=demo_safety))
+
+            review_start_path = staging / "REVIEW-START-HERE.md"
+            review_start_path.write_text(
+                _review_start_here_markdown(str(provenance["commit"])),
+                encoding="utf-8",
+            )
+            os.chmod(review_start_path, 0o600)
+            review_start_safety = _scan_text_file(review_start_path, review_start_path.name)
+            if review_start_safety != "pass":
+                return {
+                    "schema_version": RELEASE_CANDIDATE_SCHEMA_VERSION,
+                    "artifact_type": "unibot_release_candidate_bundle",
+                    "status": "blocked",
+                    "reason": "review_start_here_public_safety_failed",
+                    "exam_deployment_status": "not_cleared",
+                }
+            records.append(_file_record(review_start_path, review_start_path.name, public_safety_status=review_start_safety))
 
             institutional_names = {
                 "institutional-presentation.json": "institutional-presentation.json",

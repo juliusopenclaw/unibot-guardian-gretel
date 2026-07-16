@@ -16,6 +16,7 @@ REQUIRED_ARTIFACT_NAMES = frozenset(
     {
         "INSTITUTIONAL-MANIFEST.json",
         "PUBLIC-DEMO.md",
+        "REVIEW-START-HERE.md",
         "institutional-accessibility-walkthrough.md",
         "institutional-plain-language-brief.md",
         "institutional-presentation.json",
@@ -158,6 +159,7 @@ def audit_release_candidate(candidate_dir: str | Path, *, repository: str | Path
                 "institutional-review-decision-template.md",
                 "INSTITUTIONAL-MANIFEST.json",
                 "PUBLIC-DEMO.md",
+                "REVIEW-START-HERE.md",
                 "synthetic_python_practice.ipynb",
             )
         ]
