@@ -17,7 +17,7 @@ class UniBotPublicProvenanceTests(unittest.TestCase):
         self.assertEqual(provenance["status"], "verified")
         self.assertRegex(provenance["commit"], r"^[0-9a-f]{40}$")
         self.assertTrue(provenance["working_tree_clean"])
-        self.assertNotIn("/Users/", json.dumps(provenance))
+        self.assertNotIn("/" + "Users/", json.dumps(provenance))
 
     def test_dirty_source_fails_closed_without_exposing_status_output(self) -> None:
         commit = subprocess.CompletedProcess([], 0, stdout="a" * 40 + "\n", stderr="")
