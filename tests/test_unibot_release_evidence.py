@@ -11,6 +11,7 @@ from unittest.mock import patch
 from unibot.release_evidence import (
     REQUIRED_GATE_IDS,
     RELEASE_EVIDENCE_SCHEMA_VERSION,
+    _chrome_metrics,
     validate_release_evidence,
     write_release_evidence,
 )
@@ -138,6 +139,27 @@ class UniBotReleaseEvidenceTests(unittest.TestCase):
             self.assertNotIn("stderr", json.dumps(payload))
             self.assertNotIn("/" + "Users/", json.dumps(payload))
             self.assertEqual(path.stat().st_mode & 0o077, 0)
+
+    def test_chrome_canary_metrics_are_extracted_from_npm_wrapper_output(self) -> None:
+        output = "\n".join(
+            [
+                "> unibot-guardian-browser-tests@0.3.0 test:chrome-canary",
+                "> UNIBOT_REQUIRE_NATIVE=1 node tests/browser/extension-package.mjs",
+                "",
+                '{"status":"pass","sidepanel_rendered":true,"native_companion_connected":true,'
+                '"learning_session_resumed":true}',
+            ]
+        ) + "\n"
+
+        self.assertEqual(
+            _chrome_metrics(output),
+            {
+                "status": "pass",
+                "sidepanel_rendered": True,
+                "native_companion_connected": True,
+                "learning_session_resumed": True,
+            },
+        )
 
 
 if __name__ == "__main__":

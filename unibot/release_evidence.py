@@ -67,11 +67,18 @@ def _worktree_clean(repository: Path) -> bool:
 
 
 def _last_json_object(text: str) -> dict[str, Any] | None:
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        parsed = None
+    if isinstance(parsed, dict):
+        return parsed
     decoder = json.JSONDecoder()
     candidate: dict[str, Any] | None = None
     for match in re.finditer(r"(?m)^\s*\{", text):
+        object_start = match.start() + match.group(0).rfind("{")
         try:
-            parsed, _ = decoder.raw_decode(text[match.start() :])
+            parsed, _ = decoder.raw_decode(text[object_start:])
         except json.JSONDecodeError:
             continue
         if isinstance(parsed, dict):
