@@ -20,6 +20,8 @@ class UniBotPublicDemoTests(unittest.TestCase):
         self.assertEqual(report["tutor"]["help_levels_demonstrated"], ["A0", "A1", "A2"])
         self.assertTrue(report["tutor"]["source_binding_pass"])
         self.assertTrue(report["tutor"]["output_filter_pass"])
+        self.assertTrue(report["tutor"]["complete_solution_block_pass"])
+        self.assertIn("final_solution", report["tutor"]["complete_solution_block_categories"])
         self.assertFalse(report["tutor"]["raw_cell_stored"])
         self.assertFalse(report["tutor"]["raw_attempt_stored"])
         self.assertFalse(report["safety"]["notebook_code_executed"])
@@ -32,6 +34,7 @@ class UniBotPublicDemoTests(unittest.TestCase):
 
         self.assertIn("# UniBot Oeffentliche Demo", markdown)
         self.assertIn("A0, A1 und A2", markdown)
+        self.assertIn("Guardian blockiert", markdown)
         self.assertIn("keine Pruefungs- oder Hochschulfreigabe", markdown)
         self.assertNotIn("values = [2, 4, 6]", markdown)
         self.assertEqual(scan_text(markdown, "public-demo-markdown")["status"], "pass")

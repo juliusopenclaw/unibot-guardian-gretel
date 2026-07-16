@@ -159,9 +159,20 @@ def build_public_demo_evidence() -> dict[str, Any]:
     source_binding_pass = all(
         turn["source_anchor_ids"] and turn["knowledge_boundary"] == "source_bound" for turn in turns
     )
+    blocked_solution_review = classify_external_ai_output(
+        "Here is the " + "complete code and final answer for this synthetic task.",
+        requested_help_level="A4",
+        mode="practice_overlay",
+    )
+    complete_solution_block_pass = (
+        blocked_solution_review["status"] == "blocked"
+        and "final_solution" in blocked_solution_review["categories"]
+    )
     report = {
         "schema_version": PUBLIC_DEMO_SCHEMA_VERSION,
-        "status": "ready_for_human_demo" if output_filter_pass and source_binding_pass else "blocked",
+        "status": "ready_for_human_demo"
+        if output_filter_pass and source_binding_pass and complete_solution_block_pass
+        else "blocked",
         "mode": "public_synthetic_practice_only",
         "fixture_name": PUBLIC_DEMO_FIXTURE_NAME,
         "fixture_sha256": _sha256(raw_bytes),
@@ -184,6 +195,9 @@ def build_public_demo_evidence() -> dict[str, Any]:
             "turns": turns,
             "source_binding_pass": source_binding_pass,
             "output_filter_pass": output_filter_pass,
+            "complete_solution_block_pass": complete_solution_block_pass,
+            "complete_solution_block_categories": list(blocked_solution_review["categories"]),
+            "complete_solution_probe_hash": blocked_solution_review["raw_output_hash"],
             "raw_cell_stored": any(turn["raw_cell_stored"] for turn in turns),
             "raw_attempt_stored": any(turn["raw_attempt_stored"] for turn in turns),
         },
@@ -235,6 +249,7 @@ def build_public_demo_markdown(report: dict[str, Any] | None = None) -> str:
         "3. A0, A1 und A2 nacheinander anfordern; jede Stufe bleibt quellengebunden.",
         "4. Den Rueckblick mit Hilfestufen und Hashes zeigen; keine Rohzelle wird gespeichert.",
         "5. Mit den zustaendigen Stellen Zweck, Barrierefreiheit, Datenschutz und Grenzen besprechen.",
+        "6. Eine synthetische fertige Antwort einspeisen; der Guardian blockiert sie und zeigt nur eine Rueckfrage.",
         "",
         "## Grenze",
         "",
