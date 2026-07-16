@@ -691,6 +691,10 @@ class AutonomyStore:
             "CREATE TABLE IF NOT EXISTS canary_merge_evidence (run_id TEXT PRIMARY KEY, evidence_hash TEXT NOT NULL, "
             "created_at TEXT NOT NULL)"
         )
+        self.connection.execute(
+            "CREATE TABLE IF NOT EXISTS rollout_evidence (lane TEXT NOT NULL, run_id TEXT NOT NULL, "
+            "success INTEGER NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY(lane, run_id))"
+        )
         self.connection.commit()
         os.chmod(self.path, 0o600)
 
@@ -828,6 +832,15 @@ class AutonomyStore:
     def record_rollout(self, lane: str, *, run_id: str, success: bool) -> dict[str, Any]:
         if lane not in {"shadow", "local"}:
             raise AutonomyValidationError("invalid_rollout_lane")
+        if not SAFE_ID.fullmatch(run_id):
+            raise AutonomyValidationError("invalid_rollout_run_id")
+        self.connection.execute("BEGIN IMMEDIATE")
+        existing = self.connection.execute(
+            "SELECT success FROM rollout_evidence WHERE lane=? AND run_id=?", (lane, run_id)
+        ).fetchone()
+        if existing is not None:
+            self.connection.commit()
+            return self.rollout_status()
         row = self.connection.execute(
             "SELECT successful_runs,failed_runs,success_streak FROM rollout WHERE lane=?", (lane,)
         ).fetchone()
@@ -842,6 +855,10 @@ class AutonomyStore:
             "INSERT OR REPLACE INTO rollout(lane,successful_runs,failed_runs,success_streak,last_run_id,updated_at) "
             "VALUES(?,?,?,?,?,?)",
             (lane, successful, failed, streak, run_id, utc_now()),
+        )
+        self.connection.execute(
+            "INSERT INTO rollout_evidence(lane,run_id,success,created_at) VALUES(?,?,?,?)",
+            (lane, run_id, int(bool(success)), utc_now()),
         )
         self.connection.commit()
         return self.rollout_status()

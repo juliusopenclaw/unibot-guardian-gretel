@@ -229,6 +229,40 @@ class AutonomyV3Tests(unittest.TestCase):
             self.assertTrue(status["canary_allowed"] is False)
             store.close()
 
+    def test_rollout_recording_is_idempotent_for_replayed_run_ids(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = AutonomyStore(Path(tmp) / "state.sqlite3")
+            first = store.record_rollout("local", run_id="replayed-run", success=True)
+            second = store.record_rollout("local", run_id="replayed-run", success=True)
+            self.assertEqual(first["lanes"]["local"]["successful_runs"], 1)
+            self.assertEqual(second["lanes"]["local"]["successful_runs"], 1)
+            self.assertEqual(second["lanes"]["local"]["consecutive_successes"], 1)
+            self.assertEqual(second["lanes"]["local"]["failed_runs"], 0)
+            store.close()
+
+    def test_old_rollout_schema_migrates_with_a_closed_success_streak(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "state.sqlite3"
+            import sqlite3
+
+            connection = sqlite3.connect(path)
+            connection.execute(
+                "CREATE TABLE rollout (lane TEXT PRIMARY KEY, successful_runs INTEGER NOT NULL, "
+                "failed_runs INTEGER NOT NULL, last_run_id TEXT NOT NULL, updated_at TEXT NOT NULL)"
+            )
+            connection.execute(
+                "INSERT INTO rollout VALUES('shadow', 10, 0, 'old-run', '2026-01-01T00:00:00+00:00')"
+            )
+            connection.commit()
+            connection.close()
+            path.chmod(0o600)
+
+            store = AutonomyStore(path)
+            shadow = store.rollout_status()["lanes"]["shadow"]
+            self.assertFalse(shadow["complete"])
+            self.assertEqual(shadow["consecutive_successes"], 0)
+            store.close()
+
     def test_actual_diff_is_derived_and_controller_reaches_human_gate(self) -> None:
         holder, root, base = self.make_git_repo()
         try:
