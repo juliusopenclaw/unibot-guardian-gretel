@@ -52,6 +52,7 @@ class HelpEventV2(TypedDict):
     status: str
     own_attempt_present: bool
     revision_number: int
+    accessibility_used: bool
     accessibility_neutral: bool
 
 
@@ -413,6 +414,7 @@ class LearningSession:
             status=str(turn["status"]),
             own_attempt_present=bool(turn.get("own_attempt_present", False)),
             revision_number=len({item["attempt_hash"] for item in prior if item["attempt_hash"]}),
+            accessibility_used=bool(turn.get("accessibility_used", False)),
             accessibility_neutral=True,
         )
         self.events.append(event)
@@ -441,6 +443,7 @@ class LearningSession:
         attempts: set[str] = set()
         source_ids: set[str] = set()
         blocked_count = 0
+        accessibility_support_event_count = 0
         for event in self.events:
             level = event["effective_help_level"]
             by_level[level] = by_level.get(level, 0) + 1
@@ -448,6 +451,8 @@ class LearningSession:
             if event["attempt_hash"]:
                 attempts.add(event["attempt_hash"])
             source_ids.update(event["source_anchor_ids"])
+            if bool(event.get("accessibility_used", False)):
+                accessibility_support_event_count += 1
             if event["status"] not in {"allowed", "downgraded"}:
                 blocked_count += 1
         return {
@@ -458,6 +463,7 @@ class LearningSession:
             "assistance_points_used": sum(task_points.values()),
             "own_attempt_count": len(attempts),
             "source_anchor_ids": sorted(source_ids),
+            "accessibility_support_event_count": accessibility_support_event_count,
         }
 
     def report(self) -> dict[str, Any]:
@@ -470,6 +476,7 @@ class LearningSession:
             "course_id": self.contract["course_id"],
             "contract_hash": self.contract["contract_hash"],
             "cost_policy_version": self.contract["cost_policy_version"],
+            "accessibility_policy": "optional_user_declared_score_neutral_no_diagnosis",
             **summary,
             "transfer_tasks": [],
             "uncertainty": "Help exposure and documented attempts do not prove authorship or learning outcome.",

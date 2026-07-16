@@ -116,7 +116,8 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
               event_count: 1,
               own_attempt_count: 1,
               by_help_level: { A2: 1 },
-              assistance_points_used: 5
+              assistance_points_used: 5,
+              accessibility_support_event_count: 1
             }
           };
         }
@@ -168,8 +169,10 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
   await page.getByRole("tab", { name: "Rueckblick", exact: true }).click();
   await page.locator("#refreshReview").click();
   await expect(page.locator("#reviewOutput")).toContainText("Ereignisse: 1");
+  await expect(page.locator("#reviewOutput")).toContainText("Barrierearme Unterstützung: 1 Ereignisse (kostenneutral)");
   await expect(page.locator("#exportReview")).toBeDisabled();
   await page.locator("#showExportPreview").click();
+  await expect(page.locator("#exportPreview")).toContainText("Anzahl freiwillig markierter barrierearmer Unterstützungsereignisse");
   await expect(page.locator("#exportPreview")).toContainText("Nicht enthalten");
   await expect(page.locator("#exportReview")).toBeDisabled();
   await page.locator("#confirmExport").check();

@@ -56,6 +56,9 @@ Sidepanel ab 280 Pixeln unterstützen. Eine manuelle Zellwahl bleibt verfügbar,
 wenn die Erkennung unsicher ist. Barrierefreie Unterstützung bleibt
 kostenneutral und wird weder in eine Note noch in eine automatische
 Nachteilsausgleich-Entscheidung umgerechnet.
+Die Lernbericht-Vorschau kann auf Wunsch nur die Anzahl freiwillig markierter
+Unterstützungsereignisse ausweisen; Gründe, Diagnosen und ein offizieller
+Unterstützungsstatus werden nicht erfasst.
 
 Die öffentliche Browserprüfung belegt derzeit semantische Statusbereiche,
 Tab-/Panel-Beziehungen, Pfeiltasten-/Home-/Ende-Navigation, sichtbaren

@@ -112,8 +112,11 @@ class UniBotMantleV21Tests(unittest.TestCase):
         self.assertNotIn("(___ - ___) / ___", mean_turn["hint_markdown"])
 
     def test_accessibility_support_is_explicit_and_cost_neutral(self) -> None:
+        session = LearningSession.start(
+            {"assistance_mode": "fixed", "fixed_help_level": "A2", "max_help_level": "A2"}
+        )
         turn = build_tutor_turn(
-            LearningSession.start({"assistance_mode": "fixed", "fixed_help_level": "A2", "max_help_level": "A2"}),
+            session,
             {
                 "task": "Warum entsteht ein IndexError?",
                 "learner_attempt": "Ich pruefe zuerst die Listenlaenge.",
@@ -124,7 +127,12 @@ class UniBotMantleV21Tests(unittest.TestCase):
         )
         self.assertTrue(turn["accessibility_used"])
         self.assertEqual(turn["assistance_points_delta"], 5)
+        self.assertTrue(turn["help_event"]["accessibility_used"])
         self.assertTrue(turn["help_event"]["accessibility_neutral"])
+        report = session.report()
+        self.assertEqual(report["accessibility_support_event_count"], 1)
+        self.assertEqual(report["accessibility_policy"], "optional_user_declared_score_neutral_no_diagnosis")
+        self.assertEqual(report["assistance_points_used"], 5)
 
     def test_rule_pack_binds_ast_traceback_and_source_boundary(self) -> None:
         numpy = analyze_cell("Pruefe die Array-Form.", "import numpy as np\nvalues = np.array([1, 2, 3])")

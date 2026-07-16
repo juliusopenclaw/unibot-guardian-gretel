@@ -69,9 +69,13 @@ learning, or independent work.
   the source tree. A signed/notarized bundled Python interpreter remains a
   separate human release gate.
 - The local JSONL record contains only hashes, levels, source IDs, timestamps,
-  assistance points, and status. Files are owner-readable only.
+  assistance points, status, and an optional user-declared boolean indicating
+  that accessibility support was used. Files are owner-readable only; no
+  reason, diagnosis, or accommodation status is recorded.
 - The voluntary report contains the pseudonym chosen for the session, contract
-  hash, help profile, attempt count, source IDs, uncertainty, and report hash.
+  hash, help profile, attempt count, source IDs, uncertainty, the count of
+  voluntarily marked accessibility-support events, and report hash. The report
+  labels this support as score-neutral and does not infer a need or decision.
 - No runtime learner content is sent to GLM, GitHub, Apple, or another provider.
 
 ## Transport And Installation
