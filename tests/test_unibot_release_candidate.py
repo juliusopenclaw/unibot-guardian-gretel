@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import re
 import tempfile
 import unittest
 import zipfile
@@ -59,7 +58,7 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
             self.assertFalse(manifest["automatic_merge"])
             self.assertEqual(manifest["source_provenance"]["status"], "verified")
             self.assertTrue(manifest["source_provenance"]["working_tree_clean"])
-            self.assertRegex(manifest["source_provenance"]["commit"], re.fullmatch(r"[0-9a-f]{40}").pattern)
+            self.assertRegex(manifest["source_provenance"]["commit"], r"^[0-9a-f]{40}$")
             self.assertEqual(manifest["authorship"]["implementation_and_documentation"], "Gretel / Codex")
             self.assertNotIn("/" + "Users/", json.dumps(manifest))
 
