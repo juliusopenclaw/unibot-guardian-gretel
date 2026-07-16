@@ -8,6 +8,7 @@ from contextlib import redirect_stdout
 from pathlib import Path
 
 from unibot.cli import main, public_repository_safety
+from unibot.release_candidate import write_release_candidate_bundle
 
 
 class UniBotCliV2Tests(unittest.TestCase):
@@ -104,6 +105,22 @@ class UniBotCliV2Tests(unittest.TestCase):
         self.assertEqual(markdown_payload["status"], "ready_for_human_review")
         self.assertIn("UniBot Institutional Presentation", markdown_payload["markdown"])
         self.assertIn("not_cleared", markdown_payload["markdown"])
+
+    def test_release_audit_cli_is_read_only_and_hash_bound(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            candidate = Path(temporary) / "candidate"
+            result = write_release_candidate_bundle(candidate)
+            self.assertEqual(result["status"], "written")
+            with io.StringIO() as output, redirect_stdout(output):
+                exit_code = main(["release", "audit", str(candidate), "--repo", str(Path(__file__).resolve().parents[1])])
+                payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["schema_version"], "UniBotReleaseAuditV1")
+        self.assertEqual(payload["status"], "pass")
+        self.assertTrue(payload["source_commit_match"])
+        self.assertFalse(payload["side_effects"]["files_written"])
+        self.assertFalse(payload["side_effects"]["network_called"])
 
 
 if __name__ == "__main__":
