@@ -49,7 +49,7 @@ def _review_start_here_markdown(source_commit: str) -> str:
             "## In 15 Minuten zeigen",
             "",
             "1. Öffne `PUBLIC-DEMO.md` und verwende ausschließlich `synthetic_python_practice.ipynb`.",
-            "2. Zeige im Chrome-Seitenpanel die Auswahl einer synthetischen Zelle und die Hilfe A0 bis A2.",
+            "2. Zeige im Chrome-Seitenpanel die Auswahl einer synthetischen Zelle und die Hilfe A0 bis A4.",
             "3. Zeige, dass der Tutor keine fertige Lösung, keinen Endwert und keinen ausgeführten Notebookcode liefert.",
             "4. Öffne danach den `institutional-plain-language-brief.md` und den `institutional-accessibility-walkthrough.md`.",
             "",

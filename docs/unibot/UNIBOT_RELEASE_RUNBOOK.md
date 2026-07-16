@@ -82,7 +82,8 @@ institutional approval.
 For the live public walkthrough, run `unibot demo --markdown`. This uses only
 `fixtures/public/synthetic_python_practice.ipynb`, sends no provider request,
 executes no notebook code, and exercises the real deterministic tutor through
-A0, A1, and A2 in memory. Show the resulting safety boundary and ask the
+A0 to A4 in memory; A3 remains formula structure and A4 an incomplete scaffold.
+Show the resulting safety boundary and ask the
 institutional reviewers about teaching, inclusion, privacy, and the separate
 exam track.
 
