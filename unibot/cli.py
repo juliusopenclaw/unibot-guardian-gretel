@@ -26,7 +26,7 @@ from .autonomy_v2 import (
     run_proposal_cycle,
     run_review_cycle,
 )
-from .companion import DEFAULT_EXTENSION_ID, companion_status, install_companion, run_native_host
+from .companion import DEFAULT_EXTENSION_ID, companion_diagnose, companion_status, install_companion, run_native_host
 from .clearance import (
     build_institutional_presentation_markdown,
     build_institutional_presentation_packet,
@@ -174,6 +174,8 @@ def build_parser() -> argparse.ArgumentParser:
     companion_install.add_argument("--extension-id", default=DEFAULT_EXTENSION_ID)
     companion_status_parser = companion_commands.add_parser("status")
     companion_status_parser.add_argument("--extension-id", default=DEFAULT_EXTENSION_ID)
+    companion_diagnose_parser = companion_commands.add_parser("diagnose")
+    companion_diagnose_parser.add_argument("--extension-id", default=DEFAULT_EXTENSION_ID)
     companion_commands.add_parser("native-host", help=argparse.SUPPRESS)
 
     commands.add_parser("public-safety", help="scan public repository artifacts")
@@ -414,6 +416,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "companion" and args.companion_command == "status":
             _print_json(companion_status(args.extension_id))
             return 0
+        if args.command == "companion" and args.companion_command == "diagnose":
+            payload = companion_diagnose(args.extension_id)
+            _print_json(payload)
+            return 0 if payload["status"] == "ready" else 2
         if args.command == "companion" and args.companion_command == "native-host":
             return run_native_host()
         if args.command == "public-safety":

@@ -12,6 +12,7 @@ import struct
 import subprocess
 import sys
 import time
+from stat import S_IMODE
 from pathlib import Path
 from typing import Any, BinaryIO, cast
 
@@ -197,6 +198,9 @@ class CompanionRuntime:
                     allowed_help_levels=list(HELP_LEVELS_V1),
                     exam_deployment_status="not_cleared",
                 )
+            if message_type == "companion.diagnose":
+                extension_id = str(payload.get("extension_id", DEFAULT_EXTENSION_ID))
+                return self._response(request_id, "ok", diagnosis=companion_diagnose(extension_id))
             if message_type == "gateway.status":
                 gateway = self._reconcile_gateway_state()
                 return self._response(
@@ -421,6 +425,77 @@ def _set_runtime_permissions(root: Path) -> None:
         else:
             os.chmod(path, 0o600)
     os.chmod(root, 0o700)
+
+
+def _owner_only(path: Path) -> bool:
+    try:
+        return path.is_file() and S_IMODE(path.stat().st_mode) & 0o077 == 0
+    except OSError:
+        return False
+
+
+def _app_signature_status(app_path: Path = DEFAULT_APP_PATH) -> str:
+    if not app_path.is_dir():
+        return "not_installed"
+    codesign = Path("/usr/bin/codesign")
+    if not codesign.is_file():
+        return "verification_unavailable"
+    result = subprocess.run(
+        [str(codesign), "--verify", "--deep", "--strict", str(app_path)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return "verified" if result.returncode == 0 else "present_unverified"
+
+
+def companion_diagnose(extension_id: str = DEFAULT_EXTENSION_ID) -> dict[str, Any]:
+    """Return a public-safe local installation diagnosis without raw paths."""
+    if len(extension_id) != 32 or any(character not in "abcdefghijklmnop" for character in extension_id):
+        raise ValueError("extension ID must be a 32-character Chrome extension ID")
+    runtime_root = _runtime_root()
+    runtime_ready = (runtime_root / "unibot" / "companion.py").is_file() and (
+        runtime_root / "exam_mode.py"
+    ).is_file()
+    manifest_results: dict[str, bool] = {}
+    for browser_name, host_root in (("chrome", CHROME_NATIVE_HOSTS), ("chromium", CHROMIUM_NATIVE_HOSTS)):
+        manifest_path = host_root / f"{NATIVE_HOST_NAME}.json"
+        valid = False
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            valid = (
+                manifest.get("name") == NATIVE_HOST_NAME
+                and manifest.get("type") == "stdio"
+                and manifest.get("allowed_origins") == [f"chrome-extension://{extension_id}/"]
+                and Path(str(manifest.get("path", ""))).is_file()
+            )
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+            valid = False
+        manifest_results[browser_name] = valid
+    launcher = APPLICATION_SUPPORT / "bin" / "unibot-native-host"
+    checks = {
+        "runtime_package": runtime_ready,
+        "runtime_owner_only": _owner_only(runtime_root / "unibot" / "companion.py"),
+        "native_launcher": _owner_only(launcher),
+        "chrome_manifest": manifest_results["chrome"],
+        "chromium_manifest": manifest_results["chromium"],
+        "companion_app": DEFAULT_APP_PATH.is_dir(),
+    }
+    status = "ready" if all(checks.values()) else "attention"
+    return {
+        "schema_version": "unibot-companion-diagnosis-v1",
+        "status": status,
+        "checks": checks,
+        "app_signature_status": _app_signature_status(),
+        "source_independent_runtime": runtime_ready,
+        "bundled_developer_id_interpreter": False,
+        "notarized": False,
+        "native_message_transport": True,
+        "learner_content_persisted": False,
+        "jupyter_token_persisted": False,
+        "exam_deployment_status": "not_cleared",
+        "human_release_gates": ["Developer ID signature", "Apple notarization", "Google Chrome canary"],
+    }
 
 
 def install_runtime(runtime_root: Path | None = None) -> Path:

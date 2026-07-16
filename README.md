@@ -20,6 +20,8 @@ full provenance statement is in `AUTHORS.md`.
 - Install for development: `python3 -m pip install --upgrade 'pip>=26.1.2'` and
   `python3 -m pip install -e '.[dev,glm,gateway]'`
 - Install the local Mac companion: `unibot companion install`
+- Diagnose the local installation without exposing paths or learner data:
+  `unibot companion diagnose`
 - The installation copies the public runtime into macOS Application Support;
   moving the Git checkout does not change the native-host import path. A
   Developer-ID-signed and notarized bundled interpreter remains a later human

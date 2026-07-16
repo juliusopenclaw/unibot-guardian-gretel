@@ -104,3 +104,8 @@ remains available for development and one alpha compatibility cycle.
 - The Native Messaging framing and installed launcher are tested separately.
   Playwright's bundled Chromium did not discover the user-installed host on the
   development Mac; this remains an explicit release canary for Google Chrome.
+- `unibot companion diagnose` and the native `companion.diagnose` message expose
+  only boolean installation checks, signature state, and release boundaries.
+  They never return learner content, notebook tokens, or local paths. A
+  `ready` diagnosis still does not mean Developer-ID signing, notarization, or
+  institutional approval.
