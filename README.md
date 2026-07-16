@@ -100,6 +100,8 @@ upload.
   boundary are documented in `docs/unibot/UNIBOT_MANTLE_V21.md`.
 - The human-review packet for Prüfungsamt and Inklusionsbüro is documented in
   `docs/unibot/UNIBOT_REGULATORY_PROFILE_V1.md`.
+- The exact human PR and institutional meeting handoff is documented in
+  `docs/unibot/UNIBOT_RELEASE_RUNBOOK.md`.
 - Public work uses synthetic tasks, source cards, test fixtures, and redacted
   review artifacts only.
 - Exam-controlled use remains `not_cleared` until written authority clearance

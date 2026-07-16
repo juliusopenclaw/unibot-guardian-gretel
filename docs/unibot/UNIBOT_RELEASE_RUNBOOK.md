@@ -29,6 +29,49 @@ source commit when the repository is available. A tampered or incomplete
 candidate is blocked. The audit writes no files, calls no network or provider,
 and cannot publish, merge, or grant institutional approval.
 
+## Human Release Handoff
+
+The local branch becomes a public draft only through one deliberate human
+GitHub action. The sequence is intentionally short:
+
+1. Confirm that the working tree is clean and run the public-safety scan,
+   Python suite, browser suite, and the branded Chrome Native-Messaging canary.
+2. Build `unibot release candidate --output ./unibot-review-candidate` and
+   run `unibot release audit ./unibot-review-candidate`. Keep the printed source
+   commit and manifest hashes with the review record.
+3. A human opens one **draft PR** from the Gretel branch to `main`. The PR
+   must state: Gretel/Codex implementation and documentation, GLM provider
+   calls and cost (`0` while parked), tests, public-safety result, remaining
+   uncertainty, and the human merge decision still required.
+4. GitHub CI repeats the required checks. A failed check blocks the PR; no bot
+   merges, changes `main`, changes branch protection, or publishes a release.
+5. Julius reviews the final diff after the last bot push and is the only person
+   who may merge or release it.
+
+This establishes a public review point, not institutional approval. The local
+tutor remains usable without GLM and exam deployment remains `not_cleared`.
+
+## Institutional Meeting Handoff
+
+Before sending or presenting anything, generate the local public-safe packet:
+
+```text
+unibot institution bundle --output ./unibot-institution-review
+```
+
+The packet contains the RegulatoryProfile, human clearance board,
+institutional presentation, source-card references, evidence hashes, and the
+explicit Gretel/GLM/Julius authorship roles. Demonstrate only a public
+synthetic notebook. Do not add learner work, health or accommodation records,
+private course files, local paths, credentials, or real examination tasks.
+
+The meeting asks five bounded questions: who owns the institutional decision;
+whether the local practice purpose fits the named module; which accessibility
+and assistance functions are appropriate; which data retention and deletion
+rules apply; and which separate written decision would be required for any
+future exam track. The meeting records conditions and open questions, not an
+automatic approval.
+
 ## Hard Boundary
 
 - Public draft means review and collaboration, not exam clearance.
