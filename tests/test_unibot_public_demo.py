@@ -17,7 +17,7 @@ class UniBotPublicDemoTests(unittest.TestCase):
         self.assertEqual(report["fixture_name"], "synthetic_python_practice.ipynb")
         self.assertEqual(report["notebook"]["code_cell_count"], 1)
         self.assertTrue(report["notebook"]["execution_counts_cleared"])
-        self.assertEqual(report["tutor"]["help_levels_demonstrated"], ["A0", "A1", "A2"])
+        self.assertEqual(report["tutor"]["help_levels_demonstrated"], ["A0", "A1", "A2", "A3", "A4"])
         self.assertTrue(report["tutor"]["source_binding_pass"])
         self.assertTrue(report["tutor"]["output_filter_pass"])
         self.assertTrue(report["tutor"]["complete_solution_block_pass"])
@@ -33,7 +33,7 @@ class UniBotPublicDemoTests(unittest.TestCase):
         markdown = build_public_demo_markdown(build_public_demo_evidence())
 
         self.assertIn("# UniBot Oeffentliche Demo", markdown)
-        self.assertIn("A0, A1 und A2", markdown)
+        self.assertIn("A0 bis A4", markdown)
         self.assertIn("Guardian blockiert", markdown)
         self.assertIn("keine Pruefungs- oder Hochschulfreigabe", markdown)
         self.assertNotIn("values = [2, 4, 6]", markdown)

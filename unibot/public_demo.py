@@ -133,6 +133,28 @@ def build_public_demo_evidence() -> dict[str, Any]:
             "adapter": "public-synthetic-fixture",
             "confirm_escalation": True,
         },
+        {
+            "task_id": "public-demo-mean",
+            "task": task,
+            "learner_attempt": "Ich ordne jetzt Summe und Anzahl den Variablen der Mittelwertstruktur zu.",
+            "cell_context": cell_source,
+            "requested_help_level": "A3",
+            "cell_type": "code",
+            "cell_index": 1,
+            "adapter": "public-synthetic-fixture",
+            "confirm_escalation": True,
+        },
+        {
+            "task_id": "public-demo-mean",
+            "task": task,
+            "learner_attempt": "Ich lasse die Luecken bewusst offen und pruefe zuerst die Bedeutung und Einheit jeder Luecke.",
+            "cell_context": cell_source,
+            "requested_help_level": "A4",
+            "cell_type": "code",
+            "cell_index": 1,
+            "adapter": "public-synthetic-fixture",
+            "confirm_escalation": True,
+        },
     )
     turns = [_public_turn(build_tutor_turn(session, request)) for request in requests]
     output_reviews = [
@@ -246,7 +268,7 @@ def build_public_demo_markdown(report: dict[str, Any] | None = None) -> str:
         "",
         "1. Das synthetische Notebook oeffnen und die fehlerhafte eigene Zeile zeigen.",
         "2. Die Zelle ausdruecklich auswaehlen und den eigenen Versuch formulieren.",
-        "3. A0, A1 und A2 nacheinander anfordern; jede Stufe bleibt quellengebunden.",
+        "3. A0 bis A4 nacheinander anfordern; A3 bleibt bei Formelstruktur und A4 bei Luecken.",
         "4. Den Rueckblick mit Hilfestufen und Hashes zeigen; keine Rohzelle wird gespeichert.",
         "5. Mit den zustaendigen Stellen Zweck, Barrierefreiheit, Datenschutz und Grenzen besprechen.",
         "6. Eine synthetische fertige Antwort einspeisen; der Guardian blockiert sie und zeigt nur eine Rueckfrage.",
