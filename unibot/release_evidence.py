@@ -130,6 +130,11 @@ def _guardian_metrics(text: str) -> dict[str, Any]:
     return metrics
 
 
+def _metric_at_most(metrics: dict[str, Any], key: str, limit: float) -> bool:
+    value = metrics.get(key)
+    return isinstance(value, (int, float)) and value <= limit
+
+
 def _pipeline_metrics(text: str) -> dict[str, Any]:
     return _status_metrics(text, ("status", "check_count", "passed_count", "failed_count"))
 
@@ -339,7 +344,7 @@ def write_release_evidence(output_path: str | Path, *, repository: str | Path) -
             and metrics.get("case_count") == 60
             and metrics.get("solution_block_recall") == 1.0
             and metrics.get("source_binding_precision") == 1.0
-            and metrics.get("allowed_false_block_rate") <= 0.05
+            and _metric_at_most(metrics, "allowed_false_block_rate", 0.05)
             and metrics.get("notebook_code_executed") is False
             and metrics.get("provider_context_contains_held_out_cases") is False
             and metrics.get("raw_case_text_in_report") is False,
