@@ -256,6 +256,11 @@ from .skill_to_workspace_session_carryover import build_skill_to_workspace_sessi
 from .skill_to_workspace_live_flow import build_skill_to_workspace_live_flow
 from .server import route_request
 from .source_cards import build_source_card_drift_report, get_source_card, list_source_cards, required_source_card_ids
+from .clearance import (
+    REGULATORY_PROFILE_SCHEMA_VERSION,
+    build_regulatory_profile,
+    validate_regulatory_profile,
+)
 from .study_session import (
     build_course_study_session_plan,
     build_study_session_review_report,
@@ -363,6 +368,9 @@ __all__ = [
     "list_source_cards",
     "required_source_card_ids",
     "build_source_card_drift_report",
+    "REGULATORY_PROFILE_SCHEMA_VERSION",
+    "build_regulatory_profile",
+    "validate_regulatory_profile",
     "append_ledger_event",
     "read_ledger",
     "summarize_ledger",

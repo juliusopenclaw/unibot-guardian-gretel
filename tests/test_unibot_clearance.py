@@ -9,7 +9,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from unibot.clearance import build_institutional_clearance_board, validate_clearance_record  # noqa: E402
+from unibot.clearance import (  # noqa: E402
+    REGULATORY_PROFILE_SCHEMA_VERSION,
+    build_institutional_clearance_board,
+    build_regulatory_profile,
+    validate_clearance_record,
+    validate_regulatory_profile,
+)
 from unibot.public_safety import scan_text  # noqa: E402
 from unibot.server import route_request  # noqa: E402
 
@@ -49,7 +55,45 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         self.assertEqual(len(board["scope_lanes"]), 4)
         self.assertIn("exam_controlled_gateway", board["not_ready_for"])
         self.assertIn("not approval", board["decision_boundary"])
+        self.assertEqual(board["regulatory_profile"]["deployment_status"], "not_cleared")
         self.assertEqual(scan_text(payload, "clearance-board-test")["status"], "pass")
+
+    def test_regulatory_profile_is_public_safe_and_human_gated(self) -> None:
+        profile = build_regulatory_profile()
+        payload = json.dumps(profile, ensure_ascii=False)
+
+        self.assertEqual(profile["schema_version"], REGULATORY_PROFILE_SCHEMA_VERSION)
+        self.assertEqual(profile["status"], "review_preparation")
+        self.assertEqual(profile["deployment_status"], "not_cleared")
+        self.assertEqual(profile["intended_use"], "local_learning_and_practice")
+        self.assertEqual(profile["missing_source_card_ids"], [])
+        self.assertEqual(profile["public_safety_status"], "pass")
+        self.assertIn("Pruefungsamt", profile["human_authority_required"])
+        self.assertIn("Inklusionsbuero / Nachteilsausgleich", profile["human_authority_required"])
+        self.assertIn("automatic grading", profile["excluded_functions"])
+        self.assertIn("AI-use detection or disciplinary evidence", profile["excluded_functions"])
+        self.assertNotIn("/" + "Users/", payload)
+        self.assertNotIn("raw notebook text:", payload.lower())
+        self.assertEqual(scan_text(payload, "regulatory-profile-test")["status"], "pass")
+
+        validation = validate_regulatory_profile(profile)
+        self.assertEqual(validation["status"], "ok")
+        self.assertFalse(validation["cleared_scope_by_profile"])
+        self.assertTrue(validation["human_review_required"])
+        self.assertEqual(validation["legal_effect"], "none")
+
+    def test_regulatory_profile_validator_fails_closed(self) -> None:
+        profile = build_regulatory_profile()
+        profile["deployment_status"] = "approved"
+        profile["excluded_functions"] = []
+        profile["missing_source_card_ids"] = ["synthetic-missing-card"]
+
+        validation = validate_regulatory_profile(profile)
+
+        self.assertEqual(validation["status"], "blocked")
+        self.assertIn("deployment_must_remain_not_cleared", validation["issues"])
+        self.assertIn("strict_exclusions_incomplete", validation["issues"])
+        self.assertIn("source_cards_missing", validation["issues"])
 
     def test_valid_exam_clearance_record_hashes_reference_and_stays_scope_bound(self) -> None:
         validation = validate_clearance_record(valid_exam_clearance_record())

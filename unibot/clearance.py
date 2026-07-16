@@ -12,6 +12,7 @@ from .source_cards import get_source_card
 
 
 INSTITUTIONAL_CLEARANCE_SCHEMA_VERSION = "unibot-institutional-clearance-v1"
+REGULATORY_PROFILE_SCHEMA_VERSION = "RegulatoryProfileV1"
 
 ALLOWED_DECISION_STATUSES = {"needs_review", "approved", "rejected"}
 STANDARD_HELP_LEVELS = {"A0", "A1", "A2"}
@@ -83,10 +84,26 @@ CLEARANCE_SCOPES: dict[str, dict[str, Any]] = {
     },
 }
 
+REGULATORY_SOURCE_CARD_IDS = [
+    "uoc-ki-policy-2026",
+    "uoc-ki-pruefungsrecht",
+    "uoc-medfak-ki-doku-2026",
+    "uoc-ki-lehre",
+    "uoc-hilfsmittel",
+    "uoc-nachteilsausgleich",
+    "gdpr-2016-679",
+    "dsk-ai-privacy-2024",
+    "eu-ai-act-2024",
+    "hg-nrw-64",
+    "dfg-gwp",
+    "jupyter-ai",
+]
+
 
 def build_institutional_clearance_board(*, public_safe: bool = True) -> dict[str, Any]:
     review_board = build_review_board_packet()
     compliance = build_compliance_matrix()
+    regulatory_profile = build_regulatory_profile(public_safe=public_safe)
     lanes = [clearance_lane(scope_id, scope) for scope_id, scope in CLEARANCE_SCOPES.items()]
     board = {
         "schema_version": INSTITUTIONAL_CLEARANCE_SCHEMA_VERSION,
@@ -95,6 +112,7 @@ def build_institutional_clearance_board(*, public_safe: bool = True) -> dict[str
         "status": "pending_written_clearance",
         "status_label_de": "Institutionelles Clearance-Board: Entscheidungen vorbereitet, nicht erteilt",
         "exam_deployment_status": "not_cleared",
+        "regulatory_profile": regulatory_profile,
         "decision_boundary": (
             "This board prepares human authority decisions. It is not approval, legal advice, "
             "Datenschutz approval, exam clearance, or a deployment switch."
@@ -149,6 +167,170 @@ def build_institutional_clearance_board(*, public_safe: bool = True) -> dict[str
     }
     attach_public_scan(board, public_safe=public_safe, source_name="institutional-clearance-board")
     return board
+
+
+def build_regulatory_profile(*, public_safe: bool = True) -> dict[str, Any]:
+    """Build the public-safe institutional profile for human review.
+
+    This is a structured preparation artifact, not a legal opinion or a
+    deployment switch. It deliberately contains policy boundaries and data
+    categories, never notebook content, case material, credentials, or paths.
+    """
+    source_cards = []
+    missing_source_card_ids = []
+    for source_id in REGULATORY_SOURCE_CARD_IDS:
+        card = get_source_card(source_id)
+        if card is None:
+            missing_source_card_ids.append(source_id)
+            continue
+        source_cards.append(
+            {
+                "source_id": card["source_id"],
+                "title": card["title"],
+                "url": card["url"],
+                "authority_type": card["authority_type"],
+                "last_checked": card["last_checked"],
+            }
+        )
+
+    profile = {
+        "schema_version": REGULATORY_PROFILE_SCHEMA_VERSION,
+        "artifact_type": "unibot_regulatory_profile",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "status": "review_preparation",
+        "deployment_status": "not_cleared",
+        "purpose": "Prepare a transparent human review of a local learning and practice tool.",
+        "intended_use": "local_learning_and_practice",
+        "institutional_reference": (
+            "Universitaet zu Koeln; applicable module, faculty, examination, inclusion, and IT rules take precedence."
+        ),
+        "human_authority_required": [
+            "Pruefungsamt",
+            "Inklusionsbuero / Nachteilsausgleich",
+            "Datenschutz",
+            "IT / SZI",
+            "Lehreinheit / Modulverantwortliche",
+            "Thesis supervision",
+        ],
+        "data_flow": {
+            "cell_and_attempt_text": "Ephemeral local processing only; never persisted in the public profile, GitHub, iCloud, or a model provider.",
+            "tutor_output": "Deterministic local rule result; filtered before display and not used as a grade.",
+            "persisted_metadata": [
+                "session contract hash",
+                "help level and source identifiers",
+                "attempt and event hashes",
+                "timestamps and cost metadata",
+                "deletion and export receipts",
+            ],
+            "provider": "No provider is used by the local tutor; GLM development calls remain separately scoped and receive no learner content.",
+            "public_repository": "Only synthetic tests, public source references, redacted summaries, and code are eligible for release.",
+        },
+        "retention_boundary": {
+            "active_session": "Local session metadata only; raw cell text, attempt text, transcript, and notebook token are not persisted.",
+            "ended_session": "Delete local session metadata after the configured retention period; provide immediate user deletion.",
+            "export": "Voluntary preview first; export contains pseudonymous metadata and source identifiers, not notebook content.",
+            "institutional_decision_needed": "Retention, access roles, deletion proof, and any pilot storage require written human review.",
+        },
+        "accessibility_commitments": [
+            "Full keyboard operation with visible focus.",
+            "Status announcements through an accessible live region.",
+            "Readable contrast and layout at 200 percent zoom.",
+            "Side panel remains usable from 280 pixels width.",
+            "Manual cell selection and a non-AI fallback remain available when detection is uncertain.",
+            "Accessibility support is cost-neutral and is never converted into a score or automatic accommodation decision.",
+        ],
+        "excluded_functions": [
+            "automatic grading",
+            "admissions or eligibility decisions",
+            "proctoring or surveillance",
+            "AI-use detection or disciplinary evidence",
+            "automatic accommodation or Nachteilsausgleich decisions",
+            "final-answer delivery",
+            "exam authorization or legal clearance",
+        ],
+        "review_questions": [
+            "Which concrete local learning mode is acceptable for the named module and learner group?",
+            "Which data categories, retention period, access roles, and deletion evidence are approved?",
+            "Which accessibility functions are permitted without changing assessment criteria?",
+            "Which help levels and source rules are acceptable for practice, if any?",
+            "Which incident, outage, and manual fallback procedure is required?",
+            "Which written authority decision would be required before any controlled exam track?",
+        ],
+        "open_gates": [
+            "written university and module decision",
+            "Datenschutz review of the concrete data flow",
+            "IT / SZI security review of the local gateway and extension",
+            "Inklusionsbuero review of accessibility and support boundaries",
+            "human pilot protocol and consent decision",
+            "separate exam-track approval; current status remains not_cleared",
+        ],
+        "source_card_ids": list(REGULATORY_SOURCE_CARD_IDS),
+        "source_cards": source_cards,
+        "missing_source_card_ids": missing_source_card_ids,
+        "authorship": {
+            "implementation_and_documentation": "Gretel / Codex",
+            "glm_role": "proposal and independent review only when explicitly enabled; no contribution to this parked local profile",
+            "human_responsibility": "Julius remains human project lead and merge/release decision-maker.",
+        },
+        "legal_boundary": (
+            "Planning and review artifact only. It is not legal advice, Datenschutz approval, examination clearance, inclusion approval, or a deployment authorization."
+        ),
+        "public_boundary": {
+            "allowed": ["code", "synthetic tests", "aggregated metrics", "public source-card metadata", "redacted review summaries"],
+            "blocked": ["raw notebook text", "learner attempts", "health or accommodation records", "credentials", "local paths", "private course material"],
+        },
+    }
+    if missing_source_card_ids:
+        profile["status"] = "blocked_missing_source_cards"
+    attach_public_scan(profile, public_safe=public_safe, source_name="regulatory-profile-v1")
+    return profile
+
+
+def validate_regulatory_profile(profile: dict[str, Any] | None) -> dict[str, Any]:
+    """Validate the profile contract without granting any real-world clearance."""
+    payload = dict(profile or {})
+    issues: list[str] = []
+    required_exclusions = {
+        "automatic grading",
+        "proctoring or surveillance",
+        "AI-use detection or disciplinary evidence",
+        "automatic accommodation or Nachteilsausgleich decisions",
+        "exam authorization or legal clearance",
+    }
+    if payload.get("schema_version") != REGULATORY_PROFILE_SCHEMA_VERSION:
+        issues.append("schema_version_mismatch")
+    if payload.get("deployment_status") != "not_cleared":
+        issues.append("deployment_must_remain_not_cleared")
+    if payload.get("intended_use") != "local_learning_and_practice":
+        issues.append("intended_use_must_remain_local_learning_and_practice")
+    if not payload.get("human_authority_required"):
+        issues.append("human_authority_required")
+    if not required_exclusions.issubset(set(payload.get("excluded_functions", []))):
+        issues.append("strict_exclusions_incomplete")
+    if "not legal advice" not in str(payload.get("legal_boundary", "")).lower():
+        issues.append("legal_boundary_required")
+    if payload.get("missing_source_card_ids"):
+        issues.append("source_cards_missing")
+    if payload.get("public_safety_status") not in {"pass", "local_private_mode"}:
+        issues.append("public_safety_required")
+    summary = {
+        "schema_version": REGULATORY_PROFILE_SCHEMA_VERSION,
+        "artifact_type": "regulatory_profile_validation",
+        "status": "ok" if not issues else "blocked",
+        "issues": sorted(set(issues)),
+        "deployment_status": "not_cleared",
+        "cleared_scope_by_profile": False,
+        "legal_effect": "none",
+        "human_review_required": True,
+        "source_card_count": len(payload.get("source_cards", [])),
+        "public_safety_status": payload.get("public_safety_status", "missing"),
+    }
+    scan = scan_text(json.dumps(summary, ensure_ascii=False), "regulatory-profile-validation")
+    if scan["status"] != "pass":
+        summary["status"] = "blocked"
+        summary["issues"] = sorted(set(summary["issues"] + ["public_safety_findings"]))
+        summary["public_safety_findings"] = scan["findings"]
+    return summary
 
 
 def clearance_lane(scope_id: str, scope: dict[str, Any]) -> dict[str, Any]:
