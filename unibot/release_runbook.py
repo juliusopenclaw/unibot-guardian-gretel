@@ -53,7 +53,7 @@ def build_release_runbook_evidence_alignment(
             "human_gates": ["written_university_clearance_required_before_exam_use", "human_submission_review_required"],
         },
     }
-    gate_rows = [
+    gate_rows: list[dict[str, Any]] = [
         {
             "gate_id": gate_id,
             "required": bool(next(gate for gate in release_gates if gate["gate_id"] == gate_id)["required"]),
@@ -268,7 +268,7 @@ def safe_release_runbook_workspace_card(
 
 
 def build_release_runbook() -> dict[str, Any]:
-    runbook = {
+    runbook: dict[str, Any] = {
         "schema_version": RELEASE_RUNBOOK_SCHEMA_VERSION,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "status": "public_draft_runbook_not_exam_release",

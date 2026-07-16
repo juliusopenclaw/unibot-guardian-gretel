@@ -9,7 +9,7 @@ import secrets
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 from .adaptive_tasks import generate_adaptive_practice_plan
@@ -221,7 +221,7 @@ from .timeline_export_receipt_journal import (
 )
 from .timeline_export_review_packet import build_timeline_export_review_packet
 from .review_chain_integrity import build_review_chain_integrity_check
-from .socratic_tutor import build_tutor_turn
+from .socratic_tutor import TutorTurnRequestV1, build_tutor_turn
 from .triage import build_feedback_triage, build_feedback_triage_markdown
 from .tutor_coverage import build_course_tutor_coverage_plan
 from .tutor_index import build_private_index_tutor_response_dry_run, build_private_tutor_index_dry_run
@@ -611,8 +611,14 @@ def route_request(path: str, payload: dict[str, Any] | None = None, method: str 
             path=payload.get("receipt_journal_path", payload.get("journal_path")),
         )
     if path == "/api/unibot/course/extraction-receipts/list":
+        raw_limit = payload.get("limit")
         try:
-            limit = int(payload.get("limit")) if payload.get("limit") is not None else None
+            if raw_limit is None:
+                limit = None
+            elif isinstance(raw_limit, (int, float, str)):
+                limit = int(raw_limit)
+            else:
+                return 400, {"status": "invalid-limit"}
         except (TypeError, ValueError):
             return 400, {"status": "invalid-limit"}
         return 200, read_extraction_receipt_journal(
@@ -3453,8 +3459,14 @@ def route_request(path: str, payload: dict[str, Any] | None = None, method: str 
             path=payload.get("decision_record_journal_path", payload.get("journal_path")),
         )
     if path == "/api/unibot/stakeholder/decision-record-journal/list":
+        raw_limit = payload.get("limit")
         try:
-            limit = int(payload.get("limit")) if payload.get("limit") is not None else None
+            if raw_limit is None:
+                limit = None
+            elif isinstance(raw_limit, (int, float, str)):
+                limit = int(raw_limit)
+            else:
+                return 400, {"status": "invalid-limit"}
         except (TypeError, ValueError):
             return 400, {"status": "invalid-limit"}
         return 200, read_external_decision_journal(
@@ -4025,7 +4037,9 @@ class UniBotRequestHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/v2/socratic/help" and server and server.learning_session:
             try:
-                response = build_tutor_turn(server.learning_session, payload)
+                response: dict[str, Any] = dict(
+                    build_tutor_turn(server.learning_session, cast(TutorTurnRequestV1, payload))
+                )
             except ValueError as exc:
                 self._write_json(400, {"status": "tutor-turn-blocked", "reason": str(exc)})
                 return

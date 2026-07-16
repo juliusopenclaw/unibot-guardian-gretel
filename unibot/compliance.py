@@ -285,7 +285,7 @@ def build_compliance_drift_alignment(requirements: list[dict[str, Any]] | None =
                 "blocked_use_count": len(requirement["blocked_use"]),
             }
         )
-    alignment = {
+    alignment: dict[str, Any] = {
         "schema_version": "unibot-compliance-drift-alignment-v1",
         "status": "ready",
         "requirement_count": len(alignment_rows),

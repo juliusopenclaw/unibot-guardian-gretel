@@ -247,12 +247,12 @@ class CompanionRuntime:
             if message_type == "session.stop":
                 if self.session is None:
                     return self._response(request_id, "session-required", error="Start the learning session first.")
-                stopped = self.session.stop()
+                stopped_session = self.session.stop()
                 return self._response(
                     request_id,
                     "stopped",
-                    session_id=stopped["session_id"],
-                    report=stopped["report"],
+                    session_id=stopped_session["session_id"],
+                    report=stopped_session["report"],
                 )
             if message_type == "session.delete":
                 session_id = str(payload.get("session_id", "")).strip()
@@ -323,8 +323,8 @@ class CompanionRuntime:
                 gateway = self._reconcile_gateway_state()
                 if gateway is None:
                     return self._response(request_id, "not-found", error="Kein lokales Jupyter-Gateway aktiv.")
-                stopped = self._stop_gateway_state(gateway)
-                return self._response(request_id, "stopped", process_was_running=stopped)
+                gateway_stopped = self._stop_gateway_state(gateway)
+                return self._response(request_id, "stopped", process_was_running=gateway_stopped)
             return self._response(request_id, "unknown-message", error="Unsupported companion message type.")
         except (OSError, RuntimeError, TypeError, ValueError) as exc:
             return self._response(request_id, "blocked", error=str(exc))
