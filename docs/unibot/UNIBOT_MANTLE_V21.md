@@ -127,9 +127,24 @@ remains available for development and one alpha compatibility cycle.
   side-panel workflow, and narrow widths.
 - A headed package harness loads the real MV3 extension and verifies its stable
   ID and rendered side panel.
+- On macOS, the release canary runs the installed Google Chrome binary with
+  `UNIBOT_CHROME_EXECUTABLE=/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome npm run test:chrome-canary`.
+  Since Chrome 137, the branded browser no longer accepts the old
+  `--load-extension` launch path. The harness therefore uses Chrome's
+  explicitly enabled local DevTools extension-loading command, a fresh
+  temporary browser profile, and a temporary copy of the already-installed
+  Native Messaging manifest. The profile and copy are deleted after the run.
+  A signed/managed Chrome package must keep the fixed public extension ID. An
+  unpacked extension without a manifest key receives a temporary development
+  ID; for that separate local-only case, the explicit pairing harness is
+  `UNIBOT_CHROME_EXECUTABLE=/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome npm run test:chrome-development-pairing`.
+  It binds that temporary ID only for the canary and restores the fixed host
+  manifest afterward. This remains a manual human release gate rather than a
+  CI or institutional approval claim.
 - The Native Messaging framing and installed launcher are tested separately.
-  Playwright's bundled Chromium did not discover the user-installed host on the
-  development Mac; this remains an explicit release canary for Google Chrome.
+  The real Google Chrome canary is the authoritative transport check for the
+  installed Native Messaging host; bundled Chromium continues to use the
+  deterministic browser harness and does not claim native transport.
 - `unibot companion diagnose` and the native `companion.diagnose` message expose
   only boolean installation checks, signature state, and release boundaries.
   They never return learner content, notebook tokens, or local paths. A

@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "test:browser": "playwright test tests/browser",
-    "test:extension-package": "node tests/browser/extension-package.mjs"
+    "test:extension-package": "node tests/browser/extension-package.mjs",
+    "test:chrome-canary": "UNIBOT_REQUIRE_NATIVE=1 node tests/browser/extension-package.mjs",
+    "test:chrome-development-pairing": "UNIBOT_REQUIRE_NATIVE=1 UNIBOT_ALLOW_DEVELOPMENT_PAIRING=1 node tests/browser/extension-package.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.61.1"

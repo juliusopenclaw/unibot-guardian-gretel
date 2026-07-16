@@ -11,6 +11,16 @@ from unibot.public_safety import scan_text
 
 
 class UniBotExtensionPackageTests(unittest.TestCase):
+    def test_chrome_canary_harness_uses_isolated_official_chrome_loader(self) -> None:
+        root = Path(__file__).resolve().parents[1]
+        harness = (root / "tests" / "browser" / "extension-package.mjs").read_text(encoding="utf-8")
+        package = (root / "package.json").read_text(encoding="utf-8")
+        self.assertIn("Extensions.loadUnpacked", harness)
+        self.assertIn("--enable-unsafe-extension-debugging", harness)
+        self.assertIn("NativeMessagingHosts", harness)
+        self.assertIn("fs.rmSync(chromeUserDataDir", harness)
+        self.assertIn('"test:chrome-canary"', package)
+
     def test_mv3_package_contains_only_public_extension_files(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             result = package_extension(Path(temporary) / "unibot-mantle.zip")
