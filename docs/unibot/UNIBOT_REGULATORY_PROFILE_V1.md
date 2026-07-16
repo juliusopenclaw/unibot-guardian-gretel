@@ -17,6 +17,11 @@ ordnet Fehler ein und verweist auf geprüfte Quellen. Sie benotet nicht,
 Der aktuelle Einsatzstatus bleibt `not_cleared`. Konkrete Modul-, Fakultäts- und
 Prüfungsordnungen haben Vorrang.
 
+Für eine universitäre Bereitstellung wird der konkrete Zweck mit dem KI-Office
+beziehungsweise CIO-Board und einer namentlich benannten fachverantwortlichen
+Person geklärt. Diese Vorlage nimmt keine Positivlistenaufnahme vor und ersetzt
+keine menschliche Letztverantwortung.
+
 Im lokalen Übungsbetrieb unterstützt der aktuelle Mantel A0 bis A4 nach einem
 unveränderlichen Lernvertrag. Ein möglicher kontrollierter Prüfungstrack ist
 davon getrennt, bleibt auf einen möglichen A0-A2-Rahmen begrenzt und benötigt
@@ -76,9 +81,9 @@ Prüfungs- und Hochschulstellen sowie IT- und Datenschutzprüfung.
 
 Die maschinenlesbare Version bindet die offiziellen Source Cards
 `uoc-ki-policy-2026`, `uoc-ki-pruefungsrecht`,
-`uoc-medfak-ki-doku-2026`, `uoc-ki-lehre`, `uoc-hilfsmittel`,
+`uoc-medfak-ki-doku-2026`, `uoc-medfak-ki-lehre-2026`, `uoc-ki-lehre`, `uoc-hilfsmittel`,
 `uoc-nachteilsausgleich`, `uoc-szi-klausurunterstuetzung-2026`,
-`uoc-szi-inclusive-teaching-2026`, `gdpr-2016-679`, `dsk-ai-privacy-2024`,
+`uoc-szi-inclusive-teaching-2026`, `uoc-szi-wegweiser-2026`, `gdpr-2016-679`, `dsk-ai-privacy-2024`,
 `eu-ai-act-2024`, `hg-nrw-64`, `dfg-gwp` und `jupyter-ai`.
 
 Wichtige Referenzen:
@@ -86,8 +91,10 @@ Wichtige Referenzen:
 - [KI-Richtlinie der Universität zu Köln, AM 2/2026](https://am.uni-koeln.de/e45267/data/records54900/AM_2026-02_KI_RL_ger.pdf)
 - [Universität zu Köln: KI und Prüfungsrecht](https://verwaltung.uni-koeln.de/stabsstelle02.1/content/allgemeine_informationen/aktuelles/kuenstliche_intelligenz_und_pruefungsrecht/index_ger.html)
 - [Medizinische Fakultät: KI-Dokumentationsrichtlinie](https://medfak.uni-koeln.de/sites/MedFakDekanat/Forschung/Promotion/KI-Richtlinie_MedFak.pdf)
+- [Medizinische Fakultät: KI im Studium](https://medfak.uni-koeln.de/studium-lehre/ueberblick/ki-in-der-lehre)
 - [Servicezentrum Inklusion: Nachteilsausgleich](https://inklusion.uni-koeln.de/informationen/nachteilsausgleich/index_ger.html)
 - [Servicezentrum Inklusion: Klausurunterstützung](https://inklusion.uni-koeln.de/service/klausurunterstuetzung/index_ger.html)
+- [Servicezentrum Inklusion: Wegweiser für Studierende mit Behinderung und chronischer Erkrankung](https://inklusion.uni-koeln.de/wegweiser/index_ger.html)
 - [Servicezentrum Inklusion: inklusive Lehre und Barrierefreiheit](https://inklusion.uni-koeln.de/informationen/inklusive_lehre/schritte_inklusive_lehre/index_ger.html)
 - [EU-KI-Verordnung 2024/1689](https://eur-lex.europa.eu/eli/reg/2024/1689/oj/eng)
 

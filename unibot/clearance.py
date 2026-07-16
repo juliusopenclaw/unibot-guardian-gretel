@@ -93,11 +93,13 @@ REGULATORY_SOURCE_CARD_IDS = [
     "uoc-ki-policy-2026",
     "uoc-ki-pruefungsrecht",
     "uoc-medfak-ki-doku-2026",
+    "uoc-medfak-ki-lehre-2026",
     "uoc-ki-lehre",
     "uoc-hilfsmittel",
     "uoc-nachteilsausgleich",
     "uoc-szi-klausurunterstuetzung-2026",
     "uoc-szi-inclusive-teaching-2026",
+    "uoc-szi-wegweiser-2026",
     "gdpr-2016-679",
     "dsk-ai-privacy-2024",
     "eu-ai-act-2024",
@@ -212,6 +214,8 @@ def build_regulatory_profile(*, public_safe: bool = True) -> dict[str, Any]:
             "Universitaet zu Koeln; applicable module, faculty, examination, inclusion, and IT rules take precedence."
         ),
         "human_authority_required": [
+            "KI-Office / CIO-Board",
+            "Namentlich benannte fachverantwortliche Person",
             "Pruefungsamt",
             "Inklusionsbuero / Nachteilsausgleich",
             "Datenschutz",
@@ -256,6 +260,8 @@ def build_regulatory_profile(*, public_safe: bool = True) -> dict[str, Any]:
             "exam authorization or legal clearance",
         ],
         "review_questions": [
+            "Benötigt der vorgesehene Hochschulzweck eine KI-Office- oder CIO-Board-Entscheidung beziehungsweise eine Aufnahme in eine Positivliste?",
+            "Wer wird für den konkreten Einsatz als fachverantwortliche Person mit menschlicher Letztverantwortung benannt?",
             "Which concrete local learning mode is acceptable for the named module and learner group?",
             "Which data categories, retention period, access roles, and deletion evidence are approved?",
             "Which accessibility functions are permitted without changing assessment criteria?",
@@ -264,6 +270,7 @@ def build_regulatory_profile(*, public_safe: bool = True) -> dict[str, Any]:
             "Which written authority decision would be required before any controlled exam track?",
         ],
         "open_gates": [
+            "KI-Office / CIO-Board scope review and named human responsibility",
             "written university and module decision",
             "Datenschutz review of the concrete data flow",
             "IT / SZI security review of the local gateway and extension",
@@ -278,6 +285,13 @@ def build_regulatory_profile(*, public_safe: bool = True) -> dict[str, Any]:
             "implementation_and_documentation": "Gretel / Codex",
             "glm_role": "proposal and independent review only when explicitly enabled; no contribution to this parked local profile",
             "human_responsibility": "Julius remains human project lead and merge/release decision-maker.",
+        },
+        "university_ai_governance": {
+            "source_card_ids": ["uoc-ki-policy-2026", "uoc-medfak-ki-lehre-2026"],
+            "review_roles": ["KI-Office", "CIO-Board", "fachverantwortliche Person"],
+            "required_action": "Determine the applicable institutional scope, approval route, and named human responsibility before university deployment.",
+            "status": "human_scope_review_required",
+            "legal_effect": "none",
         },
         "legal_boundary": (
             "Planning and review artifact only. It is not legal advice, Datenschutz approval, examination clearance, inclusion approval, or a deployment authorization."
@@ -357,6 +371,7 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
             "validation_status": profile_validation["status"],
             "source_card_count": len(profile["source_cards"]),
             "public_safety_status": profile["public_safety_status"],
+            "human_authority_required": list(profile["human_authority_required"]),
         },
         "institutional_clearance_board": {
             "status": board["status"],
@@ -408,6 +423,8 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
         "review_status_label_de": "Vorlage für menschliche Prüfung; keine Freigabe",
         "deployment_status": "not_cleared",
         "audience": [
+            "KI-Office / CIO-Board",
+            "fachverantwortliche Person",
             "Pruefungsamt",
             "Inklusionsbuero / Nachteilsausgleich",
             "Datenschutz",
@@ -421,6 +438,7 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
             "submission_status": "public scientific draft; not a submitted university thesis",
             "human_boundary": "Julius remains responsible for institutional review, submission, and release decisions.",
         },
+        "university_ai_governance": profile["university_ai_governance"],
         "one_page_summary": {
             "product": "Lokale sokratische Lern- und Übungshilfe für Python-Notebooks.",
             "learner_flow": [
@@ -446,7 +464,53 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
             "expected_observation": "Die lernende Person bleibt handelnde Autorin; der Bot liefert gestufte Fragen und überprüfbare Anker.",
             "forbidden_demo_content": ["private course material", "health or accommodation records", "real examination task", "real learner transcript"],
         },
+        "review_session": {
+            "status": "human_review_meeting_ready",
+            "suggested_duration_minutes": 25,
+            "format": "public synthetic notebook demo followed by lane-specific review",
+            "requested_outcome": "Written scope, conditions, responsible role, and next review gate; no automatic approval.",
+            "sequence": [
+                "State purpose, authorship, local-only data boundary, and not_cleared status.",
+                "Run the synthetic notebook demo with A0-A2 help and show a blocked complete solution.",
+                "Show keyboard, focus, zoom, uncertain-selection fallback, export preview, and deletion.",
+                "Review each institutional lane and record open conditions without storing raw meeting text.",
+            ],
+            "office_lanes": [
+                {
+                    "office": "Pruefungsamt",
+                    "question": "Ist der lokale Übungszweck mit den konkreten Modul- und Prüfungsregeln vereinbar, und welche separate Entscheidung wäre für einen Prüfungstrack nötig?",
+                    "evidence": ["uoc-ki-policy-2026", "uoc-ki-pruefungsrecht", "uoc-ki-faq"],
+                    "decision_boundary": "No exam clearance, grading, or permitted-aid decision is requested from this packet.",
+                },
+                {
+                    "office": "Inklusionsbüro / Servicezentrum Inklusion",
+                    "question": "Sind die kostenneutralen Bedienungs- und Strukturierungshilfen im vorgesehenen Lernformat zugänglich, ohne einen Nachteilsausgleich automatisch zu bestimmen?",
+                    "evidence": ["uoc-nachteilsausgleich", "uoc-szi-klausurunterstuetzung-2026", "uoc-szi-wegweiser-2026"],
+                    "decision_boundary": "Accessibility evidence is a prototype claim; it is not a WCAG certification or an individual accommodation decision.",
+                },
+                {
+                    "office": "Datenschutz / IT / SZI",
+                    "question": "Sind lokaler Datenfluss, Speicherfristen, Löschung, Zugriffsschutz, Companion und Gateway für den vorgesehenen Übungszweck ausreichend beschrieben?",
+                    "evidence": ["gdpr-2016-679", "dsk-ai-privacy-2024", "eu-ai-act-2024"],
+                    "decision_boundary": "No private notebook, health, accommodation, credential, or local-path data is needed for the public demo.",
+                },
+                {
+                    "office": "KI-Office / CIO-Board",
+                    "question": "Welche Genehmigungsroute und welche namentlich benannte fachverantwortliche Person gelten für eine mögliche universitäre Bereitstellung?",
+                    "evidence": ["uoc-ki-policy-2026", "uoc-medfak-ki-lehre-2026"],
+                    "decision_boundary": "This packet does not request whitelist admission or institutional deployment approval.",
+                },
+                {
+                    "office": "Lehre / Modulverantwortliche / Bachelorarbeitsbetreuung",
+                    "question": "Sind Forschungsfrage, Hilfestufen, Quellenbindung, Lernendenautonomie und Evaluationsgrenzen für einen freiwilligen Übungspilot wissenschaftlich angemessen?",
+                    "evidence": ["dfg-gwp", "vanlehn-2011", "kulik-fletcher-2016"],
+                    "decision_boundary": "The artifact is a Gretel-built bachelor-thesis-level draft, not a submitted thesis or learning-effectiveness claim.",
+                },
+            ],
+        },
         "human_decisions_needed": [
+            "Welche institutionelle Genehmigungsroute gilt für den vorgesehenen Hochschulzweck: KI-Office, CIO-Board oder eine andere zuständige Stelle?",
+            "Wer wird als fachverantwortliche Person mit menschlicher Letztverantwortung benannt?",
             "Ist der lokale Übungszweck für das konkrete Modul und die Zielgruppe pädagogisch geeignet?",
             "Welche Datenarten, Aufbewahrungsfristen, Rollen und Löschbelege sind institutionell zulässig?",
             "Welche Bedienungs- und Assistenzfunktionen sind im jeweiligen Lehrformat angemessen?",
@@ -522,6 +586,16 @@ def build_institutional_presentation_markdown(
         "- Unterstützung bleibt im Hilfebudget kostenneutral; der Bot bewertet keinen Nachteilsausgleich.",
         "- Welche Unterstützung im konkreten Modul angemessen und zulässig ist, entscheidet ausschließlich die zuständige Stelle.",
         "- Automatisierte Browser-Tests sind ein Nachweis für den Prototyp, keine WCAG-Zertifizierung.",
+        "",
+        "## Universitäts-Governance",
+        "- Vor einer universitären Bereitstellung prüfen KI-Office/CIO-Board den konkreten Zweck und die zuständige Genehmigungsroute.",
+        "- Eine namentlich benannte fachverantwortliche Person trägt die menschliche Letztverantwortung; UniBot übernimmt keine Entscheidung mit Rechtswirkung.",
+        "- Diese Präsentation beantragt keine Aufnahme in eine Positivliste und erteilt keine Prüfungs- oder Inklusionsfreigabe.",
+        "",
+        "## Vorschlag für den Review-Termin",
+        f"- Dauer: etwa **{packet['review_session']['suggested_duration_minutes']} Minuten**; Format: {packet['review_session']['format']}.",
+        f"- Gewünschtes Ergebnis: {packet['review_session']['requested_outcome']}",
+        *[f"- **{lane['office']}:** {lane['question']} Nachweise: {', '.join(lane['evidence'])}." for lane in packet['review_session']['office_lanes']],
         "",
         "## Datenschutz und Datenfluss",
         "- Zelltext, eigener Versuch, Notebook-Ausgaben und Tutor-Transkript werden nur flüchtig lokal verarbeitet.",
