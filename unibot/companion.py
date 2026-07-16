@@ -555,6 +555,52 @@ def _owner_only(path: Path) -> bool:
         return False
 
 
+def _path_within(root: Path, candidate: Path) -> bool:
+    try:
+        candidate.resolve(strict=True).relative_to(root.resolve(strict=False))
+    except (OSError, RuntimeError, ValueError):
+        return False
+    return True
+
+
+def _valid_native_manifest(manifest_path: Path, extension_id: str) -> bool:
+    """Validate the complete host boundary before reporting the companion ready."""
+    if manifest_path.is_symlink() or not _owner_only(manifest_path):
+        return False
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        launcher = Path(str(manifest.get("path", ""))).expanduser()
+        return bool(
+            manifest.get("name") == NATIVE_HOST_NAME
+            and manifest.get("type") == "stdio"
+            and manifest.get("allowed_origins") == [f"chrome-extension://{extension_id}/"]
+            and launcher.is_file()
+            and not launcher.is_symlink()
+            and _owner_only(launcher)
+            and _path_within(APPLICATION_SUPPORT, launcher)
+        )
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        return False
+
+
+def _write_native_manifest(path: Path, payload: dict[str, Any]) -> None:
+    if path.is_symlink():
+        raise ValueError("native host manifest must not be a symlink")
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.{secrets.token_hex(6)}.tmp")
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload, ensure_ascii=True, indent=2))
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        os.chmod(path, 0o600)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
 def _app_signature_status(app_path: Path = DEFAULT_APP_PATH) -> str:
     if not app_path.is_dir():
         return "not_installed"
@@ -581,18 +627,7 @@ def companion_diagnose(extension_id: str = DEFAULT_EXTENSION_ID) -> dict[str, An
     manifest_results: dict[str, bool] = {}
     for browser_name, host_root in (("chrome", CHROME_NATIVE_HOSTS), ("chromium", CHROMIUM_NATIVE_HOSTS)):
         manifest_path = host_root / f"{NATIVE_HOST_NAME}.json"
-        valid = False
-        try:
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-            valid = (
-                manifest.get("name") == NATIVE_HOST_NAME
-                and manifest.get("type") == "stdio"
-                and manifest.get("allowed_origins") == [f"chrome-extension://{extension_id}/"]
-                and Path(str(manifest.get("path", ""))).is_file()
-            )
-        except (OSError, json.JSONDecodeError, TypeError, ValueError):
-            valid = False
-        manifest_results[browser_name] = valid
+        manifest_results[browser_name] = _valid_native_manifest(manifest_path, extension_id)
     launcher = APPLICATION_SUPPORT / "bin" / "unibot-native-host"
     checks = {
         "runtime_package": runtime_ready,
@@ -688,10 +723,12 @@ def install_native_host(
         "allowed_origins": [f"chrome-extension://{extension_id}/"],
     }
     for host_root in (CHROME_NATIVE_HOSTS, CHROMIUM_NATIVE_HOSTS):
+        if host_root.is_symlink():
+            raise ValueError("native host directory must not be a symlink")
         host_root.mkdir(parents=True, exist_ok=True)
+        os.chmod(host_root, 0o700)
         manifest_path = host_root / f"{NATIVE_HOST_NAME}.json"
-        manifest_path.write_text(json.dumps(manifest, ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
-        os.chmod(manifest_path, 0o600)
+        _write_native_manifest(manifest_path, manifest)
     return {
         "status": "installed",
         "native_host_name": NATIVE_HOST_NAME,
@@ -763,7 +800,9 @@ def install_companion(extension_id: str = DEFAULT_EXTENSION_ID) -> dict[str, Any
 def companion_status(extension_id: str = DEFAULT_EXTENSION_ID) -> dict[str, Any]:
     chrome_manifest = CHROME_NATIVE_HOSTS / f"{NATIVE_HOST_NAME}.json"
     chromium_manifest = CHROMIUM_NATIVE_HOSTS / f"{NATIVE_HOST_NAME}.json"
-    manifests_ready = chrome_manifest.is_file() and chromium_manifest.is_file()
+    manifests_ready = _valid_native_manifest(chrome_manifest, extension_id) and _valid_native_manifest(
+        chromium_manifest, extension_id
+    )
     runtime_ready = (_runtime_root() / "unibot" / "companion.py").is_file()
     return {
         "schema_version": "unibot-companion-status-v1",

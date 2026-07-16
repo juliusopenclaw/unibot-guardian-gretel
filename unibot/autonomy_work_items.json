@@ -183,7 +183,7 @@
     {
       "work_id": "native_companion_release_hardening",
       "priority": 8,
-      "status": "candidate",
+      "status": "done",
       "work_kind": "security",
       "source": "measured_product_gap",
       "goal": "Harden and independently verify the fixed-origin Chrome Native Messaging companion installation.",
