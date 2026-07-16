@@ -19,8 +19,10 @@ INSTITUTIONAL_PRESENTATION_SCHEMA_VERSION = "InstitutionalPresentationV1"
 INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION = "InstitutionalReviewBundleV1"
 
 ALLOWED_DECISION_STATUSES = {"needs_review", "approved", "rejected"}
-STANDARD_HELP_LEVELS = {"A0", "A1", "A2"}
-BLOCKED_HELP_LEVELS = {"A6"}
+STANDARD_HELP_LEVELS = ("A0", "A1", "A2")
+PRACTICE_HELP_LEVELS = ("A0", "A1", "A2", "A3", "A4")
+CONTROLLED_EXAM_HELP_LEVELS = ("A0", "A1", "A2")
+BLOCKED_HELP_LEVELS = {"A5", "A6"}
 
 CLEARANCE_SCOPES: dict[str, dict[str, Any]] = {
     "practice_public_draft": {
@@ -140,9 +142,9 @@ def build_institutional_clearance_board(*, public_safe: bool = True) -> dict[str
             "no public release of raw private course text",
         ],
         "default_help_policy": {
-            "standard_allowed": ["A0", "A1", "A2"],
-            "non_standard_visible_exception": ["A3", "A4", "A5"],
-            "always_blocked": ["A6"],
+            "standard_allowed": list(STANDARD_HELP_LEVELS),
+            "non_standard_visible_exception": ["A3", "A4"],
+            "always_blocked": ["A5", "A6"],
             "eigenleistung_claim": "Use help-level profile, blocks, checkpoints, source links, and reflection; never claim a percentage.",
         },
         "scope_lanes": lanes,
@@ -397,8 +399,8 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
             "supported_contexts": ["synthetic Jupyter", "synthetic Colab fixture", "manual text selection"],
             "uncertain_selection": "Ask the learner to select a cell; never guess.",
             "outputs": "Notebook outputs are not automatically captured.",
-            "practice_help_levels": ["A0", "A1", "A2", "A3", "A4"],
-            "controlled_exam_candidate_help_levels": ["A0", "A1", "A2"],
+            "practice_help_levels": list(PRACTICE_HELP_LEVELS),
+            "controlled_exam_candidate_help_levels": list(CONTROLLED_EXAM_HELP_LEVELS),
             "controlled_exam_candidate_status": "requires_written_authority_decision",
             "manual_live_canary": "Required before any real institutional pilot.",
             "accessibility_evidence": {

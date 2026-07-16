@@ -74,6 +74,7 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         self.assertEqual(profile["public_safety_status"], "pass")
         self.assertIn("Pruefungsamt", profile["human_authority_required"])
         self.assertIn("Inklusionsbuero / Nachteilsausgleich", profile["human_authority_required"])
+        self.assertEqual(len(profile["human_authority_required"]), len(set(profile["human_authority_required"])))
         self.assertIn("automatic grading", profile["excluded_functions"])
         self.assertIn("AI-use detection or disciplinary evidence", profile["excluded_functions"])
         self.assertNotIn("/" + "Users/", payload)
@@ -116,6 +117,8 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         self.assertEqual(packet["university_ai_governance"]["status"], "human_scope_review_required")
         self.assertIn("no automatic grading", packet["strict_non_goals"])
         self.assertEqual(packet["evidence"]["browser_mantle"]["practice_help_levels"], ["A0", "A1", "A2", "A3", "A4"])
+        self.assertEqual(packet["evidence"]["browser_mantle"]["controlled_exam_candidate_help_levels"], ["A0", "A1", "A2"])
+        self.assertNotIn("A5", packet["evidence"]["browser_mantle"]["practice_help_levels"])
         self.assertEqual(
             packet["evidence"]["browser_mantle"]["controlled_exam_candidate_status"],
             "requires_written_authority_decision",
@@ -145,6 +148,7 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         self.assertIn("## Datenschutz und Datenfluss", markdown)
         self.assertIn("## Was der Bot ausdrücklich nicht tut", markdown)
         self.assertIn("Vollständiger Aufgabencode", markdown)
+        self.assertEqual(markdown.count("- **A3:**"), 1)
         self.assertIn("not_cleared", markdown)
         self.assertIn("RegulatoryProfileV1: ok", markdown)
         self.assertIn("Bachelorarbeitsfassung", markdown)

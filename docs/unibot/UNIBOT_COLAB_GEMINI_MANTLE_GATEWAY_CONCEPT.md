@@ -1,9 +1,15 @@
 # UniBot Colab/Gemini Mantle-Gateway Concept
 
-Status: public-safe concept draft, not legal advice, not exam clearance.
+Status: superseded public-safe concept draft, not the active release contract,
+not legal advice, not exam clearance.
 Date: 2026-06-14
 
 ## Executive Position
+
+The active Mantle release contract uses A0-A4 for local practice and A0-A2 as
+the unapproved controlled-exam candidate boundary. The A5 tier described later
+in this historical concept is a future design option only; it is not exposed by
+the current Chrome side panel or institutional release packet.
 
 UniBot should not be presented as a free AI solver for exams. The defensible concept is a two-layer architecture:
 
