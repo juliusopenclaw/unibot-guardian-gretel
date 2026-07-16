@@ -85,6 +85,7 @@ def build_release_pr_draft(
             f"- Institutioneller Evidenz-Hash: `{evidence_hash}`",
             "- Public-Safety-Scan: bestanden; keine privaten Dateien, Pfade, Schlüssel oder Lerninhalte enthalten.",
             "- Release-Audit: bestanden; keine Netzwerk-, Provider-, Git- oder automatischen Merge-Effekte.",
+            "- Öffentliche Demo-Fixture: `fixtures/public/synthetic_python_practice.ipynb`.",
             "",
             "## Prüfungen",
             "",

@@ -141,6 +141,11 @@ Notebook-, Personen- oder lokalen Pfadinhalte. Das Paket darf nur mit einem
 menschlichen Prüfung vorbereitet, aber keine automatische Veröffentlichungs-,
 Prüfungs- oder Inklusionsfreigabe.
 
+Die reproduzierbare öffentliche Demo-Fixture liegt unter
+`fixtures/public/synthetic_python_practice.ipynb`. Sie enthält nur eine
+synthetische Python-Aufgabe ohne Lernenden-, Kurs-, Gesundheits- oder
+Prüfungsdaten.
+
 Das Ergebnisformular sieht ausschließlich kontrollierte Ergebnis-, Rollen-,
 Bedingungen-, Fragen- und Evidenz-IDs sowie Hashes vor. Gesprächsnotizen,
 Namen, Gesundheits- oder Nachteilsausgleichdaten und Notebookinhalte werden

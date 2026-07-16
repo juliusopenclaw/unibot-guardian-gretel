@@ -849,8 +849,9 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
         },
         "demo_protocol": {
             "data": "Nur ein öffentliches, synthetisches Notebook verwenden.",
+            "notebook_fixture": "fixtures/public/synthetic_python_practice.ipynb",
             "steps": [
-                "Tutor und Gateway lokal starten.",
+                "Tutor und Gateway lokal starten und die öffentliche Synthetic-Fixture importieren.",
                 "Synthetische Notebook-Zelle manuell auswählen.",
                 "A0-, A1- und A2-Hinweis mit Quellenanker zeigen.",
                 "Komplettlösung, Endwert und fertige Interpretation als blockiert zeigen.",

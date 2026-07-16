@@ -44,6 +44,8 @@ full provenance statement is in `AUTHORS.md`.
 - In the extension, import either an allowlisted public `.ipynb` URL or choose a
   local `.ipynb` file. Local selection uses a bounded, hash-checked,
   path-free Native-Messaging upload and writes only the sanitized practice copy.
+- Use only `fixtures/public/synthetic_python_practice.ipynb` for the public
+  institutional demonstration; it contains no learner, course, health, or exam data.
 - Start the paired local API: `unibot serve --pair`
 - Import a public notebook: `unibot notebook import <https-url-or-local-file>`
 - Prepare the institutional review profile: `unibot institution profile`

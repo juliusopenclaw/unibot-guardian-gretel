@@ -62,11 +62,12 @@ def public_repository_safety(repo: Path) -> dict[str, Any]:
     roots.extend(sorted((repo / "docs").glob("**/*.md")))
     roots.extend(sorted((repo / "unibot").glob("*.py")))
     roots.extend(sorted((repo / "unibot" / "browser_extension").glob("**/*")))
+    roots.extend(sorted((repo / "fixtures").glob("**/*")))
     roots.append(repo / "unibot" / "autonomy_work_items.json")
     findings: list[dict[str, Any]] = []
     scanned = 0
     for path in dict.fromkeys(roots):
-        if not path.is_file() or path.suffix.lower() not in {".md", ".py", ".js", ".html", ".json"}:
+        if not path.is_file() or path.suffix.lower() not in {".md", ".py", ".js", ".html", ".json", ".ipynb"}:
             continue
         relative = path.relative_to(repo).as_posix()
         scan = scan_text(path.read_text(encoding="utf-8"), relative)
