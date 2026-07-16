@@ -24,7 +24,7 @@
         "human_submission_review_required",
         "public_safety_required"
       ],
-      required_manifest_permissions: ["activeTab", "nativeMessaging", "storage", "sidePanel"],
+      required_manifest_permissions: ["activeTab", "nativeMessaging", "sidePanel"],
       required_host_permission_policy: "Colab, localhost, and loopback practice surfaces only",
       use: "Content-script and manifest boundary remains practice-only, delegates decisions to the sidepanel, and never claims exam security."
     },

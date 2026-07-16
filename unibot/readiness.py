@@ -4025,7 +4025,7 @@ def run_readiness_check(paths: Iterable[str | Path] | None = None) -> dict[str, 
         },
         {
             "check_id": "browser_manifest_content_boundary",
-            "passed": browser_manifest["permissions"] == ["activeTab", "nativeMessaging", "storage", "sidePanel"]
+            "passed": browser_manifest["permissions"] == ["activeTab", "nativeMessaging", "sidePanel"]
             and "<all_urls>" not in json.dumps(browser_manifest, ensure_ascii=False)
             and "https://colab.research.google.com/*" in browser_manifest["host_permissions"]
             and "http://localhost/*" in browser_manifest["host_permissions"]

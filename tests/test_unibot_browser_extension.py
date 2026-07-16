@@ -47,7 +47,7 @@ class UniBotBrowserExtensionTests(unittest.TestCase):
         manifest = json.loads((EXTENSION_ROOT / "manifest.json").read_text(encoding="utf-8"))
         content = (EXTENSION_ROOT / "content.js").read_text(encoding="utf-8")
 
-        self.assertEqual(["activeTab", "nativeMessaging", "storage", "sidePanel"], manifest["permissions"])
+        self.assertEqual(["activeTab", "nativeMessaging", "sidePanel"], manifest["permissions"])
         self.assertIn("https://colab.research.google.com/*", manifest["host_permissions"])
         self.assertIn("http://localhost/*", manifest["host_permissions"])
         self.assertIn("http://127.0.0.1/*", manifest["host_permissions"])
@@ -76,7 +76,7 @@ class UniBotBrowserExtensionTests(unittest.TestCase):
         self.assertNotIn("paperclip.ing", combined)
         self.assertNotIn("/api/unibot/paperclip", combined)
         self.assertNotIn("https://paperclip", combined)
-        self.assertEqual(["activeTab", "nativeMessaging", "storage", "sidePanel"], manifest["permissions"])
+        self.assertEqual(["activeTab", "nativeMessaging", "sidePanel"], manifest["permissions"])
 
     def test_sidepanel_exposes_demo_feedback_flow(self) -> None:
         html = (EXTENSION_ROOT / "sidepanel.html").read_text(encoding="utf-8")
