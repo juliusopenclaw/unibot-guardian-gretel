@@ -120,6 +120,11 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         self.assertEqual(packet["evidence"]["browser_mantle"]["controlled_exam_candidate_help_levels"], ["A0", "A1", "A2"])
         self.assertNotIn("A5", packet["evidence"]["browser_mantle"]["practice_help_levels"])
         self.assertEqual(
+            packet["evidence"]["browser_mantle"]["notebook_import"]["accepted_sources"],
+            ["allowlisted public HTTPS URL", "local .ipynb file picker"],
+        )
+        self.assertFalse(packet["evidence"]["browser_mantle"]["notebook_import"]["local_path_forwarded"])
+        self.assertEqual(
             packet["evidence"]["browser_mantle"]["controlled_exam_candidate_status"],
             "requires_written_authority_decision",
         )

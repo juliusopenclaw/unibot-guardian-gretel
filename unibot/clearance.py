@@ -396,9 +396,16 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
         },
         "browser_mantle": {
             "interface": "Chrome MV3 side panel with local companion/native messaging.",
-            "supported_contexts": ["synthetic Jupyter", "synthetic Colab fixture", "manual text selection"],
+            "supported_contexts": ["local Jupyter practice", "Colab practice surface", "manual text selection"],
             "uncertain_selection": "Ask the learner to select a cell; never guess.",
             "outputs": "Notebook outputs are not automatically captured.",
+            "notebook_import": {
+                "accepted_sources": ["allowlisted public HTTPS URL", "local .ipynb file picker"],
+                "local_path_forwarded": False,
+                "raw_source_stored": False,
+                "sanitized_practice_copy_only": True,
+                "demo_boundary": "Use only a public synthetic notebook for institutional demonstration.",
+            },
             "practice_help_levels": list(PRACTICE_HELP_LEVELS),
             "controlled_exam_candidate_help_levels": list(CONTROLLED_EXAM_HELP_LEVELS),
             "controlled_exam_candidate_status": "requires_written_authority_decision",
@@ -444,7 +451,7 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
         "one_page_summary": {
             "product": "Lokale sokratische Lern- und Übungshilfe für Python-Notebooks.",
             "learner_flow": [
-                "Notebook in lokaler Jupyter-Umgebung oder synthetischer Browser-Fixture öffnen.",
+                "Öffentliche oder lokale .ipynb-Datei sicher bereinigen und in lokaler Jupyter-Umgebung öffnen; Colab bleibt eine Übungsoberfläche.",
                 "Eine Zelle ausdrücklich auswählen und den eigenen nächsten Schritt formulieren.",
                 "Im Übungsbetrieb A0 bis A4 als begrenzte, quellengebundene Hilfe erhalten; ein möglicher Prüfungstrack bleibt auf A0 bis A2 und schriftliche Entscheidung beschränkt.",
                 "Hilfenutzung und eigene Versuche als datensparsame Metadaten rückblicken.",

@@ -37,6 +37,11 @@ vorher eine schriftliche Entscheidung der zuständigen Stellen.
   einen Modellprovider.
 - Der lokale Tutor arbeitet ohne Provider. GLM bleibt für die Entwicklung
   separat begrenzt und erhält keinen Lernenden- oder Notebookinhalt.
+- Der Chrome-Mantel nimmt eine allowlistete öffentliche HTTPS-Quelle oder eine
+  lokale `.ipynb`-Datei an. Bei der lokalen Auswahl wird kein Dateipfad an den
+  Companion weitergegeben; gespeichert wird nur die bereinigte lokale
+  Übungskopie. Für die institutionelle Demonstration wird ausschließlich ein
+  öffentliches synthetisches Notebook verwendet.
 - Ein Export ist freiwillig und wird vorab als Vorschau angezeigt. Er enthält
   nur pseudonyme Metadaten und Quellen-IDs.
 
