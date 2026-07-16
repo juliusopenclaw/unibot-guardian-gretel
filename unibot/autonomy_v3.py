@@ -673,8 +673,16 @@ class AutonomyStore:
         )
         self.connection.execute(
             "CREATE TABLE IF NOT EXISTS rollout (lane TEXT PRIMARY KEY, successful_runs INTEGER NOT NULL, "
-            "failed_runs INTEGER NOT NULL, last_run_id TEXT NOT NULL, updated_at TEXT NOT NULL)"
+            "failed_runs INTEGER NOT NULL, success_streak INTEGER NOT NULL DEFAULT 0, "
+            "last_run_id TEXT NOT NULL, updated_at TEXT NOT NULL)"
         )
+        rollout_columns = {
+            str(row[1]) for row in self.connection.execute("PRAGMA table_info(rollout)").fetchall()
+        }
+        if "success_streak" not in rollout_columns:
+            self.connection.execute(
+                "ALTER TABLE rollout ADD COLUMN success_streak INTEGER NOT NULL DEFAULT 0"
+            )
         self.connection.execute(
             "CREATE TABLE IF NOT EXISTS improvement_patterns (pattern_id TEXT PRIMARY KEY, payload TEXT NOT NULL, "
             "recurrence_count INTEGER NOT NULL, updated_at TEXT NOT NULL)"
@@ -821,16 +829,19 @@ class AutonomyStore:
         if lane not in {"shadow", "local"}:
             raise AutonomyValidationError("invalid_rollout_lane")
         row = self.connection.execute(
-            "SELECT successful_runs,failed_runs FROM rollout WHERE lane=?", (lane,)
+            "SELECT successful_runs,failed_runs,success_streak FROM rollout WHERE lane=?", (lane,)
         ).fetchone()
-        successful, failed = (int(row[0]), int(row[1])) if row else (0, 0)
+        successful, failed, streak = (int(row[0]), int(row[1]), int(row[2])) if row else (0, 0, 0)
         if success:
             successful += 1
+            streak += 1
         else:
             failed += 1
+            streak = 0
         self.connection.execute(
-            "INSERT OR REPLACE INTO rollout(lane,successful_runs,failed_runs,last_run_id,updated_at) VALUES(?,?,?,?,?)",
-            (lane, successful, failed, run_id, utc_now()),
+            "INSERT OR REPLACE INTO rollout(lane,successful_runs,failed_runs,success_streak,last_run_id,updated_at) "
+            "VALUES(?,?,?,?,?,?)",
+            (lane, successful, failed, streak, run_id, utc_now()),
         )
         self.connection.commit()
         return self.rollout_status()
@@ -857,10 +868,11 @@ class AutonomyStore:
         if existing:
             return self.rollout_status()
         row = self.connection.execute(
-            "SELECT successful_runs,failed_runs FROM rollout WHERE lane='canary_merges'"
+            "SELECT successful_runs,failed_runs,success_streak FROM rollout WHERE lane='canary_merges'"
         ).fetchone()
-        successful, failed = (int(row[0]), int(row[1])) if row else (0, 0)
+        successful, failed, streak = (int(row[0]), int(row[1]), int(row[2])) if row else (0, 0, 0)
         successful += 1
+        streak += 1
         evidence_id = sha256_json(
             {
                 "run_id": run_id,
@@ -871,9 +883,9 @@ class AutonomyStore:
             }
         )
         self.connection.execute(
-            "INSERT OR REPLACE INTO rollout(lane,successful_runs,failed_runs,last_run_id,updated_at) "
-            "VALUES('canary_merges',?,?,?,?)",
-            (successful, failed, evidence_id, utc_now()),
+            "INSERT OR REPLACE INTO rollout(lane,successful_runs,failed_runs,success_streak,last_run_id,updated_at) "
+            "VALUES('canary_merges',?,?,?,?,?)",
+            (successful, failed, streak, evidence_id, utc_now()),
         )
         self.connection.execute(
             "INSERT INTO canary_merge_evidence(run_id,evidence_hash,created_at) VALUES(?,?,?)",
@@ -884,20 +896,21 @@ class AutonomyStore:
 
     def rollout_status(self) -> dict[str, Any]:
         rows = self.connection.execute(
-            "SELECT lane,successful_runs,failed_runs,last_run_id,updated_at FROM rollout"
+            "SELECT lane,successful_runs,failed_runs,success_streak,last_run_id,updated_at FROM rollout"
         ).fetchall()
         lanes = {
             lane: {
                 "successful_runs": int(successful),
                 "failed_runs": int(failed),
+                "consecutive_successes": int(success_streak),
                 "last_run_id": last_run_id,
                 "updated_at_utc": updated_at,
                 "target": CANARY_MERGE_TARGET if lane == "canary_merges" else ROLLOUT_TARGET,
-                "complete": int(successful)
+                "complete": int(success_streak)
                 >= (CANARY_MERGE_TARGET if lane == "canary_merges" else ROLLOUT_TARGET)
-                and int(failed) == 0,
+                and (lane != "canary_merges" or int(failed) == 0),
             }
-            for lane, successful, failed, last_run_id, updated_at in rows
+            for lane, successful, failed, success_streak, last_run_id, updated_at in rows
         }
         for lane in ("shadow", "local", "canary_merges"):
             target = CANARY_MERGE_TARGET if lane == "canary_merges" else ROLLOUT_TARGET
@@ -906,6 +919,7 @@ class AutonomyStore:
                 {
                     "successful_runs": 0,
                     "failed_runs": 0,
+                    "consecutive_successes": 0,
                     "last_run_id": "",
                     "updated_at_utc": "",
                     "target": target,
@@ -913,7 +927,7 @@ class AutonomyStore:
                 },
             )
         return {
-            "schema_version": "AutonomyRolloutV2",
+            "schema_version": "AutonomyRolloutV3",
             "status": "ok",
             "lanes": lanes,
             "provider_required": False,

@@ -206,6 +206,29 @@ class AutonomyV3Tests(unittest.TestCase):
             self.assertEqual(store.record_cost(0.01, month="2099-01")["reason"], "monthly_hard_stop")
             store.close()
 
+    def test_rollout_gate_requires_ten_consecutive_green_runs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = AutonomyStore(Path(tmp) / "state.sqlite3")
+            for index in range(9):
+                status = store.record_rollout("shadow", run_id=f"shadow-green-{index}", success=True)
+            self.assertFalse(status["lanes"]["shadow"]["complete"])
+            self.assertEqual(status["lanes"]["shadow"]["consecutive_successes"], 9)
+
+            status = store.record_rollout("shadow", run_id="shadow-red", success=False)
+            self.assertFalse(status["lanes"]["shadow"]["complete"])
+            self.assertEqual(status["lanes"]["shadow"]["successful_runs"], 9)
+            self.assertEqual(status["lanes"]["shadow"]["failed_runs"], 1)
+            self.assertEqual(status["lanes"]["shadow"]["consecutive_successes"], 0)
+
+            for index in range(10):
+                status = store.record_rollout("shadow", run_id=f"shadow-recovered-{index}", success=True)
+            self.assertTrue(status["lanes"]["shadow"]["complete"])
+            self.assertEqual(status["lanes"]["shadow"]["consecutive_successes"], 10)
+            self.assertEqual(status["lanes"]["shadow"]["successful_runs"], 19)
+            self.assertEqual(status["lanes"]["shadow"]["failed_runs"], 1)
+            self.assertTrue(status["canary_allowed"] is False)
+            store.close()
+
     def test_actual_diff_is_derived_and_controller_reaches_human_gate(self) -> None:
         holder, root, base = self.make_git_repo()
         try:
