@@ -259,6 +259,7 @@ from .source_cards import build_source_card_drift_report, get_source_card, list_
 from .clearance import (
     INSTITUTIONAL_PRESENTATION_SCHEMA_VERSION,
     REGULATORY_PROFILE_SCHEMA_VERSION,
+    build_accessibility_review_walkthrough,
     build_institutional_plain_language_brief,
     build_regulatory_profile,
     build_institutional_presentation_markdown,
@@ -378,6 +379,7 @@ __all__ = [
     "build_institutional_presentation_packet",
     "build_institutional_presentation_markdown",
     "build_institutional_plain_language_brief",
+    "build_accessibility_review_walkthrough",
     "validate_regulatory_profile",
     "append_ledger_event",
     "read_ledger",

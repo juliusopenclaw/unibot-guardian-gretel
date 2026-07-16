@@ -73,6 +73,14 @@ def build_release_pr_draft(
         ),
         "",
     )
+    accessibility_walkthrough_hash = next(
+        (
+            str(record.get("sha256", ""))
+            for record in manifest.get("files", [])
+            if isinstance(record, dict) and record.get("name") == "institutional-accessibility-walkthrough.md"
+        ),
+        "",
+    )
     manifest_hash = _sha256_file(manifest_path)
     body = "\n".join(
         [
@@ -100,6 +108,7 @@ def build_release_pr_draft(
             f"- Öffentliche Demo-Fixture-SHA-256: `{demo_fixture_hash}`",
             f"- Öffentlicher Demo-Ablauf-SHA-256: `{public_demo_hash}`",
             f"- Einfache institutionelle Kurzinfo-SHA-256: `{institutional_brief_hash}`",
+            f"- Accessibility-Walkthrough-SHA-256: `{accessibility_walkthrough_hash}`",
             f"- Institutioneller Evidenz-Hash: `{evidence_hash}`",
             "- Public-Safety-Scan: bestanden; keine privaten Dateien, Pfade, Schlüssel oder Lerninhalte enthalten.",
             "- Release-Audit: bestanden; keine Netzwerk-, Provider-, Git- oder automatischen Merge-Effekte.",
@@ -157,6 +166,7 @@ def build_release_pr_draft(
         "demo_fixture_sha256": demo_fixture_hash,
         "public_demo_markdown_sha256": public_demo_hash,
         "institutional_plain_language_brief_sha256": institutional_brief_hash,
+        "institutional_accessibility_walkthrough_sha256": accessibility_walkthrough_hash,
         "institutional_evidence_hash": evidence_hash,
         "audit_status": audit["status"],
         "public_safety_status": scan["status"],

@@ -18,7 +18,7 @@ class UniBotReleaseHandoffTests(unittest.TestCase):
             result = write_release_handoff(output, repository=repository)
 
             self.assertEqual(result["status"], "written")
-            self.assertEqual(result["candidate_file_count"], 9)
+            self.assertEqual(result["candidate_file_count"], 10)
             self.assertEqual(result["provider_calls"], 0)
             self.assertFalse(result["automatic_publication"])
             self.assertFalse(result["automatic_merge"])

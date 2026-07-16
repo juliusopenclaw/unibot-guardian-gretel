@@ -135,6 +135,7 @@ unibot institution bundle --output ./unibot-institution-review
 Der Bundle-Befehl schreibt `institutional-presentation.json`,
 `institutional-presentation.md`, ein leeres
 `institutional-plain-language-brief.md`, ein leeres
+`institutional-accessibility-walkthrough.md`, ein leeres
 `institutional-review-decision-template.md` und ein Hash-Manifest in ein owner-lesbares
 Verzeichnis. Er schreibt nur bei grüner Public-Safety-Prüfung und enthält keine
 Notebook-, Personen- oder lokalen Pfadinhalte. Das Paket darf nur mit einem

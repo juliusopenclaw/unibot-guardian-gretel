@@ -1118,6 +1118,66 @@ def build_institutional_plain_language_brief(
     return "\n".join(lines) + "\n"
 
 
+def build_accessibility_review_walkthrough(
+    packet: dict[str, Any] | None = None,
+) -> str:
+    """Render a consent- and privacy-bounded human accessibility test card."""
+    packet = packet or build_institutional_presentation_packet()
+    review = packet["accessibility_review"]
+    evidence = packet["evidence"]["browser_mantle"]["accessibility_evidence"]
+    lines = [
+        "# UniBot: Accessibility-Walkthrough",
+        "",
+        "**Status:** menschlicher Prüfbogen; keine WCAG-Zertifizierung und keine Freigabe",
+        "**Geltungsbereich:** lokale Lern- und Übungsversion mit synthetischer Notebook-Aufgabe",
+        "",
+        "## Datenschutz vor dem Test",
+        "- Nur `fixtures/public/synthetic_python_practice.ipynb` oder eine gleichwertige synthetische Aufgabe verwenden.",
+        "- Keine Namen, Diagnosen, Nachteilsausgleichdaten, Gesundheitsangaben, privaten Notebooks oder Lernendentexte eintragen.",
+        "- Nur Ergebnis-IDs, Test-IDs, Assistenztechnik-Kategorie und einen Evidenzhash festhalten.",
+        "- Jede Person darf den Test abbrechen; ein Abbruch ist kein Fehler der Person und keine Leistungsbewertung.",
+        "",
+        "## Ergebnis-Codes",
+        "- `not_tested`: noch nicht geprüft",
+        "- `pass`: im vereinbarten Szenario bedienbar",
+        "- `conditional`: nur mit dokumentierter Bedingung bedienbar",
+        "- `fail`: kritischer Bedien- oder Datenschutzfehler",
+        "- `not_applicable`: für das vereinbarte Szenario nicht relevant",
+        "",
+        "## Prüfschritte",
+    ]
+    for number, check in enumerate(review["checks"], start=1):
+        lines.extend(
+            [
+                f"### {number}. `{check['check_id']}`",
+                f"**Methode:** {check['method']}",
+                f"**Vorgehen:** {check['pass_condition']}",
+                "**Ergebnis:** `not_tested`  ",
+                f"**Evidenz-ID:** `accessibility.{check['check_id']}`",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "## Technischer Stand",
+            f"- Automatisierter Prototyp-Nachweis: `{evidence['status']}`.",
+            f"- Automatisierte Prüfdatei: `{evidence['test_file']}`.",
+            "- Der Browsernachweis belegt weder WCAG-Konformität noch die Eignung für jede einzelne Person.",
+            "- Kritische Fehler blockieren den jeweils betroffenen Einsatzumfang, bis Menschen die Korrektur geprüft haben.",
+            "",
+            "## Menschliche Entscheidung",
+            "Das Inklusionsbüro beziehungsweise Servicezentrum Inklusion entscheidet, welche Unterstützung im konkreten Lehrformat angemessen ist.",
+            "Das Prüfungsamt entscheidet separat über jeden Prüfungseinsatz. UniBot trifft keine Nachteilsausgleich-, Note- oder Prüfungsentscheidung.",
+            "",
+            "## Autorenschaft",
+            "- Implementierung und Dokumentation: **Gretel / Codex**.",
+            "- GLM: in dieser Etappe geparkt und ohne Beitrag.",
+            "- Menschliche Prüfung: zuständige Hochschulstellen; Prüfungseinsatz bleibt `not_cleared`.",
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
 def write_institutional_review_bundle(
     output_dir: str | Path,
     *,
@@ -1138,11 +1198,13 @@ def write_institutional_review_bundle(
         }
     markdown = build_institutional_presentation_markdown(packet)
     plain_language_brief = build_institutional_plain_language_brief(packet)
+    accessibility_walkthrough = build_accessibility_review_walkthrough(packet)
     json_text = json.dumps(packet, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     contents = {
         "institutional-presentation.json": json_text,
         "institutional-presentation.md": markdown,
         "institutional-plain-language-brief.md": plain_language_brief,
+        "institutional-accessibility-walkthrough.md": accessibility_walkthrough,
         "institutional-review-decision-template.md": build_institutional_review_decision_template_markdown(
             packet["institutional_review_decision_template"]
         ),
