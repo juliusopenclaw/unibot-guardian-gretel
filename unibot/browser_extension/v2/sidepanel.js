@@ -346,9 +346,10 @@ function guarded(action, output) {
   };
 }
 
-document.querySelectorAll("nav button[data-tab]").forEach((button) => {
-  button.addEventListener("click", () => {
-    document.querySelectorAll("nav button[data-tab]").forEach((item) => {
+const tabButtons = Array.from(document.querySelectorAll("nav button[data-tab]"));
+
+function selectTab(button) {
+    tabButtons.forEach((item) => {
       item.setAttribute("aria-selected", String(item === button));
       item.setAttribute("tabindex", item === button ? "0" : "-1");
     });
@@ -356,6 +357,24 @@ document.querySelectorAll("nav button[data-tab]").forEach((button) => {
     document.querySelectorAll("[data-panel]").forEach((panel) => {
       panel.hidden = panel.id !== button.dataset.tab;
     });
+}
+
+tabButtons.forEach((button, index) => {
+  button.addEventListener("click", () => selectTab(button));
+  button.addEventListener("keydown", (event) => {
+    const movement = {
+      ArrowRight: 1,
+      ArrowDown: 1,
+      ArrowLeft: -1,
+      ArrowUp: -1
+    }[event.key];
+    let nextIndex = index;
+    if (movement) nextIndex = (index + movement + tabButtons.length) % tabButtons.length;
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = tabButtons.length - 1;
+    if (nextIndex === index) return;
+    event.preventDefault();
+    selectTab(tabButtons[nextIndex]);
   });
 });
 

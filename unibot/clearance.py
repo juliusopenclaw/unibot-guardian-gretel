@@ -186,7 +186,14 @@ def build_accessibility_review_plan(*, public_safe: bool = True) -> dict[str, An
         "automated_evidence": {
             "status": "prototype_evidence_only",
             "test_file": "tests/browser/mantle-v2.spec.js",
-            "covered": ["semantic status regions", "keyboard focus", "narrow panel", "reconnection", "manual selection fallback"],
+            "covered": [
+                "semantic status regions",
+                "keyboard focus",
+                "tablist arrow-key navigation",
+                "narrow panel",
+                "reconnection",
+                "manual selection fallback",
+            ],
             "does_not_prove": ["WCAG conformance", "BITV NRW conformance", "individual accommodation suitability"],
         },
         "human_review": {
@@ -780,6 +787,7 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
                     "semantic status/live regions",
                     "tab-panel relationships",
                     "visible keyboard focus",
+                    "tablist arrow-key, Home, and End navigation",
                     "280px minimum layout without horizontal overflow",
                 ],
                 "test_file": "tests/browser/mantle-v2.spec.js",

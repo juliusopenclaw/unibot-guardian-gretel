@@ -252,6 +252,24 @@ test("sidepanel exposes accessible status semantics and visible keyboard focus",
   expect(parseFloat(focusStyle.outlineWidth)).toBeGreaterThanOrEqual(2);
 });
 
+test("sidepanel supports keyboard tab navigation at the minimum supported width", async ({ page }) => {
+  await page.setViewportSize({ width: 280, height: 700 });
+  await page.goto(pathToFileURL(path.join(extensionRoot, "v2", "sidepanel.html")).href);
+
+  const tabs = page.locator("nav button[role='tab']");
+  await tabs.nth(0).focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
+  await expect(page.locator("#help")).toBeVisible();
+  expect(await page.evaluate(() => document.activeElement?.id)).toBe("help-tab");
+
+  await page.keyboard.press("End");
+  await expect(tabs.nth(2)).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("Home");
+  await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+});
+
 test("sidepanel reconnects and resumes a local session after companion restart", async ({ page }) => {
   await page.addInitScript(() => {
     let onNativeMessage = null;

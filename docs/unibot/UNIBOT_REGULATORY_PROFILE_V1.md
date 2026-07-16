@@ -58,9 +58,10 @@ kostenneutral und wird weder in eine Note noch in eine automatische
 Nachteilsausgleich-Entscheidung umgerechnet.
 
 Die öffentliche Browserprüfung belegt derzeit semantische Statusbereiche,
-Tab-/Panel-Beziehungen, sichtbaren Tastaturfokus und einen schmalen Mantel ohne
-horizontalen Überlauf. Das ist technische Evidenz für die weitere Prüfung, aber
-keine WCAG-Zertifizierung und keine Entscheidung des Servicezentrums Inklusion.
+Tab-/Panel-Beziehungen, Pfeiltasten-/Home-/Ende-Navigation, sichtbaren
+Tastaturfokus und einen schmalen Mantel ohne horizontalen Überlauf. Das ist
+technische Evidenz für die weitere Prüfung, aber keine WCAG-Zertifizierung und
+keine Entscheidung des Servicezentrums Inklusion.
 
 Der maschinenlesbare Review-Vertrag `AccessibilityReviewV1` trennt acht
 reproduzierbare Prüfungen von der menschlichen Konformitätsentscheidung: reine
