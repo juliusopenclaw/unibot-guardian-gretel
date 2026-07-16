@@ -65,6 +65,14 @@ def build_release_pr_draft(
     demo_fixture_hash = str(manifest.get("demo_fixture_sha256", ""))
     public_demo_hash = str(manifest.get("public_demo_markdown_sha256", ""))
     evidence_hash = str(manifest.get("institutional_evidence_hash", ""))
+    institutional_brief_hash = next(
+        (
+            str(record.get("sha256", ""))
+            for record in manifest.get("files", [])
+            if isinstance(record, dict) and record.get("name") == "institutional-plain-language-brief.md"
+        ),
+        "",
+    )
     manifest_hash = _sha256_file(manifest_path)
     body = "\n".join(
         [
@@ -72,6 +80,11 @@ def build_release_pr_draft(
             "",
             "Diese Entwurfs-PR bringt UniBot als lokale, sokratische Lern- und Übungshilfe für Python-Notebooks zur menschlichen öffentlichen Prüfung.",
             "Die Chrome-MV3-Erweiterung arbeitet mit dem lokalen Companion und Native Messaging. Der Tutor führt Notebookcode nicht aus und gibt keine fertige Lösung, Endwerte oder fertige Interpretation aus.",
+            "",
+            "## Drei Golden Rules (3GR)",
+            "- **Generalisieren:** Ein beobachtetes Problem wird als wiederverwendbare Regel mit Transferzielen festgehalten.",
+            "- **Harness Engineering:** Die Regel wird an positive und negative synthetische Tests gebunden.",
+            "- **Recursive Self-Improvement:** Wiederholungen erzeugen nur einen menschlich zu prüfenden Verbesserungsbedarf; sie wenden niemals selbst Code oder Freigaben an.",
             "",
             "## Transparente Rollen",
             "",
@@ -86,6 +99,7 @@ def build_release_pr_draft(
             f"- MV3-Paket-SHA-256: `{extension_hash}`",
             f"- Öffentliche Demo-Fixture-SHA-256: `{demo_fixture_hash}`",
             f"- Öffentlicher Demo-Ablauf-SHA-256: `{public_demo_hash}`",
+            f"- Einfache institutionelle Kurzinfo-SHA-256: `{institutional_brief_hash}`",
             f"- Institutioneller Evidenz-Hash: `{evidence_hash}`",
             "- Public-Safety-Scan: bestanden; keine privaten Dateien, Pfade, Schlüssel oder Lerninhalte enthalten.",
             "- Release-Audit: bestanden; keine Netzwerk-, Provider-, Git- oder automatischen Merge-Effekte.",
@@ -99,6 +113,7 @@ def build_release_pr_draft(
             "- `UNIBOT_CHROME_EXECUTABLE=... npm run test:chrome-canary`",
             "- `python3 -m unibot.cli public-safety`",
             "- `unibot release audit ...`",
+            "- CI-Runtime: Gitleaks v3 und actions/upload-artifact v7.",
             "",
             "## Menschliche Gates",
             "",
@@ -141,6 +156,7 @@ def build_release_pr_draft(
         "extension_package_sha256": extension_hash,
         "demo_fixture_sha256": demo_fixture_hash,
         "public_demo_markdown_sha256": public_demo_hash,
+        "institutional_plain_language_brief_sha256": institutional_brief_hash,
         "institutional_evidence_hash": evidence_hash,
         "audit_status": audit["status"],
         "public_safety_status": scan["status"],

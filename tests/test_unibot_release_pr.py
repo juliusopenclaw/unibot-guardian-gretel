@@ -35,8 +35,12 @@ class UniBotReleasePrDraftTests(unittest.TestCase):
             self.assertIn("Institutionelle Prüfung", draft["body"])
             self.assertIn("Öffentliche Demo-Fixture-SHA-256", draft["body"])
             self.assertIn("Öffentlicher Demo-Ablauf-SHA-256", draft["body"])
+            self.assertIn("Einfache institutionelle Kurzinfo-SHA-256", draft["body"])
+            self.assertIn("Drei Golden Rules (3GR)", draft["body"])
+            self.assertIn("Gitleaks v3", draft["body"])
             self.assertRegex(draft["demo_fixture_sha256"], r"^[0-9a-f]{64}$")
             self.assertRegex(draft["public_demo_markdown_sha256"], r"^[0-9a-f]{64}$")
+            self.assertRegex(draft["institutional_plain_language_brief_sha256"], r"^[0-9a-f]{64}$")
             self.assertNotIn("/" + "Users/", draft["body"])
             self.assertEqual(scan_text(draft["body"], "pr-draft-test")["status"], "pass")
 
