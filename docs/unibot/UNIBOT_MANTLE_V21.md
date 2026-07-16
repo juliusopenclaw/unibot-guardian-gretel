@@ -131,9 +131,9 @@ remains available for development and one alpha compatibility cycle.
 - The fixed scientific corpus contains 180 synthetic scenarios, with 30 each
   for allowed hints, assistance budget, source binding, solution leakage,
   privacy, and prompt injection.
-- Playwright covers Jupyter cell capture without outputs, the full mocked
-  side-panel workflow, local notebook file selection through the chunked
-  Native-Messaging protocol, and narrow widths.
+- Playwright covers Jupyter and Colab cell capture without outputs, the full
+  mocked side-panel workflow, local notebook file selection through the
+  chunked Native-Messaging protocol, and narrow widths.
 - A headed package harness loads the real MV3 extension and verifies its stable
   ID and rendered side panel.
 - On macOS, the release canary runs the installed Google Chrome binary with

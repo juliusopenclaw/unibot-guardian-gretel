@@ -37,6 +37,40 @@ test("content script captures the active Jupyter cell without output text", asyn
   expect(response.selectedCell.source).not.toContain("private rendered output");
 });
 
+test("content script captures the focused Colab cell without output text", async ({ page }) => {
+  await page.setContent(`
+    <main>
+      <colab-code-cell class="focused">
+        <div class="input_area"><div class="cm-content">import pandas as pd</div></div>
+        <div class="output_area">private rendered Colab output</div>
+      </colab-code-cell>
+    </main>
+  `);
+  await page.evaluate(() => {
+    window.__unibotListener = null;
+    window.chrome = {
+      runtime: {
+        onMessage: {
+          addListener(listener) {
+            window.__unibotListener = listener;
+          }
+        }
+      }
+    };
+  });
+  await page.addScriptTag({ path: path.join(extensionRoot, "content.js") });
+  const response = await page.evaluate(() => new Promise((resolve) => {
+    window.__unibotListener({ type: "UNIBOT_GET_SELECTION" }, {}, resolve);
+  }));
+
+  expect(response.selectedCell.adapter).toBe("colab");
+  expect(response.selectedCell.selector).toBe("colab-code-cell.focused");
+  expect(response.selectedCell.confidence).toBe("high");
+  expect(response.selectedCell.cellIndex).toBe(0);
+  expect(response.selectedCell.source).toContain("import pandas as pd");
+  expect(response.selectedCell.source).not.toContain("private rendered Colab output");
+});
+
 test("sidepanel starts a native session, captures a cell, requests A0-A4 help, and renders review metadata", async ({ page }) => {
   await page.addInitScript(() => {
     let onNativeMessage = null;
