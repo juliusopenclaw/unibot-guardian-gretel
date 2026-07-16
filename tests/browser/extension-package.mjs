@@ -13,6 +13,11 @@ const launchOptions = {
   headless: false,
   args: []
 };
+if (process.env.UNIBOT_REQUIRE_NATIVE === "1" && !process.env.UNIBOT_CHROME_EXECUTABLE) {
+  throw new Error(
+    "Native Chrome canary requires UNIBOT_CHROME_EXECUTABLE pointing to the official Google Chrome binary"
+  );
+}
 if (process.env.UNIBOT_CHROME_EXECUTABLE) {
   launchOptions.executablePath = process.env.UNIBOT_CHROME_EXECUTABLE;
   launchOptions.args.push("--enable-unsafe-extension-debugging");

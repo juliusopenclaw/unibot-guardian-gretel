@@ -19,6 +19,7 @@ class UniBotExtensionPackageTests(unittest.TestCase):
         self.assertIn("--enable-unsafe-extension-debugging", harness)
         self.assertIn("NativeMessagingHosts", harness)
         self.assertIn("fs.rmSync(chromeUserDataDir", harness)
+        self.assertIn("Native Chrome canary requires UNIBOT_CHROME_EXECUTABLE", harness)
         self.assertIn('"test:chrome-canary"', package)
 
     def test_mv3_package_contains_only_public_extension_files(self) -> None:
