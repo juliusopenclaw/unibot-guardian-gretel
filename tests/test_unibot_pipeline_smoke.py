@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import json
+import importlib.util
 import subprocess
 import sys
 import tempfile
@@ -12,7 +13,43 @@ import unittest
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "unibot_pipeline_smoke.py"
 
 
+def _load_smoke_module():
+    spec = importlib.util.spec_from_file_location("unibot_pipeline_smoke", SCRIPT)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("could not load pipeline smoke module")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 class UniBotPipelineSmokeTests(unittest.TestCase):
+    def test_isolated_unit_copy_has_local_git_provenance(self) -> None:
+        smoke = _load_smoke_module()
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "fixture.txt").write_text("synthetic", encoding="utf-8")
+            ready, reason = smoke._initialize_isolated_git_repository(root)
+
+            self.assertTrue(ready, reason)
+            commit = subprocess.run(
+                ["git", "rev-parse", "--verify", "HEAD"],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            status = subprocess.run(
+                ["git", "status", "--porcelain=v1"],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        self.assertEqual(commit.returncode, 0)
+        self.assertEqual(len(commit.stdout.strip()), 40)
+        self.assertEqual(status.stdout.strip(), "")
+
     def test_smoke_script_emits_valid_json(self) -> None:
         with tempfile.TemporaryDirectory() as temp_root:
             env = dict(os.environ)
