@@ -872,7 +872,7 @@ def build_review_board_packet(
         ),
         _build_reviewer_packet(
             reviewer="Thesis supervision",
-            mandate="Validate master-thesis quality, reproducibility, method transparency, and claim boundaries.",
+            mandate="Validate bachelor-thesis-level quality, reproducibility, method transparency, and claim boundaries.",
             decisions_needed=[
                 "hypotheses and measures for final study design",
                 "limitations wording for official thesis claim",

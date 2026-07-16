@@ -36,7 +36,7 @@ a review substrate for human decisions.
 | `gdpr-2016-679` | 2026-06-13 | Data protection and lawful processing baseline | high | [GDPR, EUR-Lex](https://eur-lex.europa.eu/eli/reg/2016/679/oj/eng) | Apply lawfulness, transparency, purpose limitation, minimisation, security, and accountability. |
 | `dsk-ai-privacy-2024` | 2026-06-13 | AI/privacy operational guidance | high | [DSK AI and data protection](https://www.datenschutzkonferenz-online.de/media/oh/20240506_DSK_Orientierungshilfe_KI_und_Datenschutz.pdf) | Prefer closed/controlled systems, define purpose, validate outputs, make logic transparent, and avoid unnecessary prompt histories. |
 | `eu-ai-act-2024` | 2026-06-13 | EU AI governance and risk framing | high | [EU AI Act 2024/1689](https://eur-lex.europa.eu/eli/reg/2024/1689/oj/eng) | Education evaluation, learning-outcome steering, and test-behaviour monitoring can become high-risk; UniBot keeps scores private and avoids proctoring. |
-| `dfg-gwp` | 2026-06-13 | Research integrity and reproducibility requirements | medium | [DFG good research practice](https://www.dfg.de/de/grundlagen-themen/grundlagen-und-prinzipien-der-foerderung/gwp) | Master-thesis work needs transparent methods, documentation, versioning, limits, and reproducible evidence. |
+| `dfg-gwp` | 2026-06-13 | Research integrity and reproducibility requirements | medium | [DFG good research practice](https://www.dfg.de/de/grundlagen-themen/grundlagen-und-prinzipien-der-foerderung/gwp) | Bachelor-thesis-level work needs transparent methods, documentation, versioning, limits, and reproducible evidence. |
 
 ## Technical And Product Sources
 

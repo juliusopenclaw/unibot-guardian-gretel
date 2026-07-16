@@ -23,7 +23,7 @@ from unibot.server import route_request  # noqa: E402
 
 
 class UniBotEvaluationTests(unittest.TestCase):
-    def test_evaluation_packet_contains_master_thesis_scaffold(self) -> None:
+    def test_evaluation_packet_contains_bachelor_thesis_scaffold(self) -> None:
         packet = build_evaluation_packet()
 
         self.assertEqual(packet["schema_version"], "unibot-evaluation-packet-v1")

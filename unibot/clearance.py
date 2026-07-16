@@ -44,7 +44,7 @@ CLEARANCE_SCOPES: dict[str, dict[str, Any]] = {
         "does_not_authorize": ["public raw text release", "exam deployment", "cloud processing"],
     },
     "formative_pilot": {
-        "label": "Formative pilot or master-thesis study rehearsal",
+        "label": "Formative pilot or bachelor-thesis study rehearsal",
         "current_status": "pending_ethics_privacy_teaching_review",
         "exam_deployment_status": "not_cleared",
         "allowed_modes": ["practice_overlay", "selftest_guardian", "course_tutor_mode"],
