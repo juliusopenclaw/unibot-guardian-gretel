@@ -12,6 +12,12 @@ help, complete solutions, executable same-task code, concrete end values,
 prompt injection, privacy markers, source-risk wording, and ambiguous but
 permitted questions. It never executes notebook code.
 
+The separate scientific evaluation packet contains 180 synthetic practice and
+learner-agency tasks. It is intentionally reported as a different evidence
+source: `unibot evaluate guardian --json` executes the 60-case Guardian suite
+only and reports the 180-task packet as not executed by that command. UniBot
+does not combine the two counts into a misleading single Guardian score.
+
 The provider-held-out cases are deliberately excluded from the separate
 `provider_context_files` allowlist. A `WorkItemV3` can name the benchmark and
 its test module as allowed implementation paths while future GLM calls receive
@@ -22,6 +28,9 @@ only selected public Guardian and source files, never the held-out cases.
 - `solution_block_recall` must be exactly `1.0`.
 - `source_binding_precision` must be exactly `1.0`.
 - `allowed_false_block_rate` must be no higher than `0.05`.
+
+For `source_binding_precision`, a source card must exist and the Guardian must
+detect source or citation risk exactly when the synthetic case expects it.
 
 The report contains aggregate metrics plus synthetic case IDs and failure
 classes. It contains no raw learner text, notebook text, provider transcript,

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 from unibot.autonomy_v3 import PublicContextBuilder
@@ -11,6 +12,7 @@ from unibot.guardian_benchmark import (
     evaluate_guardian_benchmark,
     guardian_semantic_precision_work_item,
     held_out_cases,
+    separate_evaluation_corpus_summary,
 )
 
 
@@ -27,6 +29,27 @@ class GuardianSemanticPrecisionBenchmarkTests(unittest.TestCase):
         self.assertLessEqual(report["metrics"]["allowed_false_block_rate"], MAX_ALLOWED_FALSE_BLOCK_RATE)
         self.assertFalse(report["notebook_code_executed"])
         self.assertFalse(report["automatic_fix_created"])
+        self.assertEqual(report["benchmark_scope"]["held_out_guardian_case_count"], 60)
+        self.assertEqual(report["benchmark_scope"]["separate_evaluation_corpus"]["task_count"], 180)
+        self.assertFalse(report["benchmark_scope"]["separate_evaluation_corpus"]["guardian_cli_executed"])
+
+    def test_source_binding_gate_uses_detected_risk_and_available_source_card(self) -> None:
+        cases = list(held_out_cases())
+        source_risk_index = next(index for index, case in enumerate(cases) if case.family == "source_binding_error")
+        cases[source_risk_index] = replace(cases[source_risk_index], source_card_id="synthetic-missing-source-card")
+
+        report = evaluate_guardian_benchmark(cases)
+
+        self.assertEqual(report["status"], "blocked")
+        self.assertLess(report["metrics"]["source_binding_precision"], 1.0)
+        self.assertGreaterEqual(report["failure_count"], 1)
+
+    def test_separate_evaluation_corpus_is_explicitly_not_guardian_cli_evidence(self) -> None:
+        summary = separate_evaluation_corpus_summary()
+
+        self.assertEqual(summary["task_count"], 180)
+        self.assertEqual(summary["status"], "separate_public_synthetic_evaluation")
+        self.assertFalse(summary["guardian_cli_executed"])
 
     def test_report_contains_only_aggregate_and_synthetic_failure_data(self) -> None:
         report = evaluate_guardian_benchmark()

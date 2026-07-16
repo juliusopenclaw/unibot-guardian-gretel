@@ -415,6 +415,12 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
             "Lehreinheit / Modulverantwortliche",
             "Thesis supervision",
         ],
+        "research_artifact": {
+            "level": "bachelor_thesis_level",
+            "label_de": "Gretel-gebaute und Gretel-dokumentierte Bachelorarbeitsfassung",
+            "submission_status": "public scientific draft; not a submitted university thesis",
+            "human_boundary": "Julius remains responsible for institutional review, submission, and release decisions.",
+        },
         "one_page_summary": {
             "product": "Lokale sokratische Lern- und Übungshilfe für Python-Notebooks.",
             "learner_flow": [
@@ -495,6 +501,7 @@ def build_institutional_presentation_markdown(
         "",
         "## Kurz gesagt",
         summary["product"],
+        f"Diese öffentliche Fassung ist ausdrücklich eine **{packet['research_artifact']['label_de']}**; sie ist keine bereits eingereichte Hochschularbeit.",
         "UniBot legt sich als lokaler Chrome-Seitenbereich über ein Python-Notebook.",
         "Die lernende Person wählt eine Zelle, beschreibt ihren eigenen Versuch und erhält eine begrenzte sokratische Hilfe.",
         "Der Bot ersetzt weder die lernende Person noch eine institutionelle Entscheidung.",

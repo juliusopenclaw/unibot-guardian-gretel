@@ -122,8 +122,12 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
             packet["evidence"]["browser_mantle"]["accessibility_evidence"]["status"],
             "browser_tested_human_review_required",
         )
+        self.assertEqual(packet["research_artifact"]["level"], "bachelor_thesis_level")
+        self.assertIn("Bachelorarbeitsfassung", packet["research_artifact"]["label_de"])
         self.assertNotIn("raw notebook text:", payload.lower())
         self.assertNotIn("/" + "Users/", payload)
+        self.assertNotIn("master thesis", payload.lower())
+        self.assertNotIn("masterarbeit", payload.lower())
 
         markdown = build_institutional_presentation_markdown(packet)
         self.assertIn("# UniBot Institutional Presentation", markdown)
@@ -134,6 +138,8 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         self.assertIn("Vollständiger Aufgabencode", markdown)
         self.assertIn("not_cleared", markdown)
         self.assertIn("RegulatoryProfileV1: ok", markdown)
+        self.assertIn("Bachelorarbeitsfassung", markdown)
+        self.assertNotIn("Masterarbeit", markdown)
         self.assertIn("Pruefungsamt", markdown)
         self.assertIn("Barrierefreiheit: browser_tested_human_review_required", markdown)
         self.assertEqual(scan_text(markdown, "institutional-presentation-markdown")['status'], "pass")
