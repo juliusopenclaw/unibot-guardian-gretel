@@ -227,6 +227,16 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         self.assertIn("Barrierefreiheit: browser_tested_human_review_required", markdown)
         self.assertEqual(scan_text(markdown, "institutional-presentation-markdown")['status'], "pass")
 
+        from unibot.clearance import build_institutional_plain_language_brief
+
+        brief = build_institutional_plain_language_brief(packet)
+        self.assertIn("# UniBot: Kurzinfo", brief)
+        self.assertIn("## Was macht der Bot nicht?", brief)
+        self.assertIn("## Inklusion", brief)
+        self.assertIn("not_cleared", brief)
+        self.assertIn("Gretel / Codex", brief)
+        self.assertEqual(scan_text(brief, "institutional-plain-language-brief")['status'], "pass")
+
     def test_institutional_review_bundle_is_hash_bound_and_public_safe(self) -> None:
         import tempfile
 
@@ -234,11 +244,12 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
             result = write_institutional_review_bundle(Path(temporary) / "review-bundle")
             bundle_root = Path(temporary) / "review-bundle"
             self.assertEqual(result["status"], "written")
-            self.assertEqual(result["file_count"], 4)
+            self.assertEqual(result["file_count"], 5)
             self.assertEqual(result["exam_deployment_status"], "not_cleared")
             self.assertFalse(result["raw_learner_content_written"])
             self.assertTrue((bundle_root / "institutional-presentation.json").is_file())
             self.assertTrue((bundle_root / "institutional-presentation.md").is_file())
+            self.assertTrue((bundle_root / "institutional-plain-language-brief.md").is_file())
             self.assertTrue((bundle_root / "institutional-review-decision-template.md").is_file())
             self.assertTrue((bundle_root / "MANIFEST.json").is_file())
             self.assertEqual((bundle_root / "MANIFEST.json").stat().st_mode & 0o077, 0)

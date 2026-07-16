@@ -1049,6 +1049,74 @@ def build_institutional_presentation_markdown(
     return "\n".join(lines) + "\n"
 
 
+def build_institutional_plain_language_brief(
+    packet: dict[str, Any] | None = None,
+) -> str:
+    """Render a short, low-jargon handout from the same review packet.
+
+    The handout is deliberately not a second policy source: it summarizes the
+    hash-bound presentation packet for a first meeting and keeps every approval
+    and accessibility decision with the responsible human offices.
+    """
+    packet = packet or build_institutional_presentation_packet()
+    summary = packet["one_page_summary"]
+    evidence = packet["evidence"]
+    lines = [
+        "# UniBot: Kurzinfo für die menschliche Prüfung",
+        "",
+        "**Status:** öffentliche Entwurfsfassung; keine Freigabe",
+        f"**Prüfungseinsatz:** `{packet['deployment_status']}`",
+        "",
+        "## Was ist UniBot?",
+        "UniBot ist eine lokale Lernhilfe für Python-Notebooks. Die Chrome-Erweiterung zeigt einen Seitenbereich neben dem Notebook.",
+        "Die lernende Person wählt selbst eine Zelle, beschreibt den eigenen Versuch und bekommt eine begrenzte sokratische Rückfrage oder Erklärung.",
+        "",
+        "## Was kann man damit üben?",
+        "- Python-Code in einer lokalen Übungsumgebung verstehen und verbessern.",
+        "- Einen Fehler Schritt für Schritt eingrenzen.",
+        "- Quellen prüfen und den nächsten eigenen Schritt formulieren.",
+        "- Die Hilfe in Stufen nutzen: A0 Ziel, A1 Problem, A2 Konzept, A3 Struktur, A4 unvollständiges Gerüst.",
+        "- Eine öffentliche synthetische Notebook-Demo nachvollziehen.",
+        "",
+        "## Was macht der Bot nicht?",
+        "- Er benotet nicht und entscheidet nicht über Eignung oder Zulassung.",
+        "- Er überwacht nicht und erkennt keine KI-Nutzung.",
+        "- Er liefert keinen vollständigen Aufgabencode, keine Endwerte und keine fertige Interpretation.",
+        "- Er entscheidet keinen Nachteilsausgleich und gibt keine Prüfungs- oder Rechtsfreigabe.",
+        "",
+        "## Datenschutz in einem Satz",
+        "Zelltext und eigener Versuch werden nur flüchtig lokal verarbeitet; dauerhaft bleiben nur notwendige Metadaten, Hashes, Hilfestufen und Quellen-IDs.",
+        "Der Tutor arbeitet ohne Provider. GLM erhält in dieser Etappe keinen Lernenden- oder Notebookinhalt.",
+        "Ein Export wird zuerst angezeigt und ist freiwillig.",
+        "",
+        "## Inklusion",
+        "Tastaturbedienung, sichtbarer Fokus, Statusansagen, ein schmales Seitenpanel und eine manuelle Zellwahl sind vorgesehen und technisch geprüft.",
+        "Diese Prüfungen sind keine WCAG-Zertifizierung. Das Inklusionsbüro entscheidet, welche Unterstützung im konkreten Lehr- oder Prüfungsformat passt.",
+        "Barrierearme Unterstützung bleibt kostenneutral und wird nicht in eine automatische Bewertung umgerechnet.",
+        "",
+        "## Was soll die Universität entscheiden?",
+        "- Ist der lokale Übungszweck für das konkrete Modul geeignet?",
+        "- Welche Daten, Speicherfristen, Rollen und Löschbelege sind zulässig?",
+        "- Welche Bedienungs- und Assistenzfunktionen sind angemessen?",
+        "- Wer trägt die fachliche Verantwortung?",
+        "- Welche getrennte schriftliche Entscheidung wäre vor jedem Prüfungseinsatz nötig?",
+        "",
+        "## Aktueller Nachweis",
+        f"- Readiness: {evidence['readiness']['status']} ({evidence['readiness']['passed_count']}/{evidence['readiness']['check_count']}).",
+        f"- Barrierefreiheit: {evidence['browser_mantle']['accessibility_evidence']['status']}.",
+        f"- Forschung: {summary['scientific_claim']}",
+        "- Die öffentliche Demo nutzt ausschließlich synthetische Inhalte.",
+        "",
+        "## Autorenschaft und Verantwortung",
+        f"- Implementierung und Dokumentation: **{packet['authorship']['implementation_and_documentation']}**.",
+        "- GLM: in dieser Etappe geparkt und ohne Beitrag.",
+        "- Julius und die zuständigen Hochschulstellen entscheiden über Veröffentlichung, Pilot und jeden Prüfungstrack.",
+        "",
+        "**Wichtig:** Diese Kurzinfo ist eine Gesprächsgrundlage. Sie ist kein Rechtsgutachten und keine institutionelle Freigabe.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
 def write_institutional_review_bundle(
     output_dir: str | Path,
     *,
@@ -1068,10 +1136,12 @@ def write_institutional_review_bundle(
             "exam_deployment_status": "not_cleared",
         }
     markdown = build_institutional_presentation_markdown(packet)
+    plain_language_brief = build_institutional_plain_language_brief(packet)
     json_text = json.dumps(packet, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     contents = {
         "institutional-presentation.json": json_text,
         "institutional-presentation.md": markdown,
+        "institutional-plain-language-brief.md": plain_language_brief,
         "institutional-review-decision-template.md": build_institutional_review_decision_template_markdown(
             packet["institutional_review_decision_template"]
         ),
