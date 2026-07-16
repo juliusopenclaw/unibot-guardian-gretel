@@ -59,7 +59,7 @@ SOURCE_CARDS = [
         authority_type="university",
         product_rule="Use must be transparent and tied to the applicable teaching and examination rules; this card does not grant approval.",
         risk_level="high",
-        last_checked="2026-07-16",
+        last_checked="2026-07-17",
     ),
     SourceCard(
         source_id="uoc-ki-pruefungsrecht",
@@ -69,7 +69,7 @@ SOURCE_CARDS = [
         authority_type="university-exam-office",
         product_rule="Exam use and permitted aids must be decided under the applicable examination rules; UniBot cannot declare clearance.",
         risk_level="high",
-        last_checked="2026-07-16",
+        last_checked="2026-07-17",
     ),
     SourceCard(
         source_id="uoc-medfak-ki-doku-2026",
@@ -79,7 +79,7 @@ SOURCE_CARDS = [
         authority_type="university-medical-faculty",
         product_rule="Document AI tools, purpose, assistance, sources, and human validation transparently for academic work.",
         risk_level="high",
-        last_checked="2026-07-16",
+        last_checked="2026-07-17",
     ),
     SourceCard(
         source_id="uoc-medfak-ki-lehre-2026",
@@ -89,7 +89,7 @@ SOURCE_CARDS = [
         authority_type="university-medical-faculty",
         product_rule="Faculty guidance points to the university AI policy and faculty-specific rules; this page does not approve a UniBot deployment.",
         risk_level="high",
-        last_checked="2026-07-16",
+        last_checked="2026-07-17",
     ),
     SourceCard(
         source_id="hg-nrw-2025",
@@ -149,7 +149,7 @@ SOURCE_CARDS = [
         authority_type="university",
         product_rule="Exam mode must block external KI unless the applicable rule explicitly allows it.",
         risk_level="high",
-        last_checked="2026-07-16",
+        last_checked="2026-07-17",
     ),
     SourceCard(
         source_id="uoc-nachteilsausgleich",
@@ -159,7 +159,7 @@ SOURCE_CARDS = [
         authority_type="university-inclusion-process",
         product_rule="Nachteilsausgleich is an individual decision by the responsible examination committee; UniBot must remain score-neutral and non-decisional.",
         risk_level="high",
-        last_checked="2026-07-16",
+        last_checked="2026-07-17",
     ),
     SourceCard(
         source_id="uoc-szi-klausurunterstuetzung-2026",
@@ -169,7 +169,7 @@ SOURCE_CARDS = [
         authority_type="university-inclusion-process",
         product_rule="Exam support is coordinated by teaching, examination, and inclusion professionals; UniBot cannot decide or implement an accommodation.",
         risk_level="high",
-        last_checked="2026-07-16",
+        last_checked="2026-07-17",
     ),
     SourceCard(
         source_id="uoc-szi-assistenzstelle-2026",
