@@ -11,7 +11,7 @@ import nbformat
 
 from unibot.companion import CompanionRuntime, read_native_message, write_native_message
 from unibot.learning_session import HELP_COSTS_V1, LearningSession, create_session_contract
-from unibot.socratic_tutor import analyze_cell, build_tutor_turn
+from unibot.socratic_tutor import _source_anchors, analyze_cell, build_tutor_turn
 
 
 class UniBotMantleV21Tests(unittest.TestCase):
@@ -106,6 +106,31 @@ class UniBotMantleV21Tests(unittest.TestCase):
         )
         self.assertIn("Summe", mean_turn["hint_markdown"])
         self.assertNotIn("(___ - ___) / ___", mean_turn["hint_markdown"])
+
+    def test_rule_pack_binds_ast_traceback_and_source_boundary(self) -> None:
+        numpy = analyze_cell("Pruefe die Array-Form.", "import numpy as np\nvalues = np.array([1, 2, 3])")
+        self.assertEqual(numpy.rule_id, "numpy.arrays")
+        self.assertEqual(numpy.knowledge_boundary, "source_bound")
+        self.assertIn("numpy", numpy.skill_tags)
+
+        traceback = analyze_cell("Warum scheitert die Zelle?", "NameError: missing_value")
+        self.assertEqual(traceback.rule_id, "python.debugging")
+        self.assertIn("python-tutorial-errors", [item["id"] for item in _source_anchors(traceback)])
+
+    def test_unknown_topic_returns_no_reliable_source_without_generic_claim(self) -> None:
+        session = LearningSession.start({"assistance_mode": "fixed", "fixed_help_level": "A2", "max_help_level": "A4"})
+        turn = build_tutor_turn(
+            session,
+            {
+                "task": "Erklaere mir ein synthetisches Fachgebiet ohne Kursanker.",
+                "learner_attempt": "Ich habe zuerst die Begriffe abgegrenzt.",
+                "requested_help_level": "A2",
+            },
+        )
+        self.assertEqual(turn["status"], "no_reliable_source")
+        self.assertEqual(turn["source_anchor_ids"], [])
+        self.assertEqual(turn["assistance_points_delta"], 0)
+        self.assertIn("no_reliable_source", turn["blocked_reasons"])
 
     def test_private_input_is_blocked_and_never_written_to_report(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

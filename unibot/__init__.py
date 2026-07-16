@@ -103,6 +103,7 @@ from .guardian_benchmark import (
     guardian_semantic_precision_work_item,
     held_out_cases,
 )
+from .socratic_tutor import TUTOR_RULE_PACK_SCHEMA_VERSION, analyze_cell, build_tutor_turn
 from .evaluation import build_evaluation_markdown, build_evaluation_packet, synthetic_tasks
 from .extraction_decision import build_extraction_decision_packet, validate_extraction_decision_record
 from .extraction_decision_intake import (
@@ -352,6 +353,9 @@ __all__ = [
     "evaluate_guardian_benchmark",
     "guardian_semantic_precision_work_item",
     "held_out_cases",
+    "TUTOR_RULE_PACK_SCHEMA_VERSION",
+    "analyze_cell",
+    "build_tutor_turn",
     "route_request",
     "scan_public_files",
     "scan_text",
