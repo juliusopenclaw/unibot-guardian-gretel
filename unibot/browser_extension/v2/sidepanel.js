@@ -34,6 +34,7 @@ const elements = {
   task: document.querySelector("#task"),
   attempt: document.querySelector("#attempt"),
   confirmEscalation: document.querySelector("#confirmEscalation"),
+  accessibilitySupport: document.querySelector("#accessibilitySupport"),
   ask: document.querySelector("#ask"),
   helpOutput: document.querySelector("#helpOutput"),
   refreshReview: document.querySelector("#refreshReview"),
@@ -270,7 +271,8 @@ function renderTurn(turn) {
     `${turn.effective_help_level} | ${turn.hint_markdown}`,
     sources ? `Quelle: ${sources}` : "",
     `Hilfebudget dieser Aufgabe: ${turn.assistance_points_for_task} Punkte (+${turn.assistance_points_delta})`,
-    `Naechste erlaubte Stufe: ${turn.next_allowed_help_level}${boundary}`
+    `Naechste erlaubte Stufe: ${turn.next_allowed_help_level}${boundary}`,
+    turn.accessibility_used ? "Barrierearme Darstellung: kostenneutral" : ""
   ].filter(Boolean).join("\n");
 }
 
@@ -288,7 +290,8 @@ async function requestHelp() {
     cell_index: state.selectedCell?.cellIndex ?? -1,
     adapter: state.selectedCell?.adapter || "none",
     requested_help_level: selectedHelpLevel(),
-    confirm_escalation: elements.confirmEscalation.checked
+    confirm_escalation: elements.confirmEscalation.checked,
+    accessibility_used: elements.accessibilitySupport.checked
   });
   elements.helpOutput.textContent = renderTurn(response.turn);
   elements.confirmEscalation.checked = false;
@@ -300,6 +303,7 @@ function renderReview(report) {
     `Eigene Versuche: ${report.own_attempt_count || 0}`,
     `Hilfestufen: ${JSON.stringify(report.by_help_level || {})}`,
     `Hilfebudget genutzt: ${report.assistance_points_used || 0} Punkte`,
+    "Barrierearme Unterstützung bleibt kostenneutral",
     "Keine automatische Note oder KI-Erkennung",
     "Pruefungseinsatz: nicht freigegeben"
   ].join("\n");

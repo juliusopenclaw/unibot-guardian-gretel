@@ -48,6 +48,9 @@ class BrowserExtensionV2Tests(unittest.TestCase):
         self.assertIn("stopGateway", html)
         self.assertIn('id="notebookFile"', html)
         self.assertIn('accept=".ipynb,application/x-ipynb+json"', html)
+        self.assertIn('id="accessibilitySupport"', html)
+        self.assertIn("kostenneutral", html)
+        self.assertIn("accessibility_used", script)
         self.assertNotIn("127.0.0.1:8765", script)
 
     def test_content_script_extracts_active_notebook_cell_not_output(self) -> None:

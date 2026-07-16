@@ -52,6 +52,7 @@
       output { display: block; min-height: 72px; margin-top: 14px; padding: 10px; border-left: 3px solid #55718f; background: #ffffff; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; }
       .cell-meta { margin-top: 8px; font-size: 12px; color: #586174; }
       .boundary { margin-top: 18px; padding-top: 10px; border-top: 1px solid #d9dde5; font-size: 11px; color: #697285; }
+      .support-note { margin-top: 6px; font-size: 11px; color: #586174; line-height: 1.4; }
       @media (max-width: 310px) {
         header, main { padding-left: 10px; padding-right: 10px; }
         nav button { font-size: 12px; }
@@ -121,6 +122,8 @@
           </div>
         </fieldset>
         <label class="check"><input id="confirmEscalation" type="checkbox">Hilfestufe und sichtbaren Budgetzuwachs bestaetigen</label>
+        <label class="check"><input id="accessibilitySupport" type="checkbox" aria-describedby="accessibilityNote">Barrierearme Darstellung verwenden (kostenneutral)</label>
+        <div id="accessibilityNote" class="support-note">Keine Diagnose und keine automatische Nachteilsausgleich-Entscheidung; nur ein neutrales Sitzungsmerkmal.</div>
         <button id="ask" class="command" type="button">Hilfe anfragen</button>
         <output id="helpOutput" role="status" aria-live="polite" aria-atomic="true">Noch keine Anfrage.</output>
       </section>

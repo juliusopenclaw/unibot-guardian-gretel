@@ -111,6 +111,21 @@ class UniBotMantleV21Tests(unittest.TestCase):
         self.assertIn("Summe", mean_turn["hint_markdown"])
         self.assertNotIn("(___ - ___) / ___", mean_turn["hint_markdown"])
 
+    def test_accessibility_support_is_explicit_and_cost_neutral(self) -> None:
+        turn = build_tutor_turn(
+            LearningSession.start({"assistance_mode": "fixed", "fixed_help_level": "A2", "max_help_level": "A2"}),
+            {
+                "task": "Warum entsteht ein IndexError?",
+                "learner_attempt": "Ich pruefe zuerst die Listenlaenge.",
+                "cell_context": "values = [1, 2, 3]\nprint(values[3])",
+                "requested_help_level": "A2",
+                "accessibility_used": True,
+            },
+        )
+        self.assertTrue(turn["accessibility_used"])
+        self.assertEqual(turn["assistance_points_delta"], 5)
+        self.assertTrue(turn["help_event"]["accessibility_neutral"])
+
     def test_rule_pack_binds_ast_traceback_and_source_boundary(self) -> None:
         numpy = analyze_cell("Pruefe die Array-Form.", "import numpy as np\nvalues = np.array([1, 2, 3])")
         self.assertEqual(numpy.rule_id, "numpy.arrays")

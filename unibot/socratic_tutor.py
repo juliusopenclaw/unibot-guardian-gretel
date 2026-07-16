@@ -194,6 +194,7 @@ class TutorTurnV1(TypedDict):
     attempt_hash: str
     cell_hash: str
     own_attempt_present: bool
+    accessibility_used: bool
     raw_cell_stored: bool
     raw_attempt_stored: bool
     local_realizer: str
@@ -528,6 +529,7 @@ def build_tutor_turn(session: LearningSession, payload: TutorTurnRequestV1) -> T
         "attempt_hash": attempt_hash,
         "cell_hash": cell_hash,
         "own_attempt_present": bool(attempt),
+        "accessibility_used": bool(payload.get("accessibility_used", False)),
         "raw_cell_stored": False,
         "raw_attempt_stored": False,
         "local_realizer": "deterministic_source_grounded_v1",

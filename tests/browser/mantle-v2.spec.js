@@ -74,6 +74,7 @@ test("content script captures the focused Colab cell without output text", async
 test("sidepanel starts a native session, captures a cell, requests A0-A4 help, and renders review metadata", async ({ page }) => {
   await page.addInitScript(() => {
     let onNativeMessage = null;
+    window.__lastTutorPayload = null;
     const nativePort = {
       onMessage: { addListener(listener) { onNativeMessage = listener; } },
       onDisconnect: { addListener() {} },
@@ -90,6 +91,7 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
             }
           };
         } else if (message.type === "tutor.turn") {
+          window.__lastTutorPayload = message.payload;
           if (!["A0", "A1", "A2", "A3", "A4"].includes(message.payload.requested_help_level)) {
             throw new Error("unexpected help level");
           }
@@ -157,9 +159,11 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
   await expect(page.locator("#cellMeta")).toContainText("Zelle 2");
   await page.locator("#task").fill("Warum entsteht ein Indexfehler?");
   await page.locator("#attempt").fill("Ich pruefe zuerst die Listenlaenge.");
+  await page.locator("#accessibilitySupport").check();
   await page.locator("#ask").click();
   await expect(page.locator("#helpOutput")).toContainText("Welche Laenge");
   await expect(page.locator("#helpOutput")).toContainText("5 Punkte");
+  expect(await page.evaluate(() => window.__lastTutorPayload?.accessibility_used)).toBe(true);
 
   await page.getByRole("tab", { name: "Rueckblick", exact: true }).click();
   await page.locator("#refreshReview").click();
