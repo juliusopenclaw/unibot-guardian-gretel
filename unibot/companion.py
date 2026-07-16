@@ -17,7 +17,7 @@ import sys
 import time
 from stat import S_IMODE
 from pathlib import Path
-from typing import Any, BinaryIO, cast
+from typing import Any, BinaryIO, Mapping, cast
 
 from .gateway import launch_gateway
 from .learning_session import (
@@ -140,7 +140,7 @@ class CompanionRuntime:
             if float(upload["last_activity"]) < cutoff:
                 self.notebook_uploads.pop(upload_id, None)
 
-    def _register_notebook_manifest(self, manifest: dict[str, Any]) -> dict[str, Any]:
+    def _register_notebook_manifest(self, manifest: Mapping[str, Any]) -> dict[str, Any]:
         notebook_id = str(manifest["sanitized_sha256"])[:16]
         self.notebook_manifests[notebook_id] = self.notebook_root / notebook_id / "manifest.json"
         if self.session is not None and not self.session.stopped:
