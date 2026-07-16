@@ -49,6 +49,13 @@ learning, or independent work.
   terminate that process after a Chrome restart; the Jupyter token is never
   written to the record. The notebook retention clock starts again when the
   gateway ends.
+- The Sidepanel accepts either an allowlisted public HTTPS notebook URL or a
+  learner-selected local `.ipynb` file. Chrome never provides a local path to
+  the Companion. Local files are transferred as 32 KiB Native-Messaging
+  chunks, with one active upload, a 10 MiB limit, a 60-second in-memory timeout,
+  a path-free filename, and a SHA-256 check. The Companion validates and
+  sanitizes the complete byte stream before writing the temporary practice
+  copy; interrupted, invalid, or abandoned raw uploads are discarded.
 - The Sidepanel exposes semantic tab/panel relationships, live status regions,
   visible keyboard focus, a tested narrow layout, and bounded automatic
   reconnection after a native-host restart. The Playwright check is
@@ -125,7 +132,8 @@ remains available for development and one alpha compatibility cycle.
   for allowed hints, assistance budget, source binding, solution leakage,
   privacy, and prompt injection.
 - Playwright covers Jupyter cell capture without outputs, the full mocked
-  side-panel workflow, and narrow widths.
+  side-panel workflow, local notebook file selection through the chunked
+  Native-Messaging protocol, and narrow widths.
 - A headed package harness loads the real MV3 extension and verifies its stable
   ID and rendered side panel.
 - On macOS, the release canary runs the installed Google Chrome binary with

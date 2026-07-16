@@ -37,6 +37,9 @@ full provenance statement is in `AUTHORS.md`.
   `unibot release audit ./unibot-review-candidate`
 - Open `~/Applications/UniBot Companion.app` or click the extension and start a
   fixed or adaptive A0-A4 learning session.
+- In the extension, import either an allowlisted public `.ipynb` URL or choose a
+  local `.ipynb` file. Local selection uses a bounded, hash-checked,
+  path-free Native-Messaging upload and writes only the sanitized practice copy.
 - Start the paired local API: `unibot serve --pair`
 - Import a public notebook: `unibot notebook import <https-url-or-local-file>`
 - Prepare the institutional review profile: `unibot institution profile`
@@ -56,6 +59,10 @@ The production-facing alpha extension communicates through Chrome Native
 Messaging. It does not store a loopback token or depend on a hard-coded port.
 Notebook cell, task, and learner-attempt text stay in process memory; local
 session files and voluntary exports contain metadata and hashes only.
+For local notebook selection, the browser sends 32 KiB chunks and the Companion
+discards the raw byte stream after validation and sanitization. The retained
+notebook artifact is a temporary local practice copy, not a public or provider
+upload.
 
 ## Tests
 

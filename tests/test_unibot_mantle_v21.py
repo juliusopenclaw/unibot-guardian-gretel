@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import io
+import base64
+import hashlib
 import os
 import struct
 import subprocess
@@ -365,6 +367,79 @@ class UniBotMantleV21Tests(unittest.TestCase):
         oversized = io.BytesIO(struct.pack("<I", 100_000))
         with self.assertRaises(ValueError):
             read_native_message(oversized)
+
+    def test_companion_accepts_chunked_browser_notebook_without_persisting_path_or_raw_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            raw = nbformat.writes(
+                nbformat.v4.new_notebook(cells=[nbformat.v4.new_code_cell("values = [1, 2, 3]")])
+            ).encode("utf-8")
+            runtime = CompanionRuntime(storage_root=root / "sessions")
+            upload_id = "a" * 32
+            started = runtime.handle(
+                {
+                    "request_id": "upload-1",
+                    "type": "notebook.upload.start",
+                    "payload": {
+                        "upload_id": upload_id,
+                        "source_label": "browser-practice.ipynb",
+                        "source_sha256": hashlib.sha256(raw).hexdigest(),
+                        "total_bytes": len(raw),
+                        "total_chunks": 1,
+                    },
+                }
+            )
+            chunk = runtime.handle(
+                {
+                    "request_id": "upload-2",
+                    "type": "notebook.upload.chunk",
+                    "payload": {
+                        "upload_id": upload_id,
+                        "chunk_index": 0,
+                        "data": base64.b64encode(raw).decode("ascii"),
+                    },
+                }
+            )
+            finished = runtime.handle(
+                {
+                    "request_id": "upload-3",
+                    "type": "notebook.upload.finish",
+                    "payload": {"upload_id": upload_id},
+                }
+            )
+            stored = "".join(path.read_text(encoding="utf-8") for path in (root / "sessions").glob("*"))
+
+        self.assertEqual(started["status"], "uploading")
+        self.assertEqual(chunk["status"], "uploading")
+        self.assertEqual(finished["status"], "ok")
+        self.assertEqual(finished["manifest"]["source_label"], "browser-practice.ipynb")
+        self.assertNotIn(str(root), stored)
+        self.assertNotIn(raw.decode("utf-8"), stored)
+
+    def test_companion_rejects_incomplete_or_tampered_notebook_upload(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            raw = b'{"cells":[],"metadata":{},"nbformat":4,"nbformat_minor":5}'
+            runtime = CompanionRuntime(storage_root=root / "sessions")
+            upload_id = "b" * 32
+            runtime.handle(
+                {
+                    "request_id": "upload-bad-1",
+                    "type": "notebook.upload.start",
+                    "payload": {
+                        "upload_id": upload_id,
+                        "source_label": "practice.ipynb",
+                        "source_sha256": hashlib.sha256(b"different").hexdigest(),
+                        "total_bytes": len(raw),
+                        "total_chunks": 1,
+                    },
+                }
+            )
+            finished = runtime.handle(
+                {"request_id": "upload-bad-2", "type": "notebook.upload.finish", "payload": {"upload_id": upload_id}}
+            )
+            self.assertEqual(finished["status"], "blocked")
+            self.assertEqual(runtime.notebook_uploads, {})
 
 
 if __name__ == "__main__":

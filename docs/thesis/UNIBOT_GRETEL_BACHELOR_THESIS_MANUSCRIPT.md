@@ -138,6 +138,14 @@ Schema entsprechen. Codeausgaben, Ausfuehrungszaehler, Anhaenge und nicht
 benoetigte Metadaten werden entfernt. Rohquelle und Notebookinhalt sind fuer
 den GLM-Kontext gesperrt.
 
+Die Browser-Erweiterung uebergibt lokale Dateien nicht als Pfad. Stattdessen
+werden sie in 32-KiB-Abschnitten ueber Native Messaging an den lokalen
+Companion gesendet. Eine aktive Uebertragung, 10 MiB, ein 60-Sekunden-
+In-Memory-Timeout, ein pfadfreier Dateiname und ein SHA-256-Abgleich begrenzen
+den Transport. Erst nach vollstaendiger Validierung und Bereinigung wird die
+temporaere lokale Uebungskopie geschrieben; abgebrochene Rohdaten werden
+verworfen.
+
 Der Browser-Mantel besitzt nur die Arbeitsbereiche Sitzung, Hilfe und
 Rueckblick. Getrennte Colab-, Jupyter- und manuelle Adapter lesen die aktive
 Zelle, nicht den Ausgabecontainer, und lehnen unsichere Erkennung ab. A0 bis A4

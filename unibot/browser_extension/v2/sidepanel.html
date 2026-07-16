@@ -92,8 +92,10 @@
         </select>
         <button id="startSession" class="command" type="button">Sitzung starten</button>
         <output id="sessionOutput" role="status" aria-live="polite" aria-atomic="true">Lokaler Begleiter wird gesucht.</output>
-        <label for="notebookSource">Oeffentliche Notebook-URL oder lokale Auswahl</label>
+        <label for="notebookSource">Oeffentliche Notebook-URL</label>
         <input id="notebookSource" type="url" placeholder="https://.../notebook.ipynb">
+        <label for="notebookFile">Lokale .ipynb-Datei</label>
+        <input id="notebookFile" type="file" accept=".ipynb,application/x-ipynb+json">
         <button id="importNotebook" class="command secondary" type="button">Notebook importieren</button>
         <button id="openGateway" class="command" type="button" disabled>In Jupyter oeffnen</button>
         <button id="stopGateway" class="command secondary" type="button" disabled>Jupyter stoppen</button>

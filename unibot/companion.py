@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import json
 import os
+import base64
 import hashlib
+import math
+import re
 import shlex
 import shutil
 import signal
@@ -27,13 +30,21 @@ from .learning_session import (
     register_session_notebook,
     session_notebook_ids,
 )
-from .notebook_intake import import_notebook
+from .notebook_intake import (
+    MAX_NOTEBOOK_BYTES,
+    import_notebook,
+    import_notebook_bytes,
+    normalize_local_notebook_label,
+)
 from .socratic_tutor import TutorTurnRequestV1, build_tutor_turn
 
 
 NATIVE_HOST_NAME = "de.gretel.unibot_companion"
 DEFAULT_EXTENSION_ID = "cmbjhndgjhgpopcflkjoalmpfjhoiana"
 MAX_NATIVE_MESSAGE_BYTES = 64 * 1024
+NOTEBOOK_UPLOAD_CHUNK_BYTES = 32 * 1024
+NOTEBOOK_UPLOAD_TIMEOUT_SECONDS = 60
+NOTEBOOK_UPLOAD_ID = re.compile(r"^[0-9a-f]{32}$")
 APPLICATION_SUPPORT = Path.home() / "Library" / "Application Support" / "UniBot Companion"
 CHROME_NATIVE_HOSTS = Path.home() / "Library" / "Application Support" / "Google" / "Chrome" / "NativeMessagingHosts"
 CHROMIUM_NATIVE_HOSTS = Path.home() / "Library" / "Application Support" / "Chromium" / "NativeMessagingHosts"
@@ -121,6 +132,20 @@ class CompanionRuntime:
         )
         self.session: LearningSession | None = None
         self.notebook_manifests: dict[str, Path] = {}
+        self.notebook_uploads: dict[str, dict[str, Any]] = {}
+
+    def _cleanup_notebook_uploads(self) -> None:
+        cutoff = time.monotonic() - NOTEBOOK_UPLOAD_TIMEOUT_SECONDS
+        for upload_id, upload in list(self.notebook_uploads.items()):
+            if float(upload["last_activity"]) < cutoff:
+                self.notebook_uploads.pop(upload_id, None)
+
+    def _register_notebook_manifest(self, manifest: dict[str, Any]) -> dict[str, Any]:
+        notebook_id = str(manifest["sanitized_sha256"])[:16]
+        self.notebook_manifests[notebook_id] = self.notebook_root / notebook_id / "manifest.json"
+        if self.session is not None and not self.session.stopped:
+            register_session_notebook(self.storage_root, self.session.contract["session_id"], notebook_id)
+        return {"notebook_id": notebook_id, "manifest": dict(manifest)}
 
     @staticmethod
     def _process_alive(state: dict[str, Any]) -> bool:
@@ -287,12 +312,106 @@ class CompanionRuntime:
                     source = choose_local_notebook()
                 if not source:
                     return self._response(request_id, "cancelled", error="Notebook selection was cancelled.")
-                manifest = import_notebook(source, self.notebook_root)
-                notebook_id = str(manifest["sanitized_sha256"])[:16]
-                self.notebook_manifests[notebook_id] = self.notebook_root / notebook_id / "manifest.json"
-                if self.session is not None and not self.session.stopped:
-                    register_session_notebook(self.storage_root, self.session.contract["session_id"], notebook_id)
-                return self._response(request_id, "ok", notebook_id=notebook_id, manifest=dict(manifest))
+                imported = self._register_notebook_manifest(import_notebook(source, self.notebook_root))
+                return self._response(request_id, "ok", **imported)
+            if message_type == "notebook.upload.start":
+                self._cleanup_notebook_uploads()
+                if len(self.notebook_uploads) >= 1:
+                    return self._response(request_id, "blocked", error="Only one notebook upload may be active.")
+                upload_id = str(payload.get("upload_id", "")).strip()
+                source_label = str(payload.get("source_label", ""))
+                source_sha256 = str(payload.get("source_sha256", "")).lower()
+                try:
+                    total_bytes = int(payload.get("total_bytes", 0))
+                    total_chunks = int(payload.get("total_chunks", 0))
+                except (TypeError, ValueError) as exc:
+                    raise ValueError("notebook upload metadata is invalid") from exc
+                if not NOTEBOOK_UPLOAD_ID.fullmatch(upload_id):
+                    raise ValueError("notebook upload id is invalid")
+                if upload_id in self.notebook_uploads:
+                    raise ValueError("notebook upload id is already active")
+                if not source_sha256 or not re.fullmatch(r"[0-9a-f]{64}", source_sha256):
+                    raise ValueError("notebook upload hash is invalid")
+                if total_bytes <= 0 or total_bytes > MAX_NOTEBOOK_BYTES:
+                    raise ValueError("notebook exceeds maximum size")
+                expected_chunks = math.ceil(total_bytes / NOTEBOOK_UPLOAD_CHUNK_BYTES)
+                if total_chunks != expected_chunks:
+                    raise ValueError("notebook upload chunk count is invalid")
+                self.notebook_uploads[upload_id] = {
+                    "source_label": normalize_local_notebook_label(source_label),
+                    "source_sha256": source_sha256,
+                    "total_bytes": total_bytes,
+                    "total_chunks": total_chunks,
+                    "chunks": {},
+                    "received_bytes": 0,
+                    "last_activity": time.monotonic(),
+                }
+                return self._response(
+                    request_id,
+                    "uploading",
+                    upload_id=upload_id,
+                    chunk_bytes=NOTEBOOK_UPLOAD_CHUNK_BYTES,
+                )
+            if message_type == "notebook.upload.chunk":
+                self._cleanup_notebook_uploads()
+                upload_id = str(payload.get("upload_id", "")).strip()
+                upload = self.notebook_uploads.get(upload_id)
+                if upload is None:
+                    raise ValueError("notebook upload is missing or expired")
+                try:
+                    chunk_index = int(payload.get("chunk_index", -1))
+                except (TypeError, ValueError) as exc:
+                    raise ValueError("notebook upload chunk index is invalid") from exc
+                if chunk_index < 0 or chunk_index >= int(upload["total_chunks"]):
+                    raise ValueError("notebook upload chunk index is invalid")
+                if chunk_index in upload["chunks"]:
+                    raise ValueError("notebook upload chunk is duplicated")
+                encoded = payload.get("data")
+                if not isinstance(encoded, str) or not encoded:
+                    raise ValueError("notebook upload chunk is invalid")
+                try:
+                    chunk = base64.b64decode(encoded.encode("ascii"), validate=True)
+                except (ValueError, UnicodeEncodeError) as exc:
+                    raise ValueError("notebook upload chunk is invalid") from exc
+                expected_size = NOTEBOOK_UPLOAD_CHUNK_BYTES
+                if chunk_index == int(upload["total_chunks"]) - 1:
+                    expected_size = int(upload["total_bytes"]) - (chunk_index * NOTEBOOK_UPLOAD_CHUNK_BYTES)
+                if len(chunk) != expected_size:
+                    raise ValueError("notebook upload chunk size is invalid")
+                upload["chunks"][chunk_index] = chunk
+                upload["received_bytes"] = int(upload["received_bytes"]) + len(chunk)
+                upload["last_activity"] = time.monotonic()
+                return self._response(request_id, "uploading", upload_id=upload_id, chunk_index=chunk_index)
+            if message_type == "notebook.upload.abort":
+                upload_id = str(payload.get("upload_id", "")).strip()
+                removed = self.notebook_uploads.pop(upload_id, None) is not None
+                return self._response(request_id, "aborted" if removed else "not-found", upload_id=upload_id)
+            if message_type == "notebook.upload.finish":
+                self._cleanup_notebook_uploads()
+                upload_id = str(payload.get("upload_id", "")).strip()
+                upload = self.notebook_uploads.pop(upload_id, None)
+                if upload is None:
+                    raise ValueError("notebook upload is missing or expired")
+                raw_bytes = b""
+                try:
+                    chunks = upload["chunks"]
+                    if len(chunks) != int(upload["total_chunks"]):
+                        raise ValueError("notebook upload is incomplete")
+                    raw_bytes = b"".join(chunks[index] for index in range(int(upload["total_chunks"])))
+                    if len(raw_bytes) != int(upload["total_bytes"]):
+                        raise ValueError("notebook upload size is invalid")
+                    if hashlib.sha256(raw_bytes).hexdigest() != upload["source_sha256"]:
+                        raise ValueError("notebook upload hash does not match")
+                    manifest = import_notebook_bytes(
+                        raw_bytes,
+                        str(upload["source_label"]),
+                        self.notebook_root,
+                        source_kind="local_file",
+                    )
+                    imported = self._register_notebook_manifest(manifest)
+                    return self._response(request_id, "ok", **imported)
+                finally:
+                    del raw_bytes
             if message_type == "gateway.launch":
                 notebook_id = str(payload.get("notebook_id", ""))
                 manifest_path = self.notebook_manifests.get(notebook_id)

@@ -34,6 +34,9 @@ class BrowserExtensionV2Tests(unittest.TestCase):
         self.assertIn("chrome.runtime.connectNative", script)
         self.assertIn('nativeRequest("session.start"', script)
         self.assertIn('nativeRequest("notebook.import"', script)
+        self.assertIn('nativeRequest("notebook.upload.start"', script)
+        self.assertIn('nativeRequest("notebook.upload.chunk"', script)
+        self.assertIn('nativeRequest("notebook.upload.finish"', script)
         self.assertIn('nativeRequest("gateway.launch"', script)
         self.assertIn('nativeRequest("gateway.status"', script)
         self.assertIn('nativeRequest("gateway.stop"', script)
@@ -43,6 +46,8 @@ class BrowserExtensionV2Tests(unittest.TestCase):
         self.assertIn('nativeRequest("session.delete"', script)
         self.assertIn("deleteSession", html)
         self.assertIn("stopGateway", html)
+        self.assertIn('id="notebookFile"', html)
+        self.assertIn('accept=".ipynb,application/x-ipynb+json"', html)
         self.assertNotIn("127.0.0.1:8765", script)
 
     def test_content_script_extracts_active_notebook_cell_not_output(self) -> None:

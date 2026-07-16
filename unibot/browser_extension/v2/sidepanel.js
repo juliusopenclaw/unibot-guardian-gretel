@@ -1,4 +1,6 @@
 const NATIVE_HOST = "de.gretel.unibot_companion";
+const MAX_NOTEBOOK_BYTES = 10 * 1024 * 1024;
+const UPLOAD_CHUNK_BYTES = 32 * 1024;
 
 const state = {
   port: null,
@@ -22,6 +24,7 @@ const elements = {
   startSession: document.querySelector("#startSession"),
   sessionOutput: document.querySelector("#sessionOutput"),
   notebookSource: document.querySelector("#notebookSource"),
+  notebookFile: document.querySelector("#notebookFile"),
   importNotebook: document.querySelector("#importNotebook"),
   openGateway: document.querySelector("#openGateway"),
   stopGateway: document.querySelector("#stopGateway"),
@@ -189,9 +192,48 @@ async function captureCell() {
 }
 
 async function importNotebook() {
-  const response = await nativeRequest("notebook.import", {
-    source: elements.notebookSource.value.trim()
-  });
+  const source = elements.notebookSource.value.trim();
+  const file = elements.notebookFile.files?.[0];
+  if (source && file) throw new Error("Bitte URL oder lokale Datei auswählen, nicht beides.");
+  let response;
+  if (file) {
+    if (!file.name.toLowerCase().endsWith(".ipynb")) throw new Error("Nur .ipynb-Dateien sind erlaubt.");
+    if (file.size <= 0 || file.size > MAX_NOTEBOOK_BYTES) throw new Error("Das Notebook ist zu groß oder leer.");
+    const buffer = await file.arrayBuffer();
+    const uploadId = Array.from(crypto.getRandomValues(new Uint8Array(16)), (value) => value.toString(16).padStart(2, "0")).join("");
+    const digest = await crypto.subtle.digest("SHA-256", buffer);
+    const sourceSha256 = Array.from(new Uint8Array(digest), (value) => value.toString(16).padStart(2, "0")).join("");
+    const totalChunks = Math.ceil(file.size / UPLOAD_CHUNK_BYTES);
+    let uploadStarted = false;
+    try {
+      await nativeRequest("notebook.upload.start", {
+        upload_id: uploadId,
+        source_label: file.name,
+        source_sha256: sourceSha256,
+        total_bytes: file.size,
+        total_chunks: totalChunks
+      });
+      uploadStarted = true;
+      const bytes = new Uint8Array(buffer);
+      for (let index = 0; index < totalChunks; index += 1) {
+        const chunk = bytes.slice(index * UPLOAD_CHUNK_BYTES, Math.min(bytes.length, (index + 1) * UPLOAD_CHUNK_BYTES));
+        let binary = "";
+        for (let offset = 0; offset < chunk.length; offset += 1) binary += String.fromCharCode(chunk[offset]);
+        await nativeRequest("notebook.upload.chunk", {
+          upload_id: uploadId,
+          chunk_index: index,
+          data: btoa(binary)
+        });
+      }
+      response = await nativeRequest("notebook.upload.finish", { upload_id: uploadId });
+    } catch (error) {
+      if (uploadStarted) await nativeRequest("notebook.upload.abort", { upload_id: uploadId }).catch(() => {});
+      throw error;
+    }
+  } else {
+    if (!source) throw new Error("Bitte eine öffentliche URL oder eine lokale .ipynb-Datei auswählen.");
+    response = await nativeRequest("notebook.import", { source });
+  }
   state.notebookId = response.notebook_id;
   elements.openGateway.disabled = false;
   elements.notebookOutput.textContent = [

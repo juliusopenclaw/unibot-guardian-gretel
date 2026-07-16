@@ -134,6 +134,58 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
   expect(overflow).toBe(false);
 });
 
+test("sidepanel imports a local notebook through the path-free chunked native handoff", async ({ page }) => {
+  await page.addInitScript(() => {
+    let onNativeMessage = null;
+    const nativeTypes = [];
+    window.__nativeTypes = nativeTypes;
+    const nativePort = {
+      onMessage: { addListener(listener) { onNativeMessage = listener; } },
+      onDisconnect: { addListener() {} },
+      postMessage(message) {
+        nativeTypes.push(message.type);
+        let response = { request_id: message.request_id, status: "ready" };
+        if (message.type === "notebook.upload.start" || message.type === "notebook.upload.chunk") {
+          response = { request_id: message.request_id, status: "uploading" };
+        } else if (message.type === "notebook.upload.finish") {
+          response = {
+            request_id: message.request_id,
+            status: "ok",
+            notebook_id: "synthetic-notebook",
+            manifest: {
+              cell_count: 1,
+              outputs_removed: 1,
+              sanitized_sha256: "a".repeat(64)
+            }
+          };
+        }
+        queueMicrotask(() => onNativeMessage?.(response));
+      }
+    };
+    window.chrome = {
+      runtime: {
+        connectNative() { return nativePort; },
+        lastError: null
+      }
+    };
+  });
+
+  await page.goto(pathToFileURL(path.join(extensionRoot, "v2", "sidepanel.html")).href);
+  const notebook = JSON.stringify({ cells: [{ cell_type: "code", metadata: {}, source: ["values = [1, 2, 3]"], outputs: [], execution_count: null }], metadata: {}, nbformat: 4, nbformat_minor: 5 });
+  await page.locator("#notebookFile").setInputFiles({
+    name: "practice.ipynb",
+    mimeType: "application/x-ipynb+json",
+    buffer: Buffer.from(notebook)
+  });
+  await page.locator("#importNotebook").click();
+  await expect(page.locator("#notebookOutput")).toContainText("Bereinigtes Notebook bereit");
+  const nativeTypes = await page.evaluate(() => window.__nativeTypes);
+  expect(nativeTypes).toContain("notebook.upload.start");
+  expect(nativeTypes).toContain("notebook.upload.chunk");
+  expect(nativeTypes).toContain("notebook.upload.finish");
+  expect(nativeTypes).not.toContain("notebook.import");
+});
+
 test("sidepanel remains usable at the narrow supported width", async ({ page }) => {
   await page.setViewportSize({ width: 300, height: 700 });
   await page.addInitScript(() => {
