@@ -46,8 +46,8 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
                 [
                     "INSTITUTIONAL-MANIFEST.json",
                     "PUBLIC-DEMO.md",
-                    "REVIEW-START-HERE.md",
                     "RELEASE-MANIFEST.json",
+                    "REVIEW-START-HERE.md",
                     "institutional-accessibility-walkthrough.md",
                     "institutional-plain-language-brief.md",
                     "institutional-presentation.json",
