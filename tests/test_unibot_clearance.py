@@ -127,6 +127,11 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
 
         markdown = build_institutional_presentation_markdown(packet)
         self.assertIn("# UniBot Institutional Presentation", markdown)
+        self.assertIn("## Vorlage für Prüfungsamt und Inklusionsbüro", markdown)
+        self.assertIn("## Inklusion und Barrierefreiheit", markdown)
+        self.assertIn("## Datenschutz und Datenfluss", markdown)
+        self.assertIn("## Was der Bot ausdrücklich nicht tut", markdown)
+        self.assertIn("Vollständiger Aufgabencode", markdown)
         self.assertIn("not_cleared", markdown)
         self.assertIn("RegulatoryProfileV1: ok", markdown)
         self.assertIn("Pruefungsamt", markdown)
