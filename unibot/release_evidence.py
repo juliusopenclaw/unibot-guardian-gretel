@@ -147,6 +147,7 @@ def _run_gate(
     timeout_seconds: int,
     parser: Callable[[str], dict[str, Any]] = _pytest_metrics,
     environment: dict[str, str] | None = None,
+    success: Callable[[dict[str, Any]], bool] | None = None,
 ) -> dict[str, Any]:
     started = time.monotonic()
     stdout = ""
@@ -176,6 +177,10 @@ def _run_gate(
     except OSError:
         error_type = "execution_error"
 
+    metrics = parser(stdout)
+    if status == "pass" and success is not None and not success(metrics):
+        status = "fail"
+        error_type = "metrics_invalid"
     combined = stdout + "\n" + stderr
     record: dict[str, Any] = {
         "gate_id": gate_id,
@@ -184,7 +189,7 @@ def _run_gate(
         "exit_code": return_code,
         "duration_ms": int((time.monotonic() - started) * 1000),
         "output_sha256": _sha256_text(combined),
-        "metrics": parser(stdout),
+        "metrics": metrics,
     }
     if error_type:
         record["error_type"] = error_type
@@ -260,9 +265,35 @@ def write_release_evidence(output_path: str | Path, *, repository: str | Path) -
             environment["UNIBOT_CHROME_EXECUTABLE"] = str(default_chrome)
 
     gates = [
-        _run_gate("python_suite", "python_full_suite", [sys.executable, "-m", "pytest", "-q"], repo, timeout_seconds=300),
-        _run_gate("browser_suite", "playwright_browser_suite", ["npm", "run", "test:browser"], repo, timeout_seconds=180),
-        _run_gate("extension_package", "mv3_extension_package", ["npm", "run", "test:extension-package"], repo, timeout_seconds=180),
+        _run_gate(
+            "python_suite",
+            "python_full_suite",
+            [sys.executable, "-m", "pytest", "-q"],
+            repo,
+            timeout_seconds=300,
+            success=lambda metrics: metrics.get("passed_count", 0) > 0
+            and metrics.get("failed_count", 0) == 0
+            and metrics.get("error_count", 0) == 0,
+        ),
+        _run_gate(
+            "browser_suite",
+            "playwright_browser_suite",
+            ["npm", "run", "test:browser"],
+            repo,
+            timeout_seconds=180,
+            success=lambda metrics: metrics.get("passed_count", 0) > 0
+            and metrics.get("failed_count", 0) == 0
+            and metrics.get("error_count", 0) == 0,
+        ),
+        _run_gate(
+            "extension_package",
+            "mv3_extension_package",
+            ["npm", "run", "test:extension-package"],
+            repo,
+            timeout_seconds=180,
+            parser=_chrome_metrics,
+            success=lambda metrics: metrics.get("status") == "pass" and metrics.get("sidepanel_rendered") is True,
+        ),
         _run_gate(
             "chrome_canary",
             "chrome_native_messaging_canary",
@@ -271,6 +302,10 @@ def write_release_evidence(output_path: str | Path, *, repository: str | Path) -
             timeout_seconds=180,
             parser=_chrome_metrics,
             environment=environment,
+            success=lambda metrics: metrics.get("status") == "pass"
+            and metrics.get("sidepanel_rendered") is True
+            and metrics.get("native_companion_connected") is True
+            and metrics.get("learning_session_resumed") is True,
         ),
         _run_gate(
             "pipeline_smoke",
@@ -279,6 +314,10 @@ def write_release_evidence(output_path: str | Path, *, repository: str | Path) -
             repo,
             timeout_seconds=300,
             parser=_pipeline_metrics,
+            success=lambda metrics: metrics.get("status") == "pass"
+            and metrics.get("check_count", 0) > 0
+            and metrics.get("passed_count") == metrics.get("check_count")
+            and metrics.get("failed_count", 0) == 0,
         ),
         _run_gate(
             "public_safety",
@@ -287,6 +326,7 @@ def write_release_evidence(output_path: str | Path, *, repository: str | Path) -
             repo,
             timeout_seconds=60,
             parser=lambda text: _status_metrics(text, ("status", "scanned_count", "finding_count")),
+            success=lambda metrics: metrics.get("status") == "pass" and metrics.get("finding_count") == 0,
         ),
         _run_gate(
             "guardian_benchmark",
@@ -295,6 +335,14 @@ def write_release_evidence(output_path: str | Path, *, repository: str | Path) -
             repo,
             timeout_seconds=60,
             parser=_guardian_metrics,
+            success=lambda metrics: metrics.get("status") == "pass"
+            and metrics.get("case_count") == 60
+            and metrics.get("solution_block_recall") == 1.0
+            and metrics.get("source_binding_precision") == 1.0
+            and metrics.get("allowed_false_block_rate") <= 0.05
+            and metrics.get("notebook_code_executed") is False
+            and metrics.get("provider_context_contains_held_out_cases") is False
+            and metrics.get("raw_case_text_in_report") is False,
         ),
         _source_card_gate(),
     ]
