@@ -73,6 +73,8 @@ class UniBotCompanionInstallTests(unittest.TestCase):
 
             self.assertEqual(diagnosis["schema_version"], "unibot-companion-diagnosis-v1")
             self.assertEqual(diagnosis["status"], "ready")
+            self.assertEqual(diagnosis["local_practice_status"], "ready_for_local_practice")
+            self.assertEqual(diagnosis["distribution_status"], "blocked_human_release_gates")
             self.assertTrue(diagnosis["checks"]["runtime_package"])
             self.assertTrue(diagnosis["checks"]["chrome_manifest"])
             self.assertEqual(native_response["status"], "ok")

@@ -161,6 +161,8 @@ remains available for development and one alpha compatibility cycle.
   deterministic browser harness and does not claim native transport.
 - `unibot companion diagnose` and the native `companion.diagnose` message expose
   only boolean installation checks, signature state, and release boundaries.
-  They never return learner content, notebook tokens, or local paths. A
-  `ready` diagnosis still does not mean Developer-ID signing, notarization, or
-  institutional approval.
+  They never return learner content, notebook tokens, or local paths. `ready`
+  means `ready_for_local_practice`; the explicit
+  `distribution_status=blocked_human_release_gates` remains until a bundled
+  Developer-ID interpreter, Developer-ID signature, Apple notarization, and
+  human release review exist.

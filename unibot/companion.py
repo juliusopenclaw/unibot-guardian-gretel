@@ -604,6 +604,8 @@ def companion_diagnose(extension_id: str = DEFAULT_EXTENSION_ID) -> dict[str, An
     return {
         "schema_version": "unibot-companion-diagnosis-v1",
         "status": status,
+        "local_practice_status": "ready_for_local_practice" if status == "ready" else "attention",
+        "distribution_status": "blocked_human_release_gates",
         "checks": checks,
         "app_signature_status": _app_signature_status(),
         "source_independent_runtime": runtime_ready,
@@ -751,6 +753,7 @@ def install_companion(extension_id: str = DEFAULT_EXTENSION_ID) -> dict[str, Any
         "native_host": install_native_host(extension_id, runtime_root=installed_runtime),
         "app": install_companion_app(runtime_root=installed_runtime),
         "runtime_mode": "source_independent_package_copy_current_interpreter",
+        "distribution_status": "blocked_human_release_gates",
         "exam_deployment_status": "not_cleared",
     }
 
@@ -763,6 +766,12 @@ def companion_status(extension_id: str = DEFAULT_EXTENSION_ID) -> dict[str, Any]
     return {
         "schema_version": "unibot-companion-status-v1",
         "status": "ready" if manifests_ready and DEFAULT_APP_PATH.is_dir() and runtime_ready else "not_installed",
+        "local_practice_status": (
+            "ready_for_local_practice"
+            if manifests_ready and DEFAULT_APP_PATH.is_dir() and runtime_ready
+            else "not_installed"
+        ),
+        "distribution_status": "blocked_human_release_gates",
         "native_host_installed": manifests_ready,
         "app_installed": DEFAULT_APP_PATH.is_dir(),
         "runtime_package_copied": runtime_ready,
