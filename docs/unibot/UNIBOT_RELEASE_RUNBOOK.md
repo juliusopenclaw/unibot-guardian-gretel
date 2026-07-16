@@ -29,6 +29,23 @@ source commit when the repository is available. A tampered or incomplete
 candidate is blocked. The audit writes no files, calls no network or provider,
 and cannot publish, merge, or grant institutional approval.
 
+## Hash-Bound Verification Evidence
+
+The candidate audit checks the handoff artifacts. The separate evidence step
+binds actual local gate results to the same clean source commit:
+
+```text
+unibot release evidence --output ../unibot-release-evidence.json --repo .
+```
+
+It runs the fixed Python, browser, extension-package, Chrome-canary, pipeline,
+public-safety, Guardian-benchmark, and source-card gates. It stores only gate
+status, safe aggregate metrics, duration, and SHA-256 hashes of command output;
+raw logs, notebook text, learner attempts, credentials, and local paths are not
+stored. The evidence file must remain outside the checkout so that adding it
+cannot make the measured source tree dirty. A changed commit, dirty worktree,
+missing gate, or modified evidence hash is blocked.
+
 ## Human Release Handoff
 
 The local branch becomes a public draft only through one deliberate human
@@ -39,17 +56,20 @@ GitHub action. The sequence is intentionally short:
 2. Build `unibot release candidate --output ./unibot-review-candidate` and
    run `unibot release audit ./unibot-review-candidate`. Keep the printed source
    commit and manifest hashes with the review record.
-3. Generate the public-safe PR text from the audited candidate with
-   `unibot release pr-draft --candidate ./unibot-review-candidate --output ./UNIBOT-PR-DRAFT.md`.
+3. Run `unibot release evidence --output ../unibot-release-evidence.json --repo .`.
+   Continue only when all fixed gates are green. The evidence is technical
+   reproducibility, not institutional approval or exam clearance.
+4. Generate the public-safe PR text from the audited candidate with
+   `unibot release pr-draft --candidate ./unibot-review-candidate --output ./UNIBOT-PR-DRAFT.md --evidence ../unibot-release-evidence.json`.
    The command refuses stale, dirty, tampered, or unsafe candidates and does
    not contact GitHub.
-4. A human opens one **draft PR** from the Gretel branch to `main`. The PR
+5. A human opens one **draft PR** from the Gretel branch to `main`. The PR
    must state: Gretel/Codex implementation and documentation, GLM provider
    calls and cost (`0` while parked), tests, public-safety result, remaining
    uncertainty, and the human merge decision still required.
-5. GitHub CI repeats the required checks. A failed check blocks the PR; no bot
+6. GitHub CI repeats the required checks. A failed check blocks the PR; no bot
    merges, changes `main`, changes branch protection, or publishes a release.
-6. Julius reviews the final diff after the last bot push and is the only person
+7. Julius reviews the final diff after the last bot push and is the only person
    who may merge or release it.
 
 This establishes a public review point, not institutional approval. The local
@@ -87,15 +107,16 @@ Show the resulting safety boundary and ask the
 institutional reviewers about teaching, inclusion, privacy, and the separate
 exam track.
 
-For a single local handoff, use:
+For a single local handoff, use the evidence produced above:
 
 ```text
-unibot release handoff --output ./unibot-release-handoff
+unibot release handoff --output ./unibot-release-handoff --evidence ../unibot-release-evidence.json
 ```
 
 This atomically builds the candidate, runs the read-only audit, writes the
-human PR draft, and records a hash-only `HANDOFF-MANIFEST.json`. A failed step
-leaves no partial handoff and does not contact GitHub.
+human PR draft, copies the hash-only `RELEASE-EVIDENCE.json`, and records the
+evidence hash in `HANDOFF-MANIFEST.json`. A failed step leaves no partial
+handoff and does not contact GitHub.
 
 The meeting asks five bounded questions: who owns the institutional decision;
 whether the local practice purpose fits the named module; which accessibility

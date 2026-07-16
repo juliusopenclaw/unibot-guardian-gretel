@@ -37,10 +37,13 @@ full provenance statement is in `AUTHORS.md`.
 - Verify a candidate's files, hashes, public-safety fields, and source commit
   without changing anything:
   `unibot release audit ./unibot-review-candidate`
+- Run the fixed local release gates and write hash-only verification evidence
+  outside the checkout (the working tree must be clean):
+  `unibot release evidence --output ../unibot-release-evidence.json --repo .`
 - Create the human-gated GitHub PR text from an audited candidate:
-  `unibot release pr-draft --candidate ./unibot-review-candidate --output ./UNIBOT-PR-DRAFT.md`
+  `unibot release pr-draft --candidate ./unibot-review-candidate --output ./UNIBOT-PR-DRAFT.md --evidence ../unibot-release-evidence.json`
 - Build the complete local handoff atomically in one step:
-  `unibot release handoff --output ./unibot-release-handoff`
+  `unibot release handoff --output ./unibot-release-handoff --evidence ../unibot-release-evidence.json`
 - Open `~/Applications/UniBot Companion.app` or click the extension and start a
   fixed or adaptive A0-A4 learning session.
 - In the extension, import either an allowlisted public `.ipynb` URL or choose a
@@ -95,6 +98,10 @@ upload.
 - The release-candidate bundle records a clean Git commit hash and refuses to
   build from a dirty working tree. It is still a public-draft handoff, not a
   merge, publication, institutional approval, or exam release.
+- Release evidence records only fixed gate IDs, aggregate metrics, source and
+  output hashes, and the source commit. It never stores raw logs, notebook
+  text, learner attempts, credentials, or local paths. Evidence is technical
+  reproducibility, not institutional approval or exam clearance.
 
 ## Open Science Boundary
 
