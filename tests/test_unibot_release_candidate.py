@@ -35,7 +35,7 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
             result = write_release_candidate_bundle(output)
 
             self.assertEqual(result["status"], "written")
-            self.assertEqual(result["file_count"], 5)
+            self.assertEqual(result["file_count"], 6)
             self.assertEqual(result["exam_deployment_status"], "not_cleared")
             self.assertEqual(result["provider_calls"], 0)
             self.assertFalse(result["learner_content_included"])
@@ -48,6 +48,7 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
                     "RELEASE-MANIFEST.json",
                     "institutional-presentation.json",
                     "institutional-presentation.md",
+                    "institutional-review-decision-template.md",
                     "unibot-mantle.zip",
                 ],
             )
@@ -92,7 +93,7 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
             self.assertEqual(audit["status"], "pass", audit["issues"])
             self.assertTrue(audit["candidate_directory_checked"])
             self.assertTrue(audit["source_commit_match"])
-            self.assertEqual(audit["recorded_file_count"], 4)
+            self.assertEqual(audit["recorded_file_count"], 5)
             self.assertEqual(audit["public_safety_status"], "pass")
             self.assertFalse(audit["side_effects"]["files_written"])
             self.assertFalse(audit["side_effects"]["network_called"])

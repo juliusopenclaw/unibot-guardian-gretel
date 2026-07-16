@@ -28,9 +28,11 @@ from .autonomy_v2 import (
 )
 from .companion import DEFAULT_EXTENSION_ID, companion_diagnose, companion_status, install_companion, run_native_host
 from .clearance import (
+    build_institutional_review_decision_template_markdown,
     build_institutional_presentation_markdown,
     build_institutional_presentation_packet,
     build_regulatory_profile,
+    build_institutional_review_decision_template,
     write_institutional_review_bundle,
 )
 from .gateway import GatewayError, launch_gateway
@@ -189,6 +191,10 @@ def build_parser() -> argparse.ArgumentParser:
     institution_commands.add_parser("profile", help="show RegulatoryProfileV1")
     presentation = institution_commands.add_parser("presentation", help="show the review meeting packet")
     presentation.add_argument("--markdown", action="store_true")
+    decision_template = institution_commands.add_parser(
+        "decision-template", help="show the blank human review outcome template"
+    )
+    decision_template.add_argument("--markdown", action="store_true")
     bundle = institution_commands.add_parser("bundle", help="write the public-safe institutional review handoff")
     bundle.add_argument("--output", type=Path, required=True)
 
@@ -456,6 +462,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             else:
                 _print_json(payload)
             return 0 if payload["status"] == "ready_for_human_review" else 2
+        if args.command == "institution" and args.institution_command == "decision-template":
+            payload = build_institutional_review_decision_template()
+            if args.markdown:
+                print(json.dumps({"status": payload["status"], "markdown": build_institutional_review_decision_template_markdown(payload)}, ensure_ascii=True, indent=2))
+            else:
+                _print_json(payload)
+            return 0 if payload["status"] == "blank_for_human_completion" else 2
         if args.command == "institution" and args.institution_command == "bundle":
             payload = write_institutional_review_bundle(args.output)
             _print_json(payload)

@@ -13,14 +13,18 @@ from unibot.clearance import (  # noqa: E402
     ACCESSIBILITY_REVIEW_SCHEMA_VERSION,
     ACCESSIBILITY_REVIEW_SOURCE_CARD_IDS,
     INSTITUTIONAL_PRESENTATION_SCHEMA_VERSION,
+    INSTITUTIONAL_REVIEW_DECISION_TEMPLATE_SCHEMA_VERSION,
     REGULATORY_PROFILE_SCHEMA_VERSION,
     build_accessibility_review_plan,
     build_institutional_clearance_board,
+    build_institutional_review_decision_template,
+    build_institutional_review_decision_template_markdown,
     build_institutional_presentation_markdown,
     build_institutional_presentation_packet,
     build_regulatory_profile,
     validate_clearance_record,
     validate_accessibility_review_plan,
+    validate_institutional_review_decision_template,
     validate_regulatory_profile,
     write_institutional_review_bundle,
 )
@@ -51,6 +55,27 @@ def valid_exam_clearance_record() -> dict[str, object]:
 
 
 class UniBotInstitutionalClearanceTests(unittest.TestCase):
+    def test_human_review_decision_template_is_blank_hash_only_and_not_clearance(self) -> None:
+        template = build_institutional_review_decision_template()
+        self.assertEqual(template["schema_version"], INSTITUTIONAL_REVIEW_DECISION_TEMPLATE_SCHEMA_VERSION)
+        self.assertEqual(template["status"], "blank_for_human_completion")
+        self.assertEqual(template["scope"], "local_learning_and_practice_only")
+        self.assertEqual(template["exam_deployment_status"], "not_cleared")
+        self.assertEqual(len(template["review_lanes"]), 5)
+        self.assertFalse(template["data_minimisation"]["raw_meeting_text_stored"])
+        self.assertFalse(template["data_minimisation"]["health_or_accommodation_details_stored"])
+        self.assertTrue(template["human_boundary"]["human_completion_required"])
+        self.assertFalse(template["human_boundary"]["automatic_approval"])
+        self.assertEqual(validate_institutional_review_decision_template(template)["status"], "ok")
+        markdown = build_institutional_review_decision_template_markdown(template)
+        self.assertIn("InstitutionalReviewDecisionTemplateV1", markdown)
+        self.assertIn("keine Freigabe", markdown)
+        self.assertEqual(scan_text(markdown, "decision-template-test")["status"], "pass")
+
+        tampered = dict(template)
+        tampered["human_boundary"] = dict(template["human_boundary"], automatic_approval=True)
+        self.assertEqual(validate_institutional_review_decision_template(tampered)["status"], "blocked")
+
     def test_accessibility_review_is_source_bound_and_human_gated(self) -> None:
         plan = build_accessibility_review_plan()
         self.assertEqual(plan["schema_version"], ACCESSIBILITY_REVIEW_SCHEMA_VERSION)
@@ -159,6 +184,12 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         self.assertEqual(packet["accessibility_review"]["schema_version"], ACCESSIBILITY_REVIEW_SCHEMA_VERSION)
         self.assertEqual(packet["accessibility_review_validation"]["status"], "ok")
         self.assertEqual(
+            packet["institutional_review_decision_template"]["schema_version"],
+            INSTITUTIONAL_REVIEW_DECISION_TEMPLATE_SCHEMA_VERSION,
+        )
+        self.assertEqual(packet["institutional_review_decision_template_validation"]["status"], "ok")
+        self.assertFalse(packet["institutional_review_decision_template_validation"]["automatic_approval"])
+        self.assertEqual(
             packet["evidence"]["browser_mantle"]["accessibility_evidence"]["review_plan_validation_status"],
             "ok",
         )
@@ -199,11 +230,12 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
             result = write_institutional_review_bundle(Path(temporary) / "review-bundle")
             bundle_root = Path(temporary) / "review-bundle"
             self.assertEqual(result["status"], "written")
-            self.assertEqual(result["file_count"], 3)
+            self.assertEqual(result["file_count"], 4)
             self.assertEqual(result["exam_deployment_status"], "not_cleared")
             self.assertFalse(result["raw_learner_content_written"])
             self.assertTrue((bundle_root / "institutional-presentation.json").is_file())
             self.assertTrue((bundle_root / "institutional-presentation.md").is_file())
+            self.assertTrue((bundle_root / "institutional-review-decision-template.md").is_file())
             self.assertTrue((bundle_root / "MANIFEST.json").is_file())
             self.assertEqual((bundle_root / "MANIFEST.json").stat().st_mode & 0o077, 0)
             payload = "".join(path.read_text(encoding="utf-8") for path in bundle_root.iterdir())
@@ -264,6 +296,11 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(markdown["status"], "ready_for_human_review")
         self.assertIn("UniBot Institutional Presentation", markdown["markdown"])
+
+        status, decision_template = route_request("/api/unibot/institutional/decision-template", {})
+        self.assertEqual(status, 200)
+        self.assertEqual(decision_template["schema_version"], INSTITUTIONAL_REVIEW_DECISION_TEMPLATE_SCHEMA_VERSION)
+        self.assertEqual(decision_template["status"], "blank_for_human_completion")
 
 
 if __name__ == "__main__":

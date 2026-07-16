@@ -44,6 +44,7 @@ full provenance statement is in `AUTHORS.md`.
 - Import a public notebook: `unibot notebook import <https-url-or-local-file>`
 - Prepare the institutional review profile: `unibot institution profile`
 - Create the compact presentation packet: `unibot institution presentation --markdown`
+- Create the blank, hash-only human outcome form: `unibot institution decision-template --markdown`
 - Write a hash-bound, public-safe handoff directory:
   `unibot institution bundle --output ./unibot-institution-review`
 - Inspect the autonomous lane: `unibot autonomy preflight`

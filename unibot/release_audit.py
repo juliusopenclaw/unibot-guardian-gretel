@@ -17,6 +17,7 @@ REQUIRED_ARTIFACT_NAMES = frozenset(
         "INSTITUTIONAL-MANIFEST.json",
         "institutional-presentation.json",
         "institutional-presentation.md",
+        "institutional-review-decision-template.md",
         "unibot-mantle.zip",
     }
 )
@@ -124,7 +125,15 @@ def audit_release_candidate(candidate_dir: str | Path, *, repository: str | Path
 
     safety_status = "missing"
     if root.is_dir():
-        safety_targets = [root / name for name in ("institutional-presentation.json", "institutional-presentation.md", "INSTITUTIONAL-MANIFEST.json")]
+        safety_targets = [
+            root / name
+            for name in (
+                "institutional-presentation.json",
+                "institutional-presentation.md",
+                "institutional-review-decision-template.md",
+                "INSTITUTIONAL-MANIFEST.json",
+            )
+        ]
         scans = [scan_text(path.read_text(encoding="utf-8"), path.name) for path in safety_targets if path.is_file()]
         safety_status = "pass" if scans and all(scan["status"] == "pass" for scan in scans) else "blocked"
         if safety_status != "pass":

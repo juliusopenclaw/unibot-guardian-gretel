@@ -18,6 +18,7 @@ from .autonomous_research_loop import build_autonomous_research_loop, build_auto
 from .bachelor_thesis import build_bachelor_thesis_markdown, build_bachelor_thesis_package
 from .clearance import (
     build_institutional_clearance_board,
+    build_institutional_review_decision_template,
     build_institutional_presentation_markdown,
     build_institutional_presentation_packet,
     build_regulatory_profile,
@@ -3365,6 +3366,10 @@ def route_request(path: str, payload: dict[str, Any] | None = None, method: str 
             "status": packet["status"],
             "markdown": build_institutional_presentation_markdown(packet),
         }
+    if path == "/api/unibot/institutional/decision-template":
+        return 200, build_institutional_review_decision_template(
+            public_safe=bool(payload.get("public_safe", True)),
+        )
     if path == "/api/unibot/institutional-clearance/validate":
         record = payload.get("record", payload)
         if not isinstance(record, dict):

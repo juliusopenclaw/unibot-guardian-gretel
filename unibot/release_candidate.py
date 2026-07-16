@@ -131,6 +131,7 @@ def write_release_candidate_bundle(output_dir: str | Path) -> dict[str, Any]:
             institutional_names = {
                 "institutional-presentation.json": "institutional-presentation.json",
                 "institutional-presentation.md": "institutional-presentation.md",
+                "institutional-review-decision-template.md": "institutional-review-decision-template.md",
                 "MANIFEST.json": "INSTITUTIONAL-MANIFEST.json",
             }
             for source_name, target_name in institutional_names.items():

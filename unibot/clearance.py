@@ -18,6 +18,7 @@ REGULATORY_PROFILE_SCHEMA_VERSION = "RegulatoryProfileV1"
 INSTITUTIONAL_PRESENTATION_SCHEMA_VERSION = "InstitutionalPresentationV1"
 INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION = "InstitutionalReviewBundleV1"
 ACCESSIBILITY_REVIEW_SCHEMA_VERSION = "AccessibilityReviewV1"
+INSTITUTIONAL_REVIEW_DECISION_TEMPLATE_SCHEMA_VERSION = "InstitutionalReviewDecisionTemplateV1"
 
 ALLOWED_DECISION_STATUSES = {"needs_review", "approved", "rejected"}
 STANDARD_HELP_LEVELS = ("A0", "A1", "A2")
@@ -266,6 +267,208 @@ def validate_accessibility_review_plan(plan: dict[str, Any] | None) -> dict[str,
         summary["issues"] = sorted(set(summary["issues"] + ["public_safety_findings"]))
         summary["public_safety_findings"] = scan["findings"]
     return summary
+
+
+def build_institutional_review_decision_template(*, public_safe: bool = True) -> dict[str, Any]:
+    """Prepare a blank, hash-only human meeting outcome template.
+
+    The template records the shape of a later human decision without accepting
+    raw minutes, names, diagnoses, or an automatic approval signal.
+    """
+    lanes = [
+        {
+            "lane_id": "examination_scope",
+            "office": "Pruefungsamt",
+            "question": "Welche Regeln gelten für den lokalen Übungszweck, und welcher separate Prüfungsentscheid wäre nötig?",
+            "required_evidence": ["uoc-ki-policy-2026", "uoc-ki-pruefungsrecht", "uoc-ki-faq"],
+        },
+        {
+            "lane_id": "accessibility_scope",
+            "office": "Inklusionsbuero / Servicezentrum Inklusion",
+            "question": "Welche Bedienungs- und Strukturierungshilfen sind im vorgesehenen Lehrformat angemessen?",
+            "required_evidence": ["uoc-nachteilsausgleich", "uoc-szi-klausurunterstuetzung-2026", "wcag-22", "bgg-nrw-10", "bitv-nrw"],
+        },
+        {
+            "lane_id": "privacy_and_it_scope",
+            "office": "Datenschutz / IT / SZI",
+            "question": "Sind Datenfluss, Aufbewahrung, Löschung und Zugriffsschutz für den Übungszweck ausreichend beschrieben?",
+            "required_evidence": ["gdpr-2016-679", "dsk-ai-privacy-2024", "eu-ai-act-2024"],
+        },
+        {
+            "lane_id": "governance_scope",
+            "office": "KI-Office / CIO-Board",
+            "question": "Welche Genehmigungsroute und fachverantwortliche Person gelten für eine mögliche Bereitstellung?",
+            "required_evidence": ["uoc-ki-policy-2026", "uoc-medfak-ki-lehre-2026"],
+        },
+        {
+            "lane_id": "teaching_and_research_scope",
+            "office": "Lehre / Modulverantwortliche / Bachelorarbeitsbetreuung",
+            "question": "Sind Forschungsfrage, Hilfestufen, Quellenbindung und Evaluationsgrenzen für einen Übungspilot angemessen?",
+            "required_evidence": ["dfg-gwp", "vanlehn-2011", "kulik-fletcher-2016"],
+        },
+    ]
+    template: dict[str, Any] = {
+        "schema_version": INSTITUTIONAL_REVIEW_DECISION_TEMPLATE_SCHEMA_VERSION,
+        "artifact_type": "unibot_institutional_review_decision_template",
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "status": "blank_for_human_completion",
+        "scope": "local_learning_and_practice_only",
+        "exam_deployment_status": "not_cleared",
+        "decision_status_options": [
+            "pending_human_review",
+            "practice_scope_supported_with_conditions",
+            "needs_revision_before_practice_demo",
+            "not_supported_for_requested_scope",
+            "exam_scope_requires_separate_written_decision",
+        ],
+        "required_fields": [
+            "meeting_date",
+            "reviewer_role_ids",
+            "recorded_outcome",
+            "condition_ids",
+            "open_question_ids",
+            "next_review_gate",
+            "evidence_hashes",
+            "human_signoff_reference_hash",
+        ],
+        "review_lanes": lanes,
+        "data_minimisation": {
+            "raw_meeting_text_stored": False,
+            "raw_names_or_contact_details_stored": False,
+            "health_or_accommodation_details_stored": False,
+            "notebook_or_learner_content_stored": False,
+            "local_paths_or_credentials_stored": False,
+            "allowed_record_values": "Controlled IDs, dates, role IDs, hashes, status values, and the next gate only.",
+        },
+        "human_boundary": {
+            "human_completion_required": True,
+            "automatic_approval": False,
+            "legal_effect": "none",
+            "exam_clearance": "not_granted",
+            "institutional_release": "not_granted",
+        },
+        "authorship": {
+            "implementation_and_documentation": "Gretel / Codex",
+            "glm_role": "No contribution while GLM is parked.",
+            "human_decision_owner": "Julius and the named institutional roles decide outside UniBot.",
+        },
+    }
+    scan = scan_text(json.dumps(template, ensure_ascii=False), "institutional-review-decision-template")
+    template["public_safety_status"] = scan["status"] if public_safe else "local_private_mode"
+    if template["public_safety_status"] != "pass" and public_safe:
+        template["status"] = "blocked_public_safety"
+        template["public_safety_findings"] = scan["findings"]
+    return template
+
+
+def validate_institutional_review_decision_template(template: dict[str, Any] | None) -> dict[str, Any]:
+    """Validate the meeting form while keeping all approval decisions human."""
+    payload = dict(template or {})
+    issues: list[str] = []
+    if payload.get("schema_version") != INSTITUTIONAL_REVIEW_DECISION_TEMPLATE_SCHEMA_VERSION:
+        issues.append("schema_version_mismatch")
+    if payload.get("status") != "blank_for_human_completion":
+        issues.append("template_must_remain_blank_for_human_completion")
+    if payload.get("scope") != "local_learning_and_practice_only":
+        issues.append("scope_must_remain_practice_only")
+    if payload.get("exam_deployment_status") != "not_cleared":
+        issues.append("exam_deployment_must_remain_not_cleared")
+    required_statuses = {
+        "pending_human_review",
+        "practice_scope_supported_with_conditions",
+        "needs_revision_before_practice_demo",
+        "not_supported_for_requested_scope",
+        "exam_scope_requires_separate_written_decision",
+    }
+    if set(payload.get("decision_status_options", [])) != required_statuses:
+        issues.append("decision_status_options_mismatch")
+    if len(payload.get("required_fields", [])) < 8:
+        issues.append("required_fields_incomplete")
+    if len(payload.get("review_lanes", [])) != 5:
+        issues.append("review_lane_matrix_incomplete")
+    minimisation = payload.get("data_minimisation", {})
+    for field in (
+        "raw_meeting_text_stored",
+        "raw_names_or_contact_details_stored",
+        "health_or_accommodation_details_stored",
+        "notebook_or_learner_content_stored",
+        "local_paths_or_credentials_stored",
+    ):
+        if minimisation.get(field) is not False:
+            issues.append(f"{field}_must_be_false")
+    boundary = payload.get("human_boundary", {})
+    if boundary.get("human_completion_required") is not True:
+        issues.append("human_completion_required")
+    if boundary.get("automatic_approval") is not False:
+        issues.append("automatic_approval_must_remain_false")
+    if boundary.get("legal_effect") != "none":
+        issues.append("legal_effect_must_remain_none")
+    if boundary.get("exam_clearance") != "not_granted":
+        issues.append("exam_clearance_must_remain_not_granted")
+    if payload.get("public_safety_status") not in {"pass", "local_private_mode"}:
+        issues.append("public_safety_required")
+    summary = {
+        "schema_version": INSTITUTIONAL_REVIEW_DECISION_TEMPLATE_SCHEMA_VERSION,
+        "artifact_type": "institutional_review_decision_template_validation",
+        "status": "ok" if not issues else "blocked",
+        "issues": sorted(set(issues)),
+        "human_completion_required": True,
+        "automatic_approval": False,
+        "legal_effect": "none",
+        "exam_deployment_status": "not_cleared",
+        "public_safety_status": payload.get("public_safety_status", "missing"),
+    }
+    scan = scan_text(json.dumps(summary, ensure_ascii=False), "institutional-review-decision-template-validation")
+    if scan["status"] != "pass":
+        summary["status"] = "blocked"
+        summary["issues"] = sorted(set(summary["issues"] + ["public_safety_findings"]))
+        summary["public_safety_findings"] = scan["findings"]
+    return summary
+
+
+def build_institutional_review_decision_template_markdown(
+    template: dict[str, Any] | None = None,
+) -> str:
+    """Render a printable human form without creating a decision."""
+    template = template or build_institutional_review_decision_template()
+    lines = [
+        "# UniBot: Ergebnisprotokoll der menschlichen Prüfung",
+        "",
+        f"**Vertrag:** `{template['schema_version']}`",
+        "**Status:** Leeres Formular; keine Freigabe und keine Rechtswirkung",
+        "**Geltungsbereich:** lokale Lern- und Übungsversion; Prüfungseinsatz bleibt `not_cleared`.",
+        "",
+        "Dieses Formular hält nur kontrollierte IDs, Rollen, Hashes und den nächsten Prüfschritt fest. Keine Gesprächsnotizen, Namen, Diagnosen, Nachteilsausgleichdaten, Notebookinhalte oder Lernendentexte eintragen.",
+        "",
+        "## Ergebnis",
+        "- Datum: ______________________________",
+        "- Rollen-IDs: _________________________",
+        "- Ergebnis-ID: ________________________",
+        "- Bedingungen-IDs: ____________________",
+        "- Offene-Fragen-IDs: ___________________",
+        "- Nächster Prüfschritt: _________________",
+        "- Evidenz-Hashes: ______________________",
+        "- Signoff-Referenz-Hash: _______________",
+        "",
+        "## Zulässige Ergebnis-IDs",
+        *[f"- `{status}`" for status in template["decision_status_options"]],
+        "",
+        "## Prüflanes",
+        *[f"- **{lane['office']}:** {lane['question']}" for lane in template["review_lanes"]],
+        "",
+        "## Harte Grenzen",
+        "- Dieses Formular erteilt keine Prüfungs-, Datenschutz-, Inklusions- oder Rechtsfreigabe.",
+        "- Eine eventuelle Prüfungsentscheidung muss separat schriftlich durch die zuständigen Stellen erfolgen.",
+        "- Eine menschliche Person muss das Ergebnis außerhalb von UniBot prüfen und verantworten.",
+        "",
+        "## Autorenschaft",
+        "- Implementierung und Dokumentation: **Gretel / Codex**.",
+        "- GLM: in dieser geparkten Etappe kein Beitrag.",
+        "- Menschliche Entscheidung: Julius und die zuständigen institutionellen Rollen.",
+        "",
+        "**Technische Prüfung:** Template-Validierung und Public-Safety-Scan sind Nachweise über die Form, nicht über die institutionelle Entscheidung.",
+    ]
+    return "\n".join(lines) + "\n"
 
 
 def build_institutional_clearance_board(*, public_safe: bool = True) -> dict[str, Any]:
@@ -522,6 +725,8 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
     profile_validation = validate_regulatory_profile(profile)
     accessibility_review = build_accessibility_review_plan(public_safe=public_safe)
     accessibility_validation = validate_accessibility_review_plan(accessibility_review)
+    decision_template = build_institutional_review_decision_template(public_safe=public_safe)
+    decision_template_validation = validate_institutional_review_decision_template(decision_template)
     board = build_institutional_clearance_board(public_safe=public_safe)
     runbook = build_release_runbook()
     readiness = run_readiness_check()
@@ -587,6 +792,14 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
         },
         "accessibility_review": accessibility_review,
         "accessibility_review_validation": accessibility_validation,
+        "institutional_review_decision_template": {
+            "schema_version": decision_template["schema_version"],
+            "status": decision_template["status"],
+            "validation_status": decision_template_validation["status"],
+            "public_safety_status": decision_template["public_safety_status"],
+            "review_lane_count": len(decision_template["review_lanes"]),
+            "automatic_approval": decision_template_validation["automatic_approval"],
+        },
     }
     evidence_core = json.dumps(evidence, ensure_ascii=False, sort_keys=True)
     packet = {
@@ -700,6 +913,8 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
         ],
         "accessibility_review": accessibility_review,
         "accessibility_review_validation": accessibility_validation,
+        "institutional_review_decision_template": decision_template,
+        "institutional_review_decision_template_validation": decision_template_validation,
         "evidence": evidence,
         "evidence_hash": sha256_text(evidence_core),
         "strict_non_goals": [
@@ -725,6 +940,8 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
         packet["status"] = "blocked_profile_validation"
     if accessibility_validation["status"] != "ok":
         packet["status"] = "blocked_accessibility_review_contract"
+    if decision_template_validation["status"] != "ok":
+        packet["status"] = "blocked_institutional_decision_template"
     if readiness["status"] != "public_draft_ready":
         packet["status"] = "blocked_readiness"
     if runbook["release_evidence_alignment"]["status"] != "ready":
@@ -790,6 +1007,12 @@ def build_institutional_presentation_markdown(
         "- Der lokale Tutor nutzt keinen Provider; GLM erhält in dieser Phase keinen Lerninhalt.",
         "- Export und Weitergabe sind freiwillig und zeigen vorab eine Vorschau.",
         "",
+        "## Ergebnisprotokoll der menschlichen Prüfung",
+        "- Ein leeres `InstitutionalReviewDecisionTemplateV1` liegt dem Paket bei.",
+        "- Es werden nur kontrollierte Ergebnis-, Bedingungen-, Fragen- und Evidenz-IDs sowie Hashes vorgesehen.",
+        "- Gesprächsnotizen, Namen, Diagnosen, Nachteilsausgleichdaten, Notebookinhalte und Lernendentexte gehören nicht in das öffentliche Paket.",
+        "- Das Formular erteilt keine Freigabe; eine mögliche Prüfungsentscheidung bleibt separat schriftlich und menschlich.",
+        "",
         "## Wissenschaftliche Nachweise",
         f"- Sicherheits- und Quellenbindung: {summary['scientific_claim']}",
         f"- Inklusionsgrenze: {summary['inclusion_claim']}",
@@ -839,6 +1062,9 @@ def write_institutional_review_bundle(
     contents = {
         "institutional-presentation.json": json_text,
         "institutional-presentation.md": markdown,
+        "institutional-review-decision-template.md": build_institutional_review_decision_template_markdown(
+            packet["institutional_review_decision_template"]
+        ),
     }
     file_records: list[dict[str, Any]] = []
     for name, content in contents.items():

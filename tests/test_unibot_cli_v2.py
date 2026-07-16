@@ -106,6 +106,23 @@ class UniBotCliV2Tests(unittest.TestCase):
         self.assertIn("UniBot Institutional Presentation", markdown_payload["markdown"])
         self.assertIn("not_cleared", markdown_payload["markdown"])
 
+        with io.StringIO() as output, redirect_stdout(output):
+            exit_code = main(["institution", "decision-template"])
+            template_payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(template_payload["schema_version"], "InstitutionalReviewDecisionTemplateV1")
+        self.assertEqual(template_payload["status"], "blank_for_human_completion")
+        self.assertFalse(template_payload["human_boundary"]["automatic_approval"])
+
+        with io.StringIO() as output, redirect_stdout(output):
+            exit_code = main(["institution", "decision-template", "--markdown"])
+            template_markdown = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("InstitutionalReviewDecisionTemplateV1", template_markdown["markdown"])
+        self.assertIn("keine Freigabe", template_markdown["markdown"])
+
     def test_release_audit_cli_is_read_only_and_hash_bound(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             candidate = Path(temporary) / "candidate"
