@@ -1,16 +1,34 @@
 from __future__ import annotations
 
 import json
+import re
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 from unibot.public_safety import scan_text
 from unibot.release_candidate import write_release_candidate_bundle
 
 
 class UniBotReleaseCandidateTests(unittest.TestCase):
+    def test_dirty_source_is_blocked_before_any_artifact_is_written(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "candidate"
+            with patch(
+                "unibot.release_candidate._git_provenance",
+                return_value={
+                    "status": "blocked_dirty_worktree",
+                    "commit": "a" * 40,
+                    "working_tree_clean": False,
+                },
+            ):
+                result = write_release_candidate_bundle(output)
+            self.assertEqual(result["status"], "blocked")
+            self.assertEqual(result["reason"], "blocked_dirty_worktree")
+            self.assertFalse(output.exists())
+
     def test_bundle_contains_only_public_extension_and_review_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "unibot-review-candidate"
@@ -39,6 +57,10 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
             self.assertEqual(manifest["exam_deployment_status"], "not_cleared")
             self.assertFalse(manifest["automatic_publication"])
             self.assertFalse(manifest["automatic_merge"])
+            self.assertEqual(manifest["source_provenance"]["status"], "verified")
+            self.assertTrue(manifest["source_provenance"]["working_tree_clean"])
+            self.assertRegex(manifest["source_provenance"]["commit"], re.fullmatch(r"[0-9a-f]{40}").pattern)
+            self.assertEqual(manifest["authorship"]["implementation_and_documentation"], "Gretel / Codex")
             self.assertNotIn("/" + "Users/", json.dumps(manifest))
 
             with zipfile.ZipFile(output / "unibot-mantle.zip") as archive:

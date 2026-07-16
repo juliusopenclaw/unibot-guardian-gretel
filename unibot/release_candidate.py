@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import shutil
+import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -33,12 +34,63 @@ def _scan_text_file(path: Path, name: str) -> str:
     return _scan_text_file_from_content(path.read_text(encoding="utf-8"), name)
 
 
+def _git_provenance() -> dict[str, Any]:
+    """Bind a release candidate to a clean public source revision."""
+    repository_root = Path(__file__).resolve().parents[1]
+    try:
+        commit_result = subprocess.run(
+            ["git", "rev-parse", "--verify", "HEAD"],
+            cwd=repository_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        status_result = subprocess.run(
+            ["git", "status", "--porcelain=v1"],
+            cwd=repository_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return {
+            "status": "blocked_source_provenance_unavailable",
+            "commit": None,
+            "working_tree_clean": False,
+        }
+    commit = commit_result.stdout.strip()
+    clean = status_result.returncode == 0 and not status_result.stdout.strip()
+    if commit_result.returncode != 0 or len(commit) != 40 or not clean:
+        return {
+            "status": "blocked_source_provenance_unavailable" if not commit else "blocked_dirty_worktree",
+            "commit": commit if len(commit) == 40 else None,
+            "working_tree_clean": clean,
+        }
+    return {
+        "status": "verified",
+        "commit": commit,
+        "working_tree_clean": True,
+        "implementation_and_documentation": "Gretel / Codex",
+        "human_gate": "Julius remains human project lead and merge/release decision-maker.",
+    }
+
+
 def write_release_candidate_bundle(output_dir: str | Path) -> dict[str, Any]:
     """Write a public-safe review handoff without the repository checkout."""
     root = Path(output_dir).expanduser()
     if root.is_symlink() or root.exists():
         raise ValueError("release candidate output must be a new directory")
     root.parent.mkdir(parents=True, exist_ok=True)
+    provenance = _git_provenance()
+    if provenance["status"] != "verified":
+        return {
+            "schema_version": RELEASE_CANDIDATE_SCHEMA_VERSION,
+            "artifact_type": "unibot_release_candidate_bundle",
+            "status": "blocked",
+            "reason": str(provenance["status"]),
+            "source_provenance": provenance,
+            "exam_deployment_status": "not_cleared",
+        }
 
     staging = Path(tempfile.mkdtemp(prefix=f".{root.name}.", dir=root.parent))
     os.chmod(staging, 0o700)
@@ -111,6 +163,7 @@ def write_release_candidate_bundle(output_dir: str | Path) -> dict[str, Any]:
             "private_project_files_included": False,
             "automatic_publication": False,
             "automatic_merge": False,
+            "source_provenance": provenance,
             "human_release_gates": [
                 "human publication review",
                 "Google Chrome canary with a synthetic notebook",
@@ -154,6 +207,8 @@ def write_release_candidate_bundle(output_dir: str | Path) -> dict[str, Any]:
             "exam_deployment_status": "not_cleared",
             "automatic_publication": False,
             "automatic_merge": False,
+            "source_commit": provenance["commit"],
+            "source_provenance_status": provenance["status"],
         }
     finally:
         if staging.exists():

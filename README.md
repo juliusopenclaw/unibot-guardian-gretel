@@ -66,6 +66,11 @@ session files and voluntary exports contain metadata and hashes only.
 - Focused Mantle 2.1 checks: `python3 -m pytest tests/test_unibot_mantle_v21.py -q`
 - Browser interaction checks: `npm run test:browser`
 - Headed MV3 package check: `npm run test:extension-package`
+- Real macOS Google Chrome canary with the installed local Companion:
+  `UNIBOT_CHROME_EXECUTABLE=/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome npm run test:chrome-canary`
+- The release-candidate bundle records a clean Git commit hash and refuses to
+  build from a dirty working tree. It is still a public-draft handoff, not a
+  merge, publication, institutional approval, or exam release.
 
 ## Open Science Boundary
 
