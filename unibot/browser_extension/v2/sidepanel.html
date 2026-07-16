@@ -131,7 +131,10 @@
       <section id="review" data-panel role="tabpanel" aria-labelledby="review-tab" tabindex="0" hidden>
         <h2 id="review-heading">Sitzungsrueckblick</h2>
         <button id="refreshReview" class="command secondary" type="button">Aktualisieren</button>
-        <button id="exportReview" class="command" type="button">Metadaten exportieren</button>
+        <button id="showExportPreview" class="command secondary" type="button">Exportvorschau anzeigen</button>
+        <output id="exportPreview" role="status" aria-live="polite" aria-atomic="true" hidden>Noch keine Exportvorschau.</output>
+        <label id="exportConfirmRow" class="check" hidden><input id="confirmExport" type="checkbox" aria-describedby="exportPreview">Vorschau geprüft; Export freiwillig erstellen</label>
+        <button id="exportReview" class="command" type="button" disabled>Metadaten exportieren</button>
         <button id="deleteSession" class="command secondary" type="button">Sitzung löschen</button>
         <output id="reviewOutput" role="status" aria-live="polite" aria-atomic="true">Noch keine Sitzungsdaten.</output>
       </section>

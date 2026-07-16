@@ -40,7 +40,11 @@ const elements = {
   refreshReview: document.querySelector("#refreshReview"),
   exportReview: document.querySelector("#exportReview"),
   deleteSession: document.querySelector("#deleteSession"),
-  reviewOutput: document.querySelector("#reviewOutput")
+  reviewOutput: document.querySelector("#reviewOutput"),
+  showExportPreview: document.querySelector("#showExportPreview"),
+  exportPreview: document.querySelector("#exportPreview"),
+  exportConfirmRow: document.querySelector("#exportConfirmRow"),
+  confirmExport: document.querySelector("#confirmExport")
 };
 
 function setConnection(text, status) {
@@ -313,11 +317,37 @@ async function refreshReview() {
   if (!state.contract) throw new Error("Lernsitzung zuerst starten");
   const response = await nativeRequest("session.report");
   state.lastReview = response.report;
+  resetExportPreview();
   elements.reviewOutput.textContent = renderReview(state.lastReview);
 }
 
-function exportReview() {
+function resetExportPreview() {
+  elements.exportPreview.hidden = true;
+  elements.exportConfirmRow.hidden = true;
+  elements.confirmExport.checked = false;
+  elements.exportReview.disabled = true;
+  elements.exportPreview.textContent = "Noch keine Exportvorschau.";
+}
+
+function showExportPreview() {
   if (!state.lastReview) throw new Error("Rueckblick zuerst aktualisieren");
+  elements.exportPreview.textContent = [
+    "Exportvorschau: Es werden nur Metadaten und Hashes exportiert:",
+    "Enthalten: Hilfestufen, eigene Versuchsanzahl, Quellen-IDs, Zeitpunkte, Pseudonym, Kurskennung und Vertrags-/Berichtshash.",
+    "Nicht enthalten: Zelltext, eigener Versuchstext, Tutortranskript, lokale Pfade, Tokens, Note oder KI-Erkennung.",
+    "Aufbewahrung: lokale Sitzungsmetadaten bis zu 7 Tage; eine von dir gespeicherte Exportdatei loescht UniBot nicht automatisch.",
+    "Weitergabe: freiwillig und erst nach deiner eigenen Pruefung."
+  ].join("\n");
+  elements.exportPreview.hidden = false;
+  elements.exportConfirmRow.hidden = false;
+  elements.confirmExport.checked = false;
+  elements.exportReview.disabled = true;
+}
+
+function exportReview() {
+  if (!state.lastReview || elements.exportPreview.hidden || !elements.confirmExport.checked) {
+    throw new Error("Exportvorschau anzeigen und freiwillig bestaetigen");
+  }
   const blob = new Blob([JSON.stringify(state.lastReview, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
@@ -325,6 +355,7 @@ function exportReview() {
   link.download = "unibot-lernbericht-metadaten.json";
   link.click();
   URL.revokeObjectURL(url);
+  elements.reviewOutput.textContent = "Export erstellt. Weitergabe bleibt freiwillig und menschlich kontrolliert.";
 }
 
 async function deleteSession() {
@@ -337,6 +368,7 @@ async function deleteSession() {
   elements.sessionOutput.textContent = "Lernsitzung und lokale Metadaten wurden gelöscht.";
   elements.reviewOutput.textContent = "Keine Sitzungsdaten.";
   elements.helpOutput.textContent = "Noch keine Anfrage.";
+  resetExportPreview();
   setConnection("Lokal bereit", "ready");
 }
 
@@ -389,7 +421,12 @@ elements.stopGateway.addEventListener("click", guarded(stopGateway, elements.not
 elements.capture.addEventListener("click", guarded(captureCell, elements.helpOutput));
 elements.ask.addEventListener("click", guarded(requestHelp, elements.helpOutput));
 elements.refreshReview.addEventListener("click", guarded(refreshReview, elements.reviewOutput));
+elements.showExportPreview.addEventListener("click", guarded(showExportPreview, elements.exportPreview));
+elements.confirmExport.addEventListener("change", () => {
+  elements.exportReview.disabled = !elements.confirmExport.checked || elements.exportPreview.hidden;
+});
 elements.exportReview.addEventListener("click", guarded(exportReview, elements.reviewOutput));
 elements.deleteSession.addEventListener("click", guarded(deleteSession, elements.reviewOutput));
 
 connectCompanion();
+resetExportPreview();

@@ -168,6 +168,17 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
   await page.getByRole("tab", { name: "Rueckblick", exact: true }).click();
   await page.locator("#refreshReview").click();
   await expect(page.locator("#reviewOutput")).toContainText("Ereignisse: 1");
+  await expect(page.locator("#exportReview")).toBeDisabled();
+  await page.locator("#showExportPreview").click();
+  await expect(page.locator("#exportPreview")).toContainText("Nicht enthalten");
+  await expect(page.locator("#exportReview")).toBeDisabled();
+  await page.locator("#confirmExport").check();
+  await expect(page.locator("#exportReview")).toBeEnabled();
+  const downloadPromise = page.waitForEvent("download");
+  await page.locator("#exportReview").click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("unibot-lernbericht-metadaten.json");
+  await expect(page.locator("#reviewOutput")).toContainText("Export erstellt");
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
   expect(overflow).toBe(false);
 });
