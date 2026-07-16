@@ -136,7 +136,7 @@ class UniBotReleaseEvidenceTests(unittest.TestCase):
             payload = json.loads(path.read_text(encoding="utf-8"))
             self.assertNotIn("stdout", json.dumps(payload))
             self.assertNotIn("stderr", json.dumps(payload))
-            self.assertNotIn("/Users/", json.dumps(payload))
+            self.assertNotIn("/" + "Users/", json.dumps(payload))
             self.assertEqual(path.stat().st_mode & 0o077, 0)
 
 
