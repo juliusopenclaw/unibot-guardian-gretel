@@ -147,3 +147,21 @@ test("sidepanel remains usable at the narrow supported width", async ({ page }) 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
   expect(overflow).toBe(false);
 });
+
+test("sidepanel exposes accessible status semantics and visible keyboard focus", async ({ page }) => {
+  await page.setViewportSize({ width: 560, height: 700 });
+  await page.goto(pathToFileURL(path.join(extensionRoot, "v2", "sidepanel.html")).href);
+
+  await expect(page.locator("#connectionStatus")).toHaveAttribute("role", "status");
+  await expect(page.locator("#connectionStatus")).toHaveAttribute("aria-live", "polite");
+  await expect(page.locator("#session")).toHaveAttribute("role", "tabpanel");
+  await expect(page.locator("nav button").first()).toHaveAttribute("aria-controls", "session");
+
+  await page.locator("#startSession").focus();
+  const focusStyle = await page.locator("#startSession").evaluate((element) => {
+    const style = window.getComputedStyle(element);
+    return { outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth };
+  });
+  expect(focusStyle.outlineStyle).not.toBe("none");
+  expect(parseFloat(focusStyle.outlineWidth)).toBeGreaterThanOrEqual(2);
+});

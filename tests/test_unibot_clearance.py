@@ -112,6 +112,15 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         self.assertIn("Pruefungsamt", packet["audience"])
         self.assertIn("Inklusionsbuero / Nachteilsausgleich", packet["audience"])
         self.assertIn("no automatic grading", packet["strict_non_goals"])
+        self.assertEqual(packet["evidence"]["browser_mantle"]["practice_help_levels"], ["A0", "A1", "A2", "A3", "A4"])
+        self.assertEqual(
+            packet["evidence"]["browser_mantle"]["controlled_exam_candidate_status"],
+            "requires_written_authority_decision",
+        )
+        self.assertEqual(
+            packet["evidence"]["browser_mantle"]["accessibility_evidence"]["status"],
+            "browser_tested_human_review_required",
+        )
         self.assertNotIn("raw notebook text:", payload.lower())
         self.assertNotIn("/" + "Users/", payload)
 
@@ -120,6 +129,7 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         self.assertIn("not_cleared", markdown)
         self.assertIn("RegulatoryProfileV1: ok", markdown)
         self.assertIn("Pruefungsamt", markdown)
+        self.assertIn("Barrierefreiheit: browser_tested_human_review_required", markdown)
         self.assertEqual(scan_text(markdown, "institutional-presentation-markdown")['status'], "pass")
 
     def test_valid_exam_clearance_record_hashes_reference_and_stays_scope_bound(self) -> None:

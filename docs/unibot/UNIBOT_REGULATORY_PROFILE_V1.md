@@ -17,6 +17,11 @@ ordnet Fehler ein und verweist auf geprüfte Quellen. Sie benotet nicht,
 Der aktuelle Einsatzstatus bleibt `not_cleared`. Konkrete Modul-, Fakultäts- und
 Prüfungsordnungen haben Vorrang.
 
+Im lokalen Übungsbetrieb unterstützt der aktuelle Mantel A0 bis A4 nach einem
+unveränderlichen Lernvertrag. Ein möglicher kontrollierter Prüfungstrack ist
+davon getrennt, bleibt auf einen möglichen A0-A2-Rahmen begrenzt und benötigt
+vorher eine schriftliche Entscheidung der zuständigen Stellen.
+
 ## Datenfluss
 
 - Zelltext und eigener Versuch werden nur flüchtig lokal verarbeitet.
@@ -41,6 +46,11 @@ Sidepanel ab 280 Pixeln unterstützen. Eine manuelle Zellwahl bleibt verfügbar,
 wenn die Erkennung unsicher ist. Barrierefreie Unterstützung bleibt
 kostenneutral und wird weder in eine Note noch in eine automatische
 Nachteilsausgleich-Entscheidung umgerechnet.
+
+Die öffentliche Browserprüfung belegt derzeit semantische Statusbereiche,
+Tab-/Panel-Beziehungen, sichtbaren Tastaturfokus und einen schmalen Mantel ohne
+horizontalen Überlauf. Das ist technische Evidenz für die weitere Prüfung, aber
+keine WCAG-Zertifizierung und keine Entscheidung des Servicezentrums Inklusion.
 
 Das Inklusionsbüro entscheidet, welche Unterstützung im jeweiligen Modul und
 Prüfungsformat zulässig ist. UniBot ersetzt keine individuelle Entscheidung.
@@ -67,7 +77,8 @@ Prüfungs- und Hochschulstellen sowie IT- und Datenschutzprüfung.
 Die maschinenlesbare Version bindet die offiziellen Source Cards
 `uoc-ki-policy-2026`, `uoc-ki-pruefungsrecht`,
 `uoc-medfak-ki-doku-2026`, `uoc-ki-lehre`, `uoc-hilfsmittel`,
-`uoc-nachteilsausgleich`, `gdpr-2016-679`, `dsk-ai-privacy-2024`,
+`uoc-nachteilsausgleich`, `uoc-szi-klausurunterstuetzung-2026`,
+`uoc-szi-inclusive-teaching-2026`, `gdpr-2016-679`, `dsk-ai-privacy-2024`,
 `eu-ai-act-2024`, `hg-nrw-64`, `dfg-gwp` und `jupyter-ai`.
 
 Wichtige Referenzen:
@@ -75,6 +86,9 @@ Wichtige Referenzen:
 - [KI-Richtlinie der Universität zu Köln, AM 2/2026](https://am.uni-koeln.de/e45267/data/records54900/AM_2026-02_KI_RL_ger.pdf)
 - [Universität zu Köln: KI und Prüfungsrecht](https://verwaltung.uni-koeln.de/stabsstelle02.1/content/allgemeine_informationen/aktuelles/kuenstliche_intelligenz_und_pruefungsrecht/index_ger.html)
 - [Medizinische Fakultät: KI-Dokumentationsrichtlinie](https://medfak.uni-koeln.de/sites/MedFakDekanat/Forschung/Promotion/KI-Richtlinie_MedFak.pdf)
+- [Servicezentrum Inklusion: Nachteilsausgleich](https://inklusion.uni-koeln.de/informationen/nachteilsausgleich/index_ger.html)
+- [Servicezentrum Inklusion: Klausurunterstützung](https://inklusion.uni-koeln.de/service/klausurunterstuetzung/index_ger.html)
+- [Servicezentrum Inklusion: inklusive Lehre und Barrierefreiheit](https://inklusion.uni-koeln.de/informationen/inklusive_lehre/schritte_inklusive_lehre/index_ger.html)
 - [EU-KI-Verordnung 2024/1689](https://eur-lex.europa.eu/eli/reg/2024/1689/oj/eng)
 
 Diese Quellen begründen keine automatische Einstufung des konkreten Produkts.

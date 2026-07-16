@@ -49,6 +49,10 @@ learning, or independent work.
   terminate that process after a Chrome restart; the Jupyter token is never
   written to the record. The notebook retention clock starts again when the
   gateway ends.
+- The Sidepanel exposes semantic tab/panel relationships, live status regions,
+  visible keyboard focus, and a tested narrow layout. The Playwright check is
+  concrete browser evidence, not a claim of completed institutional WCAG
+  certification; that review remains a human accessibility gate.
 - The local JSONL record contains only hashes, levels, source IDs, timestamps,
   assistance points, and status. Files are owner-readable only.
 - The voluntary report contains the pseudonym chosen for the session, contract

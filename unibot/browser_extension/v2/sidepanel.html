@@ -21,6 +21,14 @@
       nav { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid #d9dde5; background: #ffffff; }
       nav button { min-height: 42px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: #4b5568; }
       nav button[aria-selected="true"] { border-bottom-color: #215bb7; color: #173f80; font-weight: 700; }
+      button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+        outline: 3px solid #0b5cad;
+        outline-offset: 2px;
+      }
+      .segments label:has(input:focus-visible) {
+        outline: 3px solid #0b5cad;
+        outline-offset: -3px;
+      }
       main { padding: 16px; }
       section[hidden] { display: none; }
       h2 { margin: 0 0 14px; font-size: 15px; letter-spacing: 0; }
@@ -53,16 +61,16 @@
   <body>
     <header>
       <h1>UniBot Guardian</h1>
-      <div id="connectionStatus" class="status" data-state="idle">Nicht gekoppelt</div>
+      <div id="connectionStatus" class="status" role="status" aria-live="polite" aria-atomic="true" data-state="idle">Nicht gekoppelt</div>
     </header>
     <nav aria-label="Arbeitsbereiche">
-      <button type="button" data-tab="session" aria-selected="true">Sitzung</button>
-      <button type="button" data-tab="help" aria-selected="false">Hilfe</button>
-      <button type="button" data-tab="review" aria-selected="false">Rueckblick</button>
+      <button type="button" data-tab="session" aria-controls="session" aria-selected="true">Sitzung</button>
+      <button type="button" data-tab="help" aria-controls="help" aria-selected="false">Hilfe</button>
+      <button type="button" data-tab="review" aria-controls="review" aria-selected="false">Rueckblick</button>
     </nav>
     <main>
-      <section id="session" data-panel>
-        <h2>Lernsitzung</h2>
+      <section id="session" data-panel role="tabpanel" aria-labelledby="session-heading">
+        <h2 id="session-heading">Lernsitzung</h2>
         <label for="pseudonym">Pseudonym</label>
         <input id="pseudonym" maxlength="80" value="Lernende Person">
         <label for="courseId">Kurs</label>
@@ -83,17 +91,17 @@
           <option>A0</option><option>A1</option><option selected>A2</option><option>A3</option><option>A4</option>
         </select>
         <button id="startSession" class="command" type="button">Sitzung starten</button>
-        <output id="sessionOutput">Lokaler Begleiter wird gesucht.</output>
+        <output id="sessionOutput" role="status" aria-live="polite" aria-atomic="true">Lokaler Begleiter wird gesucht.</output>
         <label for="notebookSource">Oeffentliche Notebook-URL oder lokale Auswahl</label>
         <input id="notebookSource" type="url" placeholder="https://.../notebook.ipynb">
         <button id="importNotebook" class="command secondary" type="button">Notebook importieren</button>
         <button id="openGateway" class="command" type="button" disabled>In Jupyter oeffnen</button>
         <button id="stopGateway" class="command secondary" type="button" disabled>Jupyter stoppen</button>
-        <output id="notebookOutput">Noch kein Notebook importiert.</output>
+        <output id="notebookOutput" role="status" aria-live="polite" aria-atomic="true">Noch kein Notebook importiert.</output>
       </section>
 
-      <section id="help" data-panel hidden>
-        <h2>Sokratische Hilfe</h2>
+      <section id="help" data-panel role="tabpanel" aria-labelledby="help-heading" hidden>
+        <h2 id="help-heading">Sokratische Hilfe</h2>
         <button id="capture" class="command secondary" type="button">Aktive Zelle erfassen</button>
         <div id="cellMeta" class="cell-meta">Keine Zelle erfasst</div>
         <label for="task">Frage oder Lernziel</label>
@@ -112,15 +120,15 @@
         </fieldset>
         <label class="check"><input id="confirmEscalation" type="checkbox">Hilfestufe und sichtbaren Budgetzuwachs bestaetigen</label>
         <button id="ask" class="command" type="button">Hilfe anfragen</button>
-        <output id="helpOutput">Noch keine Anfrage.</output>
+        <output id="helpOutput" role="status" aria-live="polite" aria-atomic="true">Noch keine Anfrage.</output>
       </section>
 
-      <section id="review" data-panel hidden>
-        <h2>Sitzungsrueckblick</h2>
+      <section id="review" data-panel role="tabpanel" aria-labelledby="review-heading" hidden>
+        <h2 id="review-heading">Sitzungsrueckblick</h2>
         <button id="refreshReview" class="command secondary" type="button">Aktualisieren</button>
         <button id="exportReview" class="command" type="button">Metadaten exportieren</button>
         <button id="deleteSession" class="command secondary" type="button">Sitzung löschen</button>
-        <output id="reviewOutput">Noch keine Sitzungsdaten.</output>
+        <output id="reviewOutput" role="status" aria-live="polite" aria-atomic="true">Noch keine Sitzungsdaten.</output>
       </section>
 
       <div class="boundary">A0-A4. Lernbetrieb. Keine Note, KI-Erkennung oder Pruefungsfreigabe.</div>
