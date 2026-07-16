@@ -15,6 +15,20 @@ UniBot track. It explains how to start the local service, load the browser
 mantle, run the practice demo, validate demo feedback, triage work items, and
 check public-draft readiness.
 
+## Candidate Integrity Audit
+
+After creating a public-draft candidate, run the read-only audit:
+
+```text
+unibot release audit ./unibot-review-candidate
+```
+
+It verifies the release manifest, recorded file sizes and SHA-256 hashes,
+public-safety statuses, `not_cleared` exam status, zero provider calls, and the
+source commit when the repository is available. A tampered or incomplete
+candidate is blocked. The audit writes no files, calls no network or provider,
+and cannot publish, merge, or grant institutional approval.
+
 ## Hard Boundary
 
 - Public draft means review and collaboration, not exam clearance.

@@ -8,6 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from unibot.public_safety import scan_text
+from unibot.release_audit import audit_release_candidate
 from unibot.release_candidate import write_release_candidate_bundle
 
 
@@ -79,6 +80,35 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 write_release_candidate_bundle(output)
             self.assertEqual(marker.read_text(encoding="utf-8"), "keep")
+
+    def test_release_audit_verifies_hashes_and_source_commit_without_side_effects(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "candidate"
+            result = write_release_candidate_bundle(output)
+            self.assertEqual(result["status"], "written")
+
+            audit = audit_release_candidate(output, repository=Path(__file__).resolve().parents[1])
+
+            self.assertEqual(audit["status"], "pass", audit["issues"])
+            self.assertTrue(audit["candidate_directory_checked"])
+            self.assertTrue(audit["source_commit_match"])
+            self.assertEqual(audit["recorded_file_count"], 4)
+            self.assertEqual(audit["public_safety_status"], "pass")
+            self.assertFalse(audit["side_effects"]["files_written"])
+            self.assertFalse(audit["side_effects"]["network_called"])
+            self.assertFalse(audit["side_effects"]["git_changed"])
+
+    def test_release_audit_blocks_tampered_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "candidate"
+            result = write_release_candidate_bundle(output)
+            self.assertEqual(result["status"], "written")
+            (output / "institutional-presentation.md").write_text("tampered", encoding="utf-8")
+
+            audit = audit_release_candidate(output)
+
+            self.assertEqual(audit["status"], "blocked")
+            self.assertIn("release_file_hash_mismatch:institutional-presentation.md", audit["issues"])
 
 
 if __name__ == "__main__":

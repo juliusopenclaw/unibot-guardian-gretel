@@ -40,6 +40,7 @@ from .glm_provider import PROVIDER_SCOPE, ZaiGLMProvider, keychain_key_available
 from .notebook_intake import NotebookIntakeError, import_notebook
 from .public_safety import scan_text
 from .release_candidate import write_release_candidate_bundle
+from .release_audit import audit_release_candidate
 from .server import run as run_server
 
 
@@ -200,6 +201,9 @@ def build_parser() -> argparse.ArgumentParser:
     release_commands = release.add_subparsers(dest="release_command", required=True)
     release_candidate = release_commands.add_parser("candidate", help="write the extension and institutional review bundle")
     release_candidate.add_argument("--output", type=Path, required=True)
+    release_audit = release_commands.add_parser("audit", help="verify a release candidate without modifying it")
+    release_audit.add_argument("candidate", type=Path)
+    release_audit.add_argument("--repo", type=Path, default=Path.cwd())
     return parser
 
 
@@ -464,6 +468,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             payload = write_release_candidate_bundle(args.output)
             _print_json(payload)
             return 0 if payload["status"] == "written" else 2
+        if args.command == "release" and args.release_command == "audit":
+            payload = audit_release_candidate(args.candidate, repository=args.repo)
+            _print_json(payload)
+            return 0 if payload["status"] == "pass" else 2
     except (GatewayError, NotebookIntakeError, RuntimeError, ValueError, OSError) as exc:
         _print_json({"status": "blocked", "reason": str(exc)})
         return 2
