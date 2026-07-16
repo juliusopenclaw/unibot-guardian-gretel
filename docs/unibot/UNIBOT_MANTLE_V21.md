@@ -47,8 +47,9 @@ learning, or independent work.
 - A real local Jupyter process is represented only by a restricted process
   record. `gateway.status` and `gateway.stop` allow the Companion to recover or
   terminate that process after a Chrome restart; the Jupyter token is never
-  written to the record. The notebook retention clock starts again when the
-  gateway ends.
+  written to the record. Launch checks the requested loopback port before
+  starting Jupyter and rejects an immediate process exit instead of reporting a
+  false start. The notebook retention clock starts again when the gateway ends.
 - The Sidepanel accepts either an allowlisted public HTTPS notebook URL or a
   learner-selected local `.ipynb` file. Chrome never provides a local path to
   the Companion. Local files are transferred as 32 KiB Native-Messaging

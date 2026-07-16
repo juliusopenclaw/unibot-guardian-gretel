@@ -351,6 +351,10 @@ submission.
 
 - If the local API is offline, start the local service and retry the health
   endpoint.
+- If the practice gateway reports that its port is in use, stop the other local
+  Jupyter service or start again so the Companion can choose a free loopback
+  port. A failed Jupyter start is reported as blocked and does not create a
+  misleading active gateway record.
 - If the side panel cannot access selected page text, use the visible
   copy/paste fallback.
 - If feedback is blocked, remove private details and validate again.

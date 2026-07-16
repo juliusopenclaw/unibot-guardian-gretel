@@ -37,6 +37,7 @@ grading, proctoring, or KI-detection evidence.
 | A malicious page calls the local tutor. | The alpha extension uses Native Messaging with an exact extension origin. The HTTP compatibility path retains pairing, origin pinning, and session tokens. |
 | Raw notebook text leaks through logs. | Runtime text is held in memory; local records and voluntary reports contain metadata and hashes only. |
 | A local notebook path or partial upload leaks through the browser bridge. | The file picker sends no path; the Companion accepts one bounded 32 KiB-chunk upload, checks a path-free `.ipynb` label and SHA-256, expires abandoned uploads, then sanitizes before local storage. |
+| A busy port or an immediately failing Jupyter process is reported as a running gateway. | The launcher probes the loopback port before spawning Jupyter and rejects an already-exited process before opening the browser or writing gateway state. |
 | Public release leaks private material. | Public build excludes emails, private course files, health data, local paths, and raw AI transcripts. |
 | Exam mode uses not-cleared KI. | `exam_controlled` blocks external KI unless a written clearance reference is present. |
 
