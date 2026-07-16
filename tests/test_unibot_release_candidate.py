@@ -35,7 +35,7 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
             result = write_release_candidate_bundle(output)
 
             self.assertEqual(result["status"], "written")
-            self.assertEqual(result["file_count"], 7)
+            self.assertEqual(result["file_count"], 8)
             self.assertEqual(result["exam_deployment_status"], "not_cleared")
             self.assertEqual(result["provider_calls"], 0)
             self.assertFalse(result["learner_content_included"])
@@ -45,6 +45,7 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
                 sorted(path.name for path in output.iterdir()),
                 [
                     "INSTITUTIONAL-MANIFEST.json",
+                    "PUBLIC-DEMO.md",
                     "RELEASE-MANIFEST.json",
                     "institutional-presentation.json",
                     "institutional-presentation.md",
@@ -63,6 +64,7 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
             self.assertTrue(manifest["source_provenance"]["working_tree_clean"])
             self.assertRegex(manifest["source_provenance"]["commit"], r"^[0-9a-f]{40}$")
             self.assertRegex(manifest["demo_fixture_sha256"], r"^[0-9a-f]{64}$")
+            self.assertRegex(manifest["public_demo_markdown_sha256"], r"^[0-9a-f]{64}$")
             self.assertEqual(manifest["authorship"]["implementation_and_documentation"], "Gretel / Codex")
             self.assertNotIn("/" + "Users/", json.dumps(manifest))
 
@@ -77,6 +79,7 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
                 )["status"],
                 "pass",
             )
+            self.assertEqual(scan_text((output / "PUBLIC-DEMO.md").read_text(encoding="utf-8"), "PUBLIC-DEMO.md")["status"], "pass")
 
             for path in output.glob("*.json"):
                 self.assertEqual(scan_text(path.read_text(encoding="utf-8"), path.name)["status"], "pass")
@@ -103,7 +106,7 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
             self.assertEqual(audit["status"], "pass", audit["issues"])
             self.assertTrue(audit["candidate_directory_checked"])
             self.assertTrue(audit["source_commit_match"])
-            self.assertEqual(audit["recorded_file_count"], 6)
+            self.assertEqual(audit["recorded_file_count"], 7)
             self.assertEqual(audit["public_safety_status"], "pass")
             self.assertFalse(audit["side_effects"]["files_written"])
             self.assertFalse(audit["side_effects"]["network_called"])

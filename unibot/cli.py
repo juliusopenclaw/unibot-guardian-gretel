@@ -41,6 +41,7 @@ from .extension_package import package_extension
 from .glm_provider import PROVIDER_SCOPE, ZaiGLMProvider, keychain_key_available
 from .notebook_intake import NotebookIntakeError, import_notebook
 from .public_safety import scan_text
+from .public_demo import build_public_demo_evidence, build_public_demo_markdown
 from .release_candidate import write_release_candidate_bundle
 from .release_audit import audit_release_candidate
 from .release_pr import write_release_pr_draft
@@ -188,6 +189,9 @@ def build_parser() -> argparse.ArgumentParser:
     companion_commands.add_parser("native-host", help=argparse.SUPPRESS)
 
     commands.add_parser("public-safety", help="scan public repository artifacts")
+
+    demo = commands.add_parser("demo", help="run the public synthetic local-tutor demonstration")
+    demo.add_argument("--markdown", action="store_true")
 
     institution = commands.add_parser("institution", help="prepare public-safe institutional review artifacts")
     institution_commands = institution.add_subparsers(dest="institution_command", required=True)
@@ -463,6 +467,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             payload = public_repository_safety(Path.cwd())
             _print_json(payload)
             return 0 if payload["status"] == "pass" else 2
+        if args.command == "demo":
+            payload = build_public_demo_evidence()
+            if args.markdown:
+                print(
+                    json.dumps(
+                        {"status": payload["status"], "markdown": build_public_demo_markdown(payload)},
+                        ensure_ascii=True,
+                        indent=2,
+                    )
+                )
+            else:
+                _print_json(payload)
+            return 0 if payload["status"] == "ready_for_human_demo" else 2
         if args.command == "institution" and args.institution_command == "profile":
             payload = build_regulatory_profile()
             _print_json(payload)

@@ -385,7 +385,9 @@ class LearningSession:
         events = self.task_events(task_id)
         if not events:
             return "A0"
-        return max((event["effective_help_level"] for event in events), key=lambda level: HELP_COSTS_V1[level])
+        # A0 and A1 are intentionally both cost-free; progression is ordered by
+        # pedagogical level, not by the assistance budget.
+        return max((event["effective_help_level"] for event in events), key=HELP_LEVELS_V1.index)
 
     def last_attempt_hash(self, task_id: str) -> str:
         events = self.task_events(task_id)

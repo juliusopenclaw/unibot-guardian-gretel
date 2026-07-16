@@ -18,7 +18,7 @@ class UniBotReleaseHandoffTests(unittest.TestCase):
             result = write_release_handoff(output, repository=repository)
 
             self.assertEqual(result["status"], "written")
-            self.assertEqual(result["candidate_file_count"], 7)
+            self.assertEqual(result["candidate_file_count"], 8)
             self.assertEqual(result["provider_calls"], 0)
             self.assertFalse(result["automatic_publication"])
             self.assertFalse(result["automatic_merge"])
@@ -28,6 +28,7 @@ class UniBotReleaseHandoffTests(unittest.TestCase):
             self.assertTrue((output / "candidate" / "RELEASE-MANIFEST.json").is_file())
             self.assertTrue((output / "candidate" / "unibot-mantle.zip").is_file())
             self.assertTrue((output / "candidate" / "synthetic_python_practice.ipynb").is_file())
+            self.assertTrue((output / "candidate" / "PUBLIC-DEMO.md").is_file())
             self.assertTrue((output / "UNIBOT-PR-DRAFT.md").is_file())
             self.assertTrue((output / "HANDOFF-MANIFEST.json").is_file())
 
@@ -35,6 +36,7 @@ class UniBotReleaseHandoffTests(unittest.TestCase):
             self.assertEqual(manifest["status"], "public_draft_ready_for_human_review")
             self.assertEqual(manifest["source_commit"], result["source_commit"])
             self.assertRegex(manifest["demo_fixture_sha256"], r"^[0-9a-f]{64}$")
+            self.assertRegex(manifest["public_demo_markdown_sha256"], r"^[0-9a-f]{64}$")
             self.assertFalse(manifest["automatic_merge"])
             self.assertNotIn("/" + "Users/", json.dumps(manifest))
             self.assertEqual(

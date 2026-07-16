@@ -63,6 +63,7 @@ def build_release_pr_draft(
     source_commit = str(manifest.get("source_provenance", {}).get("commit", ""))
     extension_hash = str(manifest.get("extension_package_sha256", ""))
     demo_fixture_hash = str(manifest.get("demo_fixture_sha256", ""))
+    public_demo_hash = str(manifest.get("public_demo_markdown_sha256", ""))
     evidence_hash = str(manifest.get("institutional_evidence_hash", ""))
     manifest_hash = _sha256_file(manifest_path)
     body = "\n".join(
@@ -84,6 +85,7 @@ def build_release_pr_draft(
             f"- Release-Manifest-SHA-256: `{manifest_hash}`",
             f"- MV3-Paket-SHA-256: `{extension_hash}`",
             f"- Öffentliche Demo-Fixture-SHA-256: `{demo_fixture_hash}`",
+            f"- Öffentlicher Demo-Ablauf-SHA-256: `{public_demo_hash}`",
             f"- Institutioneller Evidenz-Hash: `{evidence_hash}`",
             "- Public-Safety-Scan: bestanden; keine privaten Dateien, Pfade, Schlüssel oder Lerninhalte enthalten.",
             "- Release-Audit: bestanden; keine Netzwerk-, Provider-, Git- oder automatischen Merge-Effekte.",
@@ -138,6 +140,7 @@ def build_release_pr_draft(
         "release_manifest_sha256": manifest_hash,
         "extension_package_sha256": extension_hash,
         "demo_fixture_sha256": demo_fixture_hash,
+        "public_demo_markdown_sha256": public_demo_hash,
         "institutional_evidence_hash": evidence_hash,
         "audit_status": audit["status"],
         "public_safety_status": scan["status"],

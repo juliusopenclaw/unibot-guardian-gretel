@@ -11,6 +11,7 @@ from typing import Any
 
 from .clearance import write_institutional_review_bundle
 from .extension_package import package_extension
+from .public_demo import build_public_demo_evidence, build_public_demo_markdown
 from .public_safety import scan_text
 
 
@@ -161,6 +162,29 @@ def write_release_candidate_bundle(output_dir: str | Path) -> dict[str, Any]:
                 }
             records.append(_file_record(demo_fixture_path, demo_fixture_path.name, public_safety_status=demo_fixture_safety))
 
+            demo_result = build_public_demo_evidence()
+            if demo_result.get("status") != "ready_for_human_demo" or demo_result.get("public_safety_status") != "pass":
+                return {
+                    "schema_version": RELEASE_CANDIDATE_SCHEMA_VERSION,
+                    "artifact_type": "unibot_release_candidate_bundle",
+                    "status": "blocked",
+                    "reason": "public_demo_evidence_blocked",
+                    "exam_deployment_status": "not_cleared",
+                }
+            demo_path = staging / "PUBLIC-DEMO.md"
+            demo_path.write_text(build_public_demo_markdown(demo_result), encoding="utf-8")
+            os.chmod(demo_path, 0o600)
+            demo_safety = _scan_text_file(demo_path, demo_path.name)
+            if demo_safety != "pass":
+                return {
+                    "schema_version": RELEASE_CANDIDATE_SCHEMA_VERSION,
+                    "artifact_type": "unibot_release_candidate_bundle",
+                    "status": "blocked",
+                    "reason": "public_demo_markdown_safety_failed",
+                    "exam_deployment_status": "not_cleared",
+                }
+            records.append(_file_record(demo_path, demo_path.name, public_safety_status=demo_safety))
+
             institutional_names = {
                 "institutional-presentation.json": "institutional-presentation.json",
                 "institutional-presentation.md": "institutional-presentation.md",
@@ -191,6 +215,7 @@ def write_release_candidate_bundle(output_dir: str | Path) -> dict[str, Any]:
             "files": sorted(records, key=lambda record: str(record["name"])),
             "extension_package_sha256": extension_result["package_sha256"],
             "demo_fixture_sha256": _sha256_file(demo_fixture_path),
+            "public_demo_markdown_sha256": _sha256_file(demo_path),
             "institutional_evidence_hash": institutional_result["evidence_hash"],
             "public_safety_status": "pass",
             "provider_calls": 0,
@@ -235,6 +260,7 @@ def write_release_candidate_bundle(output_dir: str | Path) -> dict[str, Any]:
             "manifest_sha256": _sha256_file(root / "RELEASE-MANIFEST.json"),
             "extension_package_sha256": extension_result["package_sha256"],
             "demo_fixture_sha256": _sha256_file(root / "synthetic_python_practice.ipynb"),
+            "public_demo_markdown_sha256": _sha256_file(root / "PUBLIC-DEMO.md"),
             "institutional_evidence_hash": institutional_result["evidence_hash"],
             "public_safety_status": "pass",
             "provider_calls": 0,

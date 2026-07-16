@@ -46,6 +46,9 @@ full provenance statement is in `AUTHORS.md`.
   path-free Native-Messaging upload and writes only the sanitized practice copy.
 - Use only `fixtures/public/synthetic_python_practice.ipynb` for the public
   institutional demonstration; it contains no learner, course, health, or exam data.
+- Run the same public demonstration that the institutional packet describes:
+  `unibot demo --markdown`. It parses the synthetic notebook, uses the real
+  local deterministic tutor for A0-A2, and never executes notebook code.
 - Start the paired local API: `unibot serve --pair`
 - Import a public notebook: `unibot notebook import <https-url-or-local-file>`
 - Prepare the institutional review profile: `unibot institution profile`

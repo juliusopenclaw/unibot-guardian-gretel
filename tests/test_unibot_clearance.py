@@ -198,6 +198,10 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         self.assertEqual(packet["review_session"]["status"], "human_review_meeting_ready")
         self.assertEqual(len(packet["review_session"]["office_lanes"]), 5)
         self.assertIn("KI-Office / CIO-Board", [lane["office"] for lane in packet["review_session"]["office_lanes"]])
+        self.assertIn(
+            "unibot demo --markdown",
+            packet["demo_protocol"]["steps"][0],
+        )
         self.assertNotIn("raw notebook text:", payload.lower())
         self.assertNotIn("/" + "Users/", payload)
         self.assertNotIn("master thesis", payload.lower())
