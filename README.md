@@ -20,6 +20,10 @@ full provenance statement is in `AUTHORS.md`.
 - Install for development: `python3 -m pip install --upgrade 'pip>=26.1.2'` and
   `python3 -m pip install -e '.[dev,glm,gateway]'`
 - Install the local Mac companion: `unibot companion install`
+- The installation copies the public runtime into macOS Application Support;
+  moving the Git checkout does not change the native-host import path. A
+  Developer-ID-signed and notarized bundled interpreter remains a later human
+  release requirement.
 - In Chrome, load `unibot/browser_extension` as an unpacked extension for the
   public alpha. Its fixed alpha ID is bound to the installed native host.
 - Open `~/Applications/UniBot Companion.app` or click the extension and start a

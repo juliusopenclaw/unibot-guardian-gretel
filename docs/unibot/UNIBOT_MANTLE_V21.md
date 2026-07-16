@@ -53,6 +53,12 @@ learning, or independent work.
   visible keyboard focus, and a tested narrow layout. The Playwright check is
   concrete browser evidence, not a claim of completed institutional WCAG
   certification; that review remains a human accessibility gate.
+- Companion installation copies the public `unibot` package and its
+  `exam_mode.py` dependency into a restricted local runtime under macOS
+  Application Support. Native-host and app launchers point to that copy rather
+  than the Git checkout, and an installation test verifies the import without
+  the source tree. A signed/notarized bundled Python interpreter remains a
+  separate human release gate.
 - The local JSONL record contains only hashes, levels, source IDs, timestamps,
   assistance points, and status. Files are owner-readable only.
 - The voluntary report contains the pseudonym chosen for the session, contract

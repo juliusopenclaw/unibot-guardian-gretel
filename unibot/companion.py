@@ -6,6 +6,7 @@ import hashlib
 import shlex
 import shutil
 import signal
+import secrets
 import socket
 import struct
 import subprocess
@@ -38,6 +39,7 @@ CHROMIUM_NATIVE_HOSTS = Path.home() / "Library" / "Application Support" / "Chrom
 DEFAULT_APP_PATH = Path.home() / "Applications" / "UniBot Companion.app"
 NOTEBOOK_RETENTION_HOURS = 24
 GATEWAY_STATE_SCHEMA_VERSION = "unibot-gateway-state-v1"
+RUNTIME_DIRECTORY_NAME = "runtime"
 
 
 def cleanup_expired_notebooks(
@@ -398,21 +400,87 @@ def run_native_host(stdin: BinaryIO | None = None, stdout: BinaryIO | None = Non
         write_native_message(output_stream, runtime.handle(message))
 
 
-def _python_launcher(command: str) -> str:
+def _runtime_root() -> Path:
+    return APPLICATION_SUPPORT / RUNTIME_DIRECTORY_NAME
+
+
+def _reject_runtime_symlinks(source_root: Path) -> None:
+    if source_root.is_symlink():
+        raise ValueError("UniBot runtime source must not be a symlink")
+    for path in source_root.rglob("*"):
+        if path.is_symlink():
+            raise ValueError("UniBot runtime source contains a symlink")
+
+
+def _set_runtime_permissions(root: Path) -> None:
+    for path in sorted(root.rglob("*"), key=lambda item: len(item.parts), reverse=True):
+        if path.is_symlink():
+            raise ValueError("installed UniBot runtime contains a symlink")
+        if path.is_dir():
+            os.chmod(path, 0o700)
+        else:
+            os.chmod(path, 0o600)
+    os.chmod(root, 0o700)
+
+
+def install_runtime(runtime_root: Path | None = None) -> Path:
+    """Copy the public UniBot package into a source-independent local runtime."""
+    target = (runtime_root or _runtime_root()).expanduser()
+    source_root = Path(__file__).resolve().parents[1] / "unibot"
+    source_exam_mode = source_root.parent / "exam_mode.py"
+    if not source_root.is_dir():
+        raise ValueError("UniBot runtime source package is missing")
+    if not source_exam_mode.is_file() or source_exam_mode.is_symlink():
+        raise ValueError("UniBot runtime exam-mode module is missing or unsafe")
+    _reject_runtime_symlinks(source_root)
+    if target.exists() and target.is_symlink():
+        raise ValueError("installed UniBot runtime must not be a symlink")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    os.chmod(target.parent, 0o700)
+    staging = target.parent / f".{target.name}.staging-{os.getpid()}-{secrets.token_hex(6)}"
+    backup = target.parent / f".{target.name}.previous-{os.getpid()}-{secrets.token_hex(6)}"
+    try:
+        shutil.copytree(
+            source_root,
+            staging / "unibot",
+            symlinks=False,
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
+        )
+        shutil.copy2(source_exam_mode, staging / "exam_mode.py")
+        _set_runtime_permissions(staging)
+        if target.exists():
+            os.replace(target, backup)
+        os.replace(staging, target)
+        if backup.exists():
+            shutil.rmtree(backup)
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
+        if backup.exists():
+            shutil.rmtree(backup)
+    return target
+
+
+def _python_launcher(command: str, runtime_root: Path | None = None) -> str:
     python = shlex.quote(sys.executable)
-    repo_root = shlex.quote(str(Path(__file__).resolve().parents[1]))
-    return f"#!/bin/zsh\nexport PYTHONPATH={repo_root}\nexec {python} -m unibot.companion {command}\n"
+    package_root = shlex.quote(str(runtime_root or _runtime_root()))
+    return f"#!/bin/zsh\nexport PYTHONPATH={package_root}\nexec {python} -m unibot.companion {command}\n"
 
 
-def install_native_host(extension_id: str = DEFAULT_EXTENSION_ID) -> dict[str, Any]:
+def install_native_host(
+    extension_id: str = DEFAULT_EXTENSION_ID,
+    *,
+    runtime_root: Path | None = None,
+) -> dict[str, Any]:
     if len(extension_id) != 32 or any(character not in "abcdefghijklmnop" for character in extension_id):
         raise ValueError("extension ID must be a 32-character Chrome extension ID")
+    installed_runtime = install_runtime(runtime_root)
     bin_root = APPLICATION_SUPPORT / "bin"
     bin_root.mkdir(parents=True, exist_ok=True)
     os.chmod(APPLICATION_SUPPORT, 0o700)
     os.chmod(bin_root, 0o700)
     launcher = bin_root / "unibot-native-host"
-    launcher.write_text(_python_launcher("native-host"), encoding="utf-8")
+    launcher.write_text(_python_launcher("native-host", installed_runtime), encoding="utf-8")
     os.chmod(launcher, 0o700)
     manifest = {
         "name": NATIVE_HOST_NAME,
@@ -433,10 +501,16 @@ def install_native_host(extension_id: str = DEFAULT_EXTENSION_ID) -> dict[str, A
         "manifest_present": True,
         "browser_manifests": ["Google Chrome", "Chromium"],
         "launcher_present": True,
+        "runtime_package_copied": True,
     }
 
 
-def install_companion_app(app_path: Path = DEFAULT_APP_PATH) -> dict[str, Any]:
+def install_companion_app(
+    app_path: Path = DEFAULT_APP_PATH,
+    *,
+    runtime_root: Path | None = None,
+) -> dict[str, Any]:
+    installed_runtime = install_runtime(runtime_root)
     executable_root = app_path / "Contents" / "MacOS"
     executable_root.mkdir(parents=True, exist_ok=True)
     info_plist = app_path / "Contents" / "Info.plist"
@@ -456,7 +530,7 @@ def install_companion_app(app_path: Path = DEFAULT_APP_PATH) -> dict[str, Any]:
         encoding="utf-8",
     )
     executable = executable_root / "UniBot Companion"
-    executable.write_text(_python_launcher("menu"), encoding="utf-8")
+    executable.write_text(_python_launcher("menu", installed_runtime), encoding="utf-8")
     os.chmod(executable, 0o700)
     signature_status = "unsigned"
     codesign = subprocess.run(
@@ -467,15 +541,22 @@ def install_companion_app(app_path: Path = DEFAULT_APP_PATH) -> dict[str, Any]:
     )
     if codesign.returncode == 0:
         signature_status = "ad_hoc_signed"
-    return {"status": "installed", "app_present": True, "signature_status": signature_status}
+    return {
+        "status": "installed",
+        "app_present": True,
+        "signature_status": signature_status,
+        "runtime_package_copied": True,
+    }
 
 
 def install_companion(extension_id: str = DEFAULT_EXTENSION_ID) -> dict[str, Any]:
+    installed_runtime = install_runtime()
     return {
         "schema_version": "unibot-companion-install-v1",
         "status": "installed",
-        "native_host": install_native_host(extension_id),
-        "app": install_companion_app(),
+        "native_host": install_native_host(extension_id, runtime_root=installed_runtime),
+        "app": install_companion_app(runtime_root=installed_runtime),
+        "runtime_mode": "source_independent_package_copy_current_interpreter",
         "exam_deployment_status": "not_cleared",
     }
 
@@ -484,11 +565,13 @@ def companion_status(extension_id: str = DEFAULT_EXTENSION_ID) -> dict[str, Any]
     chrome_manifest = CHROME_NATIVE_HOSTS / f"{NATIVE_HOST_NAME}.json"
     chromium_manifest = CHROMIUM_NATIVE_HOSTS / f"{NATIVE_HOST_NAME}.json"
     manifests_ready = chrome_manifest.is_file() and chromium_manifest.is_file()
+    runtime_ready = (_runtime_root() / "unibot" / "companion.py").is_file()
     return {
         "schema_version": "unibot-companion-status-v1",
-        "status": "ready" if manifests_ready and DEFAULT_APP_PATH.is_dir() else "not_installed",
+        "status": "ready" if manifests_ready and DEFAULT_APP_PATH.is_dir() and runtime_ready else "not_installed",
         "native_host_installed": manifests_ready,
         "app_installed": DEFAULT_APP_PATH.is_dir(),
+        "runtime_package_copied": runtime_ready,
         "extension_id": extension_id,
         "allowed_help_levels": list(HELP_LEVELS_V1),
         "exam_deployment_status": "not_cleared",
