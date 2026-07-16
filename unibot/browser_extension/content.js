@@ -68,49 +68,77 @@
     return input ? (input.innerText || input.textContent || input.value || "").trim().slice(0, 12000) : "";
   }
 
-  function cellPayload(cell, { adapter, selector, cells, confidence }) {
+  function candidateCells(selectors) {
+    const byCell = new Map();
+    for (const selector of selectors) {
+      for (const cell of document.querySelectorAll(selector)) {
+        const existing = byCell.get(cell);
+        if (existing) {
+          existing.selectors.push(selector);
+        } else {
+          byCell.set(cell, { cell, selectors: [selector] });
+        }
+      }
+    }
+    return Array.from(byCell.values());
+  }
+
+  function cellPayload(candidate, { adapter, adapterVersion, cells, confidence }) {
+    const cell = candidate.cell;
     const source = sourceFromCell(cell);
+    const cellIndex = cells.indexOf(cell);
     const classText = `${cell.className || ""} ${cell.getAttribute("data-cell-type") || ""}`.toLowerCase();
     return {
       source,
       cellType: classText.includes("markdown") ? "markdown" : "code",
-      cellIndex: cells.indexOf(cell),
+      cellIndex,
       adapter,
-      selector,
-      confidence: source ? confidence : "low"
+      adapterVersion,
+      selector: candidate.selectors.join(","),
+      confidence: source && cellIndex >= 0 ? confidence : "low"
     };
+  }
+
+  function ambiguousPayload(adapter, adapterVersion, candidates) {
+    return {
+      source: "",
+      cellType: "unknown",
+      cellIndex: -1,
+      adapter,
+      adapterVersion,
+      selector: candidates.map((candidate) => candidate.selectors.join(",")).join(" | "),
+      confidence: "low",
+      ambiguity: "multiple_active_cells"
+    };
+  }
+
+  function resolveCellCandidates({ adapter, adapterVersion, selectors, cells, confidence }) {
+    const candidates = candidateCells(selectors);
+    if (candidates.length === 0) return null;
+    if (candidates.length !== 1) return ambiguousPayload(adapter, adapterVersion, candidates);
+    return cellPayload(candidates[0], { adapter, adapterVersion, cells, confidence });
   }
 
   function jupyterAdapter() {
     const selectors = [".jp-Notebook-cell.jp-mod-active", ".jp-CodeCell.jp-mod-active", ".cell.selected"];
-    for (const selector of selectors) {
-      const cell = document.querySelector(selector);
-      if (cell) {
-        return cellPayload(cell, {
-          adapter: "jupyterlab",
-          selector,
-          cells: Array.from(document.querySelectorAll(".jp-Notebook-cell, .cell")),
-          confidence: "high"
-        });
-      }
-    }
-    return null;
+    return resolveCellCandidates({
+      adapter: "jupyterlab",
+      adapterVersion: "jupyterlab-v1",
+      selectors,
+      cells: Array.from(document.querySelectorAll(".jp-Notebook-cell, .cell")),
+      confidence: "high"
+    });
   }
 
   function colabAdapter() {
     const selectors = ["colab-code-cell.focused", "colab-text-cell.focused", "[role='listitem'][aria-selected='true']"];
-    for (const selector of selectors) {
-      const cell = document.querySelector(selector);
-      if (cell) {
-        return cellPayload(cell, {
-          adapter: "colab",
-          selector,
-          cells: Array.from(document.querySelectorAll("colab-code-cell, colab-text-cell")),
-          confidence: selector.includes("focused") ? "high" : "medium"
-        });
-      }
-    }
-    return null;
+    return resolveCellCandidates({
+      adapter: "colab",
+      adapterVersion: "colab-v1",
+      selectors,
+      cells: Array.from(document.querySelectorAll("colab-code-cell, colab-text-cell")),
+      confidence: "high"
+    });
   }
 
   function selectionAdapter() {
@@ -120,6 +148,7 @@
       cellType: "selection",
       cellIndex: -1,
       adapter: "manual_selection",
+      adapterVersion: "manual-v1",
       selector: "",
       confidence: source ? "medium" : "low"
     };

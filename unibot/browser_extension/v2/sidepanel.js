@@ -209,6 +209,7 @@ async function captureCell() {
   }
   elements.cellMeta.textContent = [
     state.selectedCell.adapter,
+    state.selectedCell.adapterVersion || "adapter-v1",
     state.selectedCell.cellType,
     state.selectedCell.cellIndex >= 0 ? `Zelle ${state.selectedCell.cellIndex}` : "Auswahl",
     `Sicherheit ${state.selectedCell.confidence}`
@@ -313,6 +314,7 @@ async function requestHelp() {
     cell_type: state.selectedCell?.cellType || "none",
     cell_index: state.selectedCell?.cellIndex ?? -1,
     adapter: state.selectedCell?.adapter || "none",
+    adapter_version: state.selectedCell?.adapterVersion || "adapter-v1",
     requested_help_level: selectedHelpLevel(),
     confirm_escalation: elements.confirmEscalation.checked,
     accessibility_used: elements.accessibilitySupport.checked

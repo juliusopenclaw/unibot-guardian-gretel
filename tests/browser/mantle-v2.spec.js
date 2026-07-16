@@ -71,6 +71,38 @@ test("content script captures the focused Colab cell without output text", async
   expect(response.selectedCell.source).not.toContain("private rendered Colab output");
 });
 
+test("content script refuses ambiguous Colab cell detection instead of guessing", async ({ page }) => {
+  await page.setContent(`
+    <main>
+      <colab-code-cell class="focused"><div class="input_area"><div class="cm-content">first = 1</div></div></colab-code-cell>
+      <colab-code-cell class="focused"><div class="input_area"><div class="cm-content">second = 2</div></div></colab-code-cell>
+    </main>
+  `);
+  await page.evaluate(() => {
+    window.__unibotListener = null;
+    window.chrome = {
+      runtime: {
+        onMessage: {
+          addListener(listener) {
+            window.__unibotListener = listener;
+          }
+        }
+      }
+    };
+  });
+  await page.addScriptTag({ path: path.join(extensionRoot, "content.js") });
+  const response = await page.evaluate(() => new Promise((resolve) => {
+    window.__unibotListener({ type: "UNIBOT_GET_SELECTION" }, {}, resolve);
+  }));
+
+  expect(response.selectedCell.adapter).toBe("colab");
+  expect(response.selectedCell.adapterVersion).toBe("colab-v1");
+  expect(response.selectedCell.confidence).toBe("low");
+  expect(response.selectedCell.ambiguity).toBe("multiple_active_cells");
+  expect(response.selectedCell.cellIndex).toBe(-1);
+  expect(response.selectedCell.source).toBe("");
+});
+
 test("sidepanel starts a native session, captures a cell, requests A0-A4 help, and renders review metadata", async ({ page }) => {
   await page.addInitScript(() => {
     let onNativeMessage = null;
@@ -147,6 +179,7 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
               cellType: "code",
               cellIndex: 2,
               adapter: "jupyterlab",
+              adapterVersion: "jupyterlab-v1",
               confidence: "high"
             }
           };
@@ -171,6 +204,7 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
   await expect(page.locator("#helpOutput")).toContainText("Welche Laenge");
   await expect(page.locator("#helpOutput")).toContainText("5 Punkte");
   expect(await page.evaluate(() => window.__lastTutorPayload?.accessibility_used)).toBe(true);
+  expect(await page.evaluate(() => window.__lastTutorPayload?.adapter_version)).toBe("jupyterlab-v1");
 
   await page.getByRole("tab", { name: "Rueckblick", exact: true }).click();
   await page.locator("#refreshReview").click();

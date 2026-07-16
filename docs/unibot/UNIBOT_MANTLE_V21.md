@@ -57,6 +57,11 @@ learning, or independent work.
   a path-free filename, and a SHA-256 check. The Companion validates and
   sanitizes the complete byte stream before writing the temporary practice
   copy; interrupted, invalid, or abandoned raw uploads are discarded.
+- The content adapter reports a versioned adapter identifier for JupyterLab,
+  Colab, or manual selection. If more than one different notebook cell appears
+  active, the adapter returns low confidence and no source text; the Sidepanel
+  requires an explicit learner selection instead of guessing. Notebook output
+  is never part of the selection payload.
 - The Sidepanel exposes semantic tab/panel relationships, live status regions,
   visible keyboard focus, a tested narrow layout, and bounded automatic
   reconnection after a native-host restart. The Playwright check is
