@@ -78,6 +78,7 @@ CLEARANCE_SCOPES: dict[str, dict[str, Any]] = {
             "hg-nrw-64",
             "uoc-hilfsmittel",
             "uoc-szi-klausurunterstuetzung-2026",
+            "uoc-szi-assistenzstelle-2026",
             "uoc-ki-faq",
             "eu-ai-act-2024",
             "jupyter-ai",
@@ -102,6 +103,7 @@ REGULATORY_SOURCE_CARD_IDS = [
     "uoc-hilfsmittel",
     "uoc-nachteilsausgleich",
     "uoc-szi-klausurunterstuetzung-2026",
+    "uoc-szi-assistenzstelle-2026",
     "uoc-szi-inclusive-teaching-2026",
     "uoc-szi-wegweiser-2026",
     "wcag-22",
@@ -121,6 +123,7 @@ ACCESSIBILITY_REVIEW_SOURCE_CARD_IDS = [
     "bitv-nrw",
     "uoc-szi-inclusive-teaching-2026",
     "uoc-nachteilsausgleich",
+    "uoc-szi-assistenzstelle-2026",
 ]
 
 
@@ -855,7 +858,7 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
                 "`unibot demo --markdown` ausführen; der Lauf prüft die öffentliche Fixture und den lokalen Tutor in memory.",
                 "Tutor und Gateway lokal starten und die öffentliche Synthetic-Fixture importieren.",
                 "Synthetische Notebook-Zelle manuell auswählen.",
-                "A0-, A1- und A2-Hinweis mit Quellenanker zeigen.",
+                "A0 bis A4-Hinweise mit Quellenanker zeigen; A3 bleibt Formelstruktur, A4 ein Luecken-Geruest.",
                 "Komplettlösung, Endwert und fertige Interpretation als blockiert zeigen.",
                 "Rückblick, Exportvorschau und sofortige Löschung demonstrieren.",
             ],
@@ -869,7 +872,7 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
             "requested_outcome": "Written scope, conditions, responsible role, and next review gate; no automatic approval.",
             "sequence": [
                 "State purpose, authorship, local-only data boundary, and not_cleared status.",
-                "Run the synthetic notebook demo with A0-A2 help and show a blocked complete solution.",
+                "Run the synthetic notebook demo with A0-A4 practice help and show a blocked complete solution.",
                 "Show keyboard, focus, zoom, uncertain-selection fallback, export preview, and deletion.",
                 "Review each institutional lane and record open conditions without storing raw meeting text.",
             ],
@@ -886,6 +889,7 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
                     "evidence": [
                         "uoc-nachteilsausgleich",
                         "uoc-szi-klausurunterstuetzung-2026",
+                        "uoc-szi-assistenzstelle-2026",
                         "uoc-szi-wegweiser-2026",
                         "wcag-22",
                         "bgg-nrw-10",

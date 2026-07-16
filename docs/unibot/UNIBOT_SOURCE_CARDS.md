@@ -1,7 +1,7 @@
 # UniBot Source Cards
 
 Corpus baseline checked on: 2026-06-13. The current institutional cards below
-were rechecked on 2026-07-16 against the linked official pages.
+were rechecked on 2026-07-17 against the linked official pages.
 
 Each card gives a product rule for UniBot. Public documents may be cited in the
 GitHub project; private course material, emails, health data, and local paths may
@@ -38,6 +38,7 @@ a review substrate for human decisions.
 | `uoc-ki-faq` | 2026-07-16 | Exam restrictions for external KI | high | [University of Cologne KI FAQ](https://verwaltung.uni-koeln.de/stabsstelle02.1/content/faq/data/kuenstliche_intelligenz/index_ger.html) | A banned KI aid can be a cheating act; therefore exam mode blocks external KI unless written clearance exists. |
 | `uoc-nachteilsausgleich` | 2026-07-16 | Accessibility and accommodation process | high | [University of Cologne Nachteilsausgleich](https://inklusion.uni-koeln.de/informationen/nachteilsausgleich/index_ger.html) | Accommodation is individual and institutional; accessibility help in UniBot remains score-neutral and non-decisional. |
 | `uoc-szi-klausurunterstuetzung-2026` | 2026-07-16 | Accessibility support during exams | high | [Servicezentrum Inklusion: Klausurunterstützung](https://inklusion.uni-koeln.de/service/klausurunterstuetzung/index_ger.html) | Exam support is coordinated by teaching, examination, and inclusion professionals; UniBot cannot decide or implement an accommodation. |
+| `uoc-szi-assistenzstelle-2026` | 2026-07-17 | Inclusion counselling and study/exam assistance route | high | [Servicezentrum Inklusion: Assistenzstelle](https://inklusion.uni-koeln.de/service/assistenzstelle/index_ger.html) | UniBot may point to the institutional assistance route, but it cannot infer need or decide an accommodation. |
 | `uoc-medfak-ki-lehre-2026` | 2026-07-16 | Medical Faculty AI in teaching | high | [Medical Faculty: KI im Studium](https://medfak.uni-koeln.de/studium-lehre/ueberblick/ki-in-der-lehre) | Faculty guidance points to the university AI policy and faculty-specific rules; it does not approve UniBot deployment. |
 | `uoc-szi-inclusive-teaching-2026` | 2026-07-16 | Inclusive teaching guidance | high | [Servicezentrum Inklusion: inklusive Lehre](https://inklusion.uni-koeln.de/informationen/inklusive_lehre/schritte_inklusive_lehre/index_ger.html) | Accessibility needs should be addressed early and without accidental disclosure; UniBot provides an accessible fallback, not an inclusion decision. |
 | `uoc-szi-wegweiser-2026` | 2026-07-16 | Disability and accessibility guidance | high | [Servicezentrum Inklusion: Wegweiser](https://inklusion.uni-koeln.de/wegweiser/index_ger.html) | Support and accommodation routes are individual and institution-led; UniBot must not infer or decide accommodation. |

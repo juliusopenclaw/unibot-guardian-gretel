@@ -35,6 +35,7 @@ class UniBotSourceCardTests(unittest.TestCase):
         self.assertEqual(report["duplicate_source_ids"], [])
         self.assertEqual(report["stale_source_card_ids"], [])
         self.assertIsNotNone(get_source_card("dfg-gwp"))
+        self.assertIsNotNone(get_source_card("uoc-szi-assistenzstelle-2026"))
         self.assertIn("zai-glm-52", required_source_card_ids())
 
     def test_source_card_claim_alignment_links_release_review_board_chain(self) -> None:

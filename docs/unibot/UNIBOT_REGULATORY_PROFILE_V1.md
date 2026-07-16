@@ -98,6 +98,7 @@ Die maschinenlesbare Version bindet die offiziellen Source Cards
 `uoc-ki-policy-2026`, `uoc-ki-pruefungsrecht`,
 `uoc-medfak-ki-doku-2026`, `uoc-medfak-ki-lehre-2026`, `uoc-ki-lehre`, `uoc-hilfsmittel`,
 `uoc-nachteilsausgleich`, `uoc-szi-klausurunterstuetzung-2026`,
+`uoc-szi-assistenzstelle-2026`,
 `uoc-szi-inclusive-teaching-2026`, `uoc-szi-wegweiser-2026`, `gdpr-2016-679`, `dsk-ai-privacy-2024`,
 `eu-ai-act-2024`, `hg-nrw-64`, `dfg-gwp` und `jupyter-ai`.
 Zusätzlich bindet der Accessibility-Review `wcag-22`, `bgg-nrw-10` und
