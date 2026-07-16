@@ -33,6 +33,8 @@ class UniBotReleasePrDraftTests(unittest.TestCase):
             self.assertIn("Julius", draft["body"])
             self.assertIn("Gretel / Codex", draft["body"])
             self.assertIn("Institutionelle Prüfung", draft["body"])
+            self.assertIn("Öffentliche Demo-Fixture-SHA-256", draft["body"])
+            self.assertRegex(draft["demo_fixture_sha256"], r"^[0-9a-f]{64}$")
             self.assertNotIn("/" + "Users/", draft["body"])
             self.assertEqual(scan_text(draft["body"], "pr-draft-test")["status"], "pass")
 

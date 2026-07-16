@@ -18,6 +18,7 @@ REQUIRED_ARTIFACT_NAMES = frozenset(
         "institutional-presentation.json",
         "institutional-presentation.md",
         "institutional-review-decision-template.md",
+        "synthetic_python_practice.ipynb",
         "unibot-mantle.zip",
     }
 )
@@ -151,6 +152,7 @@ def audit_release_candidate(candidate_dir: str | Path, *, repository: str | Path
                 "institutional-presentation.md",
                 "institutional-review-decision-template.md",
                 "INSTITUTIONAL-MANIFEST.json",
+                "synthetic_python_practice.ipynb",
             )
         ]
         scans = [scan_text(path.read_text(encoding="utf-8"), path.name) for path in safety_targets if path.is_file()]

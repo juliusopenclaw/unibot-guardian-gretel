@@ -128,6 +128,39 @@ def write_release_candidate_bundle(output_dir: str | Path) -> dict[str, Any]:
                 )
             ]
 
+            repository_root = Path(__file__).resolve().parents[1]
+            demo_fixture_source = repository_root / "fixtures" / "public" / "synthetic_python_practice.ipynb"
+            if demo_fixture_source.is_symlink() or not demo_fixture_source.is_file():
+                return {
+                    "schema_version": RELEASE_CANDIDATE_SCHEMA_VERSION,
+                    "artifact_type": "unibot_release_candidate_bundle",
+                    "status": "blocked",
+                    "reason": "demo_fixture_missing_or_unsafe",
+                    "exam_deployment_status": "not_cleared",
+                }
+            demo_fixture_path = staging / "synthetic_python_practice.ipynb"
+            try:
+                shutil.copy2(demo_fixture_source, demo_fixture_path)
+                os.chmod(demo_fixture_path, 0o600)
+                demo_fixture_safety = _scan_text_file(demo_fixture_path, demo_fixture_path.name)
+            except (OSError, UnicodeDecodeError):
+                return {
+                    "schema_version": RELEASE_CANDIDATE_SCHEMA_VERSION,
+                    "artifact_type": "unibot_release_candidate_bundle",
+                    "status": "blocked",
+                    "reason": "demo_fixture_unreadable",
+                    "exam_deployment_status": "not_cleared",
+                }
+            if demo_fixture_safety != "pass":
+                return {
+                    "schema_version": RELEASE_CANDIDATE_SCHEMA_VERSION,
+                    "artifact_type": "unibot_release_candidate_bundle",
+                    "status": "blocked",
+                    "reason": "demo_fixture_public_safety_failed",
+                    "exam_deployment_status": "not_cleared",
+                }
+            records.append(_file_record(demo_fixture_path, demo_fixture_path.name, public_safety_status=demo_fixture_safety))
+
             institutional_names = {
                 "institutional-presentation.json": "institutional-presentation.json",
                 "institutional-presentation.md": "institutional-presentation.md",
@@ -157,6 +190,7 @@ def write_release_candidate_bundle(output_dir: str | Path) -> dict[str, Any]:
             "exam_deployment_status": "not_cleared",
             "files": sorted(records, key=lambda record: str(record["name"])),
             "extension_package_sha256": extension_result["package_sha256"],
+            "demo_fixture_sha256": _sha256_file(demo_fixture_path),
             "institutional_evidence_hash": institutional_result["evidence_hash"],
             "public_safety_status": "pass",
             "provider_calls": 0,
@@ -200,6 +234,7 @@ def write_release_candidate_bundle(output_dir: str | Path) -> dict[str, Any]:
             "file_count": len(records),
             "manifest_sha256": _sha256_file(root / "RELEASE-MANIFEST.json"),
             "extension_package_sha256": extension_result["package_sha256"],
+            "demo_fixture_sha256": _sha256_file(root / "synthetic_python_practice.ipynb"),
             "institutional_evidence_hash": institutional_result["evidence_hash"],
             "public_safety_status": "pass",
             "provider_calls": 0,

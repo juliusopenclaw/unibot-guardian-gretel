@@ -35,7 +35,7 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
             result = write_release_candidate_bundle(output)
 
             self.assertEqual(result["status"], "written")
-            self.assertEqual(result["file_count"], 6)
+            self.assertEqual(result["file_count"], 7)
             self.assertEqual(result["exam_deployment_status"], "not_cleared")
             self.assertEqual(result["provider_calls"], 0)
             self.assertFalse(result["learner_content_included"])
@@ -49,6 +49,7 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
                     "institutional-presentation.json",
                     "institutional-presentation.md",
                     "institutional-review-decision-template.md",
+                    "synthetic_python_practice.ipynb",
                     "unibot-mantle.zip",
                 ],
             )
@@ -61,12 +62,21 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
             self.assertEqual(manifest["source_provenance"]["status"], "verified")
             self.assertTrue(manifest["source_provenance"]["working_tree_clean"])
             self.assertRegex(manifest["source_provenance"]["commit"], r"^[0-9a-f]{40}$")
+            self.assertRegex(manifest["demo_fixture_sha256"], r"^[0-9a-f]{64}$")
             self.assertEqual(manifest["authorship"]["implementation_and_documentation"], "Gretel / Codex")
             self.assertNotIn("/" + "Users/", json.dumps(manifest))
 
             with zipfile.ZipFile(output / "unibot-mantle.zip") as archive:
                 self.assertIn("manifest.json", archive.namelist())
                 self.assertNotIn("tests/test_unibot_release_candidate.py", archive.namelist())
+
+            self.assertEqual(
+                scan_text(
+                    (output / "synthetic_python_practice.ipynb").read_text(encoding="utf-8"),
+                    "synthetic_python_practice.ipynb",
+                )["status"],
+                "pass",
+            )
 
             for path in output.glob("*.json"):
                 self.assertEqual(scan_text(path.read_text(encoding="utf-8"), path.name)["status"], "pass")
@@ -93,7 +103,7 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
             self.assertEqual(audit["status"], "pass", audit["issues"])
             self.assertTrue(audit["candidate_directory_checked"])
             self.assertTrue(audit["source_commit_match"])
-            self.assertEqual(audit["recorded_file_count"], 5)
+            self.assertEqual(audit["recorded_file_count"], 6)
             self.assertEqual(audit["public_safety_status"], "pass")
             self.assertFalse(audit["side_effects"]["files_written"])
             self.assertFalse(audit["side_effects"]["network_called"])
