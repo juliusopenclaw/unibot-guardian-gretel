@@ -10,6 +10,7 @@ from typing import Any
 
 from .public_safety import scan_text
 from .release_audit import audit_release_candidate
+from .release_evidence import validate_release_evidence
 
 
 RELEASE_PR_DRAFT_SCHEMA_VERSION = "UniBotReleasePrDraftV1"
@@ -27,6 +28,7 @@ def build_release_pr_draft(
     candidate_dir: str | Path,
     *,
     repository: str | Path | None = None,
+    evidence: str | Path | None = None,
 ) -> dict[str, Any]:
     """Create PR text only after the candidate's read-only audit passes."""
     candidate = Path(candidate_dir).expanduser()
@@ -61,6 +63,33 @@ def build_release_pr_draft(
 
     title = "UniBot: public-safe local Socratic Chrome learning companion"
     source_commit = str(manifest.get("source_provenance", {}).get("commit", ""))
+    verification = None
+    if evidence is not None:
+        verification = validate_release_evidence(evidence, repository=repo)
+        if verification["status"] != "pass":
+            return {
+                "schema_version": RELEASE_PR_DRAFT_SCHEMA_VERSION,
+                "artifact_type": "unibot_github_pull_request_draft",
+                "status": "blocked",
+                "reason": "release_evidence_blocked",
+                "verification_evidence_status": verification["status"],
+                "verification_evidence_issues": verification["issues"],
+                "automatic_publication": False,
+                "automatic_merge": False,
+                "exam_deployment_status": "not_cleared",
+            }
+        if verification.get("source_commit") != source_commit:
+            return {
+                "schema_version": RELEASE_PR_DRAFT_SCHEMA_VERSION,
+                "artifact_type": "unibot_github_pull_request_draft",
+                "status": "blocked",
+                "reason": "release_evidence_candidate_commit_mismatch",
+                "verification_evidence_status": "blocked",
+                "verification_evidence_issues": ["candidate_source_commit_mismatch"],
+                "automatic_publication": False,
+                "automatic_merge": False,
+                "exam_deployment_status": "not_cleared",
+            }
     extension_hash = str(manifest.get("extension_package_sha256", ""))
     demo_fixture_hash = str(manifest.get("demo_fixture_sha256", ""))
     public_demo_hash = str(manifest.get("public_demo_markdown_sha256", ""))
@@ -90,6 +119,32 @@ def build_release_pr_draft(
         "",
     )
     manifest_hash = _sha256_file(manifest_path)
+    verification_lines = [
+        "- Verifikations-Evidenz: noch nicht aufgezeichnet; die folgende Prüfliste ist kein Testergebnis.",
+    ]
+    verification_status = "not_recorded"
+    verification_hash = ""
+    verification_gate_ids: list[str] = []
+    if verification is not None:
+        verification_payload = verification["evidence"]
+        verification_status = "pass"
+        verification_hash = str(verification["evidence_sha256"])
+        verification_gate_ids = [str(value) for value in verification["gate_ids"]]
+        verification_lines = [
+            f"- Hash-gebundene Verifikations-Evidenz: `{verification_hash}`",
+            f"- Verifikationsstand: `pass`, {len(verification_gate_ids)} feste Gates grün.",
+            "- Erfasst werden nur Gate-Status, Kennzahlen und Ausgabe-Hashes; Rohlogs und lokale Pfade bleiben außen vor.",
+        ]
+        for gate in verification_payload.get("gates", []):
+            metrics = gate.get("metrics", {})
+            compact_metrics = ", ".join(
+                f"{key}={metrics[key]}"
+                for key in sorted(metrics)
+                if isinstance(metrics[key], (str, int, float, bool)) and metrics[key] is not None
+            )
+            verification_lines.append(
+                f"  - `{gate.get('gate_id')}`: `{gate.get('status')}`" + (f" ({compact_metrics})" if compact_metrics else "")
+            )
     body = "\n".join(
         [
             "## Zweck",
@@ -122,6 +177,10 @@ def build_release_pr_draft(
             "- Public-Safety-Scan: bestanden; keine privaten Dateien, Pfade, Schlüssel oder Lerninhalte enthalten.",
             "- Release-Audit: bestanden; keine Netzwerk-, Provider-, Git- oder automatischen Merge-Effekte.",
             "- Öffentliche Demo-Fixture: `fixtures/public/synthetic_python_practice.ipynb`.",
+            "",
+            "## Verifikations-Evidenz",
+            "",
+            *verification_lines,
             "",
             "## Prüfungen",
             "",
@@ -180,6 +239,9 @@ def build_release_pr_draft(
         "institutional_evidence_hash": evidence_hash,
         "audit_status": audit["status"],
         "public_safety_status": scan["status"],
+        "verification_evidence_status": verification_status,
+        "release_evidence_sha256": verification_hash,
+        "verification_gate_ids": verification_gate_ids,
         "provider_calls": 0,
         "automatic_publication": False,
         "automatic_merge": False,
@@ -193,12 +255,13 @@ def write_release_pr_draft(
     candidate_dir: str | Path,
     *,
     repository: str | Path | None = None,
+    evidence: str | Path | None = None,
 ) -> dict[str, Any]:
     """Write a new, owner-readable PR body without overwriting existing files."""
     output = Path(output_path).expanduser()
     if output.is_symlink() or output.exists():
         raise ValueError("pull request draft output must be a new file")
-    draft = build_release_pr_draft(candidate_dir, repository=repository)
+    draft = build_release_pr_draft(candidate_dir, repository=repository, evidence=evidence)
     if draft["status"] != "ready_for_human_review":
         return draft
     output.parent.mkdir(parents=True, exist_ok=True)

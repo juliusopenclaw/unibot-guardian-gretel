@@ -13,6 +13,7 @@ from typing import Any
 from .public_safety import scan_text
 from .release_audit import audit_release_candidate
 from .release_candidate import write_release_candidate_bundle
+from .release_evidence import validate_release_evidence
 from .release_pr import write_release_pr_draft
 
 
@@ -45,6 +46,7 @@ def write_release_handoff(
     output_dir: str | Path,
     *,
     repository: str | Path | None = None,
+    evidence: str | Path | None = None,
 ) -> dict[str, Any]:
     """Build candidate, audit, and PR draft as one atomic local handoff."""
     root = Path(output_dir).expanduser()
@@ -55,6 +57,15 @@ def write_release_handoff(
     os.chmod(staging, 0o700)
     repo = Path(repository).expanduser() if repository is not None else Path(__file__).resolve().parents[1]
     try:
+        verification = None
+        if evidence is not None:
+            verification = validate_release_evidence(evidence, repository=repo)
+            if verification["status"] != "pass":
+                return _blocked(
+                    "release_evidence_blocked",
+                    verification_evidence_status=verification["status"],
+                    verification_evidence_issues=verification["issues"],
+                )
         candidate_dir = staging / "candidate"
         candidate = write_release_candidate_bundle(candidate_dir)
         if candidate.get("status") != "written":
@@ -65,9 +76,18 @@ def write_release_handoff(
             return _blocked("release_candidate_audit_failed", audit=audit)
 
         pr_path = staging / "UNIBOT-PR-DRAFT.md"
-        pr = write_release_pr_draft(pr_path, candidate_dir, repository=repo)
+        pr = write_release_pr_draft(pr_path, candidate_dir, repository=repo, evidence=evidence)
         if pr.get("status") != "ready_for_human_review":
             return _blocked("release_pr_draft_blocked", pr_draft=pr)
+
+        evidence_path = None
+        if evidence is not None:
+            evidence_path = staging / "RELEASE-EVIDENCE.json"
+            shutil.copyfile(Path(evidence).expanduser(), evidence_path)
+            os.chmod(evidence_path, 0o600)
+            evidence_scan = scan_text(evidence_path.read_text(encoding="utf-8"), "RELEASE-EVIDENCE.json")
+            if evidence_scan["status"] != "pass":
+                return _blocked("release_evidence_public_safety_failed", finding_count=len(evidence_scan["findings"]))
 
         candidate_manifest = candidate_dir / "RELEASE-MANIFEST.json"
         handoff_manifest = {
@@ -84,6 +104,10 @@ def write_release_handoff(
             "candidate_audit_status": audit["status"],
             "pr_draft_sha256": _sha256_file(pr_path),
             "pr_draft_public_safety_status": pr["public_safety_status"],
+            "verification_evidence_status": pr.get("verification_evidence_status", "not_recorded"),
+            "verification_evidence_sha256": pr.get("release_evidence_sha256", ""),
+            "verification_gate_ids": pr.get("verification_gate_ids", []),
+            "verification_evidence_file": "RELEASE-EVIDENCE.json" if evidence_path else None,
             "provider_calls": 0,
             "learner_content_included": False,
             "private_project_files_included": False,
@@ -109,16 +133,22 @@ def write_release_handoff(
         os.chmod(manifest_path, 0o600)
 
         os.replace(staging, root)
+        output_file_names = ["HANDOFF-MANIFEST.json", "UNIBOT-PR-DRAFT.md", "candidate/"]
+        if evidence_path:
+            output_file_names.append("RELEASE-EVIDENCE.json")
         return {
             "schema_version": RELEASE_HANDOFF_SCHEMA_VERSION,
             "artifact_type": "unibot_release_handoff",
             "status": "written",
-            "output_file_names": ["HANDOFF-MANIFEST.json", "UNIBOT-PR-DRAFT.md", "candidate/"],
+            "output_file_names": output_file_names,
             "candidate_file_count": candidate["file_count"],
             "demo_fixture_sha256": candidate.get("demo_fixture_sha256"),
             "public_demo_markdown_sha256": candidate.get("public_demo_markdown_sha256"),
             "candidate_manifest_sha256": _sha256_file(root / "candidate" / "RELEASE-MANIFEST.json"),
             "pr_draft_sha256": _sha256_file(root / "UNIBOT-PR-DRAFT.md"),
+            "verification_evidence_status": pr.get("verification_evidence_status", "not_recorded"),
+            "verification_evidence_sha256": pr.get("release_evidence_sha256", ""),
+            "verification_gate_ids": pr.get("verification_gate_ids", []),
             "source_commit": candidate["source_commit"],
             "public_safety_status": "pass",
             "provider_calls": 0,
