@@ -39,13 +39,17 @@ GitHub action. The sequence is intentionally short:
 2. Build `unibot release candidate --output ./unibot-review-candidate` and
    run `unibot release audit ./unibot-review-candidate`. Keep the printed source
    commit and manifest hashes with the review record.
-3. A human opens one **draft PR** from the Gretel branch to `main`. The PR
+3. Generate the public-safe PR text from the audited candidate with
+   `unibot release pr-draft --candidate ./unibot-review-candidate --output ./UNIBOT-PR-DRAFT.md`.
+   The command refuses stale, dirty, tampered, or unsafe candidates and does
+   not contact GitHub.
+4. A human opens one **draft PR** from the Gretel branch to `main`. The PR
    must state: Gretel/Codex implementation and documentation, GLM provider
    calls and cost (`0` while parked), tests, public-safety result, remaining
    uncertainty, and the human merge decision still required.
-4. GitHub CI repeats the required checks. A failed check blocks the PR; no bot
+5. GitHub CI repeats the required checks. A failed check blocks the PR; no bot
    merges, changes `main`, changes branch protection, or publishes a release.
-5. Julius reviews the final diff after the last bot push and is the only person
+6. Julius reviews the final diff after the last bot push and is the only person
    who may merge or release it.
 
 This establishes a public review point, not institutional approval. The local

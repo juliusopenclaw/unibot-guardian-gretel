@@ -46,6 +46,20 @@ def _current_commit(repository: Path) -> str | None:
     return commit if result.returncode == 0 and len(commit) == 40 else None
 
 
+def _current_worktree_clean(repository: Path) -> bool:
+    try:
+        result = subprocess.run(
+            ["git", "status", "--porcelain=v1"],
+            cwd=repository,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return False
+    return result.returncode == 0 and not result.stdout.strip()
+
+
 def audit_release_candidate(candidate_dir: str | Path, *, repository: str | Path | None = None) -> dict[str, Any]:
     """Verify a candidate without modifying it or making external calls."""
     root = Path(candidate_dir).expanduser()
@@ -114,14 +128,19 @@ def audit_release_candidate(candidate_dir: str | Path, *, repository: str | Path
 
     source_commit = None
     source_commit_match: bool | None = None
+    source_worktree_clean: bool | None = None
     provenance = manifest.get("source_provenance") if isinstance(manifest, dict) else None
     if isinstance(provenance, dict):
         source_commit = provenance.get("commit")
         if repository is not None:
-            current_commit = _current_commit(Path(repository).expanduser())
+            repository_path = Path(repository).expanduser()
+            current_commit = _current_commit(repository_path)
             source_commit_match = bool(current_commit and current_commit == source_commit)
+            source_worktree_clean = _current_worktree_clean(repository_path)
             if not source_commit_match:
                 issues.append("candidate_source_commit_does_not_match_repository")
+            if not source_worktree_clean:
+                issues.append("candidate_source_worktree_not_clean")
 
     safety_status = "missing"
     if root.is_dir():
@@ -147,6 +166,7 @@ def audit_release_candidate(candidate_dir: str | Path, *, repository: str | Path
         "release_manifest_sha256": _sha256_file(manifest_path) if manifest_path.is_file() else None,
         "source_commit": source_commit,
         "source_commit_match": source_commit_match,
+        "source_worktree_clean": source_worktree_clean,
         "recorded_file_count": len(manifest.get("files", [])) if isinstance(manifest.get("files"), list) else 0,
         "public_safety_status": safety_status,
         "automatic_merge": manifest.get("automatic_merge") if manifest else None,

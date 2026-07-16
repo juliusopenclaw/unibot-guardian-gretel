@@ -35,6 +35,8 @@ full provenance statement is in `AUTHORS.md`.
 - Verify a candidate's files, hashes, public-safety fields, and source commit
   without changing anything:
   `unibot release audit ./unibot-review-candidate`
+- Create the human-gated GitHub PR text from an audited candidate:
+  `unibot release pr-draft --candidate ./unibot-review-candidate --output ./UNIBOT-PR-DRAFT.md`
 - Open `~/Applications/UniBot Companion.app` or click the extension and start a
   fixed or adaptive A0-A4 learning session.
 - In the extension, import either an allowlisted public `.ipynb` URL or choose a
