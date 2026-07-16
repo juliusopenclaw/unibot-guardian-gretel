@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Iterable
 
-from .autonomy_v3 import WorkItemV3
+from .autonomy_v3 import EvolutionChunkContractV1, WorkItemV3
 from .guardian import classify_external_ai_output
 from .source_cards import get_source_card
 
@@ -160,6 +160,16 @@ def guardian_semantic_precision_work_item(base_commit: str) -> WorkItemV3:
         ),
         test_ids=("guardian.semantic_precision", "public.safety"),
         base_commit=base_commit,
+        evolution_chunk=EvolutionChunkContractV1(
+            failure_class="guardian.semantic_precision",
+            generalized_rule=(
+                "Every Socratic output policy must be tested against fixed allowed and blocked boundary cases."
+            ),
+            transfer_targets=("tutor.rule_pack", "browser.output_filter"),
+            positive_fixture_ids=("guardian.allowed_socratic_help",),
+            negative_fixture_ids=("guardian.complete_solution",),
+            recurrence_monitor_id="guardian.semantic_precision.regression",
+        ),
     )
 
 

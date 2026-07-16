@@ -40,7 +40,10 @@ class GuardianSemanticPrecisionBenchmarkTests(unittest.TestCase):
         item = guardian_semantic_precision_work_item("a" * 40)
 
         self.assertEqual(item.validate(), [])
+        self.assertEqual(item.validate_for_execution(), [])
         self.assertEqual(len(item.allowed_files), 4)
+        self.assertEqual(item.evolution_chunk.failure_class, "guardian.semantic_precision")
+        self.assertGreaterEqual(len(item.evolution_chunk.transfer_targets), 2)
         self.assertNotIn("tests/test_unibot_guardian_benchmark.py", item.public_context_files)
         self.assertNotIn("unibot/guardian_benchmark.py", item.public_context_files)
 

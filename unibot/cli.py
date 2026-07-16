@@ -15,8 +15,10 @@ from .autonomy_v3 import (
     autonomy_doctor,
     autonomy_loop_status,
     default_test_registry,
+    evaluate_three_golden_rules,
     prepare_autonomy_loop,
     request_autonomy_loop_start,
+    three_golden_rules_status,
 )
 from .autonomy_v2 import (
     autonomy_status,
@@ -126,10 +128,22 @@ def build_parser() -> argparse.ArgumentParser:
     audit.add_argument("run_id")
     audit.add_argument("--state-db", type=Path)
 
+    evolve = autonomy_commands.add_parser("evolve", help="inspect the review-gated Three Golden Rules ledger")
+    evolve_commands = evolve.add_subparsers(dest="evolve_command", required=True)
+    evolve_status = evolve_commands.add_parser("status")
+    evolve_status.add_argument("--state-db", type=Path)
+    evolve_audit = evolve_commands.add_parser("audit")
+    evolve_audit.add_argument("pattern_id")
+    evolve_audit.add_argument("--state-db", type=Path)
+
     evaluate = commands.add_parser("evaluate", help="run deterministic local evaluation suites")
     evaluate_commands = evaluate.add_subparsers(dest="evaluate_command", required=True)
     evaluate_guardian = evaluate_commands.add_parser("guardian", help="measure Guardian semantic precision")
     evaluate_guardian.add_argument("--json", action="store_true")
+    evaluate_3gr = evaluate_commands.add_parser("3gr", help="validate a Three Golden Rules work contract")
+    evaluate_3gr.add_argument("--work-item", type=Path)
+    evaluate_3gr.add_argument("--state-db", type=Path)
+    evaluate_3gr.add_argument("--json", action="store_true")
 
     notebook = commands.add_parser("notebook", help="import a sanitized public or local notebook")
     notebook_commands = notebook.add_subparsers(dest="notebook_command", required=True)
@@ -283,8 +297,18 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if args.work_command == "claim":
                     item = WorkItemV3.from_dict(json.loads(args.work_item.read_text(encoding="utf-8")))
                     store.save_work_item(item)
-                    _print_json({"status": "queued", "work_item": item.to_dict(), "automatic_merge": False})
-                    return 0
+                    evaluation = evaluate_three_golden_rules(item)
+                    status = "queued" if evaluation["status"] == "pass" else "gretel_proposed"
+                    _print_json(
+                        {
+                            "status": status,
+                            "work_item": item.to_dict(),
+                            "three_golden_rules": evaluation,
+                            "execution_allowed": status == "queued",
+                            "automatic_merge": False,
+                        }
+                    )
+                    return 0 if status == "queued" else 2
                 released = store.release_work_item(args.work_id)
                 _print_json({"status": "released" if released else "not_found", "work_id": args.work_id})
                 return 0 if released else 2
@@ -296,6 +320,24 @@ def main(argv: Sequence[str] | None = None) -> int:
                 run = store.get_run(args.run_id)
                 _print_json({"status": "ok" if run else "not_found", "run": run, "automatic_merge": False})
                 return 0 if run else 2
+            finally:
+                store.close()
+        if args.command == "autonomy" and args.autonomy_command == "evolve":
+            store = AutonomyStore(args.state_db)
+            try:
+                if args.evolve_command == "status":
+                    _print_json(three_golden_rules_status(store))
+                    return 0
+                pattern = store.get_improvement_pattern(args.pattern_id)
+                _print_json(
+                    {
+                        "status": "ok" if pattern else "not_found",
+                        "pattern": pattern,
+                        "automatic_apply": False,
+                        "human_review_required": True,
+                    }
+                )
+                return 0 if pattern else 2
             finally:
                 store.close()
         if args.command == "autonomy" and args.autonomy_command == "run":
@@ -334,6 +376,18 @@ def main(argv: Sequence[str] | None = None) -> int:
             payload = evaluate_guardian_benchmark()
             _print_json(payload)
             return 0 if payload["status"] == "pass" else 2
+        if args.command == "evaluate" and args.evaluate_command == "3gr":
+            if args.work_item:
+                item = WorkItemV3.from_dict(json.loads(args.work_item.read_text(encoding="utf-8")))
+                payload = evaluate_three_golden_rules(item)
+            else:
+                store = AutonomyStore(args.state_db)
+                try:
+                    payload = three_golden_rules_status(store)
+                finally:
+                    store.close()
+            _print_json(payload)
+            return 0 if payload["status"] in {"pass", "ok"} else 2
         if args.command == "notebook" and args.notebook_command == "import":
             _print_json(dict(import_notebook(args.source, args.output_root)))
             return 0
