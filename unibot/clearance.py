@@ -17,6 +17,7 @@ INSTITUTIONAL_CLEARANCE_SCHEMA_VERSION = "unibot-institutional-clearance-v1"
 REGULATORY_PROFILE_SCHEMA_VERSION = "RegulatoryProfileV1"
 INSTITUTIONAL_PRESENTATION_SCHEMA_VERSION = "InstitutionalPresentationV1"
 INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION = "InstitutionalReviewBundleV1"
+ACCESSIBILITY_REVIEW_SCHEMA_VERSION = "AccessibilityReviewV1"
 
 ALLOWED_DECISION_STATUSES = {"needs_review", "approved", "rejected"}
 STANDARD_HELP_LEVELS = ("A0", "A1", "A2")
@@ -102,6 +103,9 @@ REGULATORY_SOURCE_CARD_IDS = [
     "uoc-szi-klausurunterstuetzung-2026",
     "uoc-szi-inclusive-teaching-2026",
     "uoc-szi-wegweiser-2026",
+    "wcag-22",
+    "bgg-nrw-10",
+    "bitv-nrw",
     "gdpr-2016-679",
     "dsk-ai-privacy-2024",
     "eu-ai-act-2024",
@@ -109,6 +113,159 @@ REGULATORY_SOURCE_CARD_IDS = [
     "dfg-gwp",
     "jupyter-ai",
 ]
+
+ACCESSIBILITY_REVIEW_SOURCE_CARD_IDS = [
+    "wcag-22",
+    "bgg-nrw-10",
+    "bitv-nrw",
+    "uoc-szi-inclusive-teaching-2026",
+    "uoc-nachteilsausgleich",
+]
+
+
+def build_accessibility_review_plan(*, public_safe: bool = True) -> dict[str, Any]:
+    """Prepare a consent-based accessibility review without diagnosing people."""
+    checks = [
+        {
+            "check_id": "keyboard_core_flow",
+            "method": "keyboard_only",
+            "pass_condition": "Start, cell selection, help request, report preview, and delete are operable with visible focus.",
+            "critical": True,
+        },
+        {
+            "check_id": "screen_reader_status",
+            "method": "screen_reader_with_synthetic_notebook",
+            "pass_condition": "Controls, selected tab, errors, and live status are announced with meaningful labels.",
+            "critical": True,
+        },
+        {
+            "check_id": "zoom_and_reflow",
+            "method": "browser_zoom_200_percent_and_280px_panel",
+            "pass_condition": "Core flow remains usable without hidden controls or horizontal scrolling.",
+            "critical": True,
+        },
+        {
+            "check_id": "contrast_and_focus",
+            "method": "human_visual_review",
+            "pass_condition": "Text, controls, focus, errors, and disabled states remain distinguishable.",
+            "critical": True,
+        },
+        {
+            "check_id": "uncertain_cell_fallback",
+            "method": "adapter_uncertainty_fixture",
+            "pass_condition": "The product asks for explicit selection and never guesses a cell.",
+            "critical": True,
+        },
+        {
+            "check_id": "cognitive_load_and_language",
+            "method": "human_task_walkthrough",
+            "pass_condition": "The next action, help level, uncertainty, and stop/delete option are understandable without hidden assumptions.",
+            "critical": False,
+        },
+        {
+            "check_id": "fallback_without_companion",
+            "method": "native_host_offline_fixture",
+            "pass_condition": "The learner receives a clear error and can use manual selection or stop without data loss.",
+            "critical": True,
+        },
+        {
+            "check_id": "privacy_and_non_disclosure",
+            "method": "synthetic_only_review_with_storage_scan",
+            "pass_condition": "No diagnosis, accommodation status, raw notebook, or learner transcript is recorded in review evidence.",
+            "critical": True,
+        },
+    ]
+    plan: dict[str, Any] = {
+        "schema_version": ACCESSIBILITY_REVIEW_SCHEMA_VERSION,
+        "artifact_type": "unibot_accessibility_review_plan",
+        "status": "ready_for_human_accessibility_review",
+        "scope": "local_learning_and_practice_only",
+        "standards_target": "WCAG 2.2 AA as a review target; BITV NRW and BGG NRW applicability require institutional determination.",
+        "source_card_ids": list(ACCESSIBILITY_REVIEW_SOURCE_CARD_IDS),
+        "automated_evidence": {
+            "status": "prototype_evidence_only",
+            "test_file": "tests/browser/mantle-v2.spec.js",
+            "covered": ["semantic status regions", "keyboard focus", "narrow panel", "reconnection", "manual selection fallback"],
+            "does_not_prove": ["WCAG conformance", "BITV NRW conformance", "individual accommodation suitability"],
+        },
+        "human_review": {
+            "required_roles": [
+                "Inklusionsbuero / Servicezentrum Inklusion",
+                "Pruefungsamt for any exam-related scope",
+                "IT / SZI",
+                "Lehreinheit / Modulverantwortliche",
+            ],
+            "participant_rule": "Use synthetic tasks by default; any learner study requires consent, withdrawal, and a separate human study decision.",
+            "assistive_technology_rule": "Record only consented test outcome categories and assistive-technology class; never record diagnosis or accommodation status.",
+            "signoff_required": True,
+        },
+        "checks": checks,
+        "release_gate": {
+            "critical_failure_blocks_scope": True,
+            "human_conformance_decision_required": True,
+            "no_automatic_accommodation_decision": True,
+            "no_exam_clearance": True,
+            "no_learner_score": True,
+        },
+        "data_minimisation": {
+            "raw_notebook_or_attempt_in_evidence": False,
+            "health_or_disability_details_in_evidence": False,
+            "local_paths_or_credentials_in_evidence": False,
+            "public_demo_uses_synthetic_notebook": True,
+        },
+        "limitations": [
+            "A browser test is evidence about a prototype, not a certification.",
+            "Accessibility is context- and task-dependent; the responsible institution decides the applicable scope.",
+            "Accessibility support must remain available without being treated as subject-matter help or a performance score.",
+        ],
+    }
+    scan = scan_text(json.dumps(plan, ensure_ascii=False), "accessibility-review-plan")
+    plan["public_safety_status"] = scan["status"] if public_safe else "local_private_mode"
+    if plan["public_safety_status"] != "pass" and public_safe:
+        plan["status"] = "blocked_public_safety"
+        plan["public_safety_findings"] = scan["findings"]
+    return plan
+
+
+def validate_accessibility_review_plan(plan: dict[str, Any] | None) -> dict[str, Any]:
+    """Validate the review contract without granting accessibility clearance."""
+    payload = dict(plan or {})
+    issues: list[str] = []
+    if payload.get("schema_version") != ACCESSIBILITY_REVIEW_SCHEMA_VERSION:
+        issues.append("schema_version_mismatch")
+    if payload.get("status") != "ready_for_human_accessibility_review":
+        issues.append("human_review_status_required")
+    if payload.get("scope") != "local_learning_and_practice_only":
+        issues.append("scope_must_remain_practice_only")
+    if set(payload.get("source_card_ids", [])) != set(ACCESSIBILITY_REVIEW_SOURCE_CARD_IDS):
+        issues.append("accessibility_source_cards_mismatch")
+    if len(payload.get("checks", [])) < 8:
+        issues.append("accessibility_check_matrix_incomplete")
+    release_gate = payload.get("release_gate", {})
+    if not release_gate.get("critical_failure_blocks_scope"):
+        issues.append("critical_failures_must_block_scope")
+    if not release_gate.get("human_conformance_decision_required"):
+        issues.append("human_conformance_decision_required")
+    if not payload.get("human_review", {}).get("signoff_required"):
+        issues.append("human_signoff_required")
+    if payload.get("public_safety_status") not in {"pass", "local_private_mode"}:
+        issues.append("public_safety_required")
+    summary = {
+        "schema_version": ACCESSIBILITY_REVIEW_SCHEMA_VERSION,
+        "artifact_type": "accessibility_review_validation",
+        "status": "ok" if not issues else "blocked",
+        "issues": sorted(set(issues)),
+        "conformance_cleared": False,
+        "exam_deployment_status": "not_cleared",
+        "human_review_required": True,
+        "public_safety_status": payload.get("public_safety_status", "missing"),
+    }
+    scan = scan_text(json.dumps(summary, ensure_ascii=False), "accessibility-review-validation")
+    if scan["status"] != "pass":
+        summary["status"] = "blocked"
+        summary["issues"] = sorted(set(summary["issues"] + ["public_safety_findings"]))
+        summary["public_safety_findings"] = scan["findings"]
+    return summary
 
 
 def build_institutional_clearance_board(*, public_safe: bool = True) -> dict[str, Any]:
@@ -363,6 +520,8 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
 
     profile = build_regulatory_profile(public_safe=public_safe)
     profile_validation = validate_regulatory_profile(profile)
+    accessibility_review = build_accessibility_review_plan(public_safe=public_safe)
+    accessibility_validation = validate_accessibility_review_plan(accessibility_review)
     board = build_institutional_clearance_board(public_safe=public_safe)
     runbook = build_release_runbook()
     readiness = run_readiness_check()
@@ -420,8 +579,14 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
                 ],
                 "test_file": "tests/browser/mantle-v2.spec.js",
                 "claim_boundary": "Automated evidence does not equal WCAG certification; institutional accessibility review remains open.",
+                "review_plan_schema_version": accessibility_review["schema_version"],
+                "review_plan_status": accessibility_review["status"],
+                "review_plan_validation_status": accessibility_validation["status"],
+                "standards_source_card_ids": list(ACCESSIBILITY_REVIEW_SOURCE_CARD_IDS),
             },
         },
+        "accessibility_review": accessibility_review,
+        "accessibility_review_validation": accessibility_validation,
     }
     evidence_core = json.dumps(evidence, ensure_ascii=False, sort_keys=True)
     packet = {
@@ -494,7 +659,14 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
                 {
                     "office": "Inklusionsbüro / Servicezentrum Inklusion",
                     "question": "Sind die kostenneutralen Bedienungs- und Strukturierungshilfen im vorgesehenen Lernformat zugänglich, ohne einen Nachteilsausgleich automatisch zu bestimmen?",
-                    "evidence": ["uoc-nachteilsausgleich", "uoc-szi-klausurunterstuetzung-2026", "uoc-szi-wegweiser-2026"],
+                    "evidence": [
+                        "uoc-nachteilsausgleich",
+                        "uoc-szi-klausurunterstuetzung-2026",
+                        "uoc-szi-wegweiser-2026",
+                        "wcag-22",
+                        "bgg-nrw-10",
+                        "bitv-nrw",
+                    ],
                     "decision_boundary": "Accessibility evidence is a prototype claim; it is not a WCAG certification or an individual accommodation decision.",
                 },
                 {
@@ -526,6 +698,8 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
             "Welche Quellen- und Hilfestufen sollen im Übungsbetrieb gelten?",
             "Welche separate schriftliche Entscheidung wäre für einen Prüfungstrack erforderlich?",
         ],
+        "accessibility_review": accessibility_review,
+        "accessibility_review_validation": accessibility_validation,
         "evidence": evidence,
         "evidence_hash": sha256_text(evidence_core),
         "strict_non_goals": [
@@ -549,6 +723,8 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
         packet["status"] = "blocked_public_safety"
     if profile_validation["status"] != "ok":
         packet["status"] = "blocked_profile_validation"
+    if accessibility_validation["status"] != "ok":
+        packet["status"] = "blocked_accessibility_review_contract"
     if readiness["status"] != "public_draft_ready":
         packet["status"] = "blocked_readiness"
     if runbook["release_evidence_alignment"]["status"] != "ready":
@@ -595,6 +771,8 @@ def build_institutional_presentation_markdown(
         "- Unterstützung bleibt im Hilfebudget kostenneutral; der Bot bewertet keinen Nachteilsausgleich.",
         "- Welche Unterstützung im konkreten Modul angemessen und zulässig ist, entscheidet ausschließlich die zuständige Stelle.",
         "- Automatisierte Browser-Tests sind ein Nachweis für den Prototyp, keine WCAG-Zertifizierung.",
+        f"- AccessibilityReviewV1 umfasst {len(packet['accessibility_review']['checks'])} reproduzierbare Prüfungen; kritische Fehler blockieren den jeweiligen Einsatzumfang.",
+        "- Screenreader-, Reflow-, Ausfall- und datensparsame Nicht-Offenlegungsprüfungen benötigen menschliche Prüfung und Einwilligung, nicht Diagnosedaten.",
         "",
         "## Universitäts-Governance",
         "- Vor einer universitären Bereitstellung prüfen KI-Office/CIO-Board den konkreten Zweck und die zuständige Genehmigungsroute.",

@@ -60,10 +60,11 @@ unibot institution bundle --output ./unibot-institution-review
 ```
 
 The packet contains the RegulatoryProfile, human clearance board,
-institutional presentation, source-card references, evidence hashes, and the
-explicit Gretel/GLM/Julius authorship roles. Demonstrate only a public
-synthetic notebook. Do not add learner work, health or accommodation records,
-private course files, local paths, credentials, or real examination tasks.
+institutional presentation, `AccessibilityReviewV1` with its eight human-gated
+checks, source-card references, evidence hashes, and the explicit
+Gretel/GLM/Julius authorship roles. Demonstrate only a public synthetic
+notebook. Do not add learner work, health or accommodation records, private
+course files, local paths, credentials, or real examination tasks.
 
 The meeting asks five bounded questions: who owns the institutional decision;
 whether the local practice purpose fits the named module; which accessibility

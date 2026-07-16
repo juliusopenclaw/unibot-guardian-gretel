@@ -62,6 +62,15 @@ Tab-/Panel-Beziehungen, sichtbaren Tastaturfokus und einen schmalen Mantel ohne
 horizontalen Überlauf. Das ist technische Evidenz für die weitere Prüfung, aber
 keine WCAG-Zertifizierung und keine Entscheidung des Servicezentrums Inklusion.
 
+Der maschinenlesbare Review-Vertrag `AccessibilityReviewV1` trennt acht
+reproduzierbare Prüfungen von der menschlichen Konformitätsentscheidung: reine
+Tastaturbedienung, Screenreader-Status, 200-Prozent-Zoom und Reflow, Kontrast
+und Fokus, unsichere Zellwahl, verständliche Sprache, Ausfall des Companions und
+datensparsame Nicht-Offenlegung. Kritische Fehler blockieren den jeweiligen
+Einsatzumfang. Die Source Cards `wcag-22`, `bgg-nrw-10` und `bitv-nrw` sind
+technische beziehungsweise rechtliche Prüfgrundlagen, keine automatische
+Freigabe.
+
 Das Inklusionsbüro entscheidet, welche Unterstützung im jeweiligen Modul und
 Prüfungsformat zulässig ist. UniBot ersetzt keine individuelle Entscheidung.
 
@@ -90,6 +99,8 @@ Die maschinenlesbare Version bindet die offiziellen Source Cards
 `uoc-nachteilsausgleich`, `uoc-szi-klausurunterstuetzung-2026`,
 `uoc-szi-inclusive-teaching-2026`, `uoc-szi-wegweiser-2026`, `gdpr-2016-679`, `dsk-ai-privacy-2024`,
 `eu-ai-act-2024`, `hg-nrw-64`, `dfg-gwp` und `jupyter-ai`.
+Zusätzlich bindet der Accessibility-Review `wcag-22`, `bgg-nrw-10` und
+`bitv-nrw`.
 
 Wichtige Referenzen:
 

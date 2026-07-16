@@ -10,13 +10,17 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from unibot.clearance import (  # noqa: E402
+    ACCESSIBILITY_REVIEW_SCHEMA_VERSION,
+    ACCESSIBILITY_REVIEW_SOURCE_CARD_IDS,
     INSTITUTIONAL_PRESENTATION_SCHEMA_VERSION,
     REGULATORY_PROFILE_SCHEMA_VERSION,
+    build_accessibility_review_plan,
     build_institutional_clearance_board,
     build_institutional_presentation_markdown,
     build_institutional_presentation_packet,
     build_regulatory_profile,
     validate_clearance_record,
+    validate_accessibility_review_plan,
     validate_regulatory_profile,
     write_institutional_review_bundle,
 )
@@ -47,6 +51,26 @@ def valid_exam_clearance_record() -> dict[str, object]:
 
 
 class UniBotInstitutionalClearanceTests(unittest.TestCase):
+    def test_accessibility_review_is_source_bound_and_human_gated(self) -> None:
+        plan = build_accessibility_review_plan()
+        self.assertEqual(plan["schema_version"], ACCESSIBILITY_REVIEW_SCHEMA_VERSION)
+        self.assertEqual(plan["status"], "ready_for_human_accessibility_review")
+        self.assertEqual(plan["scope"], "local_learning_and_practice_only")
+        self.assertEqual(set(plan["source_card_ids"]), set(ACCESSIBILITY_REVIEW_SOURCE_CARD_IDS))
+        self.assertEqual(len(plan["checks"]), 8)
+        self.assertTrue(plan["human_review"]["signoff_required"])
+        self.assertTrue(plan["release_gate"]["critical_failure_blocks_scope"])
+        self.assertTrue(plan["release_gate"]["no_automatic_accommodation_decision"])
+        self.assertEqual(plan["public_safety_status"], "pass")
+        validation = validate_accessibility_review_plan(plan)
+        self.assertEqual(validation["status"], "ok")
+        self.assertFalse(validation["conformance_cleared"])
+        self.assertTrue(validation["human_review_required"])
+
+        tampered = dict(plan)
+        tampered["source_card_ids"] = ["wcag-22"]
+        self.assertEqual(validate_accessibility_review_plan(tampered)["status"], "blocked")
+
     def test_clearance_board_is_public_safe_and_not_exam_clearance(self) -> None:
         board = build_institutional_clearance_board()
         payload = json.dumps(board, ensure_ascii=False)
@@ -131,6 +155,12 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         self.assertEqual(
             packet["evidence"]["browser_mantle"]["accessibility_evidence"]["status"],
             "browser_tested_human_review_required",
+        )
+        self.assertEqual(packet["accessibility_review"]["schema_version"], ACCESSIBILITY_REVIEW_SCHEMA_VERSION)
+        self.assertEqual(packet["accessibility_review_validation"]["status"], "ok")
+        self.assertEqual(
+            packet["evidence"]["browser_mantle"]["accessibility_evidence"]["review_plan_validation_status"],
+            "ok",
         )
         self.assertEqual(packet["research_artifact"]["level"], "bachelor_thesis_level")
         self.assertIn("Bachelorarbeitsfassung", packet["research_artifact"]["label_de"])
