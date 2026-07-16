@@ -13,6 +13,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from .adaptive_tasks import generate_adaptive_practice_plan
+from .autonomy_v3 import AutonomyStore, ProviderGate, WorkItemV3, autonomy_doctor
 from .autonomous_research_loop import build_autonomous_research_loop, build_autonomous_research_markdown
 from .bachelor_thesis import build_bachelor_thesis_markdown, build_bachelor_thesis_package
 from .clearance import build_institutional_clearance_board, validate_clearance_record
@@ -3845,6 +3846,65 @@ def route_request(path: str, payload: dict[str, Any] | None = None, method: str 
         return 200, build_compliance_matrix()
     if path == "/api/unibot/compliance-matrix-markdown":
         return 200, {"status": "ok", "markdown": build_compliance_matrix_markdown()}
+    if path == "/api/unibot/autonomy/provider/status":
+        store = AutonomyStore()
+        try:
+            return 200, ProviderGate(store=store).status()
+        finally:
+            store.close()
+    if path == "/api/unibot/autonomy/provider/park":
+        store = AutonomyStore()
+        try:
+            return 200, ProviderGate(store=store).park()
+        finally:
+            store.close()
+    if path == "/api/unibot/autonomy/provider/unpark":
+        store = AutonomyStore()
+        try:
+            try:
+                return 200, ProviderGate(store=store).unpark(str(payload.get("scope", "")))
+            except ValueError as error:
+                return 400, {"status": "blocked", "reason": str(error)}
+        finally:
+            store.close()
+    if path == "/api/unibot/autonomy/doctor":
+        store = AutonomyStore()
+        try:
+            return 200, {**autonomy_doctor(store), "rollout": store.rollout_status(), "watcher_active": False}
+        finally:
+            store.close()
+    if path == "/api/unibot/autonomy/rollout/status":
+        store = AutonomyStore()
+        try:
+            return 200, {
+                "status": "ok",
+                "rollout": store.rollout_status(),
+                "recovered_runs": store.recover_interrupted_runs(),
+                "watcher_active": False,
+            }
+        finally:
+            store.close()
+    if path == "/api/unibot/autonomy/work-item/claim":
+        item_payload = payload.get("work_item", payload)
+        if not isinstance(item_payload, dict):
+            return 400, {"status": "blocked", "reason": "work_item_must_be_object"}
+        try:
+            item = WorkItemV3.from_dict(item_payload)
+        except ValueError as error:
+            return 400, {"status": "blocked", "reason": str(error)}
+        store = AutonomyStore()
+        try:
+            store.save_work_item(item)
+            return 200, {"status": "queued", "work_item": item.to_dict(), "automatic_merge": False}
+        finally:
+            store.close()
+    if path == "/api/unibot/autonomy/audit":
+        store = AutonomyStore()
+        try:
+            run = store.get_run(str(payload.get("run_id", "")))
+            return (200 if run else 404), {"status": "ok" if run else "not_found", "run": run, "automatic_merge": False}
+        finally:
+            store.close()
     return 404, {"status": "not-found", "path": path}
 
 

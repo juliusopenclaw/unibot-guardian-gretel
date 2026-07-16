@@ -9,8 +9,10 @@ authority discussion. It is not a proctoring system, an AI detector, an automati
 grader, or an exam-clearance decision system.
 
 Implementation and documentation are led by **Gretel, an AI agent**. GLM-5.2
-is used only for redacted proposals and independent reviews. Human reviewers
-retain merge, publication, ethics, legal, and real-submission authority. The
+is currently parked and made no contribution to this v3 foundation; a later
+explicitly enabled public-only run may use it only for redacted proposals and
+independent reviews. Human reviewers retain merge, publication, ethics, legal,
+and real-submission authority. The
 full provenance statement is in `AUTHORS.md`.
 
 ## Start
@@ -61,6 +63,8 @@ session files and voluntary exports contain metadata and hashes only.
   `docs/unibot/UNIBOT_GRETEL_BACHELOR_THESIS_PACKAGE.md`.
 - The budgeted Gretel autonomous research loop is in
   `docs/unibot/UNIBOT_GRETEL_AUTONOMOUS_RESEARCH_LOOP.md`.
+- The local-first v3 controller, rollout gates, and human merge boundary are in
+  `docs/unibot/UNIBOT_AUTONOMY_V3.md`.
 - The active v2 policy and product queue are in
   `docs/unibot/UNIBOT_AUTONOMY_V2.md` and `unibot/autonomy_work_items.json`.
 - The local companion, A0-A4 contract, report semantics, and known browser
