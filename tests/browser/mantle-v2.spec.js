@@ -205,6 +205,7 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
   await expect(page.locator("#helpOutput")).toContainText("Welche Laenge");
   await expect(page.locator("#helpOutput")).toContainText("5 Punkte");
   expect(await page.evaluate(() => window.__lastTutorPayload?.accessibility_used)).toBe(true);
+  expect(await page.evaluate(() => window.__lastTutorPayload?.session_id)).toBe("synthetic-session");
   expect(await page.evaluate(() => window.__lastTutorPayload?.adapter_version)).toBe("jupyterlab-v1");
 
   await page.getByRole("tab", { name: "Rueckblick", exact: true }).click();
