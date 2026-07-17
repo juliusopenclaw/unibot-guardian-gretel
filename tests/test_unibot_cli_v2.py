@@ -13,6 +13,29 @@ from unibot.release_candidate import write_release_candidate_bundle
 
 
 class UniBotCliV2Tests(unittest.TestCase):
+    @staticmethod
+    def _prepare_disposable_rollout_repo(source: Path, repo: Path, *, create_main_ref: bool = False) -> None:
+        subprocess.run(
+            ["git", "clone", "--no-local", "--no-checkout", str(source), str(repo)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        main_ref = subprocess.run(
+            ["git", "-C", str(repo), "show-ref", "--verify", "--quiet", "refs/heads/main"],
+            check=False,
+        )
+        if create_main_ref and main_ref.returncode != 0:
+            subprocess.run(["git", "-C", str(repo), "branch", "main", "HEAD"], check=True)
+            main_ref = subprocess.run(
+                ["git", "-C", str(repo), "show-ref", "--verify", "--quiet", "refs/heads/main"],
+                check=False,
+            )
+        if main_ref.returncode == 0:
+            subprocess.run(["git", "-C", str(repo), "checkout", "--detach", "HEAD"], check=True)
+        else:
+            subprocess.run(["git", "-C", str(repo), "checkout", "-qb", "main", "HEAD"], check=True)
+
     def test_guardian_evaluation_command_reports_only_safe_aggregate_metrics(self) -> None:
         with io.StringIO() as output, redirect_stdout(output):
             exit_code = main(["evaluate", "guardian", "--json"])
@@ -98,13 +121,7 @@ class UniBotCliV2Tests(unittest.TestCase):
         source = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary) / "repo"
-            subprocess.run(
-                ["git", "clone", "--no-local", "--no-checkout", str(source), str(repo)],
-                check=True,
-                capture_output=True,
-                text=True,
-            )
-            subprocess.run(["git", "-C", str(repo), "checkout", "-qb", "main", "HEAD"], check=True)
+            self._prepare_disposable_rollout_repo(source, repo)
             state = Path(temporary) / "state.sqlite3"
             with io.StringIO() as output, redirect_stdout(output):
                 exit_code = main(
@@ -133,6 +150,44 @@ class UniBotCliV2Tests(unittest.TestCase):
                 text=True,
             )
             self.assertEqual(clean.stdout, "")
+
+    def test_local_rollout_clone_setup_is_idempotent_when_main_already_exists(self) -> None:
+        source = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary) / "repo"
+            self._prepare_disposable_rollout_repo(source, repo, create_main_ref=True)
+            state = Path(temporary) / "state.sqlite3"
+            with io.StringIO() as output, redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "autonomy",
+                        "rollout",
+                        "local",
+                        "--repo",
+                        str(repo),
+                        "--state-db",
+                        str(state),
+                    ]
+                )
+                payload = json.loads(output.getvalue())
+
+            status = subprocess.run(
+                ["git", "-C", str(repo), "status", "--porcelain"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(status.stdout, "")
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(payload["status"], "local_green")
+            self.assertEqual(payload["provider_calls"], 0)
+            head_name = subprocess.run(
+                ["git", "-C", str(repo), "rev-parse", "--abbrev-ref", "HEAD"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(head_name.stdout.strip(), "HEAD")
 
     def test_public_repository_safety_uses_relative_source_names(self) -> None:
         repo = Path(__file__).resolve().parents[1]
