@@ -30,6 +30,40 @@ REQUIRED_ARTIFACT_NAMES = frozenset(
 )
 
 
+def _read_json_object(path: Path, issue_id: str, issues: list[str]) -> dict[str, Any]:
+    """Read a review artifact without allowing malformed JSON to pass as empty data."""
+    if not path.is_file():
+        issues.append(f"{issue_id}_missing")
+        return {}
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        issues.append(f"{issue_id}_invalid")
+        return {}
+    if not isinstance(value, dict):
+        issues.append(f"{issue_id}_not_object")
+        return {}
+    return value
+
+
+def _require_field(
+    payload: dict[str, Any],
+    path: str,
+    expected: Any,
+    issue_id: str,
+    issues: list[str],
+) -> None:
+    """Require a stable public review contract field and report drift by field name."""
+    current: Any = payload
+    for part in path.split("."):
+        if not isinstance(current, dict) or part not in current:
+            issues.append(f"{issue_id}_missing:{path}")
+            return
+        current = current[part]
+    if current != expected:
+        issues.append(f"{issue_id}_mismatch:{path}")
+
+
 def _sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -73,6 +107,9 @@ def audit_release_candidate(candidate_dir: str | Path, *, repository: str | Path
     issues: list[str] = []
     manifest_path = root / "RELEASE-MANIFEST.json"
     manifest: dict[str, Any] = {}
+    institutional_manifest: dict[str, Any] = {}
+    presentation: dict[str, Any] = {}
+    review_board: dict[str, Any] = {}
     if not root.is_dir():
         issues.append("candidate_directory_missing")
     elif not manifest_path.is_file():
@@ -134,16 +171,11 @@ def audit_release_candidate(candidate_dir: str | Path, *, repository: str | Path
         missing = sorted(REQUIRED_ARTIFACT_NAMES - record_names)
         issues.extend(f"required_artifact_not_recorded:{name}" for name in missing)
 
-        institutional_manifest_path = root / "INSTITUTIONAL-MANIFEST.json"
-        if institutional_manifest_path.is_file() and isinstance(provenance, dict):
-            try:
-                institutional_manifest = json.loads(institutional_manifest_path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError):
-                institutional_manifest = {}
-                issues.append("institutional_manifest_invalid")
-            if not isinstance(institutional_manifest, dict):
-                issues.append("institutional_manifest_not_object")
-            else:
+        if isinstance(provenance, dict):
+            institutional_manifest = _read_json_object(
+                root / "INSTITUTIONAL-MANIFEST.json", "institutional_manifest", issues
+            )
+            if institutional_manifest:
                 if institutional_manifest.get("source_commit") != provenance.get("commit"):
                     issues.append("institutional_source_commit_mismatch")
                 institutional_provenance = institutional_manifest.get("source_provenance")
@@ -154,6 +186,140 @@ def audit_release_candidate(candidate_dir: str | Path, *, repository: str | Path
                         issues.append("institutional_source_provenance_not_verified")
                     if institutional_provenance.get("commit") != provenance.get("commit"):
                         issues.append("institutional_provenance_commit_mismatch")
+
+            presentation = _read_json_object(
+                root / "institutional-presentation.json", "institutional_presentation", issues
+            )
+            review_board = _read_json_object(root / "review-board-packet.json", "review_board_packet", issues)
+
+    # Hashes prove file identity; these semantic checks prove that the identity
+    # still carries the review boundaries the institutions are being shown.
+    if manifest and presentation:
+        _require_field(
+            presentation,
+            "schema_version",
+            "InstitutionalPresentationV1",
+            "institutional_presentation_schema",
+            issues,
+        )
+        _require_field(
+            presentation,
+            "status",
+            "ready_for_human_review",
+            "institutional_presentation_status",
+            issues,
+        )
+        _require_field(
+            presentation,
+            "deployment_status",
+            "not_cleared",
+            "institutional_presentation_deployment",
+            issues,
+        )
+        _require_field(
+            presentation,
+            "public_safety_status",
+            "pass",
+            "institutional_presentation_public_safety",
+            issues,
+        )
+        _require_field(
+            presentation,
+            "accessibility_review.schema_version",
+            "AccessibilityReviewV1",
+            "accessibility_review_schema",
+            issues,
+        )
+        _require_field(
+            presentation,
+            "accessibility_review.scope",
+            "local_learning_and_practice_only",
+            "accessibility_review_scope",
+            issues,
+        )
+        _require_field(
+            presentation,
+            "accessibility_review.status",
+            "ready_for_human_accessibility_review",
+            "accessibility_review_status",
+            issues,
+        )
+        _require_field(
+            presentation,
+            "accessibility_review_validation.conformance_cleared",
+            False,
+            "accessibility_conformance_gate",
+            issues,
+        )
+        _require_field(
+            presentation,
+            "institutional_review_decision_template.status",
+            "blank_for_human_completion",
+            "decision_template_status",
+            issues,
+        )
+        _require_field(
+            presentation,
+            "institutional_review_decision_template_validation.automatic_approval",
+            False,
+            "decision_template_automatic_approval",
+            issues,
+        )
+        _require_field(
+            presentation,
+            "institutional_review_decision_template_validation.human_completion_required",
+            True,
+            "decision_template_human_gate",
+            issues,
+        )
+
+        evidence_hash = presentation.get("evidence_hash")
+        if not isinstance(evidence_hash, str) or len(evidence_hash) != 64:
+            issues.append("institutional_evidence_hash_invalid")
+        else:
+            if manifest.get("institutional_evidence_hash") != evidence_hash:
+                issues.append("release_institutional_evidence_hash_mismatch")
+            if institutional_manifest.get("evidence_hash") != evidence_hash:
+                issues.append("institutional_manifest_evidence_hash_mismatch")
+
+    if manifest and review_board:
+        _require_field(
+            review_board,
+            "schema_version",
+            "unibot-review-board-packet-v1",
+            "review_board_schema",
+            issues,
+        )
+        _require_field(
+            review_board,
+            "status",
+            "draft_for_institutional_review",
+            "review_board_status",
+            issues,
+        )
+        _require_field(
+            review_board,
+            "exam_deployment_status",
+            "not_cleared",
+            "review_board_exam_deployment",
+            issues,
+        )
+        _require_field(
+            review_board,
+            "public_safety_status",
+            "pass",
+            "review_board_public_safety",
+            issues,
+        )
+        reviewer_packets = review_board.get("reviewer_packets")
+        if not isinstance(reviewer_packets, list) or len(reviewer_packets) < 6:
+            issues.append("review_board_reviewer_packets_incomplete")
+        for field in ("evidence_alignment", "thesis_evaluation_claim_alignment", "professor_uni_review_brief"):
+            _require_field(review_board, f"{field}.status", "ready", f"review_board_{field}", issues)
+        if manifest.get("review_board_status") != review_board.get("status"):
+            issues.append("release_review_board_status_mismatch")
+        if manifest.get("review_board_public_safety_status") != review_board.get("public_safety_status"):
+            issues.append("release_review_board_safety_mismatch")
 
     source_commit = None
     source_commit_match: bool | None = None

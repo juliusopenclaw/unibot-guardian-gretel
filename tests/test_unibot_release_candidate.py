@@ -143,6 +143,41 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
             self.assertEqual(audit["status"], "blocked")
             self.assertIn("release_file_hash_mismatch:institutional-presentation.md", audit["issues"])
 
+    def test_release_audit_blocks_institutional_exam_status_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "candidate"
+            result = write_release_candidate_bundle(output)
+            self.assertEqual(result["status"], "written")
+
+            presentation_path = output / "institutional-presentation.json"
+            presentation = json.loads(presentation_path.read_text(encoding="utf-8"))
+            presentation["deployment_status"] = "approved"
+            presentation_path.write_text(json.dumps(presentation), encoding="utf-8")
+
+            audit = audit_release_candidate(output)
+
+            self.assertEqual(audit["status"], "blocked")
+            self.assertIn("release_file_hash_mismatch:institutional-presentation.json", audit["issues"])
+            self.assertIn("institutional_presentation_deployment_mismatch:deployment_status", audit["issues"])
+
+    def test_release_audit_blocks_institutional_evidence_hash_drift(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "candidate"
+            result = write_release_candidate_bundle(output)
+            self.assertEqual(result["status"], "written")
+
+            presentation_path = output / "institutional-presentation.json"
+            presentation = json.loads(presentation_path.read_text(encoding="utf-8"))
+            presentation["evidence_hash"] = "0" * 64
+            presentation_path.write_text(json.dumps(presentation), encoding="utf-8")
+
+            audit = audit_release_candidate(output)
+
+            self.assertEqual(audit["status"], "blocked")
+            self.assertIn("release_file_hash_mismatch:institutional-presentation.json", audit["issues"])
+            self.assertIn("release_institutional_evidence_hash_mismatch", audit["issues"])
+            self.assertIn("institutional_manifest_evidence_hash_mismatch", audit["issues"])
+
 
 if __name__ == "__main__":
     unittest.main()
