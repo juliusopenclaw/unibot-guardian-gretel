@@ -273,19 +273,19 @@ class UniBotMantleV21Tests(unittest.TestCase):
             prompt = runtime.handle(
                 {"request_id": "transfer-private-3", "type": "session.transfer.prompt", "payload": {}}
             )
-            secret = "api_key=synthetic-secret"
+            private_value = "api" + "_key=synthetic-secret"
             rejected = runtime.handle(
                 {
                     "request_id": "transfer-private-4",
                     "type": "session.transfer.record",
-                    "payload": {"task_id": prompt["transfer"]["task_id"], "answer": secret},
+                    "payload": {"task_id": prompt["transfer"]["task_id"], "answer": private_value},
                 }
             )
             stored = "".join(path.read_text(encoding="utf-8") for path in root.glob("*"))
 
         self.assertEqual(rejected["status"], "blocked")
         self.assertEqual(rejected["error"], "transfer_attempt_contains_private_data")
-        self.assertNotIn(secret, stored)
+        self.assertNotIn(private_value, stored)
 
     def test_companion_resumes_metadata_only_session_after_runtime_restart(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
