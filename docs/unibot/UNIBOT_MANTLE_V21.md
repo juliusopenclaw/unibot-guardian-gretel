@@ -93,6 +93,10 @@ The extension ID is fixed by the public manifest key. The Mac installer writes
 exact-origin manifests for Google Chrome and Chromium and creates an
 ad-hoc-signed app in `~/Applications`. A Developer ID signature and Apple
 notarization are still required before general binary distribution.
+The Companion diagnosis and installation path fail closed when a native-host
+manifest is symlinked, readable by other users, or points outside the
+user-scoped UniBot Application Support runtime. This check is local and reports
+only bounded status metadata.
 
 For an institutional review, the public extension can be packaged without the
 repository with:
