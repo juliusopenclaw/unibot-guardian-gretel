@@ -35,6 +35,8 @@ class UniBotPublicDemoTests(unittest.TestCase):
         self.assertIn("# UniBot Oeffentliche Demo", markdown)
         self.assertIn("A0 bis A4", markdown)
         self.assertIn("Guardian blockiert", markdown)
+        self.assertIn("barrierearme Darstellung einschalten", markdown)
+        self.assertIn("Kostenneutralitaet", markdown)
         self.assertIn("keine Pruefungs- oder Hochschulfreigabe", markdown)
         self.assertNotIn("values = [2, 4, 6]", markdown)
         self.assertEqual(scan_text(markdown, "public-demo-markdown")["status"], "pass")
