@@ -71,6 +71,12 @@ full provenance statement is in `AUTHORS.md`.
   package, a short demo script, and the human review documents. Its
   `MANIFEST.json` is bound to the exact clean public Git commit and records no
   local path, learner content, or institutional decision.
+- For the complete meeting packet, attach the same-commit release evidence and
+  the metadata-only live canary receipts:
+  `unibot institution bundle --output ./unibot-institution-review --release-evidence ../unibot-release-evidence.json --colab-canary ../colab-live-canary.json --jupyter-canary ../jupyter-live-canary.json`
+  The command validates the release gates and receipt contracts before copying
+  them. It includes no notebook cell text or output; a human still decides
+  whether the packet is suitable for an institutional discussion.
 - Inspect the autonomous lane: `unibot autonomy preflight`
 - Run the public synthetic Three Golden Rules gate: `unibot evaluate 3gr --json`
 - Health check for the developer API: `GET /api/v2/health` on the selected

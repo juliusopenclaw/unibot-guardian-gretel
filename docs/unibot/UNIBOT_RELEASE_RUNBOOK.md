@@ -105,6 +105,23 @@ Before sending or presenting anything, generate the local public-safe packet:
 unibot institution bundle --output ./unibot-institution-review
 ```
 
+After the clean source commit has passed the release gates and both live
+canaries have produced receipts, use the complete evidence-bound form:
+
+```text
+unibot institution bundle --output ./unibot-institution-review \
+  --release-evidence ../unibot-release-evidence.json \
+  --colab-canary ../colab-live-canary.json \
+  --jupyter-canary ../jupyter-live-canary.json
+```
+
+The command accepts only receipts for the exact source commit, checks their
+public-safety fields, and records their SHA-256 values in `MANIFEST.json`. The
+packet contains technical reproducibility evidence and metadata-only browser
+receipts, not notebook cells, notebook output, learner attempts, local paths,
+or institutional decisions. The packet remains a human review handoff and
+does not clear an examination deployment.
+
 The packet contains the RegulatoryProfile, human clearance board,
 institutional presentation, `AccessibilityReviewV1` with its eight human-gated
 checks, a plain-language `REVIEW-START-HERE.md`, a blank

@@ -245,6 +245,9 @@ def build_parser() -> argparse.ArgumentParser:
     decision_template.add_argument("--markdown", action="store_true")
     bundle = institution_commands.add_parser("bundle", help="write the public-safe institutional review handoff")
     bundle.add_argument("--output", type=Path, required=True)
+    bundle.add_argument("--release-evidence", type=Path)
+    bundle.add_argument("--colab-canary", type=Path)
+    bundle.add_argument("--jupyter-canary", type=Path)
 
     extension = commands.add_parser("extension", help="package the public Chrome extension")
     extension_commands = extension.add_subparsers(dest="extension_command", required=True)
@@ -588,7 +591,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                 _print_json(payload)
             return 0 if payload["status"] == "blank_for_human_completion" else 2
         if args.command == "institution" and args.institution_command == "bundle":
-            payload = write_institutional_review_bundle(args.output)
+            payload = write_institutional_review_bundle(
+                args.output,
+                release_evidence=args.release_evidence,
+                colab_canary=args.colab_canary,
+                jupyter_canary=args.jupyter_canary,
+            )
             _print_json(payload)
             return 0 if payload["status"] == "written" else 2
         if args.command == "extension" and args.extension_command == "package":

@@ -14,6 +14,7 @@ from .materials import sha256_text
 from .public_demo import build_public_demo_evidence, build_public_demo_markdown
 from .public_safety import scan_text
 from .provenance import public_source_provenance
+from .release_evidence import validate_release_evidence
 from .review_board import build_review_board_packet
 from .source_cards import get_source_card
 
@@ -1247,6 +1248,9 @@ def write_institutional_review_bundle(
     output_dir: str | Path,
     *,
     public_safe: bool = True,
+    release_evidence: str | Path | None = None,
+    colab_canary: str | Path | None = None,
+    jupyter_canary: str | Path | None = None,
 ) -> dict[str, Any]:
     """Write a public-safe, hash-bound institutional review handoff locally."""
     if not public_safe:
@@ -1321,6 +1325,144 @@ def write_institutional_review_bundle(
             }
         extension_bytes = extension_path.read_bytes()
 
+    def is_owner_only_regular_file(path: Path) -> bool:
+        try:
+            return not path.is_symlink() and path.is_file() and not (path.stat().st_mode & 0o077)
+        except OSError:
+            return False
+
+    def load_public_receipt(
+        source: str | Path,
+        *,
+        label: str,
+        required: dict[str, Any],
+    ) -> tuple[dict[str, Any], str] | dict[str, Any]:
+        path = Path(source).expanduser()
+        if not is_owner_only_regular_file(path):
+            return {"status": "blocked", "reason": f"{label}_permissions_or_path_invalid"}
+        try:
+            text = path.read_text(encoding="utf-8")
+            payload = json.loads(text)
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            return {"status": "blocked", "reason": f"{label}_not_valid_json"}
+        if not isinstance(payload, dict):
+            return {"status": "blocked", "reason": f"{label}_not_object"}
+        if any(payload.get(key) != value for key, value in required.items()):
+            return {"status": "blocked", "reason": f"{label}_contract_mismatch"}
+        if payload.get("source_commit") != provenance["commit"]:
+            return {"status": "blocked", "reason": f"{label}_source_commit_mismatch"}
+        safety = scan_text(text, label)
+        if safety["status"] != "pass":
+            return {"status": "blocked", "reason": f"{label}_public_safety_failed"}
+        return {"payload": payload, "text": text}, sha256_text(text)
+
+    evidence_contents: dict[str, str] = {}
+    evidence_hashes: dict[str, str | None] = {
+        "release_evidence_sha256": None,
+        "colab_canary_sha256": None,
+        "jupyter_canary_sha256": None,
+    }
+    if release_evidence is not None:
+        evidence_path = Path(release_evidence).expanduser()
+        if not is_owner_only_regular_file(evidence_path):
+            return {
+                "schema_version": INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION,
+                "artifact_type": "unibot_institutional_review_bundle",
+                "status": "blocked",
+                "reason": "release_evidence_permissions_or_path_invalid",
+                "exam_deployment_status": "not_cleared",
+            }
+        verification = validate_release_evidence(
+            evidence_path,
+            repository=Path(__file__).resolve().parents[1],
+        )
+        if verification["status"] != "pass":
+            return {
+                "schema_version": INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION,
+                "artifact_type": "unibot_institutional_review_bundle",
+                "status": "blocked",
+                "reason": "release_evidence_blocked",
+                "verification_issues": verification.get("issues", []),
+                "exam_deployment_status": "not_cleared",
+            }
+        try:
+            evidence_text = evidence_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            return {
+                "schema_version": INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION,
+                "artifact_type": "unibot_institutional_review_bundle",
+                "status": "blocked",
+                "reason": "release_evidence_unreadable",
+                "exam_deployment_status": "not_cleared",
+            }
+        evidence_contents["RELEASE-EVIDENCE.json"] = evidence_text
+        evidence_hashes["release_evidence_sha256"] = sha256_text(evidence_text)
+    if colab_canary is not None:
+        receipt = load_public_receipt(
+            colab_canary,
+            label="COLAB-CANARY.json",
+            required={
+                "schema_version": "UniBotLiveColabCanaryV1",
+                "status": "pass",
+                "provider_calls": 0,
+                "source_text_omitted": True,
+                "raw_cell_text_persisted": False,
+                "notebook_output_read": False,
+            },
+        )
+        if not isinstance(receipt, tuple):
+            return {
+                "schema_version": INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION,
+                "artifact_type": "unibot_institutional_review_bundle",
+                "status": "blocked",
+                "reason": receipt["reason"],
+                "exam_deployment_status": "not_cleared",
+            }
+        evidence_contents["COLAB-CANARY.json"] = receipt[0]["text"]
+        evidence_hashes["colab_canary_sha256"] = receipt[1]
+    if jupyter_canary is not None:
+        receipt = load_public_receipt(
+            jupyter_canary,
+            label="JUPYTER-CANARY.json",
+            required={
+                "schema_version": "UniBotLiveJupyterCanaryV1",
+                "status": "pass",
+                "provider_calls": 0,
+                "source_text_omitted": True,
+                "raw_cell_text_persisted": False,
+                "notebook_output_read": False,
+                "notebook_code_executed": False,
+                "native_transport": True,
+                "tutor_flow_status": "pass",
+                "session_started": True,
+                "session_stopped": True,
+                "session_deleted": True,
+                "effective_help_level": "A2",
+                "complete_solution_emitted": False,
+                "hint_text_omitted": True,
+                "local_tutor": "deterministic_source_grounded_v1",
+            },
+        )
+        if not isinstance(receipt, tuple):
+            return {
+                "schema_version": INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION,
+                "artifact_type": "unibot_institutional_review_bundle",
+                "status": "blocked",
+                "reason": receipt["reason"],
+                "exam_deployment_status": "not_cleared",
+            }
+        source_anchor_count = receipt[0]["payload"].get("source_anchor_count")
+        if not isinstance(source_anchor_count, int) or source_anchor_count < 1:
+            return {
+                "schema_version": INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION,
+                "artifact_type": "unibot_institutional_review_bundle",
+                "status": "blocked",
+                "reason": "JUPYTER-CANARY.json_source_anchors_missing",
+                "exam_deployment_status": "not_cleared",
+            }
+        evidence_contents["JUPYTER-CANARY.json"] = receipt[0]["text"]
+        evidence_hashes["jupyter_canary_sha256"] = receipt[1]
+
     contents = {
         "institutional-presentation.json": json_text,
         "institutional-presentation.md": markdown,
@@ -1332,6 +1474,7 @@ def write_institutional_review_bundle(
         "PUBLIC-DEMO.md": demo_markdown,
         "synthetic_python_practice.ipynb": fixture_text,
     }
+    contents.update(evidence_contents)
     binary_contents = {"unibot-mantle.zip": extension_bytes}
     file_records: list[dict[str, Any]] = []
     for name, content in contents.items():
@@ -1379,6 +1522,15 @@ def write_institutional_review_bundle(
             "provider_calls": demo_evidence["safety"]["provider_calls"],
             "extension_package_sha256": extension_result["package_sha256"],
         },
+        "release_verification": {
+            "release_evidence_file": "RELEASE-EVIDENCE.json" if "RELEASE-EVIDENCE.json" in contents else None,
+            "release_evidence_sha256": evidence_hashes["release_evidence_sha256"],
+            "colab_canary_file": "COLAB-CANARY.json" if "COLAB-CANARY.json" in contents else None,
+            "colab_canary_sha256": evidence_hashes["colab_canary_sha256"],
+            "jupyter_canary_file": "JUPYTER-CANARY.json" if "JUPYTER-CANARY.json" in contents else None,
+            "jupyter_canary_sha256": evidence_hashes["jupyter_canary_sha256"],
+            "status": "pass" if evidence_contents else "not_recorded",
+        },
         "evidence_hash": packet["evidence_hash"],
         "authorship": packet["authorship"],
         "human_release_gate": "Julius remains human project lead and merge/release decision-maker.",
@@ -1416,6 +1568,9 @@ def write_institutional_review_bundle(
         "evidence_hash": packet["evidence_hash"],
         "demo_fixture_sha256": hashlib.sha256(fixture_bytes).hexdigest(),
         "extension_package_sha256": extension_result["package_sha256"],
+        "release_evidence_sha256": evidence_hashes["release_evidence_sha256"],
+        "colab_canary_sha256": evidence_hashes["colab_canary_sha256"],
+        "jupyter_canary_sha256": evidence_hashes["jupyter_canary_sha256"],
         "demo_status": demo_evidence["status"],
         "source_commit": provenance["commit"],
         "source_provenance_status": provenance["status"],

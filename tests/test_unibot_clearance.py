@@ -297,6 +297,102 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
             self.assertEqual(scan_text((bundle_root / "PUBLIC-DEMO.md").read_text(encoding="utf-8"), "PUBLIC-DEMO.md")["status"], "pass")
             self.assertEqual(scan_text((bundle_root / "synthetic_python_practice.ipynb").read_text(encoding="utf-8"), "synthetic_python_practice.ipynb")["status"], "pass")
 
+    def test_institutional_review_bundle_binds_release_and_live_canary_receipts(self) -> None:
+        import tempfile
+        from unittest.mock import patch
+
+        source_commit = "a" * 40
+        evidence = {
+            "schema_version": "UniBotReleaseEvidenceV1",
+            "status": "pass",
+            "source_commit": source_commit,
+            "provider_calls": 0,
+            "private_project": False,
+            "learner_content": False,
+            "automatic_merge_or_publication": False,
+            "exam_deployment_status": "not_cleared",
+        }
+        colab = {
+            "schema_version": "UniBotLiveColabCanaryV1",
+            "status": "pass",
+            "source_commit": source_commit,
+            "provider_calls": 0,
+            "source_text_omitted": True,
+            "raw_cell_text_persisted": False,
+            "notebook_output_read": False,
+        }
+        jupyter = {
+            "schema_version": "UniBotLiveJupyterCanaryV1",
+            "status": "pass",
+            "source_commit": source_commit,
+            "provider_calls": 0,
+            "source_text_omitted": True,
+            "raw_cell_text_persisted": False,
+            "notebook_output_read": False,
+            "notebook_code_executed": False,
+            "native_transport": True,
+            "tutor_flow_status": "pass",
+            "session_started": True,
+            "session_stopped": True,
+            "session_deleted": True,
+            "effective_help_level": "A2",
+            "source_anchor_count": 1,
+            "complete_solution_emitted": False,
+            "hint_text_omitted": True,
+            "local_tutor": "deterministic_source_grounded_v1",
+        }
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            paths = {
+                "release_evidence": root / "release.json",
+                "colab_canary": root / "colab.json",
+                "jupyter_canary": root / "jupyter.json",
+            }
+            for name, payload in (("release_evidence", evidence), ("colab_canary", colab), ("jupyter_canary", jupyter)):
+                paths[name].write_text(json.dumps(payload) + "\n", encoding="utf-8")
+                paths[name].chmod(0o600)
+            output = root / "review-bundle"
+            with patch(
+                "unibot.clearance.public_source_provenance",
+                return_value={
+                    "schema_version": "UniBotPublicSourceProvenanceV1",
+                    "status": "verified",
+                    "commit": source_commit,
+                    "working_tree_clean": True,
+                },
+            ), patch(
+                "unibot.clearance.validate_release_evidence",
+                return_value={"status": "pass", "source_commit": source_commit, "issues": []},
+            ):
+                result = write_institutional_review_bundle(
+                    output,
+                    release_evidence=paths["release_evidence"],
+                    colab_canary=paths["colab_canary"],
+                    jupyter_canary=paths["jupyter_canary"],
+                )
+
+            self.assertEqual(result["status"], "written")
+            self.assertEqual(result["file_count"], 12)
+            self.assertEqual(result["source_commit"], source_commit)
+            self.assertRegex(result["release_evidence_sha256"], r"^[0-9a-f]{64}$")
+            self.assertRegex(result["colab_canary_sha256"], r"^[0-9a-f]{64}$")
+            self.assertRegex(result["jupyter_canary_sha256"], r"^[0-9a-f]{64}$")
+            manifest = json.loads((output / "MANIFEST.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["release_verification"]["status"], "pass")
+            self.assertEqual(manifest["release_verification"]["release_evidence_file"], "RELEASE-EVIDENCE.json")
+            self.assertEqual(manifest["release_verification"]["colab_canary_file"], "COLAB-CANARY.json")
+            self.assertEqual(manifest["release_verification"]["jupyter_canary_file"], "JUPYTER-CANARY.json")
+            self.assertEqual(json.loads((output / "COLAB-CANARY.json").read_text(encoding="utf-8"))["source_commit"], source_commit)
+            self.assertEqual(json.loads((output / "JUPYTER-CANARY.json").read_text(encoding="utf-8"))["source_commit"], source_commit)
+            payload = "".join(
+                path.read_text(encoding="utf-8")
+                for path in output.iterdir()
+                if path.name != "unibot-mantle.zip"
+            )
+            self.assertNotIn("/" + "Users/", payload)
+            self.assertEqual(scan_text(payload, "institutional-review-bundle-evidence-test")["status"], "pass")
+
     def test_institutional_review_bundle_blocks_dirty_source_before_writing(self) -> None:
         import tempfile
         from unittest.mock import patch
