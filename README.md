@@ -111,8 +111,9 @@ upload.
   `UNIBOT_CHROME_EXECUTABLE=/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome npm run test:chrome-canary`
 - Public live Colab canary (metadata only, no notebook text or output):
   `UNIBOT_CHROME_EXECUTABLE=/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome npm run test:colab-canary`
-- Public live JupyterLab canary (local synthetic notebook metadata only; no
-  notebook code or output is read):
+- Public live JupyterLab canary (local synthetic notebook; starts and deletes a
+  practice session, requests a real local A2 tutor turn, and reads no notebook
+  output or executes notebook code):
   `UNIBOT_JUPYTER_PYTHON="$HOME/Library/Application Support/UniBotAutonomy/jupyter-canary-venv/bin/python" UNIBOT_CHROME_EXECUTABLE=/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome npm run test:jupyter-canary`
 - Bind both live receipts to the same clean source commit with the optional
   `--colab-canary` and `--jupyter-canary` handoff arguments. The handoff

@@ -68,7 +68,9 @@ GitHub action. The sequence is intentionally short:
 1. Confirm that the working tree is clean and run the public-safety scan,
    Python suite, browser suite, branded Chrome Native-Messaging canary, the
    metadata-only public Colab canary with `npm run test:colab-canary`, and the
-   local synthetic JupyterLab canary with `npm run test:jupyter-canary`.
+   local synthetic JupyterLab canary with `npm run test:jupyter-canary`. This
+   canary starts and deletes a practice session, requests one real local A2
+   tutor turn, and reads no notebook output or executes notebook code.
 2. Build `unibot release candidate --output ./unibot-review-candidate` and
    run `unibot release audit ./unibot-review-candidate`. Keep the printed source
    commit and manifest hashes with the review record.
@@ -139,9 +141,9 @@ This atomically builds the candidate, runs the read-only audit, writes the
 human PR draft, copies the hash-only `RELEASE-EVIDENCE.json`, binds any Colab
 and local synthetic JupyterLab canary receipts, and records their hashes in
 `HANDOFF-MANIFEST.json`. A failed step leaves no partial handoff and does not
-contact GitHub. The JupyterLab receipt proves only high-confidence cell
-metadata capture in a local synthetic notebook; it proves no learning effect,
-institutional approval, or examination clearance.
+contact GitHub. The JupyterLab receipt proves high-confidence cell metadata
+capture plus one bounded local tutor turn in a synthetic notebook; it proves no
+learning effect, institutional approval, or examination clearance.
 
 The meeting asks five bounded questions: who owns the institutional decision;
 whether the local practice purpose fits the named module; which accessibility

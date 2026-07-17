@@ -79,9 +79,20 @@ def _validate_jupyter_canary(path: Path, source_commit: str) -> dict[str, Any]:
         "adapter_version": "jupyterlab-v1",
         "confidence": "high",
         "source_url_kind": "local_synthetic_jupyterlab",
+        "tutor_flow_status": "pass",
+        "session_started": True,
+        "session_stopped": True,
+        "session_deleted": True,
+        "effective_help_level": "A2",
+        "complete_solution_emitted": False,
+        "hint_text_omitted": True,
+        "native_transport": True,
+        "local_tutor": "deterministic_source_grounded_v1",
     }
     if any(payload.get(key) != expected for key, expected in required.items()):
         return {"status": "blocked", "reason": "jupyter_canary_contract_mismatch"}
+    if not isinstance(payload.get("source_anchor_count"), int) or payload["source_anchor_count"] < 1:
+        return {"status": "blocked", "reason": "jupyter_canary_source_anchors_missing"}
     safety = scan_text(text, "JUPYTER-CANARY.json")
     if safety["status"] != "pass":
         return {"status": "blocked", "reason": "jupyter_canary_public_safety_failed"}
