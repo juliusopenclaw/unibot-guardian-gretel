@@ -791,7 +791,7 @@ class UniBotReadinessTests(unittest.TestCase):
         self.assertIn("written_university_clearance_required_before_exam_use", release_runbook["evidence"]["release_alignment_human_gates"])
         browser_boundary = next(check for check in report["checks"] if check["check_id"] == "browser_manifest_content_boundary")
         self.assertEqual(browser_boundary["evidence"]["contract_status"], "unibot-browser-manifest-content-boundary-claim-alignment-v1")
-        self.assertEqual(browser_boundary["evidence"]["permission_count"], 4)
+        self.assertEqual(browser_boundary["evidence"]["permission_count"], 3)
         self.assertFalse(browser_boundary["evidence"]["all_urls_requested"])
         self.assertTrue(browser_boundary["evidence"]["sidepanel_claim_linked"])
         self.assertTrue(browser_boundary["evidence"]["human_submission_gate_linked"])

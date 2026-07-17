@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import hmac
 import re
 from dataclasses import dataclass
 from typing import Any, TypedDict, cast
@@ -13,6 +14,7 @@ from .learning_session import HELP_COSTS_V1, HELP_LEVELS_V1, HelpEventV2, Learni
 MAX_CELL_CHARACTERS = 12_000
 MAX_TASK_CHARACTERS = 4_000
 MAX_ATTEMPT_CHARACTERS = 4_000
+TUTOR_RULE_PACK_SCHEMA_VERSION = "TutorRulePackV2"
 
 SOURCE_ANCHORS = {
     "general_python": {
@@ -98,6 +100,66 @@ FORMULA_CARDS = {
     },
 }
 
+# The rule pack is deliberately deterministic. It selects a bounded learning
+# move from syntax, AST features, traceback type, and reviewed source anchors.
+TUTOR_RULES_V2 = {
+    "python.syntax": {
+        "source_anchor_ids": ("python-tutorial-controlflow",),
+        "trigger": "syntax_error",
+        "hint_kind": "diagnostic_location",
+    },
+    "python.debugging": {
+        "source_anchor_ids": ("python-tutorial-errors",),
+        "trigger": "traceback_type",
+        "hint_kind": "diagnostic_error",
+    },
+    "python.control_flow": {
+        "source_anchor_ids": ("python-tutorial-controlflow",),
+        "trigger": "loops",
+        "hint_kind": "control_flow_check",
+    },
+    "python.collections": {
+        "source_anchor_ids": ("python-tutorial-datastructures",),
+        "trigger": "collections",
+        "hint_kind": "collection_check",
+    },
+    "python.functions": {
+        "source_anchor_ids": ("python-tutorial-functions",),
+        "trigger": "functions",
+        "hint_kind": "function_contract_check",
+    },
+    "numpy.arrays": {
+        "source_anchor_ids": ("numpy-absolute-beginners",),
+        "trigger": "numpy",
+        "hint_kind": "array_shape_check",
+    },
+    "pandas.dataframes": {
+        "source_anchor_ids": ("pandas-getting-started",),
+        "trigger": "pandas",
+        "hint_kind": "dataframe_check",
+    },
+    "visualization.boxplots": {
+        "source_anchor_ids": ("matplotlib-boxplot",),
+        "trigger": "boxplots",
+        "hint_kind": "visualization_check",
+    },
+    "statistics.formula": {
+        "source_anchor_ids": (),
+        "trigger": "formula_card",
+        "hint_kind": "formula_structure",
+    },
+    "notebook.state": {
+        "source_anchor_ids": ("jupyter-notebook-docs",),
+        "trigger": "colab_jupyter",
+        "hint_kind": "notebook_state_check",
+    },
+    "python.ast_basics": {
+        "source_anchor_ids": ("python-tutorial-controlflow",),
+        "trigger": "ast_features",
+        "hint_kind": "ast_structure_check",
+    },
+}
+
 
 class TutorTurnRequestV1(TypedDict, total=False):
     session_id: str
@@ -133,9 +195,13 @@ class TutorTurnV1(TypedDict):
     attempt_hash: str
     cell_hash: str
     own_attempt_present: bool
+    accessibility_used: bool
     raw_cell_stored: bool
     raw_attempt_stored: bool
     local_realizer: str
+    rule_pack_version: str
+    rule_id: str
+    knowledge_boundary: str
     exam_deployment_status: str
     help_event: HelpEventV2
 
@@ -147,6 +213,19 @@ class CellAnalysis:
     traceback_type: str
     skill_tags: list[str]
     formula_card: dict[str, Any] | None
+    ast_features: tuple[str, ...]
+    rule_id: str
+    knowledge_boundary: str
+
+
+def validate_tutor_turn_session(session: LearningSession, payload: TutorTurnRequestV1) -> None:
+    """Bind a transport request to the active learning contract before recording it."""
+    requested_session_id = str(payload.get("session_id", "")).strip()
+    active_session_id = str(session.contract.get("session_id", "")).strip()
+    if not requested_session_id:
+        raise ValueError("session_id_required")
+    if not active_session_id or not hmac.compare_digest(requested_session_id, active_session_id):
+        raise ValueError("session_id_mismatch")
 
 
 def _hash_text(value: str) -> str:
@@ -162,6 +241,81 @@ def _next_level(level: str, maximum: str) -> str:
     current_index = HELP_LEVELS_V1.index(level)
     maximum_index = HELP_LEVELS_V1.index(maximum)
     return HELP_LEVELS_V1[min(current_index + 1, maximum_index)]
+
+
+def _ast_features(cell: str) -> tuple[str, ...]:
+    if not cell.strip():
+        return ()
+    try:
+        tree = ast.parse(cell)
+    except SyntaxError:
+        return ()
+    features: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.For, ast.AsyncFor, ast.While, ast.If)):
+            features.add("control_flow")
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            features.add("function_definition")
+        if isinstance(node, ast.Subscript):
+            features.add("subscript")
+        if isinstance(node, ast.Assign):
+            features.add("assignment")
+        if isinstance(node, ast.Import):
+            names = {alias.name.split(".", 1)[0] for alias in node.names}
+            if "numpy" in names:
+                features.add("numpy_import")
+            if "pandas" in names:
+                features.add("pandas_import")
+        if isinstance(node, ast.ImportFrom):
+            root = (node.module or "").split(".", 1)[0]
+            if root == "numpy":
+                features.add("numpy_import")
+            if root == "pandas":
+                features.add("pandas_import")
+    return tuple(sorted(features))
+
+
+def _rule_for_analysis(
+    *,
+    syntax_status: str,
+    traceback_type: str,
+    skill_tags: list[str],
+    formula_card: dict[str, Any] | None,
+    ast_features: tuple[str, ...],
+) -> str:
+    if traceback_type:
+        return "python.debugging"
+    if syntax_status == "syntax_error":
+        return "python.syntax"
+    if formula_card:
+        return "statistics.formula"
+    skill_rules = {
+        "colab_jupyter": "notebook.state",
+        "numpy": "numpy.arrays",
+        "pandas": "pandas.dataframes",
+        "boxplots": "visualization.boxplots",
+        "loops": "python.control_flow",
+        "dictionaries": "python.collections",
+        "python_lists": "python.collections",
+        "functions": "python.functions",
+    }
+    for skill in (
+        "colab_jupyter",
+        "numpy",
+        "pandas",
+        "boxplots",
+        "loops",
+        "functions",
+        "dictionaries",
+        "python_lists",
+    ):
+        if skill not in skill_tags:
+            continue
+        if skill in skill_rules:
+            return skill_rules[skill]
+    if ast_features:
+        return "python.ast_basics"
+    return ""
 
 
 def analyze_cell(task: str, cell: str) -> CellAnalysis:
@@ -187,22 +341,41 @@ def analyze_cell(task: str, cell: str) -> CellAnalysis:
         if any(term in lowered for term in card["terms"]):
             formula = card
             break
+    ast_features = _ast_features(cell) if syntax_status != "too_large" else ()
+    detected_tags = [tag for tag in detect_skill_tags(combined) if tag != "general_python"]
+    skill_tags = detected_tags or (["general_python"] if ast_features else [])
+    rule_id = _rule_for_analysis(
+        syntax_status=syntax_status,
+        traceback_type=traceback_type,
+        skill_tags=skill_tags,
+        formula_card=formula,
+        ast_features=ast_features,
+    )
     return CellAnalysis(
         syntax_status=syntax_status,
         syntax_detail=syntax_detail,
         traceback_type=traceback_type,
-        skill_tags=detect_skill_tags(combined),
+        skill_tags=skill_tags,
         formula_card=formula,
+        ast_features=ast_features,
+        rule_id=rule_id,
+        knowledge_boundary="source_bound" if rule_id else "no_reliable_source",
     )
 
 
 def _source_anchors(analysis: CellAnalysis) -> list[dict[str, str]]:
     anchors: list[dict[str, str]] = []
+    rule = TUTOR_RULES_V2.get(analysis.rule_id)
+    source_ids = rule.get("source_anchor_ids", ()) if rule else ()
+    for source_id in source_ids:
+        for candidate in SOURCE_ANCHORS.values():
+            if candidate["id"] == source_id and candidate not in anchors:
+                anchors.append(dict(candidate))
     for skill in analysis.skill_tags:
         anchor = SOURCE_ANCHORS.get(skill)
         if anchor and anchor not in anchors:
             anchors.append(dict(anchor))
-    if not anchors:
+    if not anchors and analysis.knowledge_boundary == "source_bound":
         anchors.append(dict(SOURCE_ANCHORS["general_python"]))
     if analysis.formula_card:
         anchors.append(
@@ -312,6 +485,17 @@ def build_tutor_turn(session: LearningSession, payload: TutorTurnRequestV1) -> T
         effective = session.current_level(task_id)
         effective_cost = previous_cost
         delta = 0
+    elif not anchors:
+        effective = session.current_level(task_id)
+        effective_cost = previous_cost
+        delta = 0
+        hint_kind = "no_reliable_source"
+        hint = (
+            "Ich finde fuer diese Frage keinen belastbaren Regel- oder Quellenanker. "
+            "Beschreibe den naechsten eigenen Pruefschritt, ohne eine fachliche Aussage als belegt auszugeben."
+        )
+        blocked_reasons.append("no_reliable_source")
+        status = "no_reliable_source"
     else:
         hint_kind, hint = _hint_for_level(effective, analysis, task)
         status = "allowed" if not level_reasons else "bounded"
@@ -356,9 +540,13 @@ def build_tutor_turn(session: LearningSession, payload: TutorTurnRequestV1) -> T
         "attempt_hash": attempt_hash,
         "cell_hash": cell_hash,
         "own_attempt_present": bool(attempt),
+        "accessibility_used": bool(payload.get("accessibility_used", False)),
         "raw_cell_stored": False,
         "raw_attempt_stored": False,
         "local_realizer": "deterministic_source_grounded_v1",
+        "rule_pack_version": TUTOR_RULE_PACK_SCHEMA_VERSION,
+        "rule_id": analysis.rule_id,
+        "knowledge_boundary": analysis.knowledge_boundary,
         "exam_deployment_status": "not_cleared",
     }
     event = session.record_turn(turn_without_event)

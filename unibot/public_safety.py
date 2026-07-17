@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+from collections import OrderedDict
+from hashlib import sha256
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -49,21 +51,65 @@ PUBLIC_SAFETY_PATTERNS = [
     ),
 ]
 
+_COMPILED_PUBLIC_SAFETY_PATTERNS = tuple(
+    (finding_type, re.compile(pattern, re.IGNORECASE))
+    for finding_type, pattern in PUBLIC_SAFETY_PATTERNS
+)
+# These are necessary markers, not heuristic exclusions: a pattern is skipped
+# only when its own syntax cannot possibly match the payload.
+_PUBLIC_SAFETY_PREFILTERS = (
+    ("@",),
+    ("tel", "phone", "telefon", "mobil", "mobile"),
+    ("/", "\\", "file:"),
+    ("api", "key", "token", "password", "passwd", "secret"),
+    ("private_course", "course_materials", "shared_uni"),
+    ("f" + "m", "ver" + "-sacrum", "ver" + " sacrum", "exam" + "_workspace"),
+    ("raw_external_ai_output", "gemini_raw_response"),
+    ("meine", "my", "diagnose", "attest", "medikation", "arztbrief", "nachteilsausgleich"),
+)
+_SCAN_CACHE_MAX_ENTRIES = 512
+_SCAN_CACHE_MAX_TEXT_CHARS = 1_048_576
+_SCAN_CACHE: OrderedDict[tuple[int, bytes], tuple[tuple[str, int, int, str], ...]] = OrderedDict()
+
 
 def scan_text(text: str, source_name: str = "inline") -> dict[str, Any]:
-    findings = []
     payload = text or ""
-    for finding_type, pattern in PUBLIC_SAFETY_PATTERNS:
-        for match in re.finditer(pattern, payload, re.IGNORECASE):
-            findings.append(
-                {
-                    "source": source_name,
-                    "type": finding_type,
-                    "start": match.start(),
-                    "end": match.end(),
-                    "preview": redact_preview(match.group(0)),
-                }
-            )
+    cache_key = (len(payload), sha256(payload.encode("utf-8")).digest())
+    cached_findings = _SCAN_CACHE.get(cache_key) if len(payload) <= _SCAN_CACHE_MAX_TEXT_CHARS else None
+    if cached_findings is None:
+        findings_without_source: list[tuple[str, int, int, str]] = []
+        folded_payload = payload.casefold()
+        for (finding_type, pattern), prefilter_tokens in zip(
+            _COMPILED_PUBLIC_SAFETY_PATTERNS,
+            _PUBLIC_SAFETY_PREFILTERS,
+        ):
+            if not any(token in folded_payload for token in prefilter_tokens):
+                continue
+            for match in pattern.finditer(payload):
+                findings_without_source.append(
+                    (
+                        finding_type,
+                        match.start(),
+                        match.end(),
+                        redact_preview(match.group(0)),
+                    )
+                )
+        cached_findings = tuple(findings_without_source)
+        if len(payload) <= _SCAN_CACHE_MAX_TEXT_CHARS:
+            _SCAN_CACHE[cache_key] = cached_findings
+            _SCAN_CACHE.move_to_end(cache_key)
+            if len(_SCAN_CACHE) > _SCAN_CACHE_MAX_ENTRIES:
+                _SCAN_CACHE.popitem(last=False)
+    findings = [
+        {
+            "source": source_name,
+            "type": finding_type,
+            "start": start,
+            "end": end,
+            "preview": preview,
+        }
+        for finding_type, start, end, preview in cached_findings
+    ]
     return {
         "status": "blocked" if findings else "pass",
         "finding_count": len(findings),

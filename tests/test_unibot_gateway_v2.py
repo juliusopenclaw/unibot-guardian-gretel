@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import socket
 from pathlib import Path
+from unittest.mock import patch
 
 import nbformat
 
@@ -53,6 +55,46 @@ class GatewayV2Tests(unittest.TestCase):
             result = launch_gateway(manifest_path, dry_run=True)
         self.assertEqual(result["status"], "ready_for_local_practice_launch")
         self.assertNotIn("process_id", result)
+
+    def test_gateway_rejects_an_occupied_loopback_port_before_start(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "practice.ipynb"
+            write_notebook(source)
+            manifest = import_notebook(str(source), root / "intake")
+            manifest_path = root / "intake" / manifest["sanitized_sha256"][:16] / "manifest.json"
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
+                listener.bind(("127.0.0.1", 0))
+                listener.listen(1)
+                port = int(listener.getsockname()[1])
+                with patch("unibot.gateway.shutil.which", return_value="/usr/bin/jupyter") as which:
+                    with self.assertRaisesRegex(GatewayError, "already in use"):
+                        launch_gateway(manifest_path, port=port)
+                which.assert_not_called()
+
+    def test_gateway_rejects_a_process_that_exits_immediately(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "practice.ipynb"
+            write_notebook(source)
+            manifest = import_notebook(str(source), root / "intake")
+            manifest_path = root / "intake" / manifest["sanitized_sha256"][:16] / "manifest.json"
+
+            class ExitedProcess:
+                pid = 12345
+
+                @staticmethod
+                def poll() -> int:
+                    return 1
+
+            with (
+                patch("unibot.gateway.shutil.which", return_value="/usr/bin/jupyter"),
+                patch("unibot.gateway.subprocess.Popen", return_value=ExitedProcess()),
+                patch("unibot.gateway.webbrowser.open") as browser_open,
+            ):
+                with self.assertRaisesRegex(GatewayError, "exited before"):
+                    launch_gateway(manifest_path, port=8898)
+            browser_open.assert_not_called()
 
 
 if __name__ == "__main__":

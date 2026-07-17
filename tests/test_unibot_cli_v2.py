@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import io
 import json
+import subprocess
 import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 
 from unibot.cli import main, public_repository_safety
+from unibot.release_candidate import write_release_candidate_bundle
 
 
 class UniBotCliV2Tests(unittest.TestCase):
@@ -26,6 +28,19 @@ class UniBotCliV2Tests(unittest.TestCase):
         self.assertFalse(payload["notebook_code_executed"])
         self.assertFalse(payload["raw_case_text_in_report"])
         self.assertFalse(payload["provider_context_contains_held_out_cases"])
+
+    def test_3gr_evaluation_command_runs_public_synthetic_self_check(self) -> None:
+        with io.StringIO() as output, redirect_stdout(output):
+            exit_code = main(["evaluate", "3gr", "--json"])
+            payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["status"], "pass")
+        self.assertEqual(payload["mode"], "public_synthetic_self_check")
+        self.assertTrue(all(payload["gates"].values()))
+        self.assertFalse(payload["automatic_apply"])
+        self.assertTrue(payload["human_review_required"])
+        self.assertFalse(payload["canary_merges_evaluated"])
 
     def test_autonomy_status_is_machine_readable_and_never_grants_merge(self) -> None:
         with tempfile.TemporaryDirectory() as temporary, io.StringIO() as output, redirect_stdout(output):
@@ -79,11 +94,124 @@ class UniBotCliV2Tests(unittest.TestCase):
         self.assertEqual(payload["reason"], "rollout_gates_incomplete")
         self.assertFalse(payload["loop"]["active"])
 
+    def test_local_rollout_command_uses_disposable_actual_diff_and_no_provider(self) -> None:
+        source = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary) / "repo"
+            subprocess.run(
+                ["git", "clone", "--no-local", "--no-checkout", str(source), str(repo)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            subprocess.run(["git", "-C", str(repo), "checkout", "-qb", "main", "HEAD"], check=True)
+            state = Path(temporary) / "state.sqlite3"
+            with io.StringIO() as output, redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "autonomy",
+                        "rollout",
+                        "local",
+                        "--repo",
+                        str(repo),
+                        "--state-db",
+                        str(state),
+                    ]
+                )
+                payload = json.loads(output.getvalue())
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(payload["status"], "local_green")
+            self.assertEqual(payload["runner"], "deterministic_local_codex_rehearsal")
+            self.assertEqual(payload["provider_calls"], 0)
+            self.assertFalse(payload["automatic_merge"])
+            self.assertEqual(payload["evidence"]["changed_files"], ["docs/unibot/UNIBOT_GUARDIAN_BENCHMARK.md"])
+            clean = subprocess.run(
+                ["git", "-C", str(repo), "status", "--porcelain"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(clean.stdout, "")
+
     def test_public_repository_safety_uses_relative_source_names(self) -> None:
         repo = Path(__file__).resolve().parents[1]
         result = public_repository_safety(repo)
         self.assertEqual(result["status"], "pass", result["findings"])
         self.assertTrue(all(not str(item["source"]).startswith("/") for item in result["findings"]))
+
+    def test_institutional_presentation_cli_stays_human_gated(self) -> None:
+        with io.StringIO() as output, redirect_stdout(output):
+            exit_code = main(["institution", "presentation"])
+            payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["schema_version"], "InstitutionalPresentationV1")
+        self.assertEqual(payload["status"], "ready_for_human_review")
+        self.assertEqual(payload["deployment_status"], "not_cleared")
+        self.assertEqual(payload["evidence"]["readiness"]["status"], "public_draft_ready")
+
+        with io.StringIO() as output, redirect_stdout(output):
+            exit_code = main(["institution", "presentation", "--markdown"])
+            markdown_payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(markdown_payload["status"], "ready_for_human_review")
+        self.assertIn("UniBot Institutional Presentation", markdown_payload["markdown"])
+        self.assertIn("not_cleared", markdown_payload["markdown"])
+
+        with io.StringIO() as output, redirect_stdout(output):
+            exit_code = main(["institution", "brief", "--markdown"])
+            brief_payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(brief_payload["artifact_type"], "unibot_institutional_plain_language_brief")
+        self.assertIn("Kurzinfo", brief_payload["markdown"])
+        self.assertEqual(brief_payload["deployment_status"], "not_cleared")
+
+        with io.StringIO() as output, redirect_stdout(output):
+            exit_code = main(["institution", "accessibility-walkthrough", "--markdown"])
+            accessibility_payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(
+            accessibility_payload["artifact_type"], "unibot_institutional_accessibility_walkthrough"
+        )
+        self.assertIn("Accessibility-Walkthrough", accessibility_payload["markdown"])
+        self.assertIn("not_tested", accessibility_payload["markdown"])
+
+        with io.StringIO() as output, redirect_stdout(output):
+            exit_code = main(["institution", "decision-template"])
+            template_payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(template_payload["schema_version"], "InstitutionalReviewDecisionTemplateV1")
+        self.assertEqual(template_payload["status"], "blank_for_human_completion")
+        self.assertFalse(template_payload["human_boundary"]["automatic_approval"])
+
+        with io.StringIO() as output, redirect_stdout(output):
+            exit_code = main(["institution", "decision-template", "--markdown"])
+            template_markdown = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertIn("InstitutionalReviewDecisionTemplateV1", template_markdown["markdown"])
+        self.assertIn("keine Freigabe", template_markdown["markdown"])
+
+    def test_release_audit_cli_is_read_only_and_hash_bound(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            candidate = Path(temporary) / "candidate"
+            result = write_release_candidate_bundle(candidate)
+            self.assertEqual(result["status"], "written")
+            with io.StringIO() as output, redirect_stdout(output):
+                exit_code = main(["release", "audit", str(candidate), "--repo", str(Path(__file__).resolve().parents[1])])
+                payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["schema_version"], "UniBotReleaseAuditV1")
+        self.assertEqual(payload["status"], "pass")
+        self.assertTrue(payload["source_commit_match"])
+        self.assertFalse(payload["side_effects"]["files_written"])
+        self.assertFalse(payload["side_effects"]["network_called"])
 
 
 if __name__ == "__main__":

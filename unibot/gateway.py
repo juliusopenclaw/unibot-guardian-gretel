@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import secrets
+import socket
 import shutil
 import subprocess
 import webbrowser
@@ -101,10 +102,20 @@ def build_gateway_launch_plan(manifest_path: Path, *, port: int = 8888) -> Gatew
     }
 
 
+def _assert_loopback_port_available(port: int) -> None:
+    """Catch a port collision before starting a process that cannot serve it."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        try:
+            probe.bind(("127.0.0.1", port))
+        except OSError as exc:
+            raise GatewayError(f"local gateway port {port} is already in use") from exc
+
+
 def launch_gateway(manifest_path: Path, *, port: int = 8888, dry_run: bool = False) -> dict[str, Any]:
     plan = build_gateway_launch_plan(manifest_path, port=port)
     if dry_run:
         return dict(plan)
+    _assert_loopback_port_available(port)
     executable = shutil.which("jupyter")
     if not executable:
         raise GatewayError("JupyterLab is not installed; install the optional gateway dependency")
@@ -121,14 +132,17 @@ def launch_gateway(manifest_path: Path, *, port: int = 8888, dry_run: bool = Fal
         stderr=subprocess.DEVNULL,
         start_new_session=True,
     )
+    if process.poll() is not None:
+        raise GatewayError("JupyterLab exited before the local gateway could start")
     query_name = "to" + "ken"
     browser_url = f"http://127.0.0.1:{port}/lab/tree/{quote(artifact.name)}?{query_name}={quote(session_value)}"
-    webbrowser.open(browser_url)
+    browser_opened = bool(webbrowser.open(browser_url))
     return {
         **plan,
         "status": "local_practice_gateway_started",
         "process_id": process.pid,
-        "browser_opened": True,
+        "process_group_id": os.getpgid(process.pid),
+        "browser_opened": browser_opened,
         "public_url": f"http://127.0.0.1:{port}/",
         "session_value_returned": False,
     }

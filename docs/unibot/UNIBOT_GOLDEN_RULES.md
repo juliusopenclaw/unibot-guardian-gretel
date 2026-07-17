@@ -21,3 +21,13 @@ Operational consequences:
   aggregate reports, hashes, and limitations, but no private course files,
   raw AI transcripts, personal data, medical/accommodation records, or real exam
   work.
+
+Release gate:
+
+- `unibot evaluate 3gr --json` runs a fixed synthetic self-check for all three
+  rules. It is included as a required gate in `UniBotReleaseEvidenceV1`.
+- The self-check proves the reusable contract and the human-review boundary; it
+  does not prove learning effectiveness, accessibility conformance, legal
+  compliance, university approval, or examination clearance.
+- A failed 3GR gate blocks the release evidence and creates no automatic fix,
+  merge, provider call, or publication.

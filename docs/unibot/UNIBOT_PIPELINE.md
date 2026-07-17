@@ -90,6 +90,9 @@ for the current public-safe architecture and policy rationale.
   - `POST /api/unibot/course/study-session-review-report`
   - `POST /api/unibot/institutional-clearance/board`
   - `POST /api/unibot/institutional-clearance/validate`
+  - `POST /api/unibot/institutional/profile`
+  - `POST /api/unibot/institutional/presentation`
+  - `POST /api/unibot/institutional/presentation-markdown`
   - `POST /api/unibot/stakeholder/submission-bundle`
   - `POST /api/unibot/stakeholder/submission-bundle-markdown`
   - `POST /api/unibot/stakeholder/decision-request`
@@ -390,7 +393,7 @@ for the current public-safe architecture and policy rationale.
   lanes for parallel chats, the handoff contract, sprint order, material queue
   counts, source-evidence basis, and acceptance gates. They are coordination
   artifacts, not authority approval.
-- Evaluation packets must provide a public-safe master-thesis pilot scaffold:
+- Evaluation packets must provide a public-safe bachelor-thesis-level pilot scaffold:
   synthetic tasks, codebook, formative measures, consent boundaries, stop rules,
   data-management limits, quality gates, and source cards. They must not include
   real exam data, grades, medical/accommodation personal data, raw external KI

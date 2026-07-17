@@ -1,23 +1,29 @@
 from __future__ import annotations
 
-import json
 import os
 import subprocess
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 from unibot.autonomy_v3 import (
     AutonomyController,
+    AutonomyLease,
     AutonomyRunV3,
     AutonomyStore,
+    build_public_3gr_self_check_work_item,
     CodexReviewV1,
+    EvolutionChunkContractV1,
     GLMReviewV2,
     ProviderGate,
     TestRegistry,
     WorkItemV3,
     default_test_registry,
     derive_implementation_evidence,
+    evaluate_three_golden_rules,
+    prepare_autonomy_loop,
+    request_autonomy_loop_start,
     sha256_json,
     validate_glm_proposal,
     work_item_from_issue,
@@ -57,6 +63,16 @@ class MockGLM:
 
 
 class AutonomyV3Tests(unittest.TestCase):
+    def evolution(self, failure_class: str = "test.autonomy") -> EvolutionChunkContractV1:
+        return EvolutionChunkContractV1(
+            failure_class=failure_class,
+            generalized_rule="Every bounded change needs reusable transfer and regression evidence.",
+            transfer_targets=("guardian.policy", "tutor.output"),
+            positive_fixture_ids=("test.allowed",),
+            negative_fixture_ids=("test.blocked",),
+            recurrence_monitor_id="test.autonomy.recurrence",
+        )
+
     def make_git_repo(self) -> tuple[tempfile.TemporaryDirectory, Path, str]:
         holder = tempfile.TemporaryDirectory()
         root = Path(holder.name)
@@ -80,11 +96,123 @@ class AutonomyV3Tests(unittest.TestCase):
             allowed_files=("public.py",),
             test_ids=("test.guardian",),
             base_commit="abcdef1",
+            evolution_chunk=self.evolution(),
         )
         self.assertEqual(item.validate(), [])
         self.assertEqual(item.to_dict()["work_item_hash"], item.work_item_hash)
         bad = WorkItemV3(**{**item.__dict__, "allowed_files": ("private-notebook.ipynb",)})
         self.assertIn("private_path_not_allowed", bad.validate())
+
+    def test_work_item_requires_bounded_files_and_registered_tests(self) -> None:
+        item = WorkItemV3(
+            work_id="bounded-contract",
+            source="measured_gap",
+            hypothesis="A bounded contract is measurable.",
+            product_delta="Keep the work item executable and reviewable.",
+            risk="low",
+            allowed_files=("public.py",),
+            test_ids=("test.guardian",),
+            base_commit="abcdef1",
+            evolution_chunk=self.evolution("test.bounded_contract"),
+        )
+        self.assertIn("allowed_files_required", replace(item, allowed_files=()).validate())
+        self.assertIn("test_ids_required", replace(item, test_ids=()).validate())
+        self.assertIn("allowed_files_must_be_unique", replace(item, allowed_files=("public.py", "public.py")).validate())
+        self.assertIn("test_ids_must_be_unique", replace(item, test_ids=("test.guardian", "test.guardian")).validate())
+
+    def test_unexpected_implementation_failure_is_blocked_without_exception_text(self) -> None:
+        holder, root, base = self.make_git_repo()
+        try:
+            item = WorkItemV3(
+                work_id="runtime-failure",
+                source="measured_gap",
+                hypothesis="An implementation crash must become a bounded run result.",
+                product_delta="Keep private exception text out of run metadata.",
+                risk="medium",
+                allowed_files=("public.py",),
+                test_ids=("test.guardian",),
+                base_commit=base,
+                evolution_chunk=self.evolution("test.runtime_failure"),
+            )
+            with tempfile.TemporaryDirectory() as state_dir:
+                store = AutonomyStore(Path(state_dir) / "state.sqlite3")
+                gate = ProviderGate(Path(state_dir) / "provider.json", store=store)
+                gate.unpark("public-unibot-only")
+                controller = AutonomyController(
+                    repo_root=root,
+                    store=store,
+                    provider_gate=gate,
+                    lease=AutonomyLease(Path(state_dir) / "run.lock"),
+                )
+                tests = TestRegistry()
+                tests.register("test.guardian", lambda: True)
+
+                def broken_implementer(*_: object) -> None:
+                    raise RuntimeError("/private/learner/notebook.ipynb")
+
+                result = controller.execute(
+                    item,
+                    glm=MockGLM(),
+                    implementer=broken_implementer,
+                    reviewer=lambda evidence, work_item: CodexReviewV1(
+                        run_id=evidence.run_id,
+                        diff_hash=evidence.diff_hash,
+                        decision="approve",
+                    ),
+                    tests=tests,
+                    ci_green=True,
+                )
+                self.assertEqual(result["status"], "blocked")
+                self.assertEqual(result["reason"], "unexpected_runtime_failure")
+                self.assertEqual(result["run"]["state"], "blocked")
+                self.assertNotIn("/private/learner", str(result))
+                store.close()
+        finally:
+            holder.cleanup()
+
+    def test_gitlink_changes_are_rejected_from_implementation_evidence(self) -> None:
+        holder, root, base = self.make_git_repo()
+        try:
+            subprocess.run(
+                ["git", "-C", str(root), "update-index", "--add", "--cacheinfo", "160000", "a" * 40, "vendor/module"],
+                check=True,
+            )
+            with self.assertRaisesRegex(ValueError, "submodule_change_not_allowed"):
+                derive_implementation_evidence(
+                    worktree=root,
+                    run_id="gitlink-evidence",
+                    base_commit=base,
+                    allowed_files=("vendor/module",),
+                    test_ids_passed=["test.guardian"],
+                    test_evidence_hash="a" * 64,
+                )
+        finally:
+            holder.cleanup()
+
+    def test_human_merge_evidence_rejects_bot_identity_and_short_commit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = AutonomyStore(Path(tmp) / "state.sqlite3")
+            run = AutonomyRunV3(
+                run_id="human-gate",
+                work_item_hash="a" * 64,
+                trigger="canary",
+                state="ready_for_human_merge",
+            )
+            store.save_run(run)
+            controller = AutonomyController(repo_root=Path(tmp), store=store)
+            self.assertEqual(
+                controller.record_human_merge("human-gate", reviewer="Codex", merge_commit="a" * 40)["reason"],
+                "non_human_reviewer_not_allowed",
+            )
+            self.assertEqual(
+                controller.record_human_merge("human-gate", reviewer="Julius", merge_commit="abcdef1")["reason"],
+                "full_merge_commit_required",
+            )
+            self.assertEqual(
+                controller.record_human_merge("human-gate", reviewer="Julius", merge_commit="a" * 40)["status"],
+                "human_merged",
+            )
+            store.close()
 
     def test_provider_defaults_to_parked_and_scope_is_required(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -98,12 +226,166 @@ class AutonomyV3Tests(unittest.TestCase):
             self.assertEqual(os.stat(Path(tmp) / "provider.json").st_mode & 0o777, 0o600)
             store.close()
 
+    def test_provider_state_and_store_reject_unsafe_local_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            store = AutonomyStore(root / "state.sqlite3")
+            gate = ProviderGate(root / "provider.json", store=store)
+            gate.unpark("public-unibot-only")
+            os.chmod(root / "provider.json", 0o644)
+            status = gate.status()
+            self.assertFalse(status["call_allowed"])
+            self.assertEqual(status["state"], "parked_awaiting_zai_balance")
+            self.assertEqual(status["reason"], "state_file_permissions_must_be_0600")
+            store.close()
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "target.sqlite3"
+            target.write_bytes(b"")
+            os.chmod(target, 0o600)
+            (root / "state.sqlite3").symlink_to(target)
+            with self.assertRaises(ValueError):
+                AutonomyStore(root / "state.sqlite3")
+
+    def test_private_loop_state_is_atomic_and_permission_bound(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            store = AutonomyStore(root / "state.sqlite3")
+            result = prepare_autonomy_loop(store, support_dir=root / "support")
+            state_path = root / "support" / "loop-state.json"
+            self.assertTrue(result["prepared"])
+            self.assertEqual(os.stat(state_path).st_mode & 0o777, 0o600)
+            self.assertEqual(os.stat(state_path.parent).st_mode & 0o777, 0o700)
+            store.close()
+
+    def test_three_golden_rules_are_distinct_from_three_canary_merges(self) -> None:
+        legacy = WorkItemV3(
+            work_id="legacy",
+            source="measured_gap",
+            hypothesis="safe",
+            product_delta="safe",
+            risk="low",
+            allowed_files=("public.py",),
+            test_ids=("test.guardian",),
+            base_commit="abcdef1",
+        )
+        evaluation = evaluate_three_golden_rules(legacy)
+        self.assertEqual(evaluation["status"], "blocked")
+        self.assertIn("legacy_missing_3gr_contract", evaluation["errors"])
+
+        with tempfile.TemporaryDirectory() as tmp:
+            store = AutonomyStore(Path(tmp) / "state.sqlite3")
+            rollout = store.rollout_status()
+            self.assertEqual(rollout["three_golden_rules"], "separate_per_work_item_gate")
+            self.assertFalse(rollout["watcher_activation_allowed"])
+            self.assertEqual(request_autonomy_loop_start(store)["reason"], "rollout_gates_incomplete")
+            for index in range(10):
+                store.record_rollout("shadow", run_id=f"shadow-{index}", success=True)
+                store.record_rollout("local", run_id=f"local-{index}", success=True)
+            self.assertEqual(
+                request_autonomy_loop_start(store)["reason"],
+                "three_human_canary_merges_required",
+            )
+            for index in range(3):
+                run = AutonomyRunV3(
+                    run_id=f"canary-{index}",
+                    work_item_hash="a" * 64,
+                    trigger="canary",
+                    state="human_merged",
+                )
+                store.save_run(run)
+                rollout = store.record_canary_merge(
+                    run_id=run.run_id,
+                    reviewer="Julius",
+                    merge_commit=f"{index + 1:040x}",
+                    checks_green=True,
+                    approved_after_last_push=True,
+                )
+            self.assertTrue(rollout["watcher_activation_allowed"])
+            self.assertEqual(store.record_canary_merge(
+                run_id="canary-2",
+                reviewer="Julius",
+                merge_commit=f"{3:040x}",
+                checks_green=True,
+                approved_after_last_push=True,
+            )["lanes"]["canary_merges"]["successful_runs"], 3)
+            store.close()
+
+    def test_public_3gr_self_check_is_synthetic_and_execution_safe(self) -> None:
+        item = build_public_3gr_self_check_work_item()
+        evaluation = evaluate_three_golden_rules(item)
+
+        self.assertEqual(evaluation["status"], "pass")
+        self.assertEqual(item.validate_for_execution(), [])
+        self.assertEqual(item.issue_number, None)
+        self.assertFalse(evaluation["automatic_apply"])
+        self.assertTrue(evaluation["human_review_required"])
+        self.assertFalse(evaluation["canary_merges_evaluated"])
+
     def test_budget_warns_at_fifteen_and_stops_above_twenty(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             store = AutonomyStore(Path(tmp) / "state.sqlite3")
             self.assertEqual(store.record_cost(15, month="2099-01")["status"], "warning")
             self.assertEqual(store.record_cost(5, month="2099-01")["status"], "warning")
             self.assertEqual(store.record_cost(0.01, month="2099-01")["reason"], "monthly_hard_stop")
+            store.close()
+
+    def test_rollout_gate_requires_ten_consecutive_green_runs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = AutonomyStore(Path(tmp) / "state.sqlite3")
+            for index in range(9):
+                status = store.record_rollout("shadow", run_id=f"shadow-green-{index}", success=True)
+            self.assertFalse(status["lanes"]["shadow"]["complete"])
+            self.assertEqual(status["lanes"]["shadow"]["consecutive_successes"], 9)
+
+            status = store.record_rollout("shadow", run_id="shadow-red", success=False)
+            self.assertFalse(status["lanes"]["shadow"]["complete"])
+            self.assertEqual(status["lanes"]["shadow"]["successful_runs"], 9)
+            self.assertEqual(status["lanes"]["shadow"]["failed_runs"], 1)
+            self.assertEqual(status["lanes"]["shadow"]["consecutive_successes"], 0)
+
+            for index in range(10):
+                status = store.record_rollout("shadow", run_id=f"shadow-recovered-{index}", success=True)
+            self.assertTrue(status["lanes"]["shadow"]["complete"])
+            self.assertEqual(status["lanes"]["shadow"]["consecutive_successes"], 10)
+            self.assertEqual(status["lanes"]["shadow"]["successful_runs"], 19)
+            self.assertEqual(status["lanes"]["shadow"]["failed_runs"], 1)
+            self.assertTrue(status["canary_allowed"] is False)
+            store.close()
+
+    def test_rollout_recording_is_idempotent_for_replayed_run_ids(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = AutonomyStore(Path(tmp) / "state.sqlite3")
+            first = store.record_rollout("local", run_id="replayed-run", success=True)
+            second = store.record_rollout("local", run_id="replayed-run", success=True)
+            self.assertEqual(first["lanes"]["local"]["successful_runs"], 1)
+            self.assertEqual(second["lanes"]["local"]["successful_runs"], 1)
+            self.assertEqual(second["lanes"]["local"]["consecutive_successes"], 1)
+            self.assertEqual(second["lanes"]["local"]["failed_runs"], 0)
+            store.close()
+
+    def test_old_rollout_schema_migrates_with_a_closed_success_streak(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "state.sqlite3"
+            import sqlite3
+
+            connection = sqlite3.connect(path)
+            connection.execute(
+                "CREATE TABLE rollout (lane TEXT PRIMARY KEY, successful_runs INTEGER NOT NULL, "
+                "failed_runs INTEGER NOT NULL, last_run_id TEXT NOT NULL, updated_at TEXT NOT NULL)"
+            )
+            connection.execute(
+                "INSERT INTO rollout VALUES('shadow', 10, 0, 'old-run', '2026-01-01T00:00:00+00:00')"
+            )
+            connection.commit()
+            connection.close()
+            path.chmod(0o600)
+
+            store = AutonomyStore(path)
+            shadow = store.rollout_status()["lanes"]["shadow"]
+            self.assertFalse(shadow["complete"])
+            self.assertEqual(shadow["consecutive_successes"], 0)
             store.close()
 
     def test_actual_diff_is_derived_and_controller_reaches_human_gate(self) -> None:
@@ -118,6 +400,7 @@ class AutonomyV3Tests(unittest.TestCase):
                 allowed_files=("public.py",),
                 test_ids=("test.guardian",),
                 base_commit=base,
+                evolution_chunk=self.evolution("test.actual_diff"),
             )
             with tempfile.TemporaryDirectory() as state_dir:
                 store = AutonomyStore(Path(state_dir) / "state.sqlite3")
@@ -127,7 +410,7 @@ class AutonomyV3Tests(unittest.TestCase):
                     repo_root=root,
                     store=store,
                     provider_gate=gate,
-                    lease=__import__("unibot.autonomy_v3", fromlist=["AutonomyLease"]).AutonomyLease(Path(state_dir) / "run.lock"),
+                    lease=AutonomyLease(Path(state_dir) / "run.lock"),
                 )
                 tests = TestRegistry()
                 tests.register("test.guardian", lambda: True)
@@ -175,6 +458,7 @@ class AutonomyV3Tests(unittest.TestCase):
                 allowed_files=("public.py",),
                 test_ids=("test.guardian",),
                 base_commit=base,
+                evolution_chunk=self.evolution("test.provider_park"),
             )
             with tempfile.TemporaryDirectory() as state_dir:
                 store = AutonomyStore(Path(state_dir) / "state.sqlite3")
@@ -205,6 +489,7 @@ class AutonomyV3Tests(unittest.TestCase):
                 allowed_files=("public.py",),
                 test_ids=("test.guardian",),
                 base_commit=base,
+                evolution_chunk=self.evolution("test.main_protection"),
             )
             with tempfile.TemporaryDirectory() as state_dir:
                 store = AutonomyStore(Path(state_dir) / "state.sqlite3")
@@ -241,6 +526,7 @@ class AutonomyV3Tests(unittest.TestCase):
             allowed_files=("public.py",),
             test_ids=("test.guardian",),
             base_commit="abc123",
+            evolution_chunk=self.evolution("test.proposal_binding"),
         )
         proposal = MockGLM().propose({}, item)
         proposal["base_commit"] = "other"
@@ -260,6 +546,7 @@ class AutonomyV3Tests(unittest.TestCase):
                 allowed_files=("public.py",),
                 test_ids=("test.guardian",),
                 base_commit=base,
+                evolution_chunk=self.evolution("test.local_rollout"),
             )
             with tempfile.TemporaryDirectory() as state_dir:
                 store = AutonomyStore(Path(state_dir) / "state.sqlite3")
@@ -282,6 +569,8 @@ class AutonomyV3Tests(unittest.TestCase):
                 result = controller.run_local_rollout(item, implementer=implementer, reviewer=reviewer, tests=tests)
                 self.assertEqual(result["status"], "local_green")
                 self.assertEqual(result["provider_calls"], 0)
+                self.assertEqual(result["three_golden_rules_evidence"]["generalization_gate"], "pass")
+                self.assertFalse(result["three_golden_rules_evidence"]["automatic_apply"])
                 self.assertEqual((root / "public.py").read_text(encoding="utf-8"), "VALUE = 1\n")
                 self.assertTrue(seen_worktrees)
                 self.assertFalse(seen_worktrees[0].exists())

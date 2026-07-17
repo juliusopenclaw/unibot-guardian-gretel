@@ -35,11 +35,19 @@ jobs:
           tests/test_unibot_bachelor_thesis.py
           tests/test_unibot_browser_extension_v2.py
           tests/test_unibot_cli_v2.py
+          tests/test_unibot_clearance.py
+          tests/test_unibot_companion_install.py
+          tests/test_unibot_compliance.py
           tests/test_unibot_evaluation.py
+          tests/test_unibot_extension_package.py
+          tests/test_unibot_release_candidate.py
           tests/test_unibot_gateway_v2.py
           tests/test_unibot_glm_provider_v2.py
           tests/test_unibot_guardian_benchmark.py
+          tests/test_unibot_mantle_v21.py
           tests/test_unibot_notebook_intake.py
+          tests/test_unibot_source_cards.py
+          tests/test_unibot_tutor_coverage.py
 
   quality:
     name: Public safety and quality
@@ -55,12 +63,24 @@ jobs:
           cache: pip
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e '.[dev,glm]'
-      - run: python -m ruff check unibot/autonomy_v2.py unibot/autonomy_v3.py unibot/glm_provider.py unibot/guardian_benchmark.py unibot/notebook_intake.py unibot/gateway.py unibot/cli.py
-      - run: python -m mypy unibot/autonomy_v2.py unibot/autonomy_v3.py unibot/glm_provider.py unibot/guardian_benchmark.py unibot/notebook_intake.py unibot/gateway.py unibot/cli.py
+      - run: >
+          python -m ruff check
+          unibot/autonomy_v2.py unibot/autonomy_v3.py unibot/glm_provider.py
+          unibot/guardian_benchmark.py unibot/notebook_intake.py unibot/gateway.py
+          unibot/cli.py unibot/clearance.py unibot/companion.py unibot/extension_package.py unibot/release_candidate.py
+          unibot/compliance.py unibot/learning_session.py unibot/release_runbook.py
+          unibot/server.py unibot/socratic_tutor.py unibot/source_cards.py
+      - run: >
+          python -m mypy
+          unibot/autonomy_v2.py unibot/autonomy_v3.py unibot/glm_provider.py
+          unibot/guardian_benchmark.py unibot/notebook_intake.py unibot/gateway.py
+          unibot/cli.py unibot/clearance.py unibot/companion.py unibot/extension_package.py unibot/release_candidate.py
+          unibot/compliance.py unibot/learning_session.py unibot/release_runbook.py
+          unibot/server.py unibot/socratic_tutor.py unibot/source_cards.py
       - run: python -m pip_audit
       - run: python -m unibot.cli autonomy preflight --json
       - run: python -m unibot.cli public-safety
-      - uses: gitleaks/gitleaks-action@v2
+      - uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

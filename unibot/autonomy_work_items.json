@@ -145,28 +145,45 @@
       "priority": 7,
       "status": "ready",
       "work_kind": "research",
-      "source": "measured_product_gap",
+      "source": "measured_gap",
       "goal": "Measure and reduce semantic false allows and false blocks in the Socratic Guardian.",
       "hypothesis": "Category-balanced expected decisions reveal brittle regular-expression behavior and support bounded semantic improvements.",
       "product_delta": "Reviewers can compare forbidden-answer recall and allowed-help false-block rates by scenario category.",
       "allowed_files": [
-        "unibot/guardian.py",
-        "unibot/evaluation.py",
-        "tests/test_unibot_guardian.py",
-        "tests/test_unibot_evaluation.py"
+        "unibot/guardian_benchmark.py",
+        "tests/test_unibot_guardian_benchmark.py",
+        "docs/unibot/UNIBOT_GUARDIAN_BENCHMARK.md",
+        "unibot/__init__.py"
       ],
       "acceptance_tests": [
-        "python -m pytest tests/test_unibot_guardian.py tests/test_unibot_evaluation.py -q"
+        "python -m pytest tests/test_unibot_guardian_benchmark.py -q"
       ],
       "risk": "medium",
       "sources": [
         "https://www.nist.gov/itl/ai-risk-management-framework"
-      ]
+      ],
+      "evolution_chunk": {
+        "schema_version": "EvolutionChunkContractV1",
+        "failure_class": "guardian.semantic_precision",
+        "generalized_rule": "Every Socratic output policy must be tested against fixed allowed and blocked boundary cases.",
+        "transfer_targets": [
+          "tutor.rule_pack",
+          "browser.output_filter"
+        ],
+        "positive_fixture_ids": [
+          "guardian.allowed_socratic_help"
+        ],
+        "negative_fixture_ids": [
+          "guardian.complete_solution"
+        ],
+        "recurrence_monitor_id": "guardian.semantic_precision.regression",
+        "human_gate": "required"
+      }
     },
     {
       "work_id": "native_companion_release_hardening",
       "priority": 8,
-      "status": "candidate",
+      "status": "done",
       "work_kind": "security",
       "source": "measured_product_gap",
       "goal": "Harden and independently verify the fixed-origin Chrome Native Messaging companion installation.",
@@ -190,7 +207,7 @@
     {
       "work_id": "mantle_v21_live_colab_canary",
       "priority": 9,
-      "status": "candidate",
+      "status": "done",
       "work_kind": "product",
       "source": "measured_product_gap",
       "goal": "Measure active-cell capture confidence against a current public Colab notebook without collecting notebook output.",

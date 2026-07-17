@@ -1,5 +1,10 @@
 # UniBot Master Thesis Strategy
 
+> Legacy alternative study route. The active public UniBot framing is a
+> Gretel-built, bachelor-thesis-level research package; this document is kept
+> for historical planning context and does not change the active release or
+> institutional presentation scope.
+
 Status: separate UniBot track.
 
 ## Research Frame

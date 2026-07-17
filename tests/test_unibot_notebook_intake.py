@@ -12,6 +12,7 @@ import nbformat
 from unibot.notebook_intake import (
     NotebookIntakeError,
     import_notebook,
+    import_notebook_bytes,
     normalize_public_notebook_url,
     sanitize_notebook,
     validate_public_url,
@@ -97,6 +98,24 @@ class NotebookIntakeTests(unittest.TestCase):
         self.assertEqual(manifest["source_kind"], "public_https_url")
         self.assertFalse(manifest["raw_source_stored"])
         self.assertFalse(manifest["glm_context_allowed"])
+
+    def test_browser_byte_import_is_path_free_and_stores_only_sanitized_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            manifest = import_notebook_bytes(notebook_bytes(), "practice.ipynb", Path(temporary))
+            self.assertEqual(manifest["source_kind"], "local_file")
+            self.assertEqual(manifest["source_label"], "practice.ipynb")
+            self.assertFalse(manifest["raw_source_stored"])
+            saved_manifest = json.loads(
+                (Path(temporary) / manifest["sanitized_sha256"][:16] / "manifest.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(saved_manifest["source_label"], "practice.ipynb")
+
+    def test_browser_byte_import_rejects_path_or_non_notebook_label(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.assertRaises(NotebookIntakeError):
+                import_notebook_bytes(notebook_bytes(), "../private.ipynb", Path(temporary))
+            with self.assertRaises(NotebookIntakeError):
+                import_notebook_bytes(notebook_bytes(), "notes.txt", Path(temporary))
 
 
 if __name__ == "__main__":

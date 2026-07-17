@@ -9,14 +9,21 @@ import secrets
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 from .adaptive_tasks import generate_adaptive_practice_plan
 from .autonomy_v3 import AutonomyStore, ProviderGate, WorkItemV3, autonomy_doctor
 from .autonomous_research_loop import build_autonomous_research_loop, build_autonomous_research_markdown
 from .bachelor_thesis import build_bachelor_thesis_markdown, build_bachelor_thesis_package
-from .clearance import build_institutional_clearance_board, validate_clearance_record
+from .clearance import (
+    build_institutional_clearance_board,
+    build_institutional_review_decision_template,
+    build_institutional_presentation_markdown,
+    build_institutional_presentation_packet,
+    build_regulatory_profile,
+    validate_clearance_record,
+)
 from .compliance import build_compliance_matrix, build_compliance_matrix_markdown
 from .completion_audit import build_completion_audit
 from .course_tutor import (
@@ -106,7 +113,7 @@ from .gretel_glm_evolve import (
 )
 from .handoff import build_authority_handoff_markdown, build_authority_handoff_packet
 from .ledger import append_ledger_event, export_public_ledger_summary, read_ledger, summarize_ledger
-from .learning_session import HELP_LEVELS_V1, LearningSession
+from .learning_session import HELP_LEVELS_V1, LearningSession, require_practice_boundary_confirmation
 from .loop_lab import run_loop_lab
 from .material_coverage_run import build_course_material_coverage_run
 from .materials import (
@@ -215,7 +222,7 @@ from .timeline_export_receipt_journal import (
 )
 from .timeline_export_review_packet import build_timeline_export_review_packet
 from .review_chain_integrity import build_review_chain_integrity_check
-from .socratic_tutor import build_tutor_turn
+from .socratic_tutor import TutorTurnRequestV1, build_tutor_turn, validate_tutor_turn_session
 from .triage import build_feedback_triage, build_feedback_triage_markdown
 from .tutor_coverage import build_course_tutor_coverage_plan
 from .tutor_index import build_private_index_tutor_response_dry_run, build_private_tutor_index_dry_run
@@ -605,8 +612,14 @@ def route_request(path: str, payload: dict[str, Any] | None = None, method: str 
             path=payload.get("receipt_journal_path", payload.get("journal_path")),
         )
     if path == "/api/unibot/course/extraction-receipts/list":
+        raw_limit = payload.get("limit")
         try:
-            limit = int(payload.get("limit")) if payload.get("limit") is not None else None
+            if raw_limit is None:
+                limit = None
+            elif isinstance(raw_limit, (int, float, str)):
+                limit = int(raw_limit)
+            else:
+                return 400, {"status": "invalid-limit"}
         except (TypeError, ValueError):
             return 400, {"status": "invalid-limit"}
         return 200, read_extraction_receipt_journal(
@@ -3337,6 +3350,26 @@ def route_request(path: str, payload: dict[str, Any] | None = None, method: str 
         return 200, build_institutional_clearance_board(
             public_safe=bool(payload.get("public_safe", True)),
         )
+    if path == "/api/unibot/institutional/profile":
+        return 200, build_regulatory_profile(
+            public_safe=bool(payload.get("public_safe", True)),
+        )
+    if path == "/api/unibot/institutional/presentation":
+        return 200, build_institutional_presentation_packet(
+            public_safe=bool(payload.get("public_safe", True)),
+        )
+    if path == "/api/unibot/institutional/presentation-markdown":
+        packet = build_institutional_presentation_packet(
+            public_safe=bool(payload.get("public_safe", True)),
+        )
+        return 200, {
+            "status": packet["status"],
+            "markdown": build_institutional_presentation_markdown(packet),
+        }
+    if path == "/api/unibot/institutional/decision-template":
+        return 200, build_institutional_review_decision_template(
+            public_safe=bool(payload.get("public_safe", True)),
+        )
     if path == "/api/unibot/institutional-clearance/validate":
         record = payload.get("record", payload)
         if not isinstance(record, dict):
@@ -3431,8 +3464,14 @@ def route_request(path: str, payload: dict[str, Any] | None = None, method: str 
             path=payload.get("decision_record_journal_path", payload.get("journal_path")),
         )
     if path == "/api/unibot/stakeholder/decision-record-journal/list":
+        raw_limit = payload.get("limit")
         try:
-            limit = int(payload.get("limit")) if payload.get("limit") is not None else None
+            if raw_limit is None:
+                limit = None
+            elif isinstance(raw_limit, (int, float, str)):
+                limit = int(raw_limit)
+            else:
+                return 400, {"status": "invalid-limit"}
         except (TypeError, ValueError):
             return 400, {"status": "invalid-limit"}
         return 200, read_external_decision_journal(
@@ -3992,6 +4031,7 @@ class UniBotRequestHandler(BaseHTTPRequestHandler):
                 self._write_json(503, {"status": "secure-server-configuration-required"})
                 return
             try:
+                require_practice_boundary_confirmation(payload)
                 server.learning_session = LearningSession.start(
                     payload,
                     storage_root=server.session_ledger_path.parent / "learning",
@@ -4001,9 +4041,25 @@ class UniBotRequestHandler(BaseHTTPRequestHandler):
                 return
             self._write_json(201, {"status": "active", "contract": server.learning_session.contract})
             return
-        if path == "/api/v2/socratic/help" and server and server.learning_session:
+        if path == "/api/v2/socratic/help":
+            if server is None:
+                self._write_json(503, {"status": "secure-server-configuration-required"})
+                return
+            if server.learning_session is None:
+                self._write_json(
+                    409,
+                    {
+                        "status": "practice-session-required",
+                        "reason": "Start a confirmed practice session before requesting tutor help.",
+                        "exam_deployment_status": "not_cleared",
+                    },
+                )
+                return
             try:
-                response = build_tutor_turn(server.learning_session, payload)
+                validate_tutor_turn_session(server.learning_session, cast(TutorTurnRequestV1, payload))
+                response: dict[str, Any] = dict(
+                    build_tutor_turn(server.learning_session, cast(TutorTurnRequestV1, payload))
+                )
             except ValueError as exc:
                 self._write_json(400, {"status": "tutor-turn-blocked", "reason": str(exc)})
                 return

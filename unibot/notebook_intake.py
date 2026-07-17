@@ -19,6 +19,7 @@ from .public_safety import scan_text
 
 
 MAX_NOTEBOOK_BYTES = 10 * 1024 * 1024
+MAX_NOTEBOOK_SOURCE_LABEL_LENGTH = 255
 DOWNLOAD_TIMEOUT_SECONDS = 15
 MAX_REDIRECTS = 3
 DEFAULT_PUBLIC_HOSTS = frozenset(
@@ -185,6 +186,22 @@ def read_local_notebook(path: Path) -> tuple[bytes, str]:
     return path.read_bytes(), path.name
 
 
+def normalize_local_notebook_label(raw_label: str) -> str:
+    """Keep browser-provided notebook names path-free and bounded."""
+    label = raw_label.strip()
+    if (
+        not label
+        or len(label) > MAX_NOTEBOOK_SOURCE_LABEL_LENGTH
+        or "\x00" in label
+        or "/" in label
+        or "\\" in label
+        or label in {".", ".."}
+        or not label.lower().endswith(".ipynb")
+    ):
+        raise NotebookIntakeError("local notebook label must be a path-free .ipynb name")
+    return label
+
+
 def sanitize_notebook(raw_bytes: bytes) -> tuple[dict[str, Any], dict[str, int]]:
     if len(raw_bytes) > MAX_NOTEBOOK_BYTES:
         raise NotebookIntakeError("notebook exceeds maximum size")
@@ -255,19 +272,17 @@ def sanitize_notebook(raw_bytes: bytes) -> tuple[dict[str, Any], dict[str, int]]
     }
 
 
-def import_notebook(
-    source: str,
+def import_notebook_bytes(
+    raw_bytes: bytes,
+    source_label: str,
     output_root: Path,
     *,
-    allowed_hosts: set[str] | frozenset[str] = DEFAULT_PUBLIC_HOSTS,
-    downloader: Callable[..., tuple[bytes, str]] = download_public_notebook,
+    source_kind: str = "local_file",
 ) -> NotebookManifestV1:
-    if urllib.parse.urlsplit(source).scheme:
-        raw_bytes, source_label = downloader(source, allowed_hosts=allowed_hosts)
-        source_kind = "public_https_url"
-    else:
-        raw_bytes, source_label = read_local_notebook(Path(source))
-        source_kind = "local_file"
+    if source_kind == "local_file":
+        source_label = normalize_local_notebook_label(source_label)
+    elif source_kind != "public_https_url":
+        raise NotebookIntakeError("unsupported notebook source kind")
     sanitized, counts = sanitize_notebook(raw_bytes)
     source_hash = hashlib.sha256(raw_bytes).hexdigest()
     canonical = json.dumps(sanitized, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
@@ -294,12 +309,38 @@ def import_notebook(
     }
     if scan_text(json.dumps(manifest, ensure_ascii=False), "notebook-manifest")["status"] != "pass":
         raise NotebookIntakeError("notebook manifest failed the public-safety screen")
-    target = output_root.expanduser().resolve() / sanitized_hash[:16]
+    output_root = output_root.expanduser()
+    if output_root.exists() and output_root.is_symlink():
+        raise NotebookIntakeError("notebook output root symlinks are not accepted")
+    output_root.mkdir(parents=True, exist_ok=True)
+    output_root.chmod(0o700)
+    target = output_root.resolve() / sanitized_hash[:16]
+    if target.exists() and (target.is_symlink() or not target.is_dir()):
+        raise NotebookIntakeError("notebook artifact directory is not a safe local directory")
     target.mkdir(parents=True, exist_ok=True)
+    target.chmod(0o700)
     notebook_path = target / artifact_name
     manifest_path = target / "manifest.json"
+    if notebook_path.is_symlink() or manifest_path.is_symlink():
+        raise NotebookIntakeError("notebook artifact contains an unsafe symlink")
     notebook_path.write_text(json.dumps(sanitized, ensure_ascii=True, indent=2) + "\n", encoding="utf-8")
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=True, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     notebook_path.chmod(0o600)
     manifest_path.chmod(0o600)
     return manifest
+
+
+def import_notebook(
+    source: str,
+    output_root: Path,
+    *,
+    allowed_hosts: set[str] | frozenset[str] = DEFAULT_PUBLIC_HOSTS,
+    downloader: Callable[..., tuple[bytes, str]] = download_public_notebook,
+) -> NotebookManifestV1:
+    if urllib.parse.urlsplit(source).scheme:
+        raw_bytes, source_label = downloader(source, allowed_hosts=allowed_hosts)
+        source_kind = "public_https_url"
+    else:
+        raw_bytes, source_label = read_local_notebook(Path(source))
+        source_kind = "local_file"
+    return import_notebook_bytes(raw_bytes, source_label, output_root, source_kind=source_kind)

@@ -20,13 +20,70 @@ full provenance statement is in `AUTHORS.md`.
 - Install for development: `python3 -m pip install --upgrade 'pip>=26.1.2'` and
   `python3 -m pip install -e '.[dev,glm,gateway]'`
 - Install the local Mac companion: `unibot companion install`
+- Diagnose the local installation without exposing paths or learner data:
+  `unibot companion diagnose`
+- The installation copies the public runtime into macOS Application Support;
+  moving the Git checkout does not change the native-host import path. A
+  Developer-ID-signed and notarized bundled interpreter remains a later human
+  release requirement.
 - In Chrome, load `unibot/browser_extension` as an unpacked extension for the
   public alpha. Its fixed alpha ID is bound to the installed native host.
+- Create a reviewable MV3 package without the rest of the repository:
+  `unibot extension package --output ./unibot-mantle.zip`
+- Create the public extension plus institutional review handoff:
+  `unibot release candidate --output ./unibot-review-candidate`
+- Start with the nontechnical review guide in the candidate:
+  `REVIEW-START-HERE.md`
+- Verify a candidate's files, hashes, public-safety fields, and source commit
+  without changing anything:
+  `unibot release audit ./unibot-review-candidate`
+- Run the fixed local release gates and write hash-only verification evidence
+  outside the checkout (the working tree must be clean):
+  `unibot release evidence --output ../unibot-release-evidence.json --repo .`
+- Create the human-gated GitHub PR text from an audited candidate:
+  `unibot release pr-draft --candidate ./unibot-review-candidate --output ./UNIBOT-PR-DRAFT.md --evidence ../unibot-release-evidence.json`
+- Build the complete local handoff atomically in one step:
+  `unibot release handoff --output ./unibot-release-handoff --evidence ../unibot-release-evidence.json --colab-canary ../colab-live-canary.json --jupyter-canary ../jupyter-live-canary.json`
 - Open `~/Applications/UniBot Companion.app` or click the extension and start a
   fixed or adaptive A0-A4 learning session.
+- The Help tab offers an optional score-neutral accessibility display mode with
+  larger controls and additional line/text spacing. It records only a neutral
+  session marker; it does not diagnose, decide accommodations, or affect a
+  grade.
+- In the extension, import either an allowlisted public `.ipynb` URL or choose a
+  local `.ipynb` file. Local selection uses a bounded, hash-checked,
+  path-free Native-Messaging upload and writes only the sanitized practice copy.
+- Use only `fixtures/public/synthetic_python_practice.ipynb` for the public
+  institutional demonstration; it contains no learner, course, health, or exam data.
+- Run the same public demonstration that the institutional packet describes:
+  `unibot demo --markdown`. It parses the synthetic notebook, uses the real
+  local deterministic tutor for A0-A4 practice, and never executes notebook code.
 - Start the paired local API: `unibot serve --pair`
 - Import a public notebook: `unibot notebook import <https-url-or-local-file>`
+- Prepare the institutional review profile: `unibot institution profile`
+- Create the compact presentation packet: `unibot institution presentation --markdown`
+- Create the plain-language institutional brief: `unibot institution brief --markdown`
+- Create the human accessibility walkthrough: `unibot institution accessibility-walkthrough --markdown`
+- Create the blank, hash-only human outcome form: `unibot institution decision-template --markdown`
+- Write a hash-bound, public-safe handoff directory:
+  `unibot institution bundle --output ./unibot-institution-review`
+  The bundle includes the public synthetic notebook, the deterministic MV3
+  package, a short demo script, and the human review documents. Its
+  `MANIFEST.json` is bound to the exact clean public Git commit and records no
+  local path, learner content, or institutional decision.
+- For the complete meeting packet, attach the same-commit release evidence and
+  the metadata-only live canary receipts:
+  `unibot institution bundle --output ./unibot-institution-review --release-evidence ../unibot-release-evidence.json --colab-canary ../colab-live-canary.json --jupyter-canary ../jupyter-live-canary.json`
+  The command validates the release gates and receipt contracts before copying
+  them. It includes no notebook cell text or output; a human still decides
+  whether the packet is suitable for an institutional discussion.
+- Independently verify a packet without changing it or using the network:
+  `unibot institution audit ./unibot-institution-review`
+  The audit checks the manifest, hashes, public-safety boundaries, extension
+  archive, release evidence, and canary contracts while returning only status,
+  counts, and issue IDs.
 - Inspect the autonomous lane: `unibot autonomy preflight`
+- Run the public synthetic Three Golden Rules gate: `unibot evaluate 3gr --json`
 - Health check for the developer API: `GET /api/v2/health` on the selected
   loopback port. Port `8765` remains the CLI default but is not used by the
   Chrome companion transport.
@@ -37,8 +94,17 @@ full provenance statement is in `AUTHORS.md`.
 
 The production-facing alpha extension communicates through Chrome Native
 Messaging. It does not store a loopback token or depend on a hard-coded port.
+Every `tutor.turn` request is bound to the active session contract; a missing
+or stale session identifier is rejected before any event is recorded.
+The compatible paired HTTP API applies the same boundary: a confirmed
+`practice_only` session contract is required before tutor help, and a help
+request without an active contract is rejected.
 Notebook cell, task, and learner-attempt text stay in process memory; local
 session files and voluntary exports contain metadata and hashes only.
+For local notebook selection, the browser sends 32 KiB chunks and the Companion
+discards the raw byte stream after validation and sanitization. The retained
+notebook artifact is a temporary local practice copy, not a public or provider
+upload.
 
 ## Tests
 
@@ -52,6 +118,29 @@ session files and voluntary exports contain metadata and hashes only.
 - Focused Mantle 2.1 checks: `python3 -m pytest tests/test_unibot_mantle_v21.py -q`
 - Browser interaction checks: `npm run test:browser`
 - Headed MV3 package check: `npm run test:extension-package`
+- Real macOS Google Chrome canary with the installed local Companion:
+  `UNIBOT_CHROME_EXECUTABLE=/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome npm run test:chrome-canary`
+- Public live Colab canary (metadata only, no notebook text or output):
+  `UNIBOT_CHROME_EXECUTABLE=/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome npm run test:colab-canary`
+- Public live JupyterLab canary (local synthetic notebook; starts and deletes a
+  practice session, requests a real local A2 tutor turn, and reads no notebook
+  output or executes notebook code):
+  `UNIBOT_JUPYTER_PYTHON="$HOME/Library/Application Support/UniBotAutonomy/jupyter-canary-venv/bin/python" UNIBOT_CHROME_EXECUTABLE=/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome npm run test:jupyter-canary`
+- Bind both live receipts to the same clean source commit with the optional
+  `--colab-canary` and `--jupyter-canary` handoff arguments. The handoff
+  rejects stale, writable, symlinked, or content-bearing receipts.
+- The release-candidate bundle records a clean Git commit hash and refuses to
+  build from a dirty working tree. It is still a public-draft handoff, not a
+  merge, publication, institutional approval, or exam release.
+- Release evidence records only fixed gate IDs, aggregate metrics, source and
+  output hashes, and the source commit. It never stores raw logs, notebook
+  text, learner attempts, credentials, or local paths. Evidence is technical
+  reproducibility, not institutional approval or exam clearance.
+- The evidence gates include the autonomy preflight, the synthetic Three Golden
+  Rules gate, Ruff, mypy, pip-audit, the full Python suite, browser/package
+  checks, the local Chrome canary, pipeline smoke, public safety, Guardian
+  benchmark, and source-card drift. A failed 3GR gate blocks the evidence; it
+  never creates an automatic fix or merge.
 
 ## Open Science Boundary
 
@@ -69,6 +158,10 @@ session files and voluntary exports contain metadata and hashes only.
   `docs/unibot/UNIBOT_AUTONOMY_V2.md` and `unibot/autonomy_work_items.json`.
 - The local companion, A0-A4 contract, report semantics, and known browser
   boundary are documented in `docs/unibot/UNIBOT_MANTLE_V21.md`.
+- The human-review packet for Prüfungsamt and Inklusionsbüro is documented in
+  `docs/unibot/UNIBOT_REGULATORY_PROFILE_V1.md`.
+- The exact human PR and institutional meeting handoff is documented in
+  `docs/unibot/UNIBOT_RELEASE_RUNBOOK.md`.
 - Public work uses synthetic tasks, source cards, test fixtures, and redacted
   review artifacts only.
 - Exam-controlled use remains `not_cleared` until written authority clearance

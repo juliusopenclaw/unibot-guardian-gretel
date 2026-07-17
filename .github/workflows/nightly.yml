@@ -27,7 +27,7 @@ jobs:
       - run: python -m pip install -e '.[dev]'
       - run: python -m pytest -q
       - run: python scripts/unibot_pipeline_smoke.py --json > unibot-smoke.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: unibot-nightly-evidence
           path: unibot-smoke.json

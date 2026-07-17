@@ -18,9 +18,20 @@
       .status { margin-top: 8px; font-size: 12px; color: #586174; }
       .status[data-state="ready"] { color: #17623b; }
       .status[data-state="error"] { color: #a2262f; }
+      .release-status { margin-top: 8px; padding-top: 8px; border-top: 1px solid #e2e5eb; font-size: 11px; line-height: 1.4; color: #586174; }
+      .release-status[data-state="ready"] { color: #17623b; }
+      .release-status[data-state="attention"] { color: #8a4b08; }
       nav { display: grid; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid #d9dde5; background: #ffffff; }
       nav button { min-height: 42px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: #4b5568; }
       nav button[aria-selected="true"] { border-bottom-color: #215bb7; color: #173f80; font-weight: 700; }
+      button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+        outline: 3px solid #0b5cad;
+        outline-offset: 2px;
+      }
+      .segments label:has(input:focus-visible) {
+        outline: 3px solid #0b5cad;
+        outline-offset: -3px;
+      }
       main { padding: 16px; }
       section[hidden] { display: none; }
       h2 { margin: 0 0 14px; font-size: 15px; letter-spacing: 0; }
@@ -44,6 +55,17 @@
       output { display: block; min-height: 72px; margin-top: 14px; padding: 10px; border-left: 3px solid #55718f; background: #ffffff; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; }
       .cell-meta { margin-top: 8px; font-size: 12px; color: #586174; }
       .boundary { margin-top: 18px; padding-top: 10px; border-top: 1px solid #d9dde5; font-size: 11px; color: #697285; }
+      .support-note { margin-top: 6px; font-size: 11px; color: #586174; line-height: 1.4; }
+      html[data-accessibility="enhanced"] body { line-height: 1.55; }
+      html[data-accessibility="enhanced"] h1 { font-size: 21px; }
+      html[data-accessibility="enhanced"] h2 { line-height: 1.45; }
+      html[data-accessibility="enhanced"] label,
+      html[data-accessibility="enhanced"] legend { line-height: 1.5; }
+      html[data-accessibility="enhanced"] input,
+      html[data-accessibility="enhanced"] select,
+      html[data-accessibility="enhanced"] button.command { min-height: 48px; }
+      html[data-accessibility="enhanced"] textarea { min-height: 120px; line-height: 1.55; }
+      html[data-accessibility="enhanced"] output { line-height: 1.55; }
       @media (max-width: 310px) {
         header, main { padding-left: 10px; padding-right: 10px; }
         nav button { font-size: 12px; }
@@ -53,16 +75,17 @@
   <body>
     <header>
       <h1>UniBot Guardian</h1>
-      <div id="connectionStatus" class="status" data-state="idle">Nicht gekoppelt</div>
+      <div id="connectionStatus" class="status" role="status" aria-live="polite" aria-atomic="true" data-state="idle">Nicht gekoppelt</div>
+      <div id="releaseStatus" class="release-status" role="status" aria-live="polite" aria-atomic="true" data-state="attention">Lokaler Uebungsbetrieb: wird geprueft. Allgemeine Verteilung: noch nicht freigegeben.</div>
     </header>
-    <nav aria-label="Arbeitsbereiche">
-      <button type="button" data-tab="session" aria-selected="true">Sitzung</button>
-      <button type="button" data-tab="help" aria-selected="false">Hilfe</button>
-      <button type="button" data-tab="review" aria-selected="false">Rueckblick</button>
+    <nav role="tablist" aria-label="Arbeitsbereiche" aria-orientation="horizontal">
+      <button id="session-tab" role="tab" type="button" data-tab="session" aria-controls="session" aria-selected="true">Sitzung</button>
+      <button id="help-tab" role="tab" type="button" data-tab="help" aria-controls="help" aria-selected="false" tabindex="-1">Hilfe</button>
+      <button id="review-tab" role="tab" type="button" data-tab="review" aria-controls="review" aria-selected="false" tabindex="-1">Rueckblick</button>
     </nav>
     <main>
-      <section id="session" data-panel>
-        <h2>Lernsitzung</h2>
+      <section id="session" data-panel role="tabpanel" aria-labelledby="session-tab" tabindex="0">
+        <h2 id="session-heading">Lernsitzung</h2>
         <label for="pseudonym">Pseudonym</label>
         <input id="pseudonym" maxlength="80" value="Lernende Person">
         <label for="courseId">Kurs</label>
@@ -82,17 +105,23 @@
         <select id="fixedHelpLevel">
           <option>A0</option><option>A1</option><option selected>A2</option><option>A3</option><option>A4</option>
         </select>
+        <label class="check"><input id="practiceBoundary" type="checkbox" aria-describedby="practiceBoundaryNote">Freiwillige Übung bestätigen</label>
+        <div id="practiceBoundaryNote" class="support-note">Diese Sitzung ist kein Prüfungseinsatz. Hilfe und Rückblick bleiben lokal; es gibt keine automatische Note oder KI-Erkennung.</div>
         <button id="startSession" class="command" type="button">Sitzung starten</button>
-        <output id="sessionOutput">Lokaler Begleiter wird gesucht.</output>
-        <label for="notebookSource">Oeffentliche Notebook-URL oder lokale Auswahl</label>
+        <button id="stopSession" class="command secondary" type="button" disabled>Sitzung beenden</button>
+        <output id="sessionOutput" role="status" aria-live="polite" aria-atomic="true">Lokaler Begleiter wird gesucht.</output>
+        <label for="notebookSource">Oeffentliche Notebook-URL</label>
         <input id="notebookSource" type="url" placeholder="https://.../notebook.ipynb">
+        <label for="notebookFile">Lokale .ipynb-Datei</label>
+        <input id="notebookFile" type="file" accept=".ipynb,application/x-ipynb+json">
         <button id="importNotebook" class="command secondary" type="button">Notebook importieren</button>
         <button id="openGateway" class="command" type="button" disabled>In Jupyter oeffnen</button>
-        <output id="notebookOutput">Noch kein Notebook importiert.</output>
+        <button id="stopGateway" class="command secondary" type="button" disabled>Jupyter stoppen</button>
+        <output id="notebookOutput" role="status" aria-live="polite" aria-atomic="true">Noch kein Notebook importiert.</output>
       </section>
 
-      <section id="help" data-panel hidden>
-        <h2>Sokratische Hilfe</h2>
+      <section id="help" data-panel role="tabpanel" aria-labelledby="help-tab" tabindex="0" hidden>
+        <h2 id="help-heading">Sokratische Hilfe</h2>
         <button id="capture" class="command secondary" type="button">Aktive Zelle erfassen</button>
         <div id="cellMeta" class="cell-meta">Keine Zelle erfasst</div>
         <label for="task">Frage oder Lernziel</label>
@@ -110,15 +139,27 @@
           </div>
         </fieldset>
         <label class="check"><input id="confirmEscalation" type="checkbox">Hilfestufe und sichtbaren Budgetzuwachs bestaetigen</label>
+        <label class="check"><input id="accessibilitySupport" type="checkbox" aria-describedby="accessibilityNote">Barrierearme Darstellung verwenden (kostenneutral)</label>
+        <div id="accessibilityNote" class="support-note">Größere Bedienelemente, mehr Zeilenabstand und mehr Textabstand. Keine Diagnose und keine automatische Nachteilsausgleich-Entscheidung.</div>
         <button id="ask" class="command" type="button">Hilfe anfragen</button>
-        <output id="helpOutput">Noch keine Anfrage.</output>
+        <output id="helpOutput" role="status" aria-live="polite" aria-atomic="true">Noch keine Anfrage.</output>
       </section>
 
-      <section id="review" data-panel hidden>
-        <h2>Sitzungsrueckblick</h2>
+      <section id="review" data-panel role="tabpanel" aria-labelledby="review-tab" tabindex="0" hidden>
+        <h2 id="review-heading">Sitzungsrueckblick</h2>
         <button id="refreshReview" class="command secondary" type="button">Aktualisieren</button>
-        <button id="exportReview" class="command" type="button">Metadaten exportieren</button>
-        <output id="reviewOutput">Noch keine Sitzungsdaten.</output>
+        <div id="transferNote" class="support-note">Nach dem Beenden kannst du freiwillig eine synthetische Python-Transferaufgabe ohne UniBot-Hilfe bearbeiten. Der Versuch wird nur als Hash und Status erfasst und nicht bewertet.</div>
+        <button id="showTransferTask" class="command secondary" type="button" disabled>Transferaufgabe ohne Hilfe anzeigen</button>
+        <output id="transferPrompt" role="status" aria-live="polite" aria-atomic="true" hidden>Noch keine Transferaufgabe.</output>
+        <label id="transferAnswerLabel" for="transferAnswer" hidden>Eigener Transfer-Versuch</label>
+        <textarea id="transferAnswer" maxlength="4000" hidden aria-describedby="transferNote"></textarea>
+        <button id="recordTransfer" class="command" type="button" disabled hidden>Transfer-Versuch speichern</button>
+        <button id="showExportPreview" class="command secondary" type="button">Exportvorschau anzeigen</button>
+        <output id="exportPreview" role="status" aria-live="polite" aria-atomic="true" hidden>Noch keine Exportvorschau.</output>
+        <label id="exportConfirmRow" class="check" hidden><input id="confirmExport" type="checkbox" aria-describedby="exportPreview">Vorschau geprüft; Export freiwillig erstellen</label>
+        <button id="exportReview" class="command" type="button" disabled>Metadaten exportieren</button>
+        <button id="deleteSession" class="command secondary" type="button" disabled>Sitzung löschen</button>
+        <output id="reviewOutput" role="status" aria-live="polite" aria-atomic="true">Noch keine Sitzungsdaten.</output>
       </section>
 
       <div class="boundary">A0-A4. Lernbetrieb. Keine Note, KI-Erkennung oder Pruefungsfreigabe.</div>

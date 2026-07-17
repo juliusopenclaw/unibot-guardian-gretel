@@ -10,13 +10,19 @@ from typing import Any, Sequence
 from .autonomy_v3 import (
     AutonomyController,
     AutonomyStore,
+    CodexReviewV1,
+    ImplementationEvidenceV1,
     ProviderGate,
+    AutonomyValidationError,
     WorkItemV3,
     autonomy_doctor,
     autonomy_loop_status,
+    build_public_3gr_self_check_work_item,
     default_test_registry,
+    evaluate_three_golden_rules,
     prepare_autonomy_loop,
     request_autonomy_loop_start,
+    three_golden_rules_status,
 )
 from .autonomy_v2 import (
     autonomy_status,
@@ -24,17 +30,63 @@ from .autonomy_v2 import (
     run_proposal_cycle,
     run_review_cycle,
 )
-from .companion import DEFAULT_EXTENSION_ID, companion_status, install_companion, run_native_host
+from .companion import DEFAULT_EXTENSION_ID, companion_diagnose, companion_status, install_companion, run_native_host
+from .clearance import (
+    build_accessibility_review_walkthrough,
+    build_institutional_review_decision_template_markdown,
+    build_institutional_plain_language_brief,
+    build_institutional_presentation_markdown,
+    build_institutional_presentation_packet,
+    build_regulatory_profile,
+    build_institutional_review_decision_template,
+    write_institutional_review_bundle,
+)
 from .gateway import GatewayError, launch_gateway
 from .guardian_benchmark import evaluate_guardian_benchmark, guardian_semantic_precision_work_item
+from .extension_package import package_extension
+from .institutional_audit import audit_institutional_review_bundle
 from .glm_provider import PROVIDER_SCOPE, ZaiGLMProvider, keychain_key_available
 from .notebook_intake import NotebookIntakeError, import_notebook
 from .public_safety import scan_text
+from .public_demo import build_public_demo_evidence, build_public_demo_markdown
+from .release_candidate import write_release_candidate_bundle
+from .release_audit import audit_release_candidate
+from .release_evidence import write_release_evidence
+from .release_pr import write_release_pr_draft
+from .release_handoff import write_release_handoff
 from .server import run as run_server
 
 
 def _print_json(payload: dict[str, Any]) -> None:
     print(json.dumps(payload, ensure_ascii=True, indent=2, sort_keys=True))
+
+
+def _local_rollout_implementer(worktree: Path, proposal: dict[str, Any], item: WorkItemV3) -> None:
+    """Create one harmless, bounded diff only inside the disposable worktree."""
+    target_name = "docs/unibot/UNIBOT_GUARDIAN_BENCHMARK.md"
+    if target_name not in item.allowed_files:
+        raise AutonomyValidationError("local_rollout_fixture_not_allowlisted")
+    target = worktree / target_name
+    if target.is_symlink() or not target.is_file():
+        raise AutonomyValidationError("local_rollout_fixture_missing_or_symlink")
+    original = target.read_text(encoding="utf-8")
+    marker = "<!-- local Codex rehearsal marker; discarded before any publication -->"
+    if marker not in original:
+        target.write_text(original.rstrip("\n") + "\n\n" + marker + "\n", encoding="utf-8")
+
+
+def _local_rollout_reviewer(evidence: ImplementationEvidenceV1, item: WorkItemV3) -> CodexReviewV1:
+    """Independently approve only an actual, allowlisted, verified rehearsal diff."""
+    changed = tuple(evidence.changed_files)
+    decision = "approve" if evidence.actual_diff_verified and changed and set(changed).issubset(item.allowed_files) else "block"
+    findings = [] if decision == "approve" else [{"severity": "high", "message": "local rehearsal diff was not verified"}]
+    return CodexReviewV1(
+        run_id=evidence.run_id,
+        diff_hash=evidence.diff_hash,
+        decision=decision,
+        findings=findings,
+        reviewer="codex-independent-local-rehearsal",
+    )
 
 
 def public_repository_safety(repo: Path) -> dict[str, Any]:
@@ -47,11 +99,12 @@ def public_repository_safety(repo: Path) -> dict[str, Any]:
     roots.extend(sorted((repo / "docs").glob("**/*.md")))
     roots.extend(sorted((repo / "unibot").glob("*.py")))
     roots.extend(sorted((repo / "unibot" / "browser_extension").glob("**/*")))
+    roots.extend(sorted((repo / "fixtures").glob("**/*")))
     roots.append(repo / "unibot" / "autonomy_work_items.json")
     findings: list[dict[str, Any]] = []
     scanned = 0
     for path in dict.fromkeys(roots):
-        if not path.is_file() or path.suffix.lower() not in {".md", ".py", ".js", ".html", ".json"}:
+        if not path.is_file() or path.suffix.lower() not in {".md", ".py", ".js", ".html", ".json", ".ipynb"}:
             continue
         relative = path.relative_to(repo).as_posix()
         scan = scan_text(path.read_text(encoding="utf-8"), relative)
@@ -126,10 +179,22 @@ def build_parser() -> argparse.ArgumentParser:
     audit.add_argument("run_id")
     audit.add_argument("--state-db", type=Path)
 
+    evolve = autonomy_commands.add_parser("evolve", help="inspect the review-gated Three Golden Rules ledger")
+    evolve_commands = evolve.add_subparsers(dest="evolve_command", required=True)
+    evolve_status = evolve_commands.add_parser("status")
+    evolve_status.add_argument("--state-db", type=Path)
+    evolve_audit = evolve_commands.add_parser("audit")
+    evolve_audit.add_argument("pattern_id")
+    evolve_audit.add_argument("--state-db", type=Path)
+
     evaluate = commands.add_parser("evaluate", help="run deterministic local evaluation suites")
     evaluate_commands = evaluate.add_subparsers(dest="evaluate_command", required=True)
     evaluate_guardian = evaluate_commands.add_parser("guardian", help="measure Guardian semantic precision")
     evaluate_guardian.add_argument("--json", action="store_true")
+    evaluate_3gr = evaluate_commands.add_parser("3gr", help="validate a Three Golden Rules work contract")
+    evaluate_3gr.add_argument("--work-item", type=Path)
+    evaluate_3gr.add_argument("--state-db", type=Path)
+    evaluate_3gr.add_argument("--json", action="store_true")
 
     notebook = commands.add_parser("notebook", help="import a sanitized public or local notebook")
     notebook_commands = notebook.add_subparsers(dest="notebook_command", required=True)
@@ -155,9 +220,68 @@ def build_parser() -> argparse.ArgumentParser:
     companion_install.add_argument("--extension-id", default=DEFAULT_EXTENSION_ID)
     companion_status_parser = companion_commands.add_parser("status")
     companion_status_parser.add_argument("--extension-id", default=DEFAULT_EXTENSION_ID)
+    companion_diagnose_parser = companion_commands.add_parser("diagnose")
+    companion_diagnose_parser.add_argument("--extension-id", default=DEFAULT_EXTENSION_ID)
     companion_commands.add_parser("native-host", help=argparse.SUPPRESS)
 
     commands.add_parser("public-safety", help="scan public repository artifacts")
+
+    demo = commands.add_parser("demo", help="run the public synthetic local-tutor demonstration")
+    demo.add_argument("--markdown", action="store_true")
+
+    institution = commands.add_parser("institution", help="prepare public-safe institutional review artifacts")
+    institution_commands = institution.add_subparsers(dest="institution_command", required=True)
+    institution_commands.add_parser("profile", help="show RegulatoryProfileV1")
+    presentation = institution_commands.add_parser("presentation", help="show the review meeting packet")
+    presentation.add_argument("--markdown", action="store_true")
+    brief = institution_commands.add_parser("brief", help="show the plain-language institutional brief")
+    brief.add_argument("--markdown", action="store_true")
+    accessibility = institution_commands.add_parser(
+        "accessibility-walkthrough", help="show the human accessibility review walkthrough"
+    )
+    accessibility.add_argument("--markdown", action="store_true")
+    decision_template = institution_commands.add_parser(
+        "decision-template", help="show the blank human review outcome template"
+    )
+    decision_template.add_argument("--markdown", action="store_true")
+    bundle = institution_commands.add_parser("bundle", help="write the public-safe institutional review handoff")
+    bundle.add_argument("--output", type=Path, required=True)
+    bundle.add_argument("--release-evidence", type=Path)
+    bundle.add_argument("--colab-canary", type=Path)
+    bundle.add_argument("--jupyter-canary", type=Path)
+    institution_audit = institution_commands.add_parser("audit", help="verify an institutional review bundle read-only")
+    institution_audit.add_argument("bundle", type=Path)
+
+    extension = commands.add_parser("extension", help="package the public Chrome extension")
+    extension_commands = extension.add_subparsers(dest="extension_command", required=True)
+    extension_package = extension_commands.add_parser("package", help="write a deterministic MV3 ZIP package")
+    extension_package.add_argument("--output", type=Path, required=True)
+
+    release = commands.add_parser("release", help="prepare a public-safe human review handoff")
+    release_commands = release.add_subparsers(dest="release_command", required=True)
+    release_candidate = release_commands.add_parser("candidate", help="write the extension and institutional review bundle")
+    release_candidate.add_argument("--output", type=Path, required=True)
+    release_audit = release_commands.add_parser("audit", help="verify a release candidate without modifying it")
+    release_audit.add_argument("candidate", type=Path)
+    release_audit.add_argument("--repo", type=Path, default=Path.cwd())
+    release_evidence = release_commands.add_parser(
+        "evidence", help="run fixed local release gates and write hash-only evidence"
+    )
+    release_evidence.add_argument("--output", type=Path, required=True)
+    release_evidence.add_argument("--repo", type=Path, default=Path.cwd())
+    release_pr = release_commands.add_parser("pr-draft", help="write a human-gated GitHub PR draft")
+    release_pr.add_argument("--candidate", type=Path, required=True)
+    release_pr.add_argument("--output", type=Path, required=True)
+    release_pr.add_argument("--repo", type=Path, default=Path.cwd())
+    release_pr.add_argument("--evidence", type=Path)
+    release_handoff = release_commands.add_parser(
+        "handoff", help="atomically build the candidate, audit, and human PR handoff"
+    )
+    release_handoff.add_argument("--output", type=Path, required=True)
+    release_handoff.add_argument("--repo", type=Path, default=Path.cwd())
+    release_handoff.add_argument("--evidence", type=Path)
+    release_handoff.add_argument("--colab-canary", type=Path)
+    release_handoff.add_argument("--jupyter-canary", type=Path)
     return parser
 
 
@@ -232,6 +356,26 @@ def main(argv: Sequence[str] | None = None) -> int:
                     )
                     _print_json(result)
                     return 0 if result["status"] == "shadow_green" else 2
+                if args.rollout_command == "local":
+                    repo = args.repo.resolve()
+                    base_commit = subprocess.run(
+                        ["git", "-C", str(repo), "rev-parse", "main"],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                        shell=False,
+                    ).stdout.strip()
+                    item = guardian_semantic_precision_work_item(base_commit)
+                    controller = AutonomyController(repo_root=repo, store=store)
+                    result = controller.run_local_rollout(
+                        item,
+                        implementer=_local_rollout_implementer,
+                        reviewer=_local_rollout_reviewer,
+                        test_registry_factory=default_test_registry,
+                    )
+                    result["runner"] = "deterministic_local_codex_rehearsal"
+                    _print_json(result)
+                    return 0 if result["status"] == "local_green" else 2
                 _print_json(
                     {
                         "status": "blocked",
@@ -283,8 +427,18 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if args.work_command == "claim":
                     item = WorkItemV3.from_dict(json.loads(args.work_item.read_text(encoding="utf-8")))
                     store.save_work_item(item)
-                    _print_json({"status": "queued", "work_item": item.to_dict(), "automatic_merge": False})
-                    return 0
+                    evaluation = evaluate_three_golden_rules(item)
+                    status = "queued" if evaluation["status"] == "pass" else "gretel_proposed"
+                    _print_json(
+                        {
+                            "status": status,
+                            "work_item": item.to_dict(),
+                            "three_golden_rules": evaluation,
+                            "execution_allowed": status == "queued",
+                            "automatic_merge": False,
+                        }
+                    )
+                    return 0 if status == "queued" else 2
                 released = store.release_work_item(args.work_id)
                 _print_json({"status": "released" if released else "not_found", "work_id": args.work_id})
                 return 0 if released else 2
@@ -296,6 +450,24 @@ def main(argv: Sequence[str] | None = None) -> int:
                 run = store.get_run(args.run_id)
                 _print_json({"status": "ok" if run else "not_found", "run": run, "automatic_merge": False})
                 return 0 if run else 2
+            finally:
+                store.close()
+        if args.command == "autonomy" and args.autonomy_command == "evolve":
+            store = AutonomyStore(args.state_db)
+            try:
+                if args.evolve_command == "status":
+                    _print_json(three_golden_rules_status(store))
+                    return 0
+                pattern = store.get_improvement_pattern(args.pattern_id)
+                _print_json(
+                    {
+                        "status": "ok" if pattern else "not_found",
+                        "pattern": pattern,
+                        "automatic_apply": False,
+                        "human_review_required": True,
+                    }
+                )
+                return 0 if pattern else 2
             finally:
                 store.close()
         if args.command == "autonomy" and args.autonomy_command == "run":
@@ -334,6 +506,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             payload = evaluate_guardian_benchmark()
             _print_json(payload)
             return 0 if payload["status"] == "pass" else 2
+        if args.command == "evaluate" and args.evaluate_command == "3gr":
+            if args.work_item:
+                item = WorkItemV3.from_dict(json.loads(args.work_item.read_text(encoding="utf-8")))
+                payload = evaluate_three_golden_rules(item)
+            else:
+                payload = evaluate_three_golden_rules(build_public_3gr_self_check_work_item())
+                payload["mode"] = "public_synthetic_self_check"
+            _print_json(payload)
+            return 0 if payload["status"] == "pass" else 2
         if args.command == "notebook" and args.notebook_command == "import":
             _print_json(dict(import_notebook(args.source, args.output_root)))
             return 0
@@ -349,12 +530,117 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "companion" and args.companion_command == "status":
             _print_json(companion_status(args.extension_id))
             return 0
+        if args.command == "companion" and args.companion_command == "diagnose":
+            payload = companion_diagnose(args.extension_id)
+            _print_json(payload)
+            return 0 if payload["status"] == "ready" else 2
         if args.command == "companion" and args.companion_command == "native-host":
             return run_native_host()
         if args.command == "public-safety":
             payload = public_repository_safety(Path.cwd())
             _print_json(payload)
             return 0 if payload["status"] == "pass" else 2
+        if args.command == "demo":
+            payload = build_public_demo_evidence()
+            if args.markdown:
+                print(
+                    json.dumps(
+                        {"status": payload["status"], "markdown": build_public_demo_markdown(payload)},
+                        ensure_ascii=True,
+                        indent=2,
+                    )
+                )
+            else:
+                _print_json(payload)
+            return 0 if payload["status"] == "ready_for_human_demo" else 2
+        if args.command == "institution" and args.institution_command == "profile":
+            payload = build_regulatory_profile()
+            _print_json(payload)
+            return 0 if payload["status"] == "review_preparation" else 2
+        if args.command == "institution" and args.institution_command == "presentation":
+            payload = build_institutional_presentation_packet()
+            if args.markdown:
+                print(json.dumps({"status": payload["status"], "markdown": build_institutional_presentation_markdown(payload)}, ensure_ascii=True, indent=2))
+            else:
+                _print_json(payload)
+            return 0 if payload["status"] == "ready_for_human_review" else 2
+        if args.command == "institution" and args.institution_command == "brief":
+            payload = build_institutional_presentation_packet()
+            _print_json(
+                {
+                    "status": payload["status"],
+                    "deployment_status": payload["deployment_status"],
+                    "artifact_type": "unibot_institutional_plain_language_brief",
+                    "markdown": build_institutional_plain_language_brief(payload),
+                }
+            )
+            return 0 if payload["status"] == "ready_for_human_review" else 2
+        if args.command == "institution" and args.institution_command == "accessibility-walkthrough":
+            payload = build_institutional_presentation_packet()
+            _print_json(
+                {
+                    "status": payload["status"],
+                    "deployment_status": payload["deployment_status"],
+                    "artifact_type": "unibot_institutional_accessibility_walkthrough",
+                    "markdown": build_accessibility_review_walkthrough(payload),
+                }
+            )
+            return 0 if payload["status"] == "ready_for_human_review" else 2
+        if args.command == "institution" and args.institution_command == "decision-template":
+            payload = build_institutional_review_decision_template()
+            if args.markdown:
+                print(json.dumps({"status": payload["status"], "markdown": build_institutional_review_decision_template_markdown(payload)}, ensure_ascii=True, indent=2))
+            else:
+                _print_json(payload)
+            return 0 if payload["status"] == "blank_for_human_completion" else 2
+        if args.command == "institution" and args.institution_command == "bundle":
+            payload = write_institutional_review_bundle(
+                args.output,
+                release_evidence=args.release_evidence,
+                colab_canary=args.colab_canary,
+                jupyter_canary=args.jupyter_canary,
+            )
+            _print_json(payload)
+            return 0 if payload["status"] == "written" else 2
+        if args.command == "institution" and args.institution_command == "audit":
+            payload = audit_institutional_review_bundle(args.bundle)
+            _print_json(payload)
+            return 0 if payload["status"] == "pass" else 2
+        if args.command == "extension" and args.extension_command == "package":
+            payload = package_extension(args.output)
+            _print_json(payload)
+            return 0 if payload["status"] == "written" else 2
+        if args.command == "release" and args.release_command == "candidate":
+            payload = write_release_candidate_bundle(args.output)
+            _print_json(payload)
+            return 0 if payload["status"] == "written" else 2
+        if args.command == "release" and args.release_command == "audit":
+            payload = audit_release_candidate(args.candidate, repository=args.repo)
+            _print_json(payload)
+            return 0 if payload["status"] == "pass" else 2
+        if args.command == "release" and args.release_command == "evidence":
+            payload = write_release_evidence(args.output, repository=args.repo)
+            _print_json(payload)
+            return 0 if payload["status"] == "pass" else 2
+        if args.command == "release" and args.release_command == "pr-draft":
+            payload = write_release_pr_draft(
+                args.output,
+                args.candidate,
+                repository=args.repo,
+                evidence=args.evidence,
+            )
+            _print_json(payload)
+            return 0 if payload["status"] == "ready_for_human_review" else 2
+        if args.command == "release" and args.release_command == "handoff":
+            payload = write_release_handoff(
+                args.output,
+                repository=args.repo,
+                evidence=args.evidence,
+                colab_canary=args.colab_canary,
+                jupyter_canary=args.jupyter_canary,
+            )
+            _print_json(payload)
+            return 0 if payload["status"] == "written" else 2
     except (GatewayError, NotebookIntakeError, RuntimeError, ValueError, OSError) as exc:
         _print_json({"status": "blocked", "reason": str(exc)})
         return 2

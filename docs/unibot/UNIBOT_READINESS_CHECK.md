@@ -77,6 +77,15 @@ It aggregates:
 - Paperclip evaluation bridge and workspace-card control/receipt alignment
 - exam boundary check
 
+Repeated readiness requests in one process may reuse a defensive in-memory
+report only while the public file path, modification-time, and size signature
+is unchanged. Returned reports are copied before use. Isolated autonomous-loop
+receipt mutations use a short re-evaluation path that rechecks the changed
+hashes, flags, and required closure commits; it can only preserve or block the
+existing draft status and never grants publication, provider, merge, or exam
+authority. The public-safety scanner keeps only bounded hashes and redacted
+finding metadata in memory, never the scanned text.
+
 `public_draft_ready` means the separate UniBot package is suitable for public
 draft review and local practice demo. It does not mean exam deployment, official
 grading, proctoring, KI-detection use, legal approval, or exam-authority

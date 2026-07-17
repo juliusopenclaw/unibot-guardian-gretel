@@ -86,6 +86,45 @@ def write_video_transcription_smoke_fixture(root: Path) -> None:
     )
 
 
+def _initialize_isolated_git_repository(root: Path) -> tuple[bool, str]:
+    """Give the throwaway test copy provenance without copying the real .git directory."""
+    init = subprocess.run(
+        ["git", "init", "-q"],
+        capture_output=True,
+        text=True,
+        cwd=root,
+    )
+    if init.returncode != 0:
+        return False, "git_init_failed"
+    add = subprocess.run(
+        ["git", "add", "--all"],
+        capture_output=True,
+        text=True,
+        cwd=root,
+    )
+    if add.returncode != 0:
+        return False, "git_add_failed"
+    commit = subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=UniBot Pipeline Smoke",
+            "-c",
+            "user.email=unibot-pipeline-smoke@example.invalid",
+            "commit",
+            "-q",
+            "-m",
+            "isolated smoke fixture",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=root,
+    )
+    if commit.returncode != 0:
+        return False, "git_commit_failed"
+    return True, "verified"
+
+
 def run_unit_tests() -> dict[str, Any]:
     test_files = sorted(str(item.relative_to(ROOT)) for item in ROOT.glob("tests/test_unibot_*.py"))
     if not test_files:
@@ -126,6 +165,19 @@ def run_unit_tests() -> dict[str, Any]:
                 shutil.copy2(source, target)
         else:
             shutil.copytree(ROOT, isolated_root, ignore=shutil.ignore_patterns(".git", ".pytest_cache", "__pycache__"))
+        provenance_ready, provenance_reason = _initialize_isolated_git_repository(isolated_root)
+        if not provenance_ready:
+            return {
+                "status": "fail",
+                "command": "isolated git provenance setup",
+                "return_code": 1,
+                "check_count": len(test_files),
+                "passed_count": 0,
+                "failed_count": len(test_files),
+                "xfailed": 0,
+                "skipped": 0,
+                "summary_line": provenance_reason,
+            }
         proc = subprocess.run(command, capture_output=True, text=True, cwd=isolated_root, env=unit_test_env)
     output = (proc.stdout or "") + (proc.stderr or "")
     passed_matches = re.findall(r"(?P<passed>\d+) passed", output)

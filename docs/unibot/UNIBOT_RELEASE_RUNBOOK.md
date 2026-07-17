@@ -15,6 +15,173 @@ UniBot track. It explains how to start the local service, load the browser
 mantle, run the practice demo, validate demo feedback, triage work items, and
 check public-draft readiness.
 
+## Candidate Integrity Audit
+
+After creating a public-draft candidate, run the read-only audit:
+
+```text
+unibot release audit ./unibot-review-candidate
+```
+
+It verifies the release manifest, recorded file sizes and SHA-256 hashes,
+public-safety statuses, `not_cleared` exam status, zero provider calls, and the
+source commit when the repository is available. A tampered or incomplete
+candidate is blocked. The audit writes no files, calls no network or provider,
+and cannot publish, merge, or grant institutional approval.
+
+## Hash-Bound Verification Evidence
+
+The candidate audit checks the handoff artifacts. The separate evidence step
+binds actual local gate results to the same clean source commit:
+
+```text
+unibot release evidence --output ../unibot-release-evidence.json --repo .
+```
+
+It runs the fixed autonomy-preflight, synthetic Three Golden Rules, Ruff, mypy,
+pip-audit, Python, browser, extension-package, Chrome-canary, pipeline,
+public-safety, Guardian-benchmark, and source-card gates. The 3GR gate checks
+that a bounded change has a reusable rule, positive and negative harness
+evidence, and a human-gated improvement monitor. It stores only gate status, safe aggregate metrics,
+duration, and SHA-256 hashes of command output;
+raw logs, notebook text, learner attempts, credentials, and local paths are not
+stored. The evidence file must remain outside the checkout so that adding it
+cannot make the measured source tree dirty. A changed commit, dirty worktree,
+missing gate, or modified evidence hash is blocked.
+
+The direct public self-check is also available for a quick review without
+running the full suite:
+
+```text
+unibot evaluate 3gr --json
+```
+
+This command uses only a fixed synthetic contract. It proves the release
+boundary, not learning effectiveness, accessibility conformance, legal
+compliance, university approval, or examination clearance.
+
+## Human Release Handoff
+
+The local branch becomes a public draft only through one deliberate human
+GitHub action. The sequence is intentionally short:
+
+1. Confirm that the working tree is clean and run the public-safety scan,
+   Python suite, browser suite, branded Chrome Native-Messaging canary, the
+   metadata-only public Colab canary with `npm run test:colab-canary`, and the
+   local synthetic JupyterLab canary with `npm run test:jupyter-canary`. This
+   canary starts and deletes a practice session, requests one real local A2
+   tutor turn, and reads no notebook output or executes notebook code.
+2. Build `unibot release candidate --output ./unibot-review-candidate` and
+   run `unibot release audit ./unibot-review-candidate`. Keep the printed source
+   commit and manifest hashes with the review record.
+3. Run `unibot release evidence --output ../unibot-release-evidence.json --repo .`.
+   Continue only when all fixed gates are green. The evidence is technical
+   reproducibility, not institutional approval or exam clearance.
+4. Generate the public-safe PR text from the audited candidate with
+   `unibot release pr-draft --candidate ./unibot-review-candidate --output ./UNIBOT-PR-DRAFT.md --evidence ../unibot-release-evidence.json`.
+   The command refuses stale, dirty, tampered, or unsafe candidates and does
+   not contact GitHub. When the public Colab canary has produced a
+   metadata-only JSON receipts, bind them to the same source commit in the
+   final handoff with:
+   `unibot release handoff --output ./unibot-release-handoff --evidence ../unibot-release-evidence.json --colab-canary ../colab-live-canary.json --jupyter-canary ../jupyter-live-canary.json`.
+   The handoff rejects a stale, writable, symlinked, or content-bearing canary.
+5. A human opens one **draft PR** from the Gretel branch to `main`. The PR
+   must state: Gretel/Codex implementation and documentation, GLM provider
+   calls and cost (`0` while parked), tests, public-safety result, remaining
+   uncertainty, and the human merge decision still required.
+6. GitHub CI repeats the required checks. A failed check blocks the PR; no bot
+   merges, changes `main`, changes branch protection, or publishes a release.
+7. Julius reviews the final diff after the last bot push and is the only person
+   who may merge or release it.
+
+This establishes a public review point, not institutional approval. The local
+tutor remains usable without GLM and exam deployment remains `not_cleared`.
+
+## Institutional Meeting Handoff
+
+Before sending or presenting anything, generate the local public-safe packet:
+
+```text
+unibot institution bundle --output ./unibot-institution-review
+```
+
+After the clean source commit has passed the release gates and both live
+canaries have produced receipts, use the complete evidence-bound form:
+
+```text
+unibot institution bundle --output ./unibot-institution-review \
+  --release-evidence ../unibot-release-evidence.json \
+  --colab-canary ../colab-live-canary.json \
+  --jupyter-canary ../jupyter-live-canary.json
+```
+
+The command accepts only receipts for the exact source commit, checks their
+public-safety fields, and records their SHA-256 values in `MANIFEST.json`. The
+packet contains technical reproducibility evidence and metadata-only browser
+receipts, not notebook cells, notebook output, learner attempts, local paths,
+or institutional decisions. The packet remains a human review handoff and
+does not clear an examination deployment.
+
+Reviewers can independently verify the delivered directory without changing
+it or contacting the network:
+
+```text
+unibot institution audit ./unibot-institution-review
+```
+
+The audit returns only status, counts, and stable issue IDs. It checks file
+hashes, public-safety scans, the MV3 archive, release evidence, canary fields,
+the `not_cleared` boundary, and the absence of automatic institutional
+approval. It never prints notebook cells, learner attempts, or other raw
+content.
+
+The packet contains the RegulatoryProfile, human clearance board,
+institutional presentation, `AccessibilityReviewV1` with its eight human-gated
+checks, a plain-language `REVIEW-START-HERE.md`, a blank
+`InstitutionalReviewDecisionTemplateV1`, source-card references, evidence hashes, and the explicit
+Gretel/GLM/Julius authorship roles. It also carries the public synthetic
+notebook, the metadata-only `PUBLIC-DEMO.md` script, and the deterministic
+MV3 package for the same local demo. Demonstrate only that public synthetic
+notebook. Do not add learner work, health or accommodation records, private
+course files, local paths, credentials, or real examination tasks.
+The reproducible public demo file is
+`fixtures/public/synthetic_python_practice.ipynb`; use no other notebook for
+the public meeting unless it has been separately reviewed.
+
+The decision template is intentionally blank. It accepts only controlled
+outcome IDs, role IDs, condition/question IDs, dates, and hashes. It does not
+store meeting minutes and cannot grant exam, accessibility, privacy, legal, or
+institutional approval.
+
+For the live public walkthrough, run `unibot demo --markdown`. This uses only
+`fixtures/public/synthetic_python_practice.ipynb`, sends no provider request,
+executes no notebook code, and exercises the real deterministic tutor through
+A0 to A4 in memory; A3 remains formula structure and A4 an incomplete scaffold.
+Show the resulting safety boundary and ask the
+institutional reviewers about teaching, inclusion, privacy, and the separate
+exam track.
+
+For a single local handoff, use the evidence produced above:
+
+```text
+unibot release handoff --output ./unibot-release-handoff --evidence ../unibot-release-evidence.json
+```
+
+This atomically builds the candidate, runs the read-only audit, writes the
+human PR draft, copies the hash-only `RELEASE-EVIDENCE.json`, binds any Colab
+and local synthetic JupyterLab canary receipts, and records their hashes in
+`HANDOFF-MANIFEST.json`. A failed step leaves no partial handoff and does not
+contact GitHub. The JupyterLab receipt proves high-confidence cell metadata
+capture plus one bounded local tutor turn in a synthetic notebook; it proves no
+learning effect, institutional approval, or examination clearance.
+
+The meeting asks five bounded questions: who owns the institutional decision;
+whether the local practice purpose fits the named module; which accessibility
+and assistance functions are appropriate; which data retention and deletion
+rules apply; and which separate written decision would be required for any
+future exam track. The meeting records conditions and open questions, not an
+automatic approval.
+
 ## Hard Boundary
 
 - Public draft means review and collaboration, not exam clearance.
@@ -294,6 +461,10 @@ submission.
 
 - If the local API is offline, start the local service and retry the health
   endpoint.
+- If the practice gateway reports that its port is in use, stop the other local
+  Jupyter service or start again so the Companion can choose a free loopback
+  port. A failed Jupyter start is reported as blocked and does not create a
+  misleading active gateway record.
 - If the side panel cannot access selected page text, use the visible
   copy/paste fallback.
 - If feedback is blocked, remove private details and validate again.

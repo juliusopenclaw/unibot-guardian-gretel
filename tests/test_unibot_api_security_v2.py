@@ -89,11 +89,54 @@ class UniBotApiSecurityV2Tests(unittest.TestCase):
         self.assertEqual(status, 401)
         self.assertEqual(body["status"], "session-token-required")
 
-    def test_pairing_pins_extension_origin_and_rejects_other_origins(self) -> None:
+    def test_help_requires_a_confirmed_practice_session(self) -> None:
         session_value = self.pair()
-        status, body, headers = self.request(
+        status, body, _ = self.request(
             "/api/v2/socratic/help",
             payload={"task": "synthetic list practice", "help_level": "A2"},
+            origin=EXTENSION_ORIGIN,
+            session_value=session_value,
+        )
+        self.assertEqual(status, 409)
+        self.assertEqual(body["status"], "practice-session-required")
+        self.assertEqual(body["exam_deployment_status"], "not_cleared")
+
+    def test_contract_requires_explicit_practice_boundary_confirmation(self) -> None:
+        session_value = self.pair()
+        status, body, _ = self.request(
+            "/api/v2/session/contracts",
+            payload={"assistance_mode": "fixed", "max_help_level": "A2"},
+            origin=EXTENSION_ORIGIN,
+            session_value=session_value,
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(body["status"], "invalid-session-contract")
+        self.assertEqual(body["reason"], "practice_scope_confirmation_required")
+
+    def test_pairing_pins_extension_origin_and_rejects_other_origins(self) -> None:
+        session_value = self.pair()
+        status, contract_response, _ = self.request(
+            "/api/v2/session/contracts",
+            payload={
+                "assistance_mode": "fixed",
+                "fixed_help_level": "A2",
+                "max_help_level": "A2",
+                "practice_scope": "practice_only",
+                "practice_scope_confirmed": True,
+            },
+            origin=EXTENSION_ORIGIN,
+            session_value=session_value,
+        )
+        self.assertEqual(status, 201)
+        session_id = str(contract_response["contract"]["session_id"])
+        status, body, headers = self.request(
+            "/api/v2/socratic/help",
+            payload={
+                "session_id": session_id,
+                "task": "synthetic list practice",
+                "learner_attempt": "Ich pruefe zuerst die Eingabe.",
+                "requested_help_level": "A2",
+            },
             origin=EXTENSION_ORIGIN,
             session_value=session_value,
         )
@@ -121,14 +164,34 @@ class UniBotApiSecurityV2Tests(unittest.TestCase):
 
     def test_high_help_level_and_untrusted_host_are_blocked(self) -> None:
         session_value = self.pair()
-        status, body, _ = self.request(
-            "/api/v2/socratic/help",
-            payload={"task": "synthetic list practice", "help_level": "A4"},
+        status, contract_response, _ = self.request(
+            "/api/v2/session/contracts",
+            payload={
+                "assistance_mode": "fixed",
+                "fixed_help_level": "A2",
+                "max_help_level": "A2",
+                "practice_scope": "practice_only",
+                "practice_scope_confirmed": True,
+            },
             origin=EXTENSION_ORIGIN,
             session_value=session_value,
         )
-        self.assertEqual(status, 400)
-        self.assertEqual(body["allowed_help_levels"], ["A0", "A1", "A2"])
+        self.assertEqual(status, 201)
+        session_id = str(contract_response["contract"]["session_id"])
+        status, body, _ = self.request(
+            "/api/v2/socratic/help",
+            payload={
+                "session_id": session_id,
+                "task": "synthetic list practice",
+                "learner_attempt": "Ich pruefe zuerst die Eingabe.",
+                "requested_help_level": "A4",
+            },
+            origin=EXTENSION_ORIGIN,
+            session_value=session_value,
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(body["effective_help_level"], "A2")
+        self.assertIn("requested_level_exceeds_session_contract", body["blocked_reasons"])
 
         status, body, _ = self.request("/api/v2/health", host="unrelated.example")
         self.assertEqual(status, 403)
@@ -143,16 +206,20 @@ class UniBotApiSecurityV2Tests(unittest.TestCase):
                 "fixed_help_level": "A4",
                 "max_help_level": "A4",
                 "pseudonym": "Synthetic Learner",
+                "practice_scope": "practice_only",
+                "practice_scope_confirmed": True,
             },
             origin=EXTENSION_ORIGIN,
             session_value=session_value,
         )
         self.assertEqual(status, 201)
         self.assertEqual(contract_response["contract"]["max_help_level"], "A4")
+        session_id = str(contract_response["contract"]["session_id"])
 
         status, turn, _ = self.request(
             "/api/v2/socratic/help",
             payload={
+                "session_id": session_id,
                 "task": "Wie strukturiere ich einen z-Wert?",
                 "learner_attempt": "Ich kenne Beobachtung und Mittelwert.",
                 "requested_help_level": "A4",
@@ -164,6 +231,21 @@ class UniBotApiSecurityV2Tests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(turn["effective_help_level"], "A4")
         self.assertFalse(turn["raw_cell_stored"])
+
+        status, body, _ = self.request(
+            "/api/v2/socratic/help",
+            payload={
+                "session_id": "stale-session",
+                "task": "Wie strukturiere ich einen z-Wert?",
+                "learner_attempt": "Ich kenne Beobachtung und Mittelwert.",
+                "requested_help_level": "A1",
+            },
+            origin=EXTENSION_ORIGIN,
+            session_value=session_value,
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(body["status"], "tutor-turn-blocked")
+        self.assertEqual(body["reason"], "session_id_mismatch")
 
         status, report, _ = self.request(
             "/api/v2/session/export",

@@ -12,9 +12,11 @@ from .autonomy_v3 import (
     AutonomyRunV3,
     AutonomyStore,
     CodexReviewV1,
+    EvolutionChunkContractV1,
     GLMReviewV2,
     ImplementationEvidenceV1,
     ProviderGate,
+    ThreeGoldenRulesEvidenceV1,
     TestRegistry,
     WorkItemV3,
     autonomy_doctor,
@@ -22,8 +24,10 @@ from .autonomy_v3 import (
     build_draft_pr_preview,
     default_test_registry,
     derive_implementation_evidence,
+    evaluate_three_golden_rules,
     prepare_autonomy_loop,
     request_autonomy_loop_start,
+    three_golden_rules_status,
     validate_glm_proposal,
 )
 from .compliance import (
@@ -99,6 +103,7 @@ from .guardian_benchmark import (
     guardian_semantic_precision_work_item,
     held_out_cases,
 )
+from .socratic_tutor import TUTOR_RULE_PACK_SCHEMA_VERSION, analyze_cell, build_tutor_turn
 from .evaluation import build_evaluation_markdown, build_evaluation_packet, synthetic_tasks
 from .extraction_decision import build_extraction_decision_packet, validate_extraction_decision_record
 from .extraction_decision_intake import (
@@ -251,6 +256,16 @@ from .skill_to_workspace_session_carryover import build_skill_to_workspace_sessi
 from .skill_to_workspace_live_flow import build_skill_to_workspace_live_flow
 from .server import route_request
 from .source_cards import build_source_card_drift_report, get_source_card, list_source_cards, required_source_card_ids
+from .clearance import (
+    INSTITUTIONAL_PRESENTATION_SCHEMA_VERSION,
+    REGULATORY_PROFILE_SCHEMA_VERSION,
+    build_accessibility_review_walkthrough,
+    build_institutional_plain_language_brief,
+    build_regulatory_profile,
+    build_institutional_presentation_markdown,
+    build_institutional_presentation_packet,
+    validate_regulatory_profile,
+)
 from .study_session import (
     build_course_study_session_plan,
     build_study_session_review_report,
@@ -283,9 +298,11 @@ __all__ = [
     "AutonomyRunV3",
     "AutonomyStore",
     "CodexReviewV1",
+    "EvolutionChunkContractV1",
     "GLMReviewV2",
     "ImplementationEvidenceV1",
     "ProviderGate",
+    "ThreeGoldenRulesEvidenceV1",
     "TestRegistry",
     "WorkItemV3",
     "autonomy_doctor",
@@ -293,8 +310,10 @@ __all__ = [
     "build_draft_pr_preview",
     "default_test_registry",
     "derive_implementation_evidence",
+    "evaluate_three_golden_rules",
     "prepare_autonomy_loop",
     "request_autonomy_loop_start",
+    "three_golden_rules_status",
     "validate_glm_proposal",
     "EXAM_CONTROLLED",
     "PRACTICE_OVERLAY",
@@ -344,6 +363,9 @@ __all__ = [
     "evaluate_guardian_benchmark",
     "guardian_semantic_precision_work_item",
     "held_out_cases",
+    "TUTOR_RULE_PACK_SCHEMA_VERSION",
+    "analyze_cell",
+    "build_tutor_turn",
     "route_request",
     "scan_public_files",
     "scan_text",
@@ -351,6 +373,14 @@ __all__ = [
     "list_source_cards",
     "required_source_card_ids",
     "build_source_card_drift_report",
+    "REGULATORY_PROFILE_SCHEMA_VERSION",
+    "INSTITUTIONAL_PRESENTATION_SCHEMA_VERSION",
+    "build_regulatory_profile",
+    "build_institutional_presentation_packet",
+    "build_institutional_presentation_markdown",
+    "build_institutional_plain_language_brief",
+    "build_accessibility_review_walkthrough",
+    "validate_regulatory_profile",
     "append_ledger_event",
     "read_ledger",
     "summarize_ledger",

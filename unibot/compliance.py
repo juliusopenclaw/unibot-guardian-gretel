@@ -103,12 +103,13 @@ def compliance_requirements() -> list[ComplianceRequirement]:
             domain="inclusion",
             risk_level="high",
             authority_reviewers=("Inklusionsbuero / Nachteilsausgleich-Stelle", "Pruefungsamt"),
-            source_card_ids=("hg-nrw-62b", "uoc-nachteilsausgleich"),
+            source_card_ids=("hg-nrw-62b", "uoc-nachteilsausgleich", "wcag-22", "bgg-nrw-10", "bitv-nrw"),
             product_rule="Accessibility support is documented separately and never lowers the private score.",
             implemented_controls=(
                 "compute_independence_score keeps accessibility_used neutral",
                 "selftest score is private and formative only",
                 "UniBot does not decide accommodation status",
+                "accessibility review plan separates automated evidence from human conformance review",
             ),
             verification_evidence=("tests/test_unibot_guardian.py", "tests/test_unibot_handoff.py"),
             blocked_use=("accommodation decision", "accessibility penalty", "official support status decision"),
@@ -285,7 +286,7 @@ def build_compliance_drift_alignment(requirements: list[dict[str, Any]] | None =
                 "blocked_use_count": len(requirement["blocked_use"]),
             }
         )
-    alignment = {
+    alignment: dict[str, Any] = {
         "schema_version": "unibot-compliance-drift-alignment-v1",
         "status": "ready",
         "requirement_count": len(alignment_rows),

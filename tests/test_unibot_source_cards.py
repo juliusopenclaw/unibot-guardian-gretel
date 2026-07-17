@@ -35,7 +35,12 @@ class UniBotSourceCardTests(unittest.TestCase):
         self.assertEqual(report["duplicate_source_ids"], [])
         self.assertEqual(report["stale_source_card_ids"], [])
         self.assertIsNotNone(get_source_card("dfg-gwp"))
+        self.assertIsNotNone(get_source_card("uoc-szi-assistenzstelle-2026"))
         self.assertIn("zai-glm-52", required_source_card_ids())
+
+    def test_high_risk_university_cards_preserve_authority_boundaries(self) -> None:
+        self.assertIn("exam-specific ban", get_source_card("uoc-ki-pruefungsrecht")["product_rule"])
+        self.assertIn("assistive technology", get_source_card("uoc-szi-klausurunterstuetzung-2026")["product_rule"])
 
     def test_source_card_claim_alignment_links_release_review_board_chain(self) -> None:
         drift = build_source_card_drift_report(as_of="2026-07-03")
@@ -112,6 +117,11 @@ class UniBotSourceCardTests(unittest.TestCase):
         self.assertEqual(scan_text(payload, "source-cards")["status"], "pass")
         self.assertNotIn("private_course", payload)
         self.assertNotIn("/" + "Users/", payload)
+
+    def test_public_source_cards_document_every_required_card(self) -> None:
+        documentation = (ROOT / "docs" / "unibot" / "UNIBOT_SOURCE_CARDS.md").read_text(encoding="utf-8")
+        missing = [source_id for source_id in required_source_card_ids() if f"`{source_id}`" not in documentation]
+        self.assertEqual(missing, [])
 
 
 if __name__ == "__main__":
