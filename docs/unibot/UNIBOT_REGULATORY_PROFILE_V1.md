@@ -143,7 +143,9 @@ Der Bundle-Befehl schreibt `institutional-presentation.json`,
 `institutional-presentation.md`, den verständlichen
 `institutional-plain-language-brief.md`, den menschlich auszufüllenden
 `institutional-accessibility-walkthrough.md`, das leere
-`institutional-review-decision-template.md` und ein Hash-Manifest in ein owner-lesbares
+`institutional-review-decision-template.md`, die öffentliche synthetische
+Notebook-Fixture, das `PUBLIC-DEMO.md`-Demoskript und das deterministische
+`unibot-mantle.zip`-MV3-Paket sowie ein Hash-Manifest in ein owner-lesbares
 Verzeichnis. Er schreibt nur bei grüner Public-Safety-Prüfung und enthält keine
 Notebook-, Personen- oder lokalen Pfadinhalte. Das Paket darf nur mit einem
 öffentlichen synthetischen Notebook demonstriert werden. Es ist zur

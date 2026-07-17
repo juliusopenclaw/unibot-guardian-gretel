@@ -106,7 +106,9 @@ The packet contains the RegulatoryProfile, human clearance board,
 institutional presentation, `AccessibilityReviewV1` with its eight human-gated
 checks, a plain-language `REVIEW-START-HERE.md`, a blank
 `InstitutionalReviewDecisionTemplateV1`, source-card references, evidence hashes, and the explicit
-Gretel/GLM/Julius authorship roles. Demonstrate only a public synthetic
+Gretel/GLM/Julius authorship roles. It also carries the public synthetic
+notebook, the metadata-only `PUBLIC-DEMO.md` script, and the deterministic
+MV3 package for the same local demo. Demonstrate only that public synthetic
 notebook. Do not add learner work, health or accommodation records, private
 course files, local paths, credentials, or real examination tasks.
 The reproducible public demo file is

@@ -67,8 +67,10 @@ full provenance statement is in `AUTHORS.md`.
 - Create the blank, hash-only human outcome form: `unibot institution decision-template --markdown`
 - Write a hash-bound, public-safe handoff directory:
   `unibot institution bundle --output ./unibot-institution-review`
-  Its `MANIFEST.json` is bound to the exact clean public Git commit and records
-  no local path, learner content, or institutional decision.
+  The bundle includes the public synthetic notebook, the deterministic MV3
+  package, a short demo script, and the human review documents. Its
+  `MANIFEST.json` is bound to the exact clean public Git commit and records no
+  local path, learner content, or institutional decision.
 - Inspect the autonomous lane: `unibot autonomy preflight`
 - Run the public synthetic Three Golden Rules gate: `unibot evaluate 3gr --json`
 - Health check for the developer API: `GET /api/v2/health` on the selected

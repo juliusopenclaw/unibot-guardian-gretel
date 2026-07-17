@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from .compliance import build_compliance_matrix
+from .extension_package import package_extension
 from .materials import sha256_text
+from .public_demo import build_public_demo_evidence, build_public_demo_markdown
 from .public_safety import scan_text
 from .provenance import public_source_provenance
 from .review_board import build_review_board_packet
@@ -1271,6 +1275,52 @@ def write_institutional_review_bundle(
     plain_language_brief = build_institutional_plain_language_brief(packet)
     accessibility_walkthrough = build_accessibility_review_walkthrough(packet)
     json_text = json.dumps(packet, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+
+    fixture_source = Path(__file__).resolve().parents[1] / "fixtures" / "public" / "synthetic_python_practice.ipynb"
+    if fixture_source.is_symlink() or not fixture_source.is_file():
+        return {
+            "schema_version": INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION,
+            "artifact_type": "unibot_institutional_review_bundle",
+            "status": "blocked",
+            "reason": "demo_fixture_missing_or_unsafe",
+            "exam_deployment_status": "not_cleared",
+        }
+    try:
+        fixture_bytes = fixture_source.read_bytes()
+        fixture_text = fixture_bytes.decode("utf-8")
+    except (OSError, UnicodeDecodeError):
+        return {
+            "schema_version": INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION,
+            "artifact_type": "unibot_institutional_review_bundle",
+            "status": "blocked",
+            "reason": "demo_fixture_unreadable",
+            "exam_deployment_status": "not_cleared",
+        }
+    fixture_scan = scan_text(fixture_text, "synthetic_python_practice.ipynb")
+    demo_evidence = build_public_demo_evidence()
+    demo_markdown = build_public_demo_markdown(demo_evidence)
+    demo_scan = scan_text(demo_markdown, "PUBLIC-DEMO.md")
+    if fixture_scan["status"] != "pass" or demo_evidence.get("status") != "ready_for_human_demo" or demo_scan["status"] != "pass":
+        return {
+            "schema_version": INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION,
+            "artifact_type": "unibot_institutional_review_bundle",
+            "status": "blocked",
+            "reason": "public_demo_evidence_blocked",
+            "exam_deployment_status": "not_cleared",
+        }
+    with tempfile.TemporaryDirectory(prefix="unibot-institutional-extension-") as temporary:
+        extension_path = Path(temporary) / "unibot-mantle.zip"
+        extension_result = package_extension(extension_path)
+        if extension_result.get("status") != "written" or extension_result.get("public_safety_status") != "pass":
+            return {
+                "schema_version": INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION,
+                "artifact_type": "unibot_institutional_review_bundle",
+                "status": "blocked",
+                "reason": "extension_package_blocked",
+                "exam_deployment_status": "not_cleared",
+            }
+        extension_bytes = extension_path.read_bytes()
+
     contents = {
         "institutional-presentation.json": json_text,
         "institutional-presentation.md": markdown,
@@ -1279,7 +1329,10 @@ def write_institutional_review_bundle(
         "institutional-review-decision-template.md": build_institutional_review_decision_template_markdown(
             packet["institutional_review_decision_template"]
         ),
+        "PUBLIC-DEMO.md": demo_markdown,
+        "synthetic_python_practice.ipynb": fixture_text,
     }
+    binary_contents = {"unibot-mantle.zip": extension_bytes}
     file_records: list[dict[str, Any]] = []
     for name, content in contents.items():
         scan = scan_text(content, name)
@@ -1300,6 +1353,14 @@ def write_institutional_review_bundle(
                 "public_safety_status": scan["status"],
             }
         )
+    file_records.append(
+        {
+            "name": "unibot-mantle.zip",
+            "bytes": len(extension_bytes),
+            "sha256": hashlib.sha256(extension_bytes).hexdigest(),
+            "public_safety_status": extension_result["public_safety_status"],
+        }
+    )
     manifest = {
         "schema_version": "unibot-institutional-review-bundle-manifest-v1",
         "artifact_type": "unibot_institutional_review_bundle_manifest",
@@ -1310,6 +1371,14 @@ def write_institutional_review_bundle(
         "source_commit": provenance["commit"],
         "source_provenance": provenance,
         "files": file_records,
+        "demo": {
+            "fixture_name": "synthetic_python_practice.ipynb",
+            "fixture_sha256": hashlib.sha256(fixture_bytes).hexdigest(),
+            "evidence_status": demo_evidence["status"],
+            "notebook_code_executed": demo_evidence["safety"]["notebook_code_executed"],
+            "provider_calls": demo_evidence["safety"]["provider_calls"],
+            "extension_package_sha256": extension_result["package_sha256"],
+        },
         "evidence_hash": packet["evidence_hash"],
         "authorship": packet["authorship"],
         "human_release_gate": "Julius remains human project lead and merge/release decision-maker.",
@@ -1328,16 +1397,26 @@ def write_institutional_review_bundle(
         os.chmod(temporary, 0o600)
         os.replace(temporary, target)
         os.chmod(target, 0o600)
+    for name, content in binary_contents.items():
+        target = root / name
+        temporary = root / f".{name}.{os.getpid()}.tmp"
+        temporary.write_bytes(content)
+        os.chmod(temporary, 0o600)
+        os.replace(temporary, target)
+        os.chmod(target, 0o600)
     return {
         "schema_version": INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION,
         "artifact_type": "unibot_institutional_review_bundle",
         "status": "written",
         "packet_status": packet["status"],
         "exam_deployment_status": "not_cleared",
-        "file_names": sorted(contents),
-        "file_count": len(contents),
+        "file_names": sorted({*contents, *binary_contents}),
+        "file_count": len(contents) + len(binary_contents),
         "manifest_sha256": sha256_text(manifest_text),
         "evidence_hash": packet["evidence_hash"],
+        "demo_fixture_sha256": hashlib.sha256(fixture_bytes).hexdigest(),
+        "extension_package_sha256": extension_result["package_sha256"],
+        "demo_status": demo_evidence["status"],
         "source_commit": provenance["commit"],
         "source_provenance_status": provenance["status"],
         "public_safety_status": "pass",
