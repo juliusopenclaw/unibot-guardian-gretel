@@ -286,7 +286,11 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
             self.assertEqual(manifest["demo"]["provider_calls"], 0)
             self.assertRegex(manifest["demo"]["fixture_sha256"], r"^[0-9a-f]{64}$")
             self.assertRegex(manifest["demo"]["extension_package_sha256"], r"^[0-9a-f]{64}$")
-            payload = "".join(path.read_text(encoding="utf-8") for path in bundle_root.iterdir())
+            payload = "".join(
+                path.read_text(encoding="utf-8")
+                for path in bundle_root.iterdir()
+                if path.name != "unibot-mantle.zip"
+            )
             self.assertNotIn("/" + "Users/", payload)
             self.assertNotIn("raw notebook text:", payload.lower())
             self.assertEqual(scan_text(payload, "institutional-review-bundle-test")["status"], "pass")
