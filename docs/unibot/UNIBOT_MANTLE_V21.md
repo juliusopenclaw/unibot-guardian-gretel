@@ -35,6 +35,9 @@ learning, or independent work.
 ## Data Flow
 
 - Chrome sends the selected cell and learner attempt to the local Native Host.
+- Each `tutor.turn` request must carry the active session-contract identifier.
+  Missing or stale identifiers are rejected before the tutor records an event,
+  so a closed or restarted Sidepanel cannot append help to another session.
 - The deterministic tutor analyzes Python syntax, visible traceback terms,
   skill tags, local formula cards, and versioned official source anchors.
 - Raw task, cell, attempt, and tutor transcript text are not persisted.

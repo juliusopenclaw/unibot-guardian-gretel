@@ -189,11 +189,13 @@ class UniBotMantleV21Tests(unittest.TestCase):
                 }
             )
             self.assertEqual(started["status"], "active")
+            session_id = started["contract"]["session_id"]
             turn = runtime.handle(
                 {
                     "request_id": "2",
                     "type": "tutor.turn",
                     "payload": {
+                        "session_id": session_id,
                         "task": "Wie pruefe ich eine Python-Liste?",
                         "learner_attempt": "Ich beginne mit len(values).",
                         "cell_context": "values = [1, 2, 3]",
@@ -223,6 +225,7 @@ class UniBotMantleV21Tests(unittest.TestCase):
                     "request_id": "resume-2",
                     "type": "tutor.turn",
                     "payload": {
+                        "session_id": session_id,
                         "task": "Wie pruefe ich eine Liste?",
                         "learner_attempt": "Ich pruefe zuerst len.",
                         "cell_context": "values = [1, 2, 3]",
@@ -248,6 +251,37 @@ class UniBotMantleV21Tests(unittest.TestCase):
         self.assertEqual(resumed["report"]["event_count"], 1)
         self.assertNotIn("sichtbarer-aufgabentext", stored)
         self.assertNotIn("Ich pruefe zuerst", stored)
+
+    def test_companion_rejects_stale_or_missing_tutor_session_binding(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            runtime = CompanionRuntime(storage_root=Path(temporary))
+            started = runtime.handle({"request_id": "binding-1", "type": "session.start", "payload": {}})
+            base_payload = {
+                "task": "Wie pruefe ich eine Python-Liste?",
+                "learner_attempt": "Ich pruefe zuerst len(values).",
+                "requested_help_level": "A1",
+            }
+            missing = runtime.handle({"request_id": "binding-2", "type": "tutor.turn", "payload": base_payload})
+            stale = runtime.handle(
+                {
+                    "request_id": "binding-3",
+                    "type": "tutor.turn",
+                    "payload": {**base_payload, "session_id": "stale-session"},
+                }
+            )
+            valid = runtime.handle(
+                {
+                    "request_id": "binding-4",
+                    "type": "tutor.turn",
+                    "payload": {**base_payload, "session_id": started["contract"]["session_id"]},
+                }
+            )
+
+        self.assertEqual(missing["status"], "blocked")
+        self.assertEqual(missing["error"], "session_id_required")
+        self.assertEqual(stale["status"], "blocked")
+        self.assertEqual(stale["error"], "session_id_mismatch")
+        self.assertEqual(valid["status"], "ok")
 
     def test_companion_session_delete_removes_contract_state_and_journal(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

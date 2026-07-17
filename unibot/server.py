@@ -222,7 +222,7 @@ from .timeline_export_receipt_journal import (
 )
 from .timeline_export_review_packet import build_timeline_export_review_packet
 from .review_chain_integrity import build_review_chain_integrity_check
-from .socratic_tutor import TutorTurnRequestV1, build_tutor_turn
+from .socratic_tutor import TutorTurnRequestV1, build_tutor_turn, validate_tutor_turn_session
 from .triage import build_feedback_triage, build_feedback_triage_markdown
 from .tutor_coverage import build_course_tutor_coverage_plan
 from .tutor_index import build_private_index_tutor_response_dry_run, build_private_tutor_index_dry_run
@@ -4042,6 +4042,7 @@ class UniBotRequestHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/v2/socratic/help" and server and server.learning_session:
             try:
+                validate_tutor_turn_session(server.learning_session, cast(TutorTurnRequestV1, payload))
                 response: dict[str, Any] = dict(
                     build_tutor_turn(server.learning_session, cast(TutorTurnRequestV1, payload))
                 )

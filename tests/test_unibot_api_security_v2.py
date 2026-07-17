@@ -149,10 +149,12 @@ class UniBotApiSecurityV2Tests(unittest.TestCase):
         )
         self.assertEqual(status, 201)
         self.assertEqual(contract_response["contract"]["max_help_level"], "A4")
+        session_id = str(contract_response["contract"]["session_id"])
 
         status, turn, _ = self.request(
             "/api/v2/socratic/help",
             payload={
+                "session_id": session_id,
                 "task": "Wie strukturiere ich einen z-Wert?",
                 "learner_attempt": "Ich kenne Beobachtung und Mittelwert.",
                 "requested_help_level": "A4",
@@ -164,6 +166,21 @@ class UniBotApiSecurityV2Tests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(turn["effective_help_level"], "A4")
         self.assertFalse(turn["raw_cell_stored"])
+
+        status, body, _ = self.request(
+            "/api/v2/socratic/help",
+            payload={
+                "session_id": "stale-session",
+                "task": "Wie strukturiere ich einen z-Wert?",
+                "learner_attempt": "Ich kenne Beobachtung und Mittelwert.",
+                "requested_help_level": "A1",
+            },
+            origin=EXTENSION_ORIGIN,
+            session_value=session_value,
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(body["status"], "tutor-turn-blocked")
+        self.assertEqual(body["reason"], "session_id_mismatch")
 
         status, report, _ = self.request(
             "/api/v2/session/export",

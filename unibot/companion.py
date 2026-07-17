@@ -36,7 +36,7 @@ from .notebook_intake import (
     import_notebook_bytes,
     normalize_local_notebook_label,
 )
-from .socratic_tutor import TutorTurnRequestV1, build_tutor_turn
+from .socratic_tutor import TutorTurnRequestV1, build_tutor_turn, validate_tutor_turn_session
 
 
 NATIVE_HOST_NAME = "de.gretel.unibot_companion"
@@ -266,6 +266,7 @@ class CompanionRuntime:
                 if self.session is None or self.session.stopped:
                     return self._response(request_id, "session-required", error="Start the learning session first.")
                 request_payload = dict(payload)
+                validate_tutor_turn_session(self.session, cast(TutorTurnRequestV1, request_payload))
                 explicit_task_id = str(request_payload.get("task_id", "")).strip()
                 if explicit_task_id:
                     request_payload["task_id"] = hashlib.sha256(explicit_task_id.encode("utf-8")).hexdigest()[:16]

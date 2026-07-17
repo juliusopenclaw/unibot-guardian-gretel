@@ -80,6 +80,8 @@ full provenance statement is in `AUTHORS.md`.
 
 The production-facing alpha extension communicates through Chrome Native
 Messaging. It does not store a loopback token or depend on a hard-coded port.
+Every `tutor.turn` request is bound to the active session contract; a missing
+or stale session identifier is rejected before any event is recorded.
 Notebook cell, task, and learner-attempt text stay in process memory; local
 session files and voluntary exports contain metadata and hashes only.
 For local notebook selection, the browser sends 32 KiB chunks and the Companion

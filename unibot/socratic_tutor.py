@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import hmac
 import re
 from dataclasses import dataclass
 from typing import Any, TypedDict, cast
@@ -215,6 +216,16 @@ class CellAnalysis:
     ast_features: tuple[str, ...]
     rule_id: str
     knowledge_boundary: str
+
+
+def validate_tutor_turn_session(session: LearningSession, payload: TutorTurnRequestV1) -> None:
+    """Bind a transport request to the active learning contract before recording it."""
+    requested_session_id = str(payload.get("session_id", "")).strip()
+    active_session_id = str(session.contract.get("session_id", "")).strip()
+    if not requested_session_id:
+        raise ValueError("session_id_required")
+    if not active_session_id or not hmac.compare_digest(requested_session_id, active_session_id):
+        raise ValueError("session_id_mismatch")
 
 
 def _hash_text(value: str) -> str:
