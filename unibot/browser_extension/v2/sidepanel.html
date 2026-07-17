@@ -148,6 +148,12 @@
       <section id="review" data-panel role="tabpanel" aria-labelledby="review-tab" tabindex="0" hidden>
         <h2 id="review-heading">Sitzungsrueckblick</h2>
         <button id="refreshReview" class="command secondary" type="button">Aktualisieren</button>
+        <div id="transferNote" class="support-note">Nach dem Beenden kannst du freiwillig eine synthetische Python-Transferaufgabe ohne UniBot-Hilfe bearbeiten. Der Versuch wird nur als Hash und Status erfasst und nicht bewertet.</div>
+        <button id="showTransferTask" class="command secondary" type="button" disabled>Transferaufgabe ohne Hilfe anzeigen</button>
+        <output id="transferPrompt" role="status" aria-live="polite" aria-atomic="true" hidden>Noch keine Transferaufgabe.</output>
+        <label id="transferAnswerLabel" for="transferAnswer" hidden>Eigener Transfer-Versuch</label>
+        <textarea id="transferAnswer" maxlength="4000" hidden aria-describedby="transferNote"></textarea>
+        <button id="recordTransfer" class="command" type="button" disabled hidden>Transfer-Versuch speichern</button>
         <button id="showExportPreview" class="command secondary" type="button">Exportvorschau anzeigen</button>
         <output id="exportPreview" role="status" aria-live="polite" aria-atomic="true" hidden>Noch keine Exportvorschau.</output>
         <label id="exportConfirmRow" class="check" hidden><input id="confirmExport" type="checkbox" aria-describedby="exportPreview">Vorschau geprüft; Export freiwillig erstellen</label>

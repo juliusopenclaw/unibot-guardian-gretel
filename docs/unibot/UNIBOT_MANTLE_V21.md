@@ -19,7 +19,10 @@ insufficient balance. Human merge and release review remain required.
    a changed attempt plus explicit confirmation.
 7. End the session explicitly when the practice task is complete; the local
    report remains available until deletion, but further tutor turns are closed.
-8. Preview and voluntarily export the metadata-only learning report.
+8. Optionally open one synthetic transfer task after the session ends. UniBot
+   provides no help for this task, does not judge the answer, and records only
+   a hash, character count, and status.
+9. Preview and voluntarily export the metadata-only learning report.
 
 ## Help Contract
 
@@ -64,6 +67,14 @@ learning, or independent work.
   freezes the immutable session contract, keeps only the declared local
   metadata for the retention window, and prevents further tutor turns until a
   new session is created after deletion.
+- The optional transfer task is exposed only after `session.stop`. The prompt
+  is synthetic and public; it is not written to the session journal. A
+  voluntary answer is checked for private-data markers before hashing. The
+  report exposes only `recorded`/`not_started`, a prompt hash, an answer hash,
+  character count, and timestamps. It contains no raw prompt or answer,
+  correctness result, grade, authorship claim, or automatic learning outcome.
+  The transfer task is evidence for a later scientific evaluation, not a
+  student score.
 - A real local Jupyter process is represented only by a restricted process
   record. `gateway.status` and `gateway.stop` allow the Companion to recover or
   terminate that process after a Chrome restart; the Jupyter token is never
@@ -112,6 +123,9 @@ learning, or independent work.
   hash, help profile, attempt count, source IDs, uncertainty, the count of
   voluntarily marked accessibility-support events, and report hash. The report
   labels this support as score-neutral and does not infer a need or decision.
+  If the learner used the optional transfer task, it adds only the task ID,
+  prompt/answer hashes, character count, status, and explicit
+  `not_assessed`/`not_cleared` boundaries.
 - No runtime learner content is sent to GLM, GitHub, Apple, or another provider.
 
 ## Transport And Installation

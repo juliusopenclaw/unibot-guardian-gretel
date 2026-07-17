@@ -215,6 +215,78 @@ class UniBotMantleV21Tests(unittest.TestCase):
         self.assertEqual(report["report"]["event_count"], 1)
         self.assertFalse(report["report"]["raw_cell_text_included"])
 
+    def test_optional_transfer_task_is_stop_only_hash_only_and_not_assessed(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            storage_root = Path(temporary)
+            runtime = CompanionRuntime(storage_root=storage_root)
+            started = runtime.handle(
+                {
+                    "request_id": "transfer-1",
+                    "type": "session.start",
+                    "payload": {"practice_scope": "practice_only", "practice_scope_confirmed": True},
+                }
+            )
+            before_stop = runtime.handle(
+                {"request_id": "transfer-2", "type": "session.transfer.prompt", "payload": {}}
+            )
+            stopped = runtime.handle({"request_id": "transfer-3", "type": "session.stop", "payload": {}})
+            prompt = runtime.handle({"request_id": "transfer-4", "type": "session.transfer.prompt", "payload": {}})
+            answer = "Ich pruefe zuerst die Laenge und danach die Anzahl der Werte."
+            recorded = runtime.handle(
+                {
+                    "request_id": "transfer-5",
+                    "type": "session.transfer.record",
+                    "payload": {"task_id": prompt["transfer"]["task_id"], "answer": answer},
+                }
+            )
+            stored = "".join(path.read_text(encoding="utf-8") for path in storage_root.glob("*"))
+
+        self.assertEqual(started["status"], "active")
+        self.assertEqual(before_stop["status"], "blocked")
+        self.assertEqual(before_stop["error"], "transfer_available_after_session_stop")
+        self.assertEqual(stopped["report"]["transfer_tasks"][0]["status"], "not_started")
+        self.assertIn("ohne UniBot-Hilfe", prompt["transfer"]["prompt"])
+        self.assertFalse(prompt["transfer"]["help_allowed"])
+        self.assertFalse(prompt["transfer"]["raw_prompt_stored"])
+        self.assertEqual(recorded["status"], "ok")
+        transfer = recorded["transfer"]
+        self.assertEqual(transfer["status"], "recorded")
+        self.assertTrue(transfer["attempt_present"])
+        self.assertEqual(transfer["attempt_hash"], hashlib.sha256(answer.encode("utf-8")).hexdigest())
+        self.assertFalse(recorded["report"]["transfer_tasks"][0]["raw_attempt_included"])
+        self.assertEqual(recorded["report"]["transfer_tasks"][0]["assessment_status"], "not_assessed")
+        self.assertNotIn(answer, stored)
+        self.assertNotIn("Neue synthetische Python-Aufgabe", stored)
+
+    def test_transfer_task_rejects_private_attempt_without_persisting_secret(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            runtime = CompanionRuntime(storage_root=root)
+            runtime.handle(
+                {
+                    "request_id": "transfer-private-1",
+                    "type": "session.start",
+                    "payload": {"practice_scope": "practice_only", "practice_scope_confirmed": True},
+                }
+            )
+            runtime.handle({"request_id": "transfer-private-2", "type": "session.stop", "payload": {}})
+            prompt = runtime.handle(
+                {"request_id": "transfer-private-3", "type": "session.transfer.prompt", "payload": {}}
+            )
+            secret = "api_key=synthetic-secret"
+            rejected = runtime.handle(
+                {
+                    "request_id": "transfer-private-4",
+                    "type": "session.transfer.record",
+                    "payload": {"task_id": prompt["transfer"]["task_id"], "answer": secret},
+                }
+            )
+            stored = "".join(path.read_text(encoding="utf-8") for path in root.glob("*"))
+
+        self.assertEqual(rejected["status"], "blocked")
+        self.assertEqual(rejected["error"], "transfer_attempt_contains_private_data")
+        self.assertNotIn(secret, stored)
+
     def test_companion_resumes_metadata_only_session_after_runtime_restart(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             storage_root = Path(temporary)

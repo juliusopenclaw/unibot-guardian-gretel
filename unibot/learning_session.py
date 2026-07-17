@@ -17,6 +17,13 @@ HELP_LEVELS_V1 = tuple(HELP_COSTS_V1)
 COST_POLICY_VERSION = "unibot-help-cost-v1"
 SESSION_STATE_SCHEMA_VERSION = "unibot-session-state-v1"
 SESSION_RETENTION_DAYS = 7
+TRANSFER_TASK_SCHEMA_VERSION = "unibot-transfer-task-v1"
+TRANSFER_TASK_ID = "synthetic-python-transfer-v1"
+TRANSFER_TASK_PROMPT = (
+    "Neue synthetische Python-Aufgabe: Beschreibe ohne UniBot-Hilfe die zwei kleinsten "
+    "Prüfschritte, bevor du aus einer Liste unbekannter Länge einen Mittelwert berechnest."
+)
+TRANSFER_MAX_ANSWER_CHARACTERS = 4_000
 _SESSION_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{8,80}$")
 
 
@@ -60,6 +67,56 @@ class HelpEventV2(TypedDict):
 def _canonical_hash(payload: dict[str, Any]) -> str:
     encoded = json.dumps(payload, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _new_transfer_state() -> dict[str, Any]:
+    return {
+        "schema_version": TRANSFER_TASK_SCHEMA_VERSION,
+        "task_id": TRANSFER_TASK_ID,
+        "prompt_hash": _canonical_hash({"task_id": TRANSFER_TASK_ID, "prompt": TRANSFER_TASK_PROMPT}),
+        "status": "not_started",
+        "attempt_hash": "",
+        "attempt_present": False,
+        "answer_character_count": 0,
+        "recorded_at_utc": "",
+    }
+
+
+def _validated_transfer_state(value: Any) -> dict[str, Any]:
+    if value is None:
+        return _new_transfer_state()
+    if not isinstance(value, dict):
+        raise ValueError("transfer state is invalid")
+    expected = _new_transfer_state()
+    if value.get("schema_version") != TRANSFER_TASK_SCHEMA_VERSION or value.get("task_id") != TRANSFER_TASK_ID:
+        raise ValueError("transfer state schema is invalid")
+    if value.get("prompt_hash") != expected["prompt_hash"]:
+        raise ValueError("transfer prompt hash mismatch")
+    status = str(value.get("status", "not_started"))
+    if status not in {"not_started", "recorded"}:
+        raise ValueError("transfer state status is invalid")
+    attempt_hash = str(value.get("attempt_hash", ""))
+    if attempt_hash and not re.fullmatch(r"[0-9a-f]{64}", attempt_hash):
+        raise ValueError("transfer attempt hash is invalid")
+    try:
+        answer_character_count = int(value.get("answer_character_count", 0))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("transfer answer length is invalid") from exc
+    if not 0 <= answer_character_count <= TRANSFER_MAX_ANSWER_CHARACTERS:
+        raise ValueError("transfer answer length is invalid")
+    attempt_present = bool(value.get("attempt_present", False))
+    if status == "recorded" and (not attempt_hash or not attempt_present or answer_character_count <= 0):
+        raise ValueError("recorded transfer state is incomplete")
+    if status == "not_started" and (attempt_hash or attempt_present or answer_character_count):
+        raise ValueError("unstarted transfer state contains an attempt")
+    return {
+        **expected,
+        "status": status,
+        "attempt_hash": attempt_hash,
+        "attempt_present": attempt_present,
+        "answer_character_count": answer_character_count,
+        "recorded_at_utc": str(value.get("recorded_at_utc", "")),
+    }
 
 
 def _safe_label(value: Any, *, fallback: str, maximum: int = 80) -> str:
@@ -139,6 +196,7 @@ def _state_record(
     *,
     contract_hash: str,
     notebook_ids: list[str] | tuple[str, ...] = (),
+    transfer: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if status not in {"active", "stopped"}:
         raise ValueError("unsupported session state")
@@ -148,6 +206,7 @@ def _state_record(
         "status": status,
         "contract_hash": str(contract_hash),
         "notebook_ids": sorted({_notebook_id(item) for item in notebook_ids if str(item)}),
+        "transfer": _validated_transfer_state(transfer),
         "updated_at_utc": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -196,6 +255,7 @@ def register_session_notebook(storage_root: Path, session_id: str, notebook_id: 
             "active",
             contract_hash=str(state.get("contract_hash", "")),
             notebook_ids=[*existing, safe_notebook_id],
+            transfer=state.get("transfer"),
         ),
     )
 
@@ -319,6 +379,7 @@ class LearningSession:
     state_path: Path | None = None
     events: list[HelpEventV2] = field(default_factory=list)
     stopped: bool = False
+    transfer: dict[str, Any] = field(default_factory=_new_transfer_state)
 
     @classmethod
     def start(
@@ -387,6 +448,7 @@ class LearningSession:
             contract_path=contract_path,
             state_path=state_path,
             events=events,
+            transfer=_validated_transfer_state(state.get("transfer")),
         )
 
     def task_events(self, task_id: str) -> list[HelpEventV2]:
@@ -476,6 +538,76 @@ class LearningSession:
             "accessibility_support_event_count": accessibility_support_event_count,
         }
 
+    def _persist_state(self, status: str) -> None:
+        if self.state_path is None:
+            return
+        current_state = _read_private_json(self.state_path)
+        _write_private_json(
+            self.state_path,
+            _state_record(
+                self.contract["session_id"],
+                status,
+                contract_hash=self.contract["contract_hash"],
+                notebook_ids=current_state.get("notebook_ids", []),
+                transfer=self.transfer,
+            ),
+        )
+
+    def _transfer_report(self) -> dict[str, Any]:
+        state = _validated_transfer_state(self.transfer)
+        status = state["status"] if self.stopped else "locked_until_session_stop"
+        return {
+            "schema_version": TRANSFER_TASK_SCHEMA_VERSION,
+            "task_id": TRANSFER_TASK_ID,
+            "status": status,
+            "prompt_hash": state["prompt_hash"],
+            "attempt_present": bool(state["attempt_present"]),
+            "attempt_hash": state["attempt_hash"],
+            "answer_character_count": int(state["answer_character_count"]),
+            "recorded_at_utc": state["recorded_at_utc"],
+            "help_allowed": False,
+            "assessment_status": "not_assessed",
+            "raw_prompt_included": False,
+            "raw_attempt_included": False,
+        }
+
+    def transfer_prompt(self) -> dict[str, Any]:
+        if not self.stopped:
+            raise ValueError("transfer_available_after_session_stop")
+        return {
+            "schema_version": TRANSFER_TASK_SCHEMA_VERSION,
+            "task_id": TRANSFER_TASK_ID,
+            "prompt": TRANSFER_TASK_PROMPT,
+            "prompt_hash": self.transfer["prompt_hash"],
+            "status": self.transfer["status"],
+            "help_allowed": False,
+            "raw_prompt_stored": False,
+            "exam_deployment_status": "not_cleared",
+        }
+
+    def record_transfer_attempt(self, task_id: str, answer: str) -> dict[str, Any]:
+        if not self.stopped:
+            raise ValueError("transfer_available_after_session_stop")
+        if str(task_id).strip() != TRANSFER_TASK_ID:
+            raise ValueError("transfer task id mismatch")
+        normalized = str(answer).strip()[:TRANSFER_MAX_ANSWER_CHARACTERS]
+        if not normalized:
+            raise ValueError("transfer_attempt_required")
+        from .guardian import detect_privacy_flags
+
+        if detect_privacy_flags(normalized):
+            raise ValueError("transfer_attempt_contains_private_data")
+        self.transfer = {
+            **_new_transfer_state(),
+            "status": "recorded",
+            "attempt_hash": hashlib.sha256(normalized.encode("utf-8")).hexdigest(),
+            "attempt_present": True,
+            "answer_character_count": len(normalized),
+            "recorded_at_utc": datetime.now(timezone.utc).isoformat(),
+        }
+        self._persist_state("stopped")
+        return self._transfer_report()
+
     def report(self) -> dict[str, Any]:
         summary = self.summary()
         report_without_hash = {
@@ -488,7 +620,7 @@ class LearningSession:
             "cost_policy_version": self.contract["cost_policy_version"],
             "accessibility_policy": "optional_user_declared_score_neutral_no_diagnosis",
             **summary,
-            "transfer_tasks": [],
+            "transfer_tasks": [self._transfer_report()],
             "uncertainty": "Help exposure and documented attempts do not prove authorship or learning outcome.",
             "assessment_policy": "Voluntary learning report; no automatic grade, proctoring, or AI detection.",
             "raw_cell_text_included": False,
@@ -500,15 +632,5 @@ class LearningSession:
 
     def stop(self) -> dict[str, Any]:
         self.stopped = True
-        if self.state_path is not None:
-            current_state = _read_private_json(self.state_path)
-            _write_private_json(
-                self.state_path,
-                _state_record(
-                    self.contract["session_id"],
-                    "stopped",
-                    contract_hash=self.contract["contract_hash"],
-                    notebook_ids=current_state.get("notebook_ids", []),
-                ),
-            )
+        self._persist_state("stopped")
         return {"status": "stopped", "session_id": self.contract["session_id"], "report": self.report()}

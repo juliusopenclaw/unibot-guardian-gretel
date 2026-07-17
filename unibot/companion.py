@@ -296,6 +296,18 @@ class CompanionRuntime:
                     session_id=stopped_session["session_id"],
                     report=stopped_session["report"],
                 )
+            if message_type == "session.transfer.prompt":
+                if self.session is None:
+                    return self._response(request_id, "session-required", error="Start the learning session first.")
+                return self._response(request_id, "ok", transfer=self.session.transfer_prompt())
+            if message_type == "session.transfer.record":
+                if self.session is None:
+                    return self._response(request_id, "session-required", error="Start the learning session first.")
+                transfer = self.session.record_transfer_attempt(
+                    str(payload.get("task_id", "")),
+                    str(payload.get("answer", "")),
+                )
+                return self._response(request_id, "ok", transfer=transfer, report=self.session.report())
             if message_type == "session.delete":
                 session_id = str(payload.get("session_id", "")).strip()
                 if not session_id and self.session is not None:

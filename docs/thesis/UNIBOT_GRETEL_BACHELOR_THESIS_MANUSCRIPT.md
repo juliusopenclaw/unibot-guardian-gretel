@@ -151,7 +151,11 @@ Rueckblick. Getrennte Colab-, Jupyter- und manuelle Adapter lesen die aktive
 Zelle, nicht den Ausgabecontainer, und lehnen unsichere Erkennung ab. A0 bis A4
 reichen von der Orientierungsfrage bis zum unvollstaendigen Teilgeruest. Ein
 hashgebundener Lernvertrag begrenzt feste oder adaptive Hilfe. Der Rueckblick
-trennt Hilfenutzungsbudget, eigene Versuche und Quellen ohne Rohtranskript.
+trennt Hilfenutzungsbudget, eigene Versuche und Quellen ohne Rohtranskript. Nach
+dem Ende kann eine synthetische Transferaufgabe freiwillig und ohne UniBot-Hilfe
+bearbeitet werden. Fuer diese Aufgabe werden nur Status, Antwort-Hash,
+Zeichenanzahl und Zeit erfasst; es gibt weder Bewertung noch automatische
+Eigenleistungs- oder Lernerfolgsbehauptung.
 
 Die Erweiterung kommuniziert ueber einen origin-gebundenen Chrome Native Host
 mit einem lokal installierbaren, ad-hoc-signierten Mac-Begleiter. Damit entfallen
@@ -216,7 +220,9 @@ Zellwahl, Sitzung, Hilfeanfrage und schmale Darstellung in Chromium aus.
 Der Korpus und die Messfunktionen sind implementiert. Es liegen in diesem
 Entwurf noch keine empirischen Resultate aus einer Studierendenstudie und kein
 Nachweis einer pruefungssicheren Umgebung vor. Diese Luecken werden nicht als
-positive Ergebnisse dargestellt.
+positive Ergebnisse dargestellt. Die neue Transferaufgabe ist ein
+metadata-only Messinstrument fuer eine spaetere Evaluation, kein Ergebnisnachweis
+fuer einzelne Lernende.
 
 ## 9. Grenzen und Risiken
 

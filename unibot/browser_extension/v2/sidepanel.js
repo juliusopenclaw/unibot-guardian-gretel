@@ -13,6 +13,7 @@ const state = {
   notebookId: "",
   selectedCell: null,
   lastReview: null,
+  transferTask: null,
   reconnectTimer: null,
   reconnectAttempt: 0,
   connecting: false
@@ -44,6 +45,11 @@ const elements = {
   ask: document.querySelector("#ask"),
   helpOutput: document.querySelector("#helpOutput"),
   refreshReview: document.querySelector("#refreshReview"),
+  showTransferTask: document.querySelector("#showTransferTask"),
+  transferPrompt: document.querySelector("#transferPrompt"),
+  transferAnswerLabel: document.querySelector("#transferAnswerLabel"),
+  transferAnswer: document.querySelector("#transferAnswer"),
+  recordTransfer: document.querySelector("#recordTransfer"),
   exportReview: document.querySelector("#exportReview"),
   deleteSession: document.querySelector("#deleteSession"),
   reviewOutput: document.querySelector("#reviewOutput"),
@@ -115,6 +121,14 @@ function syncSessionControls() {
   elements.refreshReview.disabled = !hasContract;
   elements.showExportPreview.disabled = !state.lastReview;
   elements.deleteSession.disabled = !hasContract;
+  const transferReport = state.lastReview?.transfer_tasks?.[0];
+  const transferRecorded = transferReport?.status === "recorded";
+  const transferVisible = Boolean(hasContract && !active && !transferRecorded);
+  elements.showTransferTask.disabled = !transferVisible;
+  elements.recordTransfer.hidden = !state.transferTask || transferRecorded;
+  elements.transferAnswerLabel.hidden = !state.transferTask || transferRecorded;
+  elements.transferAnswer.hidden = !state.transferTask || transferRecorded;
+  elements.recordTransfer.disabled = !state.transferTask || transferRecorded || !elements.transferAnswer.value.trim();
 
   [elements.pseudonym, elements.courseId, elements.maxHelpLevel, elements.fixedHelpLevel]
     .forEach((control) => { control.disabled = hasContract; });
@@ -414,15 +428,49 @@ async function requestHelp() {
 }
 
 function renderReview(report) {
+  const transfer = report.transfer_tasks?.[0];
+  const transferStatus = transfer?.status === "recorded"
+    ? "auf Hashbasis erfasst (nicht bewertet)"
+    : transfer?.status === "locked_until_session_stop"
+      ? "nach Sitzungsende verfügbar"
+      : "freiwillig noch nicht beantwortet";
   return [
     `Ereignisse: ${report.event_count || 0}`,
     `Eigene Versuche: ${report.own_attempt_count || 0}`,
     `Hilfestufen: ${JSON.stringify(report.by_help_level || {})}`,
     `Hilfebudget genutzt: ${report.assistance_points_used || 0} Punkte`,
     `Barrierearme Unterstützung: ${report.accessibility_support_event_count || 0} Ereignisse (kostenneutral)`,
+    `Transferaufgabe ohne Hilfe: ${transferStatus}`,
     "Keine automatische Note oder KI-Erkennung",
     "Pruefungseinsatz: nicht freigegeben"
   ].join("\n");
+}
+
+async function showTransferTask() {
+  if (!state.contract || state.sessionActive) throw new Error("Transferaufgabe erst nach Sitzungsende verfügbar");
+  const response = await nativeRequest("session.transfer.prompt");
+  state.transferTask = response.transfer;
+  elements.transferPrompt.textContent = response.transfer.prompt;
+  elements.transferPrompt.hidden = false;
+  elements.transferAnswer.value = "";
+  elements.transferAnswer.focus();
+  syncSessionControls();
+}
+
+async function recordTransfer() {
+  if (!state.transferTask) throw new Error("Transferaufgabe zuerst anzeigen");
+  const answer = elements.transferAnswer.value.trim();
+  if (!answer) throw new Error("Bitte zuerst einen eigenen Transfer-Versuch eintragen");
+  const response = await nativeRequest("session.transfer.record", {
+    task_id: state.transferTask.task_id,
+    answer: answer.slice(0, 4000)
+  });
+  state.lastReview = response.report;
+  state.transferTask = null;
+  elements.transferPrompt.textContent = "Transfer-Versuch wurde nur als Hash gespeichert und nicht bewertet.";
+  elements.transferAnswer.value = "";
+  elements.reviewOutput.textContent = renderReview(state.lastReview);
+  syncSessionControls();
 }
 
 async function refreshReview() {
@@ -460,7 +508,7 @@ function showExportPreview() {
   elements.exportPreview.textContent = [
     "Exportvorschau: Es werden nur Metadaten und Hashes exportiert:",
     "Enthalten: Hilfestufen, eigene Versuchsanzahl, Quellen-IDs, Zeitpunkte, Anzahl freiwillig markierter barrierearmer Unterstützungsereignisse, Pseudonym, Kurskennung und Vertrags-/Berichtshash.",
-    "Nicht enthalten: Zelltext, eigener Versuchstext, Tutortranskript, lokale Pfade, Tokens, Note oder KI-Erkennung.",
+    "Nicht enthalten: Zelltext, eigener Versuchstext, Transferantwort, Tutortranskript, lokale Pfade, Tokens, Note oder KI-Erkennung.",
     "Aufbewahrung: lokale Sitzungsmetadaten bis zu 7 Tage; eine von dir gespeicherte Exportdatei loescht UniBot nicht automatisch.",
     "Weitergabe: freiwillig und erst nach deiner eigenen Pruefung."
   ].join("\n");
@@ -492,7 +540,10 @@ async function deleteSession() {
   state.sessionActive = false;
   elements.practiceBoundary.checked = false;
   state.lastReview = null;
+  state.transferTask = null;
   state.selectedCell = null;
+  elements.transferPrompt.hidden = true;
+  elements.transferAnswer.value = "";
   elements.sessionOutput.textContent = "Lernsitzung und lokale Metadaten wurden gelöscht.";
   elements.reviewOutput.textContent = "Keine Sitzungsdaten.";
   elements.helpOutput.textContent = "Noch keine Anfrage.";
@@ -551,6 +602,9 @@ elements.stopGateway.addEventListener("click", guarded(stopGateway, elements.not
 elements.capture.addEventListener("click", guarded(captureCell, elements.helpOutput));
 elements.ask.addEventListener("click", guarded(requestHelp, elements.helpOutput));
 elements.refreshReview.addEventListener("click", guarded(refreshReview, elements.reviewOutput));
+elements.showTransferTask.addEventListener("click", guarded(showTransferTask, elements.transferPrompt));
+elements.transferAnswer.addEventListener("input", syncSessionControls);
+elements.recordTransfer.addEventListener("click", guarded(recordTransfer, elements.reviewOutput));
 elements.showExportPreview.addEventListener("click", guarded(showExportPreview, elements.exportPreview));
 elements.confirmExport.addEventListener("change", () => {
   elements.exportReview.disabled = !elements.confirmExport.checked || elements.exportPreview.hidden;
