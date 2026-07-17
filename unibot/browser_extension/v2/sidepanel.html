@@ -105,6 +105,8 @@
         <select id="fixedHelpLevel">
           <option>A0</option><option>A1</option><option selected>A2</option><option>A3</option><option>A4</option>
         </select>
+        <label class="check"><input id="practiceBoundary" type="checkbox" aria-describedby="practiceBoundaryNote">Freiwillige Übung bestätigen</label>
+        <div id="practiceBoundaryNote" class="support-note">Diese Sitzung ist kein Prüfungseinsatz. Hilfe und Rückblick bleiben lokal; es gibt keine automatische Note oder KI-Erkennung.</div>
         <button id="startSession" class="command" type="button">Sitzung starten</button>
         <button id="stopSession" class="command secondary" type="button" disabled>Sitzung beenden</button>
         <output id="sessionOutput" role="status" aria-live="polite" aria-atomic="true">Lokaler Begleiter wird gesucht.</output>

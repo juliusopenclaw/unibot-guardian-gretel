@@ -32,6 +32,7 @@ class UniBotMantleV21Tests(unittest.TestCase):
         self.assertEqual(contract["help_costs"], HELP_COSTS_V1)
         self.assertEqual(len(contract["contract_hash"]), 64)
         self.assertEqual(contract["exam_deployment_status"], "not_cleared")
+        self.assertEqual(contract["practice_scope"], "practice_only")
         with self.assertRaises(ValueError):
             create_session_contract({"fixed_help_level": "A4", "max_help_level": "A2"})
 

@@ -25,6 +25,7 @@ const elements = {
   courseId: document.querySelector("#courseId"),
   maxHelpLevel: document.querySelector("#maxHelpLevel"),
   fixedHelpLevel: document.querySelector("#fixedHelpLevel"),
+  practiceBoundary: document.querySelector("#practiceBoundary"),
   startSession: document.querySelector("#startSession"),
   stopSession: document.querySelector("#stopSession"),
   sessionOutput: document.querySelector("#sessionOutput"),
@@ -117,6 +118,7 @@ function syncSessionControls() {
 
   [elements.pseudonym, elements.courseId, elements.maxHelpLevel, elements.fixedHelpLevel]
     .forEach((control) => { control.disabled = hasContract; });
+  elements.practiceBoundary.disabled = hasContract;
   document.querySelectorAll("input[name='assistanceMode']").forEach((control) => {
     control.disabled = hasContract;
   });
@@ -209,6 +211,7 @@ function connectCompanion() {
       });
       state.contract = resumed.contract;
       state.sessionActive = true;
+      elements.practiceBoundary.checked = resumed.contract.practice_scope === "practice_only";
       state.lastReview = resumed.report;
       setConnection("Sitzung fortgesetzt", "ready");
       elements.sessionOutput.textContent = "Vorhandene Lernsitzung wurde lokal fortgesetzt.";
@@ -256,6 +259,9 @@ function nativeRequest(type, payload = {}) {
 
 async function startSession() {
   if (state.contract) throw new Error("Vor einer neuen Sitzung die beendete Sitzung löschen.");
+  if (!elements.practiceBoundary.checked) {
+    throw new Error("Bitte zuerst bestätigen: Diese Sitzung ist freiwillige Übung, keine Prüfung.");
+  }
   const mode = selectedAssistanceMode();
   const response = await nativeRequest("session.start", {
     pseudonym: elements.pseudonym.value.trim() || "Lernende Person",
@@ -263,10 +269,13 @@ async function startSession() {
     assistance_mode: mode,
     fixed_help_level: elements.fixedHelpLevel.value,
     max_help_level: elements.maxHelpLevel.value,
+    practice_scope: "practice_only",
+    practice_scope_confirmed: true,
     planned_task_count: 1
   });
   state.contract = response.contract;
   state.sessionActive = true;
+  elements.practiceBoundary.checked = response.contract.practice_scope === "practice_only";
   state.lastReview = null;
   setConnection("Sitzung aktiv", "ready");
   elements.sessionOutput.textContent = [
@@ -481,6 +490,7 @@ async function deleteSession() {
   await nativeRequest("session.delete", { session_id: state.contract.session_id });
   state.contract = null;
   state.sessionActive = false;
+  elements.practiceBoundary.checked = false;
   state.lastReview = null;
   state.selectedCell = null;
   elements.sessionOutput.textContent = "Lernsitzung und lokale Metadaten wurden gelöscht.";

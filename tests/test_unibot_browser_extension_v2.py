@@ -25,6 +25,8 @@ class BrowserExtensionV2Tests(unittest.TestCase):
         self.assertIn("Lernsitzung", html)
         self.assertIn("Sokratische Hilfe", html)
         self.assertIn("Sitzungsrueckblick", html)
+        self.assertIn('id="practiceBoundary"', html)
+        self.assertIn("practice_scope_confirmed", script)
         self.assertIn('value="A0"', html)
         self.assertIn('value="A1"', html)
         self.assertIn('value="A2"', html)

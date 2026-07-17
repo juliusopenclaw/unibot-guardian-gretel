@@ -11,13 +11,15 @@ insufficient balance. Human merge and release review remain required.
 
 1. Install `UniBot Companion.app` and its user-scoped Native Messaging host.
 2. Load the fixed-ID Manifest V3 extension in Chrome.
-3. Start a fixed or adaptive session with a declared maximum help level.
-4. Select one Colab or Jupyter cell and describe the learner's own attempt.
-5. Request A0-A4 help. Adaptive escalation moves one level at a time and needs
+3. Confirm the visible practice boundary: the session is voluntary practice,
+   not an examination, and the contract records `practice_only`.
+4. Start a fixed or adaptive session with a declared maximum help level.
+5. Select one Colab or Jupyter cell and describe the learner's own attempt.
+6. Request A0-A4 help. Adaptive escalation moves one level at a time and needs
    a changed attempt plus explicit confirmation.
-6. End the session explicitly when the practice task is complete; the local
+7. End the session explicitly when the practice task is complete; the local
    report remains available until deletion, but further tutor turns are closed.
-7. Preview and voluntarily export the metadata-only learning report.
+8. Preview and voluntarily export the metadata-only learning report.
 
 ## Help Contract
 
@@ -40,6 +42,10 @@ learning, or independent work.
 - Each `tutor.turn` request must carry the active session-contract identifier.
   Missing or stale identifiers are rejected before the tutor records an event,
   so a closed or restarted Sidepanel cannot append help to another session.
+- The session contract contains the immutable scope `practice_only`. The
+  Sidepanel requires a visible learner confirmation of that scope before it
+  sends `session.start`; the confirmation is a boundary control, not a legal
+  or examination approval.
 - The deterministic tutor analyzes Python syntax, visible traceback terms,
   skill tags, local formula cards, and versioned official source anchors.
 - Raw task, cell, attempt, and tutor transcript text are not persisted.

@@ -137,6 +137,9 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
           distribution_status: "blocked_human_release_gates"
         };
         if (message.type === "session.start") {
+          if (message.payload.practice_scope !== "practice_only" || message.payload.practice_scope_confirmed !== true) {
+            throw new Error("practice boundary was not confirmed");
+          }
           response = {
             request_id: message.request_id,
             status: "active",
@@ -223,6 +226,9 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
   await page.goto(pathToFileURL(path.join(extensionRoot, "v2", "sidepanel.html")).href);
   await expect(page.locator("#connectionStatus")).toHaveText("Lokal bereit");
   await expect(page.locator("#releaseStatus")).toHaveText("Lokaler Uebungsbetrieb: bereit. Allgemeine Verteilung: noch nicht freigegeben.");
+  await page.locator("#startSession").click();
+  await expect(page.locator("#sessionOutput")).toContainText("freiwillige Übung, keine Prüfung");
+  await page.locator("#practiceBoundary").check();
   await page.locator("#startSession").click();
   await expect(page.locator("#connectionStatus")).toHaveText("Sitzung aktiv");
   await expect(page.locator("#maxHelpLevel")).toBeDisabled();

@@ -32,6 +32,7 @@ class SessionContractV1(TypedDict):
     cost_policy_version: str
     help_costs: dict[str, int]
     sharing_policy: str
+    practice_scope: Literal["practice_only"]
     exam_deployment_status: str
     created_at_utc: str
     contract_hash: str
@@ -292,6 +293,7 @@ def create_session_contract(payload: dict[str, Any] | None = None) -> SessionCon
         "cost_policy_version": COST_POLICY_VERSION,
         "help_costs": dict(HELP_COSTS_V1),
         "sharing_policy": "voluntary_metadata_preview_before_export",
+        "practice_scope": "practice_only",
         "exam_deployment_status": "not_cleared",
         "created_at_utc": created_at,
     }
