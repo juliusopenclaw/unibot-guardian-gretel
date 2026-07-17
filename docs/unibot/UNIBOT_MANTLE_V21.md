@@ -93,6 +93,10 @@ learning, or independent work.
   assistance points, status, and an optional user-declared boolean indicating
   that accessibility support was used. Files are owner-readable only; no
   reason, diagnosis, or accommodation status is recorded.
+- The optional display preference is stored locally as one boolean so that a
+  learner does not have to re-enable the larger controls after a Sidepanel
+  restart. It is not a profile, is not sent to a provider, and can be switched
+  off at any time.
 - The voluntary report contains the pseudonym chosen for the session, contract
   hash, help profile, attempt count, source IDs, uncertainty, the count of
   voluntarily marked accessibility-support events, and report hash. The report

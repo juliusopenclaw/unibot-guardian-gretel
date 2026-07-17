@@ -2,6 +2,7 @@ const NATIVE_HOST = "de.gretel.unibot_companion";
 const MAX_NOTEBOOK_BYTES = 10 * 1024 * 1024;
 const UPLOAD_CHUNK_BYTES = 32 * 1024;
 const HELP_LEVELS = ["A0", "A1", "A2", "A3", "A4"];
+const ACCESSIBILITY_PREFERENCE_KEY = "unibot.accessibility.display.v1";
 
 const state = {
   port: null,
@@ -83,6 +84,26 @@ function applyAccessibilityMode() {
   document.documentElement.dataset.accessibility = elements.accessibilitySupport.checked ? "enhanced" : "default";
 }
 
+function restoreAccessibilityPreference() {
+  try {
+    elements.accessibilitySupport.checked = window.localStorage.getItem(ACCESSIBILITY_PREFERENCE_KEY) === "enhanced";
+  } catch {
+    // Some browser test and restricted file contexts do not expose local storage.
+  }
+  applyAccessibilityMode();
+}
+
+function persistAccessibilityPreference() {
+  try {
+    window.localStorage.setItem(
+      ACCESSIBILITY_PREFERENCE_KEY,
+      elements.accessibilitySupport.checked ? "enhanced" : "default"
+    );
+  } catch {
+    // The preference remains session-local when browser storage is unavailable.
+  }
+}
+
 function syncSessionControls() {
   const hasContract = Boolean(state.contract);
   const active = hasContract && state.sessionActive;
@@ -126,7 +147,7 @@ function syncSessionControls() {
 }
 
 function scheduleReconnect() {
-  if (state.reconnectTimer || state.port || state.connecting || !chrome.runtime?.connectNative) return;
+  if (state.reconnectTimer || state.port || state.connecting || !globalThis.chrome?.runtime?.connectNative) return;
   const delay = Math.min(5000, 500 * (2 ** Math.min(state.reconnectAttempt, 3)));
   state.reconnectAttempt += 1;
   state.reconnectTimer = setTimeout(() => {
@@ -137,7 +158,7 @@ function scheduleReconnect() {
 
 function connectCompanion() {
   if (state.port || state.connecting) return;
-  if (!chrome.runtime?.connectNative) {
+  if (!globalThis.chrome?.runtime?.connectNative) {
     setConnection("Begleiter fehlt", "error");
     renderCompanionReleaseStatus({ local_practice_status: "not_installed", distribution_status: "blocked_human_release_gates" });
     elements.sessionOutput.textContent = "UniBot Companion ist nicht installiert.";
@@ -146,7 +167,7 @@ function connectCompanion() {
   state.connecting = true;
   let port;
   try {
-    port = chrome.runtime.connectNative(NATIVE_HOST);
+    port = globalThis.chrome.runtime.connectNative(NATIVE_HOST);
   } catch (error) {
     state.connecting = false;
     setConnection("Begleiter fehlt", "error");
@@ -165,7 +186,7 @@ function connectCompanion() {
     else request.resolve(message);
   });
   state.port.onDisconnect.addListener(() => {
-    const message = chrome.runtime.lastError?.message || "Lokaler Begleiter wurde getrennt.";
+    const message = globalThis.chrome?.runtime?.lastError?.message || "Lokaler Begleiter wurde getrennt.";
     for (const request of state.pending.values()) {
       clearTimeout(request.timeout);
       request.reject(new Error(message));
@@ -258,9 +279,11 @@ async function startSession() {
 
 async function captureCell() {
   if (!state.sessionActive) throw new Error("Lernsitzung zuerst starten");
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const tabs = globalThis.chrome?.tabs;
+  if (!tabs) throw new Error("Browser-Zellwahl ist nicht verfügbar.");
+  const [tab] = await tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) throw new Error("Kein aktiver Notebook-Tab");
-  const response = await chrome.tabs.sendMessage(tab.id, { type: "UNIBOT_GET_SELECTION" });
+  const response = await tabs.sendMessage(tab.id, { type: "UNIBOT_GET_SELECTION" });
   state.selectedCell = response.selectedCell || null;
   if (!state.selectedCell?.source || state.selectedCell.confidence === "low") {
     throw new Error("Zelle nicht eindeutig erkannt. Bitte Quelltext markieren und erneut erfassen.");
@@ -522,11 +545,14 @@ elements.showExportPreview.addEventListener("click", guarded(showExportPreview, 
 elements.confirmExport.addEventListener("change", () => {
   elements.exportReview.disabled = !elements.confirmExport.checked || elements.exportPreview.hidden;
 });
-elements.accessibilitySupport.addEventListener("change", applyAccessibilityMode);
+elements.accessibilitySupport.addEventListener("change", () => {
+  applyAccessibilityMode();
+  persistAccessibilityPreference();
+});
 elements.exportReview.addEventListener("click", guarded(exportReview, elements.reviewOutput));
 elements.deleteSession.addEventListener("click", guarded(deleteSession, elements.reviewOutput));
 
 connectCompanion();
 resetExportPreview();
-applyAccessibilityMode();
+restoreAccessibilityPreference();
 syncSessionControls();

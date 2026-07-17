@@ -59,6 +59,9 @@ class BrowserExtensionV2Tests(unittest.TestCase):
         self.assertIn("Größere Bedienelemente", html)
         self.assertIn("accessibility_used", script)
         self.assertIn("applyAccessibilityMode", script)
+        self.assertIn("unibot.accessibility.display.v1", script)
+        self.assertIn("persistAccessibilityPreference", script)
+        self.assertIn("globalThis.chrome", script)
         self.assertNotIn("127.0.0.1:8765", script)
 
     def test_content_script_extracts_active_notebook_cell_not_output(self) -> None:

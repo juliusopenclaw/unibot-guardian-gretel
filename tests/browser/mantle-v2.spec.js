@@ -362,6 +362,18 @@ test("sidepanel exposes accessible status semantics and visible keyboard focus",
   expect(parseFloat(focusStyle.outlineWidth)).toBeGreaterThanOrEqual(2);
 });
 
+test("sidepanel remembers the optional accessibility display preference locally", async ({ page }) => {
+  await page.goto(pathToFileURL(path.join(extensionRoot, "v2", "sidepanel.html")).href);
+  await page.getByRole("tab", { name: "Hilfe", exact: true }).click();
+  await page.locator("#accessibilitySupport").check();
+  await expect(page.locator("html")).toHaveAttribute("data-accessibility", "enhanced");
+  await page.reload();
+  await page.getByRole("tab", { name: "Hilfe", exact: true }).click();
+  await expect(page.locator("#accessibilitySupport")).toBeChecked();
+  await expect(page.locator("html")).toHaveAttribute("data-accessibility", "enhanced");
+  expect(await page.evaluate(() => localStorage.getItem("unibot.accessibility.display.v1"))).toBe("enhanced");
+});
+
 test("sidepanel supports keyboard tab navigation at the minimum supported width", async ({ page }) => {
   await page.setViewportSize({ width: 280, height: 700 });
   await page.goto(pathToFileURL(path.join(extensionRoot, "v2", "sidepanel.html")).href);
