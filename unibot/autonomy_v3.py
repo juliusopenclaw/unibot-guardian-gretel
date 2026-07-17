@@ -87,8 +87,10 @@ SAFE_SOURCES = {"main_commit", "failing_check", "github_issue", "measured_gap", 
 SAFE_RISKS = {"low", "medium", "high", "critical"}
 SAFE_ID = re.compile(r"^[A-Za-z0-9_.:-]{1,120}$")
 SAFE_GIT_COMMIT = re.compile(r"^[0-9a-fA-F]{7,64}$")
+SAFE_FULL_GIT_COMMIT = re.compile(r"^[0-9a-fA-F]{40}$")
 PRIVATE_MARKERS = ("private", "icloud", "fallakte", "mail", "health", "notebook", "solution", "exam")
 COMMAND_MARKERS = re.compile(r"(?:\$\(|`|;|&&|\|\||\b(?:bash|sh|zsh|powershell|python)\s+-c\b)")
+NON_HUMAN_REVIEWERS = {"codex", "gretel", "gretel/codex", "github-actions", "github-actions[bot]"}
 
 
 class AutonomyValidationError(ValueError):
@@ -195,6 +197,29 @@ def _validate_ids(values: Iterable[str], label: str) -> list[str]:
             raise AutonomyValidationError(f"invalid_{label}")
         cleaned.append(value)
     return list(dict.fromkeys(cleaned))
+
+
+def _human_merge_evidence_errors(reviewer: str, merge_commit: str) -> list[str]:
+    errors: list[str] = []
+    normalized_reviewer = str(reviewer).strip().lower()
+    if not normalized_reviewer:
+        errors.append("human_reviewer_required")
+    elif normalized_reviewer in NON_HUMAN_REVIEWERS or normalized_reviewer.endswith("[bot]"):
+        errors.append("non_human_reviewer_not_allowed")
+    if not SAFE_FULL_GIT_COMMIT.fullmatch(str(merge_commit).strip()):
+        errors.append("full_merge_commit_required")
+    return errors
+
+
+def _runtime_failure_reason(error: Exception) -> str:
+    """Return a stable, metadata-safe reason without persisting exception text."""
+    if isinstance(error, AutonomyValidationError):
+        return str(error)
+    if isinstance(error, LeaseBusy):
+        return "autonomy_lease_busy"
+    if isinstance(error, OSError):
+        return "os_operation_failed"
+    return "unexpected_runtime_failure"
 
 
 @dataclass(frozen=True)
@@ -328,8 +353,12 @@ class WorkItemV3:
             errors.append("invalid_risk")
         if not SAFE_GIT_COMMIT.fullmatch(self.base_commit):
             errors.append("invalid_base_commit")
+        if not self.allowed_files:
+            errors.append("allowed_files_required")
         if len(self.allowed_files) > MAX_FILES:
             errors.append("too_many_allowed_files")
+        if len(set(self.allowed_files)) != len(self.allowed_files):
+            errors.append("allowed_files_must_be_unique")
         try:
             [_safe_relative_path(path) for path in self.allowed_files]
         except AutonomyValidationError as error:
@@ -343,11 +372,19 @@ class WorkItemV3:
         text_scan = scan_text(f"{self.hypothesis}\n{self.product_delta}", "work-item-metadata")
         if text_scan["status"] != "pass":
             errors.append("work_item_public_safety_failed")
+        if not self.test_ids:
+            errors.append("test_ids_required")
+        if len(set(self.test_ids)) != len(self.test_ids):
+            errors.append("test_ids_must_be_unique")
         try:
             _validate_ids(self.test_ids, "test_ids")
         except AutonomyValidationError as error:
             errors.append(str(error))
-        if self.issue_number is not None and self.issue_number < 1:
+        if self.issue_number is not None and (
+            isinstance(self.issue_number, bool)
+            or not isinstance(self.issue_number, int)
+            or self.issue_number < 1
+        ):
             errors.append("invalid_issue_number")
         if self.evolution_chunk is not None:
             errors.extend(self.evolution_chunk.validate())
@@ -872,7 +909,7 @@ class AutonomyStore:
         checks_green: bool,
         approved_after_last_push: bool,
     ) -> dict[str, Any]:
-        if not SAFE_ID.fullmatch(run_id) or not reviewer.strip() or not SAFE_GIT_COMMIT.fullmatch(merge_commit):
+        if not SAFE_ID.fullmatch(run_id) or _human_merge_evidence_errors(reviewer, merge_commit):
             raise AutonomyValidationError("invalid_canary_merge_evidence")
         if not checks_green or not approved_after_last_push:
             raise AutonomyValidationError("canary_merge_requires_green_checks_and_fresh_human_approval")
@@ -1273,17 +1310,37 @@ def derive_implementation_evidence(
 ) -> ImplementationEvidenceV1:
     root = Path(worktree).resolve()
     allowed = {_safe_relative_path(path) for path in allowed_files}
-    tracked = set(filter(None, str(_git_output(root, ["diff", "--name-only", base_commit, "--"])).splitlines()))
+    raw_diffs = [
+        str(_git_output(root, ["diff", "--raw", "--abbrev=40", base_commit, "--"])),
+        str(_git_output(root, ["diff", "--cached", "--raw", "--abbrev=40", base_commit, "--"])),
+    ]
+    for raw_diff in raw_diffs:
+        for line in raw_diff.splitlines():
+            header = line.split("\t", 1)[0].split()
+            if len(header) >= 2 and (header[0].lstrip(":") == "160000" or header[1] == "160000"):
+                raise AutonomyValidationError("submodule_change_not_allowed")
+    tracked: set[str] = set()
+    for diff_args in (
+        ["diff", "--name-only", base_commit, "--"],
+        ["diff", "--cached", "--name-only", base_commit, "--"],
+    ):
+        tracked.update(filter(None, str(_git_output(root, diff_args)).splitlines()))
     untracked = set(filter(None, str(_git_output(root, ["ls-files", "--others", "--exclude-standard"])).splitlines()))
     changed = sorted(tracked | untracked)
     if len(changed) > MAX_FILES:
         raise AutonomyValidationError("actual_diff_exceeds_file_limit")
     if not set(changed).issubset(allowed):
         raise AutonomyValidationError("actual_diff_outside_allowed_files")
-    binary_diff = _git_output(root, ["diff", "--binary", base_commit, "--"], binary=True)
-    if not isinstance(binary_diff, bytes):  # pragma: no cover - guarded by the binary argument
-        raise AutonomyValidationError("git_binary_evidence_invalid")
-    digest = bytearray(binary_diff)
+    binary_diffs: list[bytes] = []
+    for diff_args in (
+        ["diff", "--binary", base_commit, "--"],
+        ["diff", "--cached", "--binary", base_commit, "--"],
+    ):
+        binary_diff = _git_output(root, diff_args, binary=True)
+        if not isinstance(binary_diff, bytes):  # pragma: no cover - guarded by binary=True
+            raise AutonomyValidationError("git_binary_evidence_invalid")
+        binary_diffs.append(binary_diff)
+    digest = bytearray(b"\0".join(sorted(set(binary_diffs))))
     for relative in sorted(untracked):
         path = root / relative
         if path.is_symlink() or not path.is_file():
@@ -1651,12 +1708,12 @@ class AutonomyController:
                         "github_actions": 0,
                         "automatic_merge": False,
                     }
-            except (AutonomyValidationError, OSError) as error:
+            except Exception as error:
                 if run.state not in {"blocked", "retryable", "gretel_proposed"}:
-                    run.transition("blocked", reason=str(error))
+                    run.transition("blocked", reason=_runtime_failure_reason(error))
                 self.store.save_run(run)
                 self.store.record_rollout("local", run_id=run.run_id, success=False)
-                return {"status": "blocked", "reason": str(error), "run": run.to_dict()}
+                return {"status": "blocked", "reason": _runtime_failure_reason(error), "run": run.to_dict()}
 
     def run_shadow_rollout(
         self,
@@ -1822,18 +1879,19 @@ class AutonomyController:
                         "three_golden_rules_evidence": golden_rules_evidence.to_dict(),
                         "draft_pr": preview,
                     }
-            except (AutonomyValidationError, OSError) as error:
+            except Exception as error:
                 if run.state not in {"blocked", "retryable", "gretel_proposed"}:
-                    run.transition("blocked", reason=str(error))
+                    run.transition("blocked", reason=_runtime_failure_reason(error))
                 self.store.save_run(run)
-                return {"status": "blocked", "reason": str(error), "run": run.to_dict()}
+                return {"status": "blocked", "reason": _runtime_failure_reason(error), "run": run.to_dict()}
 
     def record_human_merge(self, run_id: str, *, reviewer: str, merge_commit: str) -> dict[str, Any]:
         run_payload = self.store.get_run(run_id)
         if not run_payload:
             return {"status": "not_found", "run_id": run_id}
-        if not reviewer.strip() or not merge_commit.strip():
-            return {"status": "blocked", "reason": "human_reviewer_and_merge_commit_required"}
+        evidence_errors = _human_merge_evidence_errors(reviewer, merge_commit)
+        if evidence_errors:
+            return {"status": "blocked", "reason": evidence_errors[0]}
         if run_payload.get("state") != "ready_for_human_merge":
             return {"status": "blocked", "reason": "run_not_ready_for_human_merge", "run": run_payload}
         run = AutonomyRunV3(**{key: value for key, value in run_payload.items() if key in {"run_id", "work_item_hash", "trigger", "state", "created_at_utc", "transitions", "model_versions", "cost_usd", "branch", "pr_url", "block_reason", "merge_gate", "public_safety_status"}})

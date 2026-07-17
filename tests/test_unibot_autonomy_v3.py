@@ -4,6 +4,7 @@ import os
 import subprocess
 import tempfile
 import unittest
+from dataclasses import replace
 from pathlib import Path
 
 from unibot.autonomy_v3 import (
@@ -18,6 +19,7 @@ from unibot.autonomy_v3 import (
     TestRegistry,
     WorkItemV3,
     default_test_registry,
+    derive_implementation_evidence,
     evaluate_three_golden_rules,
     prepare_autonomy_loop,
     request_autonomy_loop_start,
@@ -99,6 +101,117 @@ class AutonomyV3Tests(unittest.TestCase):
         self.assertEqual(item.to_dict()["work_item_hash"], item.work_item_hash)
         bad = WorkItemV3(**{**item.__dict__, "allowed_files": ("private-notebook.ipynb",)})
         self.assertIn("private_path_not_allowed", bad.validate())
+
+    def test_work_item_requires_bounded_files_and_registered_tests(self) -> None:
+        item = WorkItemV3(
+            work_id="bounded-contract",
+            source="measured_gap",
+            hypothesis="A bounded contract is measurable.",
+            product_delta="Keep the work item executable and reviewable.",
+            risk="low",
+            allowed_files=("public.py",),
+            test_ids=("test.guardian",),
+            base_commit="abcdef1",
+            evolution_chunk=self.evolution("test.bounded_contract"),
+        )
+        self.assertIn("allowed_files_required", replace(item, allowed_files=()).validate())
+        self.assertIn("test_ids_required", replace(item, test_ids=()).validate())
+        self.assertIn("allowed_files_must_be_unique", replace(item, allowed_files=("public.py", "public.py")).validate())
+        self.assertIn("test_ids_must_be_unique", replace(item, test_ids=("test.guardian", "test.guardian")).validate())
+
+    def test_unexpected_implementation_failure_is_blocked_without_exception_text(self) -> None:
+        holder, root, base = self.make_git_repo()
+        try:
+            item = WorkItemV3(
+                work_id="runtime-failure",
+                source="measured_gap",
+                hypothesis="An implementation crash must become a bounded run result.",
+                product_delta="Keep private exception text out of run metadata.",
+                risk="medium",
+                allowed_files=("public.py",),
+                test_ids=("test.guardian",),
+                base_commit=base,
+                evolution_chunk=self.evolution("test.runtime_failure"),
+            )
+            with tempfile.TemporaryDirectory() as state_dir:
+                store = AutonomyStore(Path(state_dir) / "state.sqlite3")
+                gate = ProviderGate(Path(state_dir) / "provider.json", store=store)
+                gate.unpark("public-unibot-only")
+                controller = AutonomyController(
+                    repo_root=root,
+                    store=store,
+                    provider_gate=gate,
+                    lease=AutonomyLease(Path(state_dir) / "run.lock"),
+                )
+                tests = TestRegistry()
+                tests.register("test.guardian", lambda: True)
+
+                def broken_implementer(*_: object) -> None:
+                    raise RuntimeError("/private/learner/notebook.ipynb")
+
+                result = controller.execute(
+                    item,
+                    glm=MockGLM(),
+                    implementer=broken_implementer,
+                    reviewer=lambda evidence, work_item: CodexReviewV1(
+                        run_id=evidence.run_id,
+                        diff_hash=evidence.diff_hash,
+                        decision="approve",
+                    ),
+                    tests=tests,
+                    ci_green=True,
+                )
+                self.assertEqual(result["status"], "blocked")
+                self.assertEqual(result["reason"], "unexpected_runtime_failure")
+                self.assertEqual(result["run"]["state"], "blocked")
+                self.assertNotIn("/private/learner", str(result))
+                store.close()
+        finally:
+            holder.cleanup()
+
+    def test_gitlink_changes_are_rejected_from_implementation_evidence(self) -> None:
+        holder, root, base = self.make_git_repo()
+        try:
+            subprocess.run(
+                ["git", "-C", str(root), "update-index", "--add", "--cacheinfo", "160000", "a" * 40, "vendor/module"],
+                check=True,
+            )
+            with self.assertRaisesRegex(ValueError, "submodule_change_not_allowed"):
+                derive_implementation_evidence(
+                    worktree=root,
+                    run_id="gitlink-evidence",
+                    base_commit=base,
+                    allowed_files=("vendor/module",),
+                    test_ids_passed=["test.guardian"],
+                    test_evidence_hash="a" * 64,
+                )
+        finally:
+            holder.cleanup()
+
+    def test_human_merge_evidence_rejects_bot_identity_and_short_commit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            store = AutonomyStore(Path(tmp) / "state.sqlite3")
+            run = AutonomyRunV3(
+                run_id="human-gate",
+                work_item_hash="a" * 64,
+                trigger="canary",
+                state="ready_for_human_merge",
+            )
+            store.save_run(run)
+            controller = AutonomyController(repo_root=Path(tmp), store=store)
+            self.assertEqual(
+                controller.record_human_merge("human-gate", reviewer="Codex", merge_commit="a" * 40)["reason"],
+                "non_human_reviewer_not_allowed",
+            )
+            self.assertEqual(
+                controller.record_human_merge("human-gate", reviewer="Julius", merge_commit="abcdef1")["reason"],
+                "full_merge_commit_required",
+            )
+            self.assertEqual(
+                controller.record_human_merge("human-gate", reviewer="Julius", merge_commit="a" * 40)["status"],
+                "human_merged",
+            )
+            store.close()
 
     def test_provider_defaults_to_parked_and_scope_is_required(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
