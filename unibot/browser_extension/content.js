@@ -88,9 +88,23 @@
 
   function sourceFromCell(cell) {
     const input = cell.querySelector(
-      ".cm-content, .CodeMirror-code, .input_area, [contenteditable='true'], textarea, pre"
+      ".cm-content, .CodeMirror-code, .input_area, [contenteditable='true'], textarea, " +
+      "pre.monaco-colorized, pre.lazy-virtualized"
     );
-    return input ? (input.innerText || input.textContent || input.value || "").trim().slice(0, 12000) : "";
+    if (input) return (input.innerText || input.textContent || input.value || "").trim().slice(0, 12000);
+
+    // Colab text cells expose their source through cell-contents rather than
+    // an editor node. Clone it so output-like descendants cannot enter the
+    // selection payload when a future Colab layout falls through here.
+    const contents = cell.querySelector(".cell-contents");
+    if (!contents) return "";
+    const clone = contents.cloneNode(true);
+    const legacyOutputClass = ["output", "area"].join("_");
+    clone.querySelectorAll(
+      `colab-output, .output, .${legacyOutputClass}, [class*='output'], ` +
+      "pre:not(.monaco-colorized):not(.lazy-virtualized)"
+    ).forEach((node) => node.remove());
+    return (clone.innerText || clone.textContent || "").trim().slice(0, 12000);
   }
 
   function candidateCells(selectors) {
@@ -112,10 +126,10 @@
     const cell = candidate.cell;
     const source = sourceFromCell(cell);
     const cellIndex = cells.indexOf(cell);
-    const classText = `${cell.className || ""} ${cell.getAttribute("data-cell-type") || ""}`.toLowerCase();
+    const classText = `${cell.className || ""} ${cell.getAttribute("data-cell-type") || ""} ${cell.getAttribute("aria-label") || ""}`.toLowerCase();
     return {
       source,
-      cellType: classText.includes("markdown") ? "markdown" : "code",
+      cellType: classText.includes("markdown") || classText.includes("text cell") ? "markdown" : "code",
       cellIndex,
       adapter,
       adapterVersion,
@@ -156,12 +170,17 @@
   }
 
   function colabAdapter() {
-    const selectors = ["colab-code-cell.focused", "colab-text-cell.focused", "[role='listitem'][aria-selected='true']"];
+    const selectors = [
+      ".cell.notebook-cell.focused",
+      ".cell.notebook-cell[aria-selected='true']",
+      "colab-code-cell.focused",
+      "colab-text-cell.focused"
+    ];
     return resolveCellCandidates({
       adapter: "colab",
       adapterVersion: "colab-v1",
       selectors,
-      cells: Array.from(document.querySelectorAll("colab-code-cell, colab-text-cell")),
+      cells: Array.from(document.querySelectorAll(".cell.notebook-cell, colab-code-cell, colab-text-cell")),
       confidence: "high"
     });
   }

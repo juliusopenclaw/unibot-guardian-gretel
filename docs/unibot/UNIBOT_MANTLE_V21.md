@@ -177,7 +177,9 @@ remains available for development and one alpha compatibility cycle.
   notebook and records adapter metadata, confidence, and bounded counts. If
   Colab exposes only read-only placeholders or no unambiguous editable cell,
   the canary must report `manual_selection_required`; it never stores source
-  text or notebook output. Run it with `npm run test:colab-canary`.
+  text or notebook output. It runs in headed Chromium so that the MV3 content
+  script and service worker are exercised; headless rendering alone is not
+  sufficient evidence. Run it with `npm run test:colab-canary`.
 - A normal extension cannot prevent other tabs, external tools, copy/paste, or
   Colab network access and therefore cannot guarantee exam security.
 - Captured code is parsed but never executed by the tutor.

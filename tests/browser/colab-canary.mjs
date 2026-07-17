@@ -17,7 +17,9 @@ if (parsedUrl.protocol !== "https:" || parsedUrl.hostname !== "colab.research.go
 }
 
 const launchOptions = {
-  headless: process.env.UNIBOT_CHROME_EXECUTABLE ? false : true,
+  // Chromium's headless mode can render Colab but omit extension service
+  // workers. The live canary must exercise the actual MV3 content script.
+  headless: false,
   args: []
 };
 if (process.env.UNIBOT_CHROME_EXECUTABLE) {

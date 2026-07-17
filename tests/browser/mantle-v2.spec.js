@@ -90,6 +90,42 @@ test("content script captures the focused Colab cell without output text", async
   expect(response.selectedCell.source).not.toContain("private rendered Colab output");
 });
 
+test("content script captures the current Colab notebook cell structure without output text", async ({ page }) => {
+  await page.setContent(`
+    <main>
+      <div class="cell code notebook-cell focused" aria-label="Cell 0: Code cell:">
+        <div class="cell-contents">
+          <pre class="monaco-colorized colab">values = [1, 2, 3]</pre>
+          <pre>private rendered output</pre>
+        </div>
+      </div>
+    </main>
+  `);
+  await page.evaluate(() => {
+    window.__unibotListener = null;
+    window.chrome = {
+      runtime: {
+        onMessage: {
+          addListener(listener) {
+            window.__unibotListener = listener;
+          }
+        }
+      }
+    };
+  });
+  await page.addScriptTag({ path: path.join(extensionRoot, "content.js") });
+  const response = await page.evaluate(() => new Promise((resolve) => {
+    window.__unibotListener({ type: "UNIBOT_GET_SELECTION" }, {}, resolve);
+  }));
+
+  expect(response.selectedCell.adapter).toBe("colab");
+  expect(response.selectedCell.cellType).toBe("code");
+  expect(response.selectedCell.cellIndex).toBe(0);
+  expect(response.selectedCell.confidence).toBe("high");
+  expect(response.selectedCell.source).toContain("values = [1, 2, 3]");
+  expect(response.selectedCell.source).not.toContain("private rendered output");
+});
+
 test("content script refuses ambiguous Colab cell detection instead of guessing", async ({ page }) => {
   await page.setContent(`
     <main>
