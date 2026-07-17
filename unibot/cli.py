@@ -275,6 +275,7 @@ def build_parser() -> argparse.ArgumentParser:
     release_handoff.add_argument("--repo", type=Path, default=Path.cwd())
     release_handoff.add_argument("--evidence", type=Path)
     release_handoff.add_argument("--colab-canary", type=Path)
+    release_handoff.add_argument("--jupyter-canary", type=Path)
     return parser
 
 
@@ -621,6 +622,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 repository=args.repo,
                 evidence=args.evidence,
                 colab_canary=args.colab_canary,
+                jupyter_canary=args.jupyter_canary,
             )
             _print_json(payload)
             return 0 if payload["status"] == "written" else 2

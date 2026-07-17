@@ -66,8 +66,9 @@ The local branch becomes a public draft only through one deliberate human
 GitHub action. The sequence is intentionally short:
 
 1. Confirm that the working tree is clean and run the public-safety scan,
-   Python suite, browser suite, branded Chrome Native-Messaging canary, and
-   the metadata-only public Colab canary with `npm run test:colab-canary`.
+   Python suite, browser suite, branded Chrome Native-Messaging canary, the
+   metadata-only public Colab canary with `npm run test:colab-canary`, and the
+   local synthetic JupyterLab canary with `npm run test:jupyter-canary`.
 2. Build `unibot release candidate --output ./unibot-review-candidate` and
    run `unibot release audit ./unibot-review-candidate`. Keep the printed source
    commit and manifest hashes with the review record.
@@ -78,9 +79,9 @@ GitHub action. The sequence is intentionally short:
    `unibot release pr-draft --candidate ./unibot-review-candidate --output ./UNIBOT-PR-DRAFT.md --evidence ../unibot-release-evidence.json`.
    The command refuses stale, dirty, tampered, or unsafe candidates and does
    not contact GitHub. When the public Colab canary has produced a
-   metadata-only JSON receipt, bind it to the same source commit in the final
-   handoff with:
-   `unibot release handoff --output ./unibot-release-handoff --evidence ../unibot-release-evidence.json --colab-canary ../colab-live-canary.json`.
+   metadata-only JSON receipts, bind them to the same source commit in the
+   final handoff with:
+   `unibot release handoff --output ./unibot-release-handoff --evidence ../unibot-release-evidence.json --colab-canary ../colab-live-canary.json --jupyter-canary ../jupyter-live-canary.json`.
    The handoff rejects a stale, writable, symlinked, or content-bearing canary.
 5. A human opens one **draft PR** from the Gretel branch to `main`. The PR
    must state: Gretel/Codex implementation and documentation, GLM provider
@@ -135,9 +136,12 @@ unibot release handoff --output ./unibot-release-handoff --evidence ../unibot-re
 ```
 
 This atomically builds the candidate, runs the read-only audit, writes the
-human PR draft, copies the hash-only `RELEASE-EVIDENCE.json`, and records the
-evidence hash in `HANDOFF-MANIFEST.json`. A failed step leaves no partial
-handoff and does not contact GitHub.
+human PR draft, copies the hash-only `RELEASE-EVIDENCE.json`, binds any Colab
+and local synthetic JupyterLab canary receipts, and records their hashes in
+`HANDOFF-MANIFEST.json`. A failed step leaves no partial handoff and does not
+contact GitHub. The JupyterLab receipt proves only high-confidence cell
+metadata capture in a local synthetic notebook; it proves no learning effect,
+institutional approval, or examination clearance.
 
 The meeting asks five bounded questions: who owns the institutional decision;
 whether the local practice purpose fits the named module; which accessibility

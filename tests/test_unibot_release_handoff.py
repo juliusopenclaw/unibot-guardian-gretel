@@ -132,6 +132,84 @@ class UniBotReleaseHandoffTests(unittest.TestCase):
             self.assertEqual(result["reason"], "colab_canary_blocked")
             self.assertFalse(output.exists())
 
+    def test_handoff_binds_metadata_only_jupyter_canary_to_source_commit(self) -> None:
+        repository = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            canary = root / "jupyter-canary.json"
+            source_commit = str(public_source_provenance(repository)["commit"])
+            canary.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "UniBotLiveJupyterCanaryV1",
+                        "status": "pass",
+                        "source_commit": source_commit,
+                        "provider_calls": 0,
+                        "source_text_omitted": True,
+                        "raw_cell_text_persisted": False,
+                        "notebook_output_read": False,
+                        "notebook_code_executed": False,
+                        "adapter": "jupyterlab",
+                        "adapter_version": "jupyterlab-v1",
+                        "confidence": "high",
+                        "source_url_kind": "local_synthetic_jupyterlab",
+                        "capture_status": "adapter_metadata_available",
+                        "cell_type": "markdown",
+                        "cell_index": 0,
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            canary.chmod(0o600)
+            output = root / "handoff"
+            result = write_release_handoff(output, repository=repository, jupyter_canary=canary)
+
+            self.assertEqual(result["status"], "written")
+            self.assertIn("JUPYTER-CANARY.json", result["output_file_names"])
+            self.assertEqual(
+                result["jupyter_canary_sha256"],
+                hashlib.sha256((output / "JUPYTER-CANARY.json").read_bytes()).hexdigest(),
+            )
+            manifest = json.loads((output / "HANDOFF-MANIFEST.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["jupyter_canary_file"], "JUPYTER-CANARY.json")
+            self.assertEqual(manifest["jupyter_canary_sha256"], result["jupyter_canary_sha256"])
+            self.assertEqual(manifest["source_commit"], source_commit)
+            self.assertFalse(manifest["private_project_files_included"])
+
+    def test_handoff_rejects_jupyter_canary_from_another_commit(self) -> None:
+        repository = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            canary = root / "jupyter-canary.json"
+            canary.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "UniBotLiveJupyterCanaryV1",
+                        "status": "pass",
+                        "source_commit": "0" * 40,
+                        "provider_calls": 0,
+                        "source_text_omitted": True,
+                        "raw_cell_text_persisted": False,
+                        "notebook_output_read": False,
+                        "notebook_code_executed": False,
+                        "adapter": "jupyterlab",
+                        "adapter_version": "jupyterlab-v1",
+                        "confidence": "high",
+                        "source_url_kind": "local_synthetic_jupyterlab",
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            canary.chmod(0o600)
+            output = root / "handoff"
+            result = write_release_handoff(output, repository=repository, jupyter_canary=canary)
+
+            self.assertEqual(result["status"], "blocked")
+            self.assertEqual(result["reason"], "jupyter_canary_blocked")
+            self.assertFalse(output.exists())
+
     def test_handoff_does_not_overwrite_existing_directory(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "handoff"

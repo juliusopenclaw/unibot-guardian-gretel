@@ -43,7 +43,7 @@ full provenance statement is in `AUTHORS.md`.
 - Create the human-gated GitHub PR text from an audited candidate:
   `unibot release pr-draft --candidate ./unibot-review-candidate --output ./UNIBOT-PR-DRAFT.md --evidence ../unibot-release-evidence.json`
 - Build the complete local handoff atomically in one step:
-  `unibot release handoff --output ./unibot-release-handoff --evidence ../unibot-release-evidence.json --colab-canary ../colab-live-canary.json`
+  `unibot release handoff --output ./unibot-release-handoff --evidence ../unibot-release-evidence.json --colab-canary ../colab-live-canary.json --jupyter-canary ../jupyter-live-canary.json`
 - Open `~/Applications/UniBot Companion.app` or click the extension and start a
   fixed or adaptive A0-A4 learning session.
 - The Help tab offers an optional score-neutral accessibility display mode with
@@ -111,6 +111,12 @@ upload.
   `UNIBOT_CHROME_EXECUTABLE=/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome npm run test:chrome-canary`
 - Public live Colab canary (metadata only, no notebook text or output):
   `UNIBOT_CHROME_EXECUTABLE=/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome npm run test:colab-canary`
+- Public live JupyterLab canary (local synthetic notebook metadata only; no
+  notebook code or output is read):
+  `UNIBOT_JUPYTER_PYTHON="$HOME/Library/Application Support/UniBotAutonomy/jupyter-canary-venv/bin/python" UNIBOT_CHROME_EXECUTABLE=/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome npm run test:jupyter-canary`
+- Bind both live receipts to the same clean source commit with the optional
+  `--colab-canary` and `--jupyter-canary` handoff arguments. The handoff
+  rejects stale, writable, symlinked, or content-bearing receipts.
 - The release-candidate bundle records a clean Git commit hash and refuses to
   build from a dirty working tree. It is still a public-draft handoff, not a
   merge, publication, institutional approval, or exam release.
