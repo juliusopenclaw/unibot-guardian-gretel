@@ -106,6 +106,7 @@
           <option>A0</option><option>A1</option><option selected>A2</option><option>A3</option><option>A4</option>
         </select>
         <button id="startSession" class="command" type="button">Sitzung starten</button>
+        <button id="stopSession" class="command secondary" type="button" disabled>Sitzung beenden</button>
         <output id="sessionOutput" role="status" aria-live="polite" aria-atomic="true">Lokaler Begleiter wird gesucht.</output>
         <label for="notebookSource">Oeffentliche Notebook-URL</label>
         <input id="notebookSource" type="url" placeholder="https://.../notebook.ipynb">
@@ -149,7 +150,7 @@
         <output id="exportPreview" role="status" aria-live="polite" aria-atomic="true" hidden>Noch keine Exportvorschau.</output>
         <label id="exportConfirmRow" class="check" hidden><input id="confirmExport" type="checkbox" aria-describedby="exportPreview">Vorschau geprüft; Export freiwillig erstellen</label>
         <button id="exportReview" class="command" type="button" disabled>Metadaten exportieren</button>
-        <button id="deleteSession" class="command secondary" type="button">Sitzung löschen</button>
+        <button id="deleteSession" class="command secondary" type="button" disabled>Sitzung löschen</button>
         <output id="reviewOutput" role="status" aria-live="polite" aria-atomic="true">Noch keine Sitzungsdaten.</output>
       </section>
 

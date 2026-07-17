@@ -1,12 +1,14 @@
 const NATIVE_HOST = "de.gretel.unibot_companion";
 const MAX_NOTEBOOK_BYTES = 10 * 1024 * 1024;
 const UPLOAD_CHUNK_BYTES = 32 * 1024;
+const HELP_LEVELS = ["A0", "A1", "A2", "A3", "A4"];
 
 const state = {
   port: null,
   pending: new Map(),
   requestCounter: 0,
   contract: null,
+  sessionActive: false,
   notebookId: "",
   selectedCell: null,
   lastReview: null,
@@ -23,6 +25,7 @@ const elements = {
   maxHelpLevel: document.querySelector("#maxHelpLevel"),
   fixedHelpLevel: document.querySelector("#fixedHelpLevel"),
   startSession: document.querySelector("#startSession"),
+  stopSession: document.querySelector("#stopSession"),
   sessionOutput: document.querySelector("#sessionOutput"),
   notebookSource: document.querySelector("#notebookSource"),
   notebookFile: document.querySelector("#notebookFile"),
@@ -69,7 +72,7 @@ function renderCompanionReleaseStatus(status) {
 }
 
 function selectedHelpLevel() {
-  return document.querySelector("input[name='helpLevel']:checked").value;
+  return document.querySelector("input[name='helpLevel']:checked")?.value || "A0";
 }
 
 function selectedAssistanceMode() {
@@ -78,6 +81,48 @@ function selectedAssistanceMode() {
 
 function applyAccessibilityMode() {
   document.documentElement.dataset.accessibility = elements.accessibilitySupport.checked ? "enhanced" : "default";
+}
+
+function syncSessionControls() {
+  const hasContract = Boolean(state.contract);
+  const active = hasContract && state.sessionActive;
+  elements.startSession.disabled = active || (hasContract && !state.sessionActive);
+  elements.stopSession.disabled = !active;
+  elements.capture.disabled = !active;
+  elements.ask.disabled = !active;
+  elements.refreshReview.disabled = !hasContract;
+  elements.showExportPreview.disabled = !state.lastReview;
+  elements.deleteSession.disabled = !hasContract;
+
+  [elements.pseudonym, elements.courseId, elements.maxHelpLevel, elements.fixedHelpLevel]
+    .forEach((control) => { control.disabled = hasContract; });
+  document.querySelectorAll("input[name='assistanceMode']").forEach((control) => {
+    control.disabled = hasContract;
+  });
+
+  document.querySelectorAll("input[name='helpLevel']").forEach((control) => {
+    const levelIndex = HELP_LEVELS.indexOf(control.value);
+    const maximumIndex = HELP_LEVELS.indexOf(state.contract?.max_help_level || "A4");
+    const fixedLevel = state.contract?.fixed_help_level || elements.fixedHelpLevel.value;
+    const allowed = !hasContract
+      || (state.sessionActive && (state.contract.assistance_mode === "fixed"
+        ? control.value === fixedLevel
+        : levelIndex >= 0 && levelIndex <= maximumIndex));
+    control.disabled = !allowed;
+  });
+
+  if (active && state.contract.assistance_mode === "fixed") {
+    const fixedLevel = state.contract.fixed_help_level || elements.fixedHelpLevel.value;
+    const fixedControl = document.querySelector(`input[name='helpLevel'][value='${fixedLevel}']`);
+    if (fixedControl) fixedControl.checked = true;
+  } else if (active) {
+    const maximumIndex = HELP_LEVELS.indexOf(state.contract.max_help_level || "A4");
+    const current = document.querySelector("input[name='helpLevel']:checked");
+    if (!current || HELP_LEVELS.indexOf(current.value) > maximumIndex) {
+      const fallback = document.querySelector(`input[name='helpLevel'][value='${HELP_LEVELS[Math.max(0, maximumIndex)]}']`);
+      if (fallback) fallback.checked = true;
+    }
+  }
 }
 
 function scheduleReconnect() {
@@ -142,11 +187,13 @@ function connectCompanion() {
         session_id: status.active_session_metadata?.session_id || ""
       });
       state.contract = resumed.contract;
+      state.sessionActive = true;
       state.lastReview = resumed.report;
       setConnection("Sitzung fortgesetzt", "ready");
       elements.sessionOutput.textContent = "Vorhandene Lernsitzung wurde lokal fortgesetzt.";
       elements.reviewOutput.textContent = renderReview(state.lastReview);
     } else {
+      state.sessionActive = false;
       elements.sessionOutput.textContent = "Begleiter bereit. Lernsitzung starten.";
     }
     const gateway = await nativeRequest("gateway.status");
@@ -154,11 +201,13 @@ function connectCompanion() {
       elements.stopGateway.disabled = false;
       elements.notebookOutput.textContent = "Lokales Jupyter-Gateway ist aktiv.";
     }
+    syncSessionControls();
   }).catch((error) => {
     state.connecting = false;
     setConnection("Begleiter fehlt", "error");
     renderCompanionReleaseStatus({ local_practice_status: "attention", distribution_status: "blocked_human_release_gates" });
     elements.sessionOutput.textContent = error.message;
+    syncSessionControls();
     if (state.port) {
       state.port.disconnect?.();
     }
@@ -185,6 +234,7 @@ function nativeRequest(type, payload = {}) {
 }
 
 async function startSession() {
+  if (state.contract) throw new Error("Vor einer neuen Sitzung die beendete Sitzung löschen.");
   const mode = selectedAssistanceMode();
   const response = await nativeRequest("session.start", {
     pseudonym: elements.pseudonym.value.trim() || "Lernende Person",
@@ -195,15 +245,19 @@ async function startSession() {
     planned_task_count: 1
   });
   state.contract = response.contract;
+  state.sessionActive = true;
+  state.lastReview = null;
   setConnection("Sitzung aktiv", "ready");
   elements.sessionOutput.textContent = [
     `${mode === "fixed" ? "Feste" : "Adaptive"} Hilfe`,
     `Maximum: ${response.contract.max_help_level}`,
     "Hilfen werden lokal verarbeitet."
   ].join("\n");
+  syncSessionControls();
 }
 
 async function captureCell() {
+  if (!state.sessionActive) throw new Error("Lernsitzung zuerst starten");
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) throw new Error("Kein aktiver Notebook-Tab");
   const response = await chrome.tabs.sendMessage(tab.id, { type: "UNIBOT_GET_SELECTION" });
@@ -306,7 +360,7 @@ function renderTurn(turn) {
 }
 
 async function requestHelp() {
-  if (!state.contract) throw new Error("Lernsitzung zuerst starten");
+  if (!state.contract || !state.sessionActive) throw new Error("Lernsitzung zuerst starten");
   if (!elements.task.value.trim() || !elements.attempt.value.trim()) {
     throw new Error("Lernziel und eigener Schritt sind erforderlich");
   }
@@ -345,6 +399,20 @@ async function refreshReview() {
   state.lastReview = response.report;
   resetExportPreview();
   elements.reviewOutput.textContent = renderReview(state.lastReview);
+  syncSessionControls();
+}
+
+async function stopSession() {
+  if (!state.contract || !state.sessionActive) throw new Error("Keine aktive Lernsitzung ausgewählt");
+  const response = await nativeRequest("session.stop");
+  state.sessionActive = false;
+  state.lastReview = response.report;
+  elements.sessionOutput.textContent = "Lernsitzung beendet. Der Rückblick bleibt bis zur Löschung lokal verfügbar.";
+  elements.helpOutput.textContent = "Lernsitzung beendet. Für weitere Hilfe eine neue Sitzung starten.";
+  elements.reviewOutput.textContent = renderReview(state.lastReview);
+  resetExportPreview();
+  setConnection("Sitzung beendet", "ready");
+  syncSessionControls();
 }
 
 function resetExportPreview() {
@@ -389,6 +457,7 @@ async function deleteSession() {
   if (!window.confirm("Lernsitzung und lokale Metadaten sofort löschen?")) return;
   await nativeRequest("session.delete", { session_id: state.contract.session_id });
   state.contract = null;
+  state.sessionActive = false;
   state.lastReview = null;
   state.selectedCell = null;
   elements.sessionOutput.textContent = "Lernsitzung und lokale Metadaten wurden gelöscht.";
@@ -396,6 +465,7 @@ async function deleteSession() {
   elements.helpOutput.textContent = "Noch keine Anfrage.";
   resetExportPreview();
   setConnection("Lokal bereit", "ready");
+  syncSessionControls();
 }
 
 function guarded(action, output) {
@@ -441,6 +511,7 @@ tabButtons.forEach((button, index) => {
 });
 
 elements.startSession.addEventListener("click", guarded(startSession, elements.sessionOutput));
+elements.stopSession.addEventListener("click", guarded(stopSession, elements.sessionOutput));
 elements.importNotebook.addEventListener("click", guarded(importNotebook, elements.notebookOutput));
 elements.openGateway.addEventListener("click", guarded(openGateway, elements.notebookOutput));
 elements.stopGateway.addEventListener("click", guarded(stopGateway, elements.notebookOutput));
@@ -458,3 +529,4 @@ elements.deleteSession.addEventListener("click", guarded(deleteSession, elements
 connectCompanion();
 resetExportPreview();
 applyAccessibilityMode();
+syncSessionControls();

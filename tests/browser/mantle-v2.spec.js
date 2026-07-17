@@ -143,6 +143,7 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
             contract: {
               session_id: "synthetic-session",
               assistance_mode: message.payload.assistance_mode,
+              fixed_help_level: "A2",
               max_help_level: message.payload.max_help_level
             }
           };
@@ -168,6 +169,18 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
           response = {
             request_id: message.request_id,
             status: "ok",
+            report: {
+              event_count: 1,
+              own_attempt_count: 1,
+              by_help_level: { A2: 1 },
+              assistance_points_used: 5,
+              accessibility_support_event_count: 1
+            }
+          };
+        } else if (message.type === "session.stop") {
+          response = {
+            request_id: message.request_id,
+            status: "stopped",
             report: {
               event_count: 1,
               own_attempt_count: 1,
@@ -212,8 +225,12 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
   await expect(page.locator("#releaseStatus")).toHaveText("Lokaler Uebungsbetrieb: bereit. Allgemeine Verteilung: noch nicht freigegeben.");
   await page.locator("#startSession").click();
   await expect(page.locator("#connectionStatus")).toHaveText("Sitzung aktiv");
+  await expect(page.locator("#maxHelpLevel")).toBeDisabled();
+  await expect(page.locator("#fixedHelpLevel")).toBeDisabled();
 
   await page.getByRole("tab", { name: "Hilfe", exact: true }).click();
+  await expect(page.locator("input[name='helpLevel'][value='A2']")).toBeEnabled();
+  await expect(page.locator("input[name='helpLevel'][value='A4']")).toBeDisabled();
   await page.locator("#capture").click();
   await expect(page.locator("#cellMeta")).toContainText("Zelle 2");
   await page.locator("#task").fill("Warum entsteht ein Indexfehler?");
@@ -231,6 +248,15 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
   await page.locator("#refreshReview").click();
   await expect(page.locator("#reviewOutput")).toContainText("Ereignisse: 1");
   await expect(page.locator("#reviewOutput")).toContainText("Barrierearme Unterstützung: 1 Ereignisse (kostenneutral)");
+  await page.getByRole("tab", { name: "Sitzung", exact: true }).click();
+  await expect(page.locator("#stopSession")).toBeEnabled();
+  await page.locator("#stopSession").click();
+  await expect(page.locator("#connectionStatus")).toHaveText("Sitzung beendet");
+  await expect(page.locator("#sessionOutput")).toContainText("Lernsitzung beendet");
+  await expect(page.locator("#ask")).toBeDisabled();
+  await expect(page.locator("#startSession")).toBeDisabled();
+  await expect(page.locator("#deleteSession")).toBeEnabled();
+  await page.getByRole("tab", { name: "Rueckblick", exact: true }).click();
   await expect(page.locator("#exportReview")).toBeDisabled();
   await page.locator("#showExportPreview").click();
   await expect(page.locator("#exportPreview")).toContainText("Anzahl freiwillig markierter barrierearmer Unterstützungsereignisse");

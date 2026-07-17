@@ -15,7 +15,9 @@ insufficient balance. Human merge and release review remain required.
 4. Select one Colab or Jupyter cell and describe the learner's own attempt.
 5. Request A0-A4 help. Adaptive escalation moves one level at a time and needs
    a changed attempt plus explicit confirmation.
-6. Preview and voluntarily export the metadata-only learning report.
+6. End the session explicitly when the practice task is complete; the local
+   report remains available until deletion, but further tutor turns are closed.
+7. Preview and voluntarily export the metadata-only learning report.
 
 ## Help Contract
 
@@ -47,6 +49,10 @@ learning, or independent work.
 - `session.delete` removes the contract, state, event journal, and associated
   sanitized notebook copy immediately. Ended sessions are cleaned after seven
   days; sanitized notebook copies are cleaned after 24 hours.
+- `session.stop` is available in the Sidepanel as an explicit end action. It
+  freezes the immutable session contract, keeps only the declared local
+  metadata for the retention window, and prevents further tutor turns until a
+  new session is created after deletion.
 - A real local Jupyter process is represented only by a restricted process
   record. `gateway.status` and `gateway.stop` allow the Companion to recover or
   terminate that process after a Chrome restart; the Jupyter token is never
