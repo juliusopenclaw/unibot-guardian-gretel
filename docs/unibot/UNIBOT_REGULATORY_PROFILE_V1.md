@@ -111,7 +111,7 @@ Wichtige Referenzen:
 
 - [KI-Richtlinie der Universität zu Köln, AM 2/2026](https://am.uni-koeln.de/e45267/data/records54900/AM_2026-02_KI_RL_ger.pdf)
 - [Universität zu Köln: KI und Prüfungsrecht](https://verwaltung.uni-koeln.de/stabsstelle02.1/content/allgemeine_informationen/aktuelles/kuenstliche_intelligenz_und_pruefungsrecht/index_ger.html)
-- [Medizinische Fakultät: KI-Dokumentationsrichtlinie](https://medfak.uni-koeln.de/sites/MedFakDekanat/Forschung/Promotion/KI-Richtlinie_MedFak.pdf)
+- [Medizinische Fakultät: KI-Dokumentationsrichtlinie](https://medfak.uni-koeln.de/sites/MedFakDekanat/studium_lehre/KI-Richtlinie_MedFak.pdf)
 - [Medizinische Fakultät: KI im Studium](https://medfak.uni-koeln.de/studium-lehre/ueberblick/ki-in-der-lehre)
 - [Servicezentrum Inklusion: Nachteilsausgleich](https://inklusion.uni-koeln.de/informationen/nachteilsausgleich/index_ger.html)
 - [Servicezentrum Inklusion: Klausurunterstützung](https://inklusion.uni-koeln.de/service/klausurunterstuetzung/index_ger.html)
