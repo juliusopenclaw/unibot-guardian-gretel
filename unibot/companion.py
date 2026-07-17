@@ -242,6 +242,16 @@ class CompanionRuntime:
                     else None,
                 )
             if message_type == "session.start":
+                if (
+                    payload.get("practice_scope") != "practice_only"
+                    or payload.get("practice_scope_confirmed") is not True
+                ):
+                    return self._response(
+                        request_id,
+                        "blocked",
+                        error="practice_scope_confirmation_required",
+                        exam_deployment_status="not_cleared",
+                    )
                 if active_session_metadata(self.storage_root):
                     return self._response(
                         request_id,

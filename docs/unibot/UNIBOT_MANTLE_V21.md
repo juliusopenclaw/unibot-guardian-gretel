@@ -44,8 +44,9 @@ learning, or independent work.
   so a closed or restarted Sidepanel cannot append help to another session.
 - The session contract contains the immutable scope `practice_only`. The
   Sidepanel requires a visible learner confirmation of that scope before it
-  sends `session.start`; the confirmation is a boundary control, not a legal
-  or examination approval.
+  sends `session.start`, and the local Companion rejects native start messages
+  that omit the same confirmation. This is a boundary control, not a legal or
+  examination approval.
 - The deterministic tutor analyzes Python syntax, visible traceback terms,
   skill tags, local formula cards, and versioned official source anchors.
 - Raw task, cell, attempt, and tutor transcript text are not persisted.

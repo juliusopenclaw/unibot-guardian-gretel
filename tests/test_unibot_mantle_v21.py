@@ -186,7 +186,13 @@ class UniBotMantleV21Tests(unittest.TestCase):
                 {
                     "request_id": "1",
                     "type": "session.start",
-                    "payload": {"assistance_mode": "fixed", "fixed_help_level": "A2", "max_help_level": "A4"},
+                    "payload": {
+                        "assistance_mode": "fixed",
+                        "fixed_help_level": "A2",
+                        "max_help_level": "A4",
+                        "practice_scope": "practice_only",
+                        "practice_scope_confirmed": True,
+                    },
                 }
             )
             self.assertEqual(started["status"], "active")
@@ -217,7 +223,13 @@ class UniBotMantleV21Tests(unittest.TestCase):
                 {
                     "request_id": "resume-1",
                     "type": "session.start",
-                    "payload": {"assistance_mode": "fixed", "fixed_help_level": "A1", "max_help_level": "A2"},
+                    "payload": {
+                        "assistance_mode": "fixed",
+                        "fixed_help_level": "A1",
+                        "max_help_level": "A2",
+                        "practice_scope": "practice_only",
+                        "practice_scope_confirmed": True,
+                    },
                 }
             )
             session_id = started["contract"]["session_id"]
@@ -256,7 +268,14 @@ class UniBotMantleV21Tests(unittest.TestCase):
     def test_companion_rejects_stale_or_missing_tutor_session_binding(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             runtime = CompanionRuntime(storage_root=Path(temporary))
-            started = runtime.handle({"request_id": "binding-1", "type": "session.start", "payload": {}})
+            missing_scope = runtime.handle({"request_id": "binding-0", "type": "session.start", "payload": {}})
+            started = runtime.handle(
+                {
+                    "request_id": "binding-1",
+                    "type": "session.start",
+                    "payload": {"practice_scope": "practice_only", "practice_scope_confirmed": True},
+                }
+            )
             base_payload = {
                 "task": "Wie pruefe ich eine Python-Liste?",
                 "learner_attempt": "Ich pruefe zuerst len(values).",
@@ -283,13 +302,19 @@ class UniBotMantleV21Tests(unittest.TestCase):
         self.assertEqual(stale["status"], "blocked")
         self.assertEqual(stale["error"], "session_id_mismatch")
         self.assertEqual(valid["status"], "ok")
+        self.assertEqual(missing_scope["status"], "blocked")
+        self.assertEqual(missing_scope["error"], "practice_scope_confirmation_required")
 
     def test_companion_session_delete_removes_contract_state_and_journal(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             storage_root = Path(temporary)
             runtime = CompanionRuntime(storage_root=storage_root)
             started = runtime.handle(
-                {"request_id": "delete-1", "type": "session.start", "payload": {}}
+                {
+                    "request_id": "delete-1",
+                    "type": "session.start",
+                    "payload": {"practice_scope": "practice_only", "practice_scope_confirmed": True},
+                }
             )
             deleted = runtime.handle(
                 {
@@ -311,7 +336,13 @@ class UniBotMantleV21Tests(unittest.TestCase):
             notebook = nbformat.v4.new_notebook(cells=[nbformat.v4.new_code_cell("values = [1, 2, 3]")])
             nbformat.write(notebook, source)
             runtime = CompanionRuntime(storage_root=root / "sessions")
-            started = runtime.handle({"request_id": "linked-1", "type": "session.start", "payload": {}})
+            started = runtime.handle(
+                {
+                    "request_id": "linked-1",
+                    "type": "session.start",
+                    "payload": {"practice_scope": "practice_only", "practice_scope_confirmed": True},
+                }
+            )
             imported = runtime.handle(
                 {
                     "request_id": "linked-2",
@@ -350,7 +381,13 @@ class UniBotMantleV21Tests(unittest.TestCase):
             process = subprocess.Popen(["sleep", "30"], start_new_session=True)
             try:
                 runtime = CompanionRuntime(storage_root=root / "sessions")
-                runtime.handle({"request_id": "gateway-1", "type": "session.start", "payload": {}})
+                runtime.handle(
+                    {
+                        "request_id": "gateway-1",
+                        "type": "session.start",
+                        "payload": {"practice_scope": "practice_only", "practice_scope_confirmed": True},
+                    }
+                )
                 imported = runtime.handle(
                     {
                         "request_id": "gateway-2",
