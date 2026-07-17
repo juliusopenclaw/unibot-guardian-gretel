@@ -53,7 +53,8 @@ The local branch becomes a public draft only through one deliberate human
 GitHub action. The sequence is intentionally short:
 
 1. Confirm that the working tree is clean and run the public-safety scan,
-   Python suite, browser suite, and the branded Chrome Native-Messaging canary.
+   Python suite, browser suite, branded Chrome Native-Messaging canary, and
+   the metadata-only public Colab canary with `npm run test:colab-canary`.
 2. Build `unibot release candidate --output ./unibot-review-candidate` and
    run `unibot release audit ./unibot-review-candidate`. Keep the printed source
    commit and manifest hashes with the review record.
@@ -63,7 +64,11 @@ GitHub action. The sequence is intentionally short:
 4. Generate the public-safe PR text from the audited candidate with
    `unibot release pr-draft --candidate ./unibot-review-candidate --output ./UNIBOT-PR-DRAFT.md --evidence ../unibot-release-evidence.json`.
    The command refuses stale, dirty, tampered, or unsafe candidates and does
-   not contact GitHub.
+   not contact GitHub. When the public Colab canary has produced a
+   metadata-only JSON receipt, bind it to the same source commit in the final
+   handoff with:
+   `unibot release handoff --output ./unibot-release-handoff --evidence ../unibot-release-evidence.json --colab-canary ../colab-live-canary.json`.
+   The handoff rejects a stale, writable, symlinked, or content-bearing canary.
 5. A human opens one **draft PR** from the Gretel branch to `main`. The PR
    must state: Gretel/Codex implementation and documentation, GLM provider
    calls and cost (`0` while parked), tests, public-safety result, remaining

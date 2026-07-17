@@ -3,11 +3,13 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+import hashlib
 from pathlib import Path
 from unittest.mock import patch
 
 from unibot.release_handoff import write_release_handoff
 from unibot.public_safety import scan_text
+from unibot.provenance import public_source_provenance
 
 
 class UniBotReleaseHandoffTests(unittest.TestCase):
@@ -60,6 +62,72 @@ class UniBotReleaseHandoffTests(unittest.TestCase):
                 result = write_release_handoff(output, repository=repository)
             self.assertEqual(result["status"], "blocked")
             self.assertEqual(result["reason"], "release_candidate_blocked")
+            self.assertFalse(output.exists())
+
+    def test_handoff_binds_metadata_only_colab_canary_to_source_commit(self) -> None:
+        repository = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            canary = root / "colab-canary.json"
+            source_commit = str(public_source_provenance(repository)["commit"])
+            canary.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "UniBotLiveColabCanaryV1",
+                        "status": "pass",
+                        "source_commit": source_commit,
+                        "provider_calls": 0,
+                        "source_text_omitted": True,
+                        "raw_cell_text_persisted": False,
+                        "notebook_output_read": False,
+                        "capture_status": "manual_selection_required",
+                        "adapter": "manual_selection",
+                        "confidence": "low",
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            canary.chmod(0o600)
+            output = root / "handoff"
+            result = write_release_handoff(output, repository=repository, colab_canary=canary)
+
+            self.assertEqual(result["status"], "written")
+            self.assertIn("COLAB-CANARY.json", result["output_file_names"])
+            self.assertEqual(
+                result["colab_canary_sha256"], hashlib.sha256((output / "COLAB-CANARY.json").read_bytes()).hexdigest()
+            )
+            manifest = json.loads((output / "HANDOFF-MANIFEST.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["colab_canary_file"], "COLAB-CANARY.json")
+            self.assertEqual(manifest["source_commit"], source_commit)
+            self.assertFalse(manifest["private_project_files_included"])
+
+    def test_handoff_rejects_colab_canary_from_another_commit(self) -> None:
+        repository = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            canary = root / "colab-canary.json"
+            canary.write_text(
+                json.dumps(
+                    {
+                        "schema_version": "UniBotLiveColabCanaryV1",
+                        "status": "pass",
+                        "source_commit": "0" * 40,
+                        "provider_calls": 0,
+                        "source_text_omitted": True,
+                        "raw_cell_text_persisted": False,
+                        "notebook_output_read": False,
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            canary.chmod(0o600)
+            output = root / "handoff"
+            result = write_release_handoff(output, repository=repository, colab_canary=canary)
+
+            self.assertEqual(result["status"], "blocked")
+            self.assertEqual(result["reason"], "colab_canary_blocked")
             self.assertFalse(output.exists())
 
     def test_handoff_does_not_overwrite_existing_directory(self) -> None:

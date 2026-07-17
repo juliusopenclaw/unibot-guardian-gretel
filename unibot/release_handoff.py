@@ -28,6 +28,33 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _validate_colab_canary(path: Path, source_commit: str) -> dict[str, Any]:
+    """Accept only metadata-only live-Colab evidence bound to this source commit."""
+    if path.is_symlink() or not path.is_file() or path.stat().st_mode & 0o077:
+        return {"status": "blocked", "reason": "colab_canary_permissions_or_path_invalid"}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+        return {"status": "blocked", "reason": "colab_canary_not_valid_json"}
+    if not isinstance(payload, dict):
+        return {"status": "blocked", "reason": "colab_canary_not_object"}
+    required = {
+        "schema_version": "UniBotLiveColabCanaryV1",
+        "status": "pass",
+        "source_commit": source_commit,
+        "provider_calls": 0,
+        "source_text_omitted": True,
+        "raw_cell_text_persisted": False,
+        "notebook_output_read": False,
+    }
+    if any(payload.get(key) != expected for key, expected in required.items()):
+        return {"status": "blocked", "reason": "colab_canary_contract_mismatch"}
+    safety = scan_text(path.read_text(encoding="utf-8"), "COLAB-CANARY.json")
+    if safety["status"] != "pass":
+        return {"status": "blocked", "reason": "colab_canary_public_safety_failed"}
+    return {"status": "pass", "payload": payload}
+
+
 def _blocked(reason: str, **extra: Any) -> dict[str, Any]:
     return {
         "schema_version": RELEASE_HANDOFF_SCHEMA_VERSION,
@@ -47,6 +74,7 @@ def write_release_handoff(
     *,
     repository: str | Path | None = None,
     evidence: str | Path | None = None,
+    colab_canary: str | Path | None = None,
 ) -> dict[str, Any]:
     """Build candidate, audit, and PR draft as one atomic local handoff."""
     root = Path(output_dir).expanduser()
@@ -70,6 +98,17 @@ def write_release_handoff(
         candidate = write_release_candidate_bundle(candidate_dir)
         if candidate.get("status") != "written":
             return _blocked("release_candidate_blocked", candidate=candidate)
+
+        canary_source = Path(colab_canary).expanduser() if colab_canary is not None else None
+        canary = {"status": "not_recorded"}
+        canary_path = None
+        if canary_source is not None:
+            canary = _validate_colab_canary(canary_source, str(candidate["source_commit"]))
+            if canary["status"] != "pass":
+                return _blocked("colab_canary_blocked", colab_canary=canary)
+            canary_path = staging / "COLAB-CANARY.json"
+            shutil.copyfile(canary_source, canary_path)
+            os.chmod(canary_path, 0o600)
 
         audit = audit_release_candidate(candidate_dir, repository=repo)
         if audit.get("status") != "pass":
@@ -108,6 +147,8 @@ def write_release_handoff(
             "verification_evidence_sha256": pr.get("release_evidence_sha256", ""),
             "verification_gate_ids": pr.get("verification_gate_ids", []),
             "verification_evidence_file": "RELEASE-EVIDENCE.json" if evidence_path else None,
+            "colab_canary_file": "COLAB-CANARY.json" if canary_path else None,
+            "colab_canary_sha256": _sha256_file(canary_path) if canary_path else None,
             "provider_calls": 0,
             "learner_content_included": False,
             "private_project_files_included": False,
@@ -136,6 +177,8 @@ def write_release_handoff(
         output_file_names = ["HANDOFF-MANIFEST.json", "UNIBOT-PR-DRAFT.md", "candidate/"]
         if evidence_path:
             output_file_names.append("RELEASE-EVIDENCE.json")
+        if canary_path:
+            output_file_names.append("COLAB-CANARY.json")
         return {
             "schema_version": RELEASE_HANDOFF_SCHEMA_VERSION,
             "artifact_type": "unibot_release_handoff",
@@ -149,6 +192,7 @@ def write_release_handoff(
             "verification_evidence_status": pr.get("verification_evidence_status", "not_recorded"),
             "verification_evidence_sha256": pr.get("release_evidence_sha256", ""),
             "verification_gate_ids": pr.get("verification_gate_ids", []),
+            "colab_canary_sha256": _sha256_file(root / "COLAB-CANARY.json") if canary_path else None,
             "source_commit": candidate["source_commit"],
             "public_safety_status": "pass",
             "provider_calls": 0,

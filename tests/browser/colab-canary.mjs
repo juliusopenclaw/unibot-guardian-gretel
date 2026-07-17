@@ -2,11 +2,13 @@ import { chromium } from "playwright";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const extensionRoot = path.join(root, "unibot", "browser_extension");
 const expectedId = "cmbjhndgjhgpopcflkjoalmpfjhoiana";
+const sourceCommit = execFileSync("git", ["-C", root, "rev-parse", "HEAD"], { encoding: "utf-8" }).trim();
 const defaultUrl = "https://colab.research.google.com/notebooks/intro.ipynb";
 const canaryUrl = process.env.UNIBOT_LIVE_COLAB_URL || defaultUrl;
 const parsedUrl = new URL(canaryUrl);
@@ -95,6 +97,7 @@ try {
   const cell = safeCellMetadata(capture.selectedCell);
   const payload = {
     schema_version: "UniBotLiveColabCanaryV1",
+    source_commit: sourceCommit,
     status: publicSurfaceReady && capture.status === "ok" ? "pass" : "blocked",
     public_surface_ready: publicSurfaceReady,
     capture_status: cell.confidence === "low" ? "manual_selection_required" : "adapter_metadata_available",

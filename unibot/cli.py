@@ -242,6 +242,7 @@ def build_parser() -> argparse.ArgumentParser:
     release_handoff.add_argument("--output", type=Path, required=True)
     release_handoff.add_argument("--repo", type=Path, default=Path.cwd())
     release_handoff.add_argument("--evidence", type=Path)
+    release_handoff.add_argument("--colab-canary", type=Path)
     return parser
 
 
@@ -566,7 +567,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             _print_json(payload)
             return 0 if payload["status"] == "ready_for_human_review" else 2
         if args.command == "release" and args.release_command == "handoff":
-            payload = write_release_handoff(args.output, repository=args.repo, evidence=args.evidence)
+            payload = write_release_handoff(
+                args.output,
+                repository=args.repo,
+                evidence=args.evidence,
+                colab_canary=args.colab_canary,
+            )
             _print_json(payload)
             return 0 if payload["status"] == "written" else 2
     except (GatewayError, NotebookIntakeError, RuntimeError, ValueError, OSError) as exc:
