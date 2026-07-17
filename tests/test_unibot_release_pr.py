@@ -35,6 +35,7 @@ class UniBotReleasePrDraftTests(unittest.TestCase):
             self.assertIn("Institutionelle Prüfung", draft["body"])
             self.assertIn("bestätigte `practice_only`-Sitzung", draft["body"])
             self.assertIn("barrierearme Darstellung aktiviert lokal", draft["body"])
+            self.assertIn("Nutzung wird weder im Sitzungsjournal noch im Export protokolliert", draft["body"])
             self.assertIn("Öffentliche Demo-Fixture-SHA-256", draft["body"])
             self.assertIn("Öffentlicher Demo-Ablauf-SHA-256", draft["body"])
             self.assertIn("REVIEW-START-HERE-SHA-256", draft["body"])

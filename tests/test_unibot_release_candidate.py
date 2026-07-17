@@ -88,6 +88,10 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
                 "pass",
             )
             self.assertEqual(scan_text((output / "PUBLIC-DEMO.md").read_text(encoding="utf-8"), "PUBLIC-DEMO.md")["status"], "pass")
+            self.assertIn(
+                "Nutzung wird weder im Sitzungsjournal noch im freiwilligen Export protokolliert",
+                (output / "REVIEW-START-HERE.md").read_text(encoding="utf-8"),
+            )
             review_start = (output / "REVIEW-START-HERE.md").read_text(encoding="utf-8")
             self.assertIn("Hier anfangen", review_start)
             self.assertIn("Hilfe A0 bis A4", review_start)

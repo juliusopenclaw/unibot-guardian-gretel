@@ -1094,6 +1094,7 @@ def build_institutional_plain_language_brief(
         "## Datenschutz in einem Satz",
         "Zelltext und eigener Versuch werden nur flüchtig lokal verarbeitet; dauerhaft bleiben nur notwendige Metadaten, Hashes, Hilfestufen und Quellen-IDs.",
         "Der Tutor arbeitet ohne Provider. GLM erhält in dieser Etappe keinen Lernenden- oder Notebookinhalt.",
+        "Die optionale barrierearme Darstellung bleibt lokal; ihre Nutzung wird weder im Sitzungsjournal noch im freiwilligen Export protokolliert.",
         "Ein Export wird zuerst angezeigt und ist freiwillig.",
         "",
         "## Inklusion",
@@ -1101,6 +1102,7 @@ def build_institutional_plain_language_brief(
         "Screenreader, 200-Prozent-Zoom/Reflow und die Eignung für konkrete Personen sind noch menschlich zu prüfen; dies ist keine WCAG-Zertifizierung.",
         "Das Inklusionsbüro entscheidet, welche Unterstützung im konkreten Lehr- oder Prüfungsformat passt.",
         "Barrierearme Unterstützung bleibt kostenneutral und wird nicht in eine automatische Bewertung umgerechnet.",
+        "Die Nutzung der Darstellung wird nicht als Unterstützungsereignis gespeichert und nicht exportiert.",
         "",
         "## Was soll die Universität entscheiden?",
         "- Ist der lokale Übungszweck für das konkrete Modul geeignet?",
@@ -1171,7 +1173,7 @@ def build_accessibility_review_walkthrough(
         "privacy_and_non_disclosure": (
             "Datenschutz und Nicht-Offenlegung",
             "Synthetische Aufgabe mit Speicherscan",
-            "Diagnosen, Unterstützungsstatus, rohes Notebook und Lernendentext dürfen nicht im Review-Nachweis erscheinen.",
+            "Diagnosen, Unterstützungsstatus, die Nutzung der Darstellung, rohes Notebook und Lernendentext dürfen nicht im Review-Nachweis erscheinen.",
         ),
     }
     lines = [

@@ -77,6 +77,7 @@ def _review_start_here_markdown(source_commit: str) -> str:
             "## Inklusion",
             "",
             "Barrierefreie Unterstützung ist score-neutral. UniBot entscheidet keinen Nachteilsausgleich, keine Diagnose und keinen offiziellen Unterstützungsstatus.",
+            "Die optionale barrierearme Darstellung bleibt lokal; ihre Nutzung wird weder im Sitzungsjournal noch im freiwilligen Export protokolliert.",
             "Automatisierte Prototyp-Evidenz deckt Tastaturfokus, Statusbereiche, schmale Fenster und manuelle Zellwahl ab.",
             "Screenreader, 200-Prozent-Zoom/Reflow und die Eignung für konkrete Personen bleiben menschlich zu prüfen; eine rechtliche Konformitätsentscheidung bleibt menschlich.",
             "",

@@ -229,6 +229,7 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         self.assertNotIn("Masterarbeit", markdown)
         self.assertIn("Pruefungsamt", markdown)
         self.assertIn("Barrierefreiheit: browser_tested_human_review_required", markdown)
+        self.assertIn("Nutzung der Darstellung wird nicht als Unterstützungsereignis gespeichert", markdown)
         self.assertEqual(scan_text(markdown, "institutional-presentation-markdown")['status'], "pass")
 
         from unibot.clearance import build_institutional_plain_language_brief
@@ -239,6 +240,7 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         self.assertIn("## Inklusion", brief)
         self.assertIn("not_cleared", brief)
         self.assertIn("Gretel / Codex", brief)
+        self.assertIn("Nutzung wird weder im Sitzungsjournal noch im freiwilligen Export protokolliert", brief)
         self.assertEqual(scan_text(brief, "institutional-plain-language-brief")['status'], "pass")
 
         from unibot.clearance import build_accessibility_review_walkthrough
@@ -250,6 +252,7 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         self.assertIn("Woran erkennen wir es?", walkthrough)
         self.assertIn("`not_tested`", walkthrough)
         self.assertIn("Keine Namen, Diagnosen", walkthrough)
+        self.assertIn("die Nutzung der Darstellung", walkthrough)
         self.assertIn("200 percent", packet["evidence"]["browser_mantle"]["accessibility_evidence"]["automated_checks"][-1])
         self.assertEqual(scan_text(walkthrough, "institutional-accessibility-walkthrough")['status'], "pass")
 
