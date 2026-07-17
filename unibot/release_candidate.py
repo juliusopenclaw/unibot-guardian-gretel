@@ -13,6 +13,7 @@ from .extension_package import package_extension
 from .public_demo import build_public_demo_evidence, build_public_demo_markdown
 from .public_safety import scan_text
 from .provenance import public_source_provenance
+from .review_board import build_review_board_packet, build_review_board_packet_markdown
 
 
 RELEASE_CANDIDATE_SCHEMA_VERSION = "UniBotReleaseCandidateV1"
@@ -52,6 +53,7 @@ def _review_start_here_markdown(source_commit: str) -> str:
             "2. Zeige im Chrome-Seitenpanel die Auswahl einer synthetischen Zelle und die Hilfe A0 bis A4.",
             "3. Zeige, dass der Tutor keine fertige Lösung, keinen Endwert und keinen ausgeführten Notebookcode liefert.",
             "4. Öffne danach den `institutional-plain-language-brief.md` und den `institutional-accessibility-walkthrough.md`.",
+            "5. Nutze `review-board-packet.md` für die rollenbezogenen Fragen; die JSON-Fassung dient der nachvollziehbaren Prüfungskette.",
             "",
             "## Was geprüft werden kann",
             "",
@@ -60,6 +62,8 @@ def _review_start_here_markdown(source_commit: str) -> str:
             "- `institutional-presentation.md`: Gesamtpaket für die Review-Sitzung.",
             "- `institutional-accessibility-walkthrough.md`: acht menschlich zu bewertende Barrierefreiheitsprüfungen.",
             "- `institutional-review-decision-template.md`: absichtlich leer; es kann keine Freigabe automatisch erzeugen.",
+            "- `review-board-packet.md`: Rollen, offene Entscheidungen, rote Linien und benötigte Nachweise.",
+            "- `review-board-packet.json`: dieselbe Review-Grundlage als strukturierter, öffentlicher Nachweis.",
             "",
             "## Drei Golden Rules",
             "",
@@ -137,6 +141,7 @@ def write_release_candidate_bundle(output_dir: str | Path) -> dict[str, Any]:
                     "reason": "institutional_review_bundle_blocked",
                     "exam_deployment_status": "not_cleared",
                 }
+
             if (
                 institutional_result.get("source_commit") != provenance.get("commit")
                 or institutional_result.get("source_provenance_status") != "verified"
@@ -159,6 +164,30 @@ def write_release_candidate_bundle(output_dir: str | Path) -> dict[str, Any]:
                     public_safety_status=str(extension_result["public_safety_status"]),
                 )
             ]
+
+            review_board_packet = build_review_board_packet()
+            review_board_json = json.dumps(review_board_packet, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+            review_board_markdown = build_review_board_packet_markdown(review_board_packet)
+            review_board_artifacts = {
+                "review-board-packet.json": review_board_json,
+                "review-board-packet.md": review_board_markdown,
+            }
+            review_board_paths: dict[str, Path] = {}
+            for name, content in review_board_artifacts.items():
+                target = staging / name
+                target.write_text(content, encoding="utf-8")
+                os.chmod(target, 0o600)
+                safety_status = _scan_text_file(target, name)
+                if safety_status != "pass":
+                    return {
+                        "schema_version": RELEASE_CANDIDATE_SCHEMA_VERSION,
+                        "artifact_type": "unibot_release_candidate_bundle",
+                        "status": "blocked",
+                        "reason": "review_board_artifact_public_safety_failed",
+                        "exam_deployment_status": "not_cleared",
+                    }
+                review_board_paths[name] = target
+                records.append(_file_record(target, name, public_safety_status=safety_status))
 
             repository_root = Path(__file__).resolve().parents[1]
             demo_fixture_source = repository_root / "fixtures" / "public" / "synthetic_python_practice.ipynb"
@@ -267,6 +296,10 @@ def write_release_candidate_bundle(output_dir: str | Path) -> dict[str, Any]:
             "demo_fixture_sha256": _sha256_file(demo_fixture_path),
             "public_demo_markdown_sha256": _sha256_file(demo_path),
             "institutional_evidence_hash": institutional_result["evidence_hash"],
+            "review_board_status": review_board_packet["status"],
+            "review_board_public_safety_status": review_board_packet["public_safety_status"],
+            "review_board_packet_sha256": _sha256_file(review_board_paths["review-board-packet.json"]),
+            "review_board_markdown_sha256": _sha256_file(review_board_paths["review-board-packet.md"]),
             "public_safety_status": "pass",
             "provider_calls": 0,
             "learner_content_included": False,

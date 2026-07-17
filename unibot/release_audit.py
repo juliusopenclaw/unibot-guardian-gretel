@@ -22,6 +22,8 @@ REQUIRED_ARTIFACT_NAMES = frozenset(
         "institutional-presentation.json",
         "institutional-presentation.md",
         "institutional-review-decision-template.md",
+        "review-board-packet.json",
+        "review-board-packet.md",
         "synthetic_python_practice.ipynb",
         "unibot-mantle.zip",
     }
@@ -178,6 +180,8 @@ def audit_release_candidate(candidate_dir: str | Path, *, repository: str | Path
                 "institutional-accessibility-walkthrough.md",
                 "institutional-plain-language-brief.md",
                 "institutional-review-decision-template.md",
+                "review-board-packet.json",
+                "review-board-packet.md",
                 "INSTITUTIONAL-MANIFEST.json",
                 "PUBLIC-DEMO.md",
                 "REVIEW-START-HERE.md",

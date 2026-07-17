@@ -1008,8 +1008,9 @@ def build_review_board_packet(
     return review_board
 
 
-def build_review_board_packet_markdown() -> str:
-    packet = build_review_board_packet()
+def build_review_board_packet_markdown(packet: dict[str, Any] | None = None) -> str:
+    """Render the same public review packet that was used for JSON export."""
+    packet = packet or build_review_board_packet()
     reviewer_lines = "\n".join(
         f"- **{item['reviewer']}**: {item['mandate']}"
         for item in packet["reviewer_packets"]
