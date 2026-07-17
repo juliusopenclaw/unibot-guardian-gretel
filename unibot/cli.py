@@ -44,6 +44,7 @@ from .clearance import (
 from .gateway import GatewayError, launch_gateway
 from .guardian_benchmark import evaluate_guardian_benchmark, guardian_semantic_precision_work_item
 from .extension_package import package_extension
+from .institutional_audit import audit_institutional_review_bundle
 from .glm_provider import PROVIDER_SCOPE, ZaiGLMProvider, keychain_key_available
 from .notebook_intake import NotebookIntakeError, import_notebook
 from .public_safety import scan_text
@@ -248,6 +249,8 @@ def build_parser() -> argparse.ArgumentParser:
     bundle.add_argument("--release-evidence", type=Path)
     bundle.add_argument("--colab-canary", type=Path)
     bundle.add_argument("--jupyter-canary", type=Path)
+    institution_audit = institution_commands.add_parser("audit", help="verify an institutional review bundle read-only")
+    institution_audit.add_argument("bundle", type=Path)
 
     extension = commands.add_parser("extension", help="package the public Chrome extension")
     extension_commands = extension.add_subparsers(dest="extension_command", required=True)
@@ -599,6 +602,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             _print_json(payload)
             return 0 if payload["status"] == "written" else 2
+        if args.command == "institution" and args.institution_command == "audit":
+            payload = audit_institutional_review_bundle(args.bundle)
+            _print_json(payload)
+            return 0 if payload["status"] == "pass" else 2
         if args.command == "extension" and args.extension_command == "package":
             payload = package_extension(args.output)
             _print_json(payload)

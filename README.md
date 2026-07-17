@@ -77,6 +77,11 @@ full provenance statement is in `AUTHORS.md`.
   The command validates the release gates and receipt contracts before copying
   them. It includes no notebook cell text or output; a human still decides
   whether the packet is suitable for an institutional discussion.
+- Independently verify a packet without changing it or using the network:
+  `unibot institution audit ./unibot-institution-review`
+  The audit checks the manifest, hashes, public-safety boundaries, extension
+  archive, release evidence, and canary contracts while returning only status,
+  counts, and issue IDs.
 - Inspect the autonomous lane: `unibot autonomy preflight`
 - Run the public synthetic Three Golden Rules gate: `unibot evaluate 3gr --json`
 - Health check for the developer API: `GET /api/v2/health` on the selected

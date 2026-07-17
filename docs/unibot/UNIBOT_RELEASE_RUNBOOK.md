@@ -122,6 +122,19 @@ receipts, not notebook cells, notebook output, learner attempts, local paths,
 or institutional decisions. The packet remains a human review handoff and
 does not clear an examination deployment.
 
+Reviewers can independently verify the delivered directory without changing
+it or contacting the network:
+
+```text
+unibot institution audit ./unibot-institution-review
+```
+
+The audit returns only status, counts, and stable issue IDs. It checks file
+hashes, public-safety scans, the MV3 archive, release evidence, canary fields,
+the `not_cleared` boundary, and the absence of automatic institutional
+approval. It never prints notebook cells, learner attempts, or other raw
+content.
+
 The packet contains the RegulatoryProfile, human clearance board,
 institutional presentation, `AccessibilityReviewV1` with its eight human-gated
 checks, a plain-language `REVIEW-START-HERE.md`, a blank
