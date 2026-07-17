@@ -1003,6 +1003,7 @@ def build_institutional_presentation_markdown(
         "- Automatisierte Prototyp-Evidenz deckt Tastaturfokus, Statusbereiche, schmale Seitenbereiche und manuelle Zellwahl ab.",
         "- Screenreader, 200-Prozent-Zoom/Reflow und die Eignung für konkrete Personen bleiben menschlich zu prüfen.",
         "- Unterstützung bleibt im Hilfebudget kostenneutral; der Bot bewertet keinen Nachteilsausgleich.",
+        "- Die Nutzung der Darstellung wird nicht als Unterstützungsereignis gespeichert und nicht exportiert.",
         "- Welche Unterstützung im konkreten Modul angemessen und zulässig ist, entscheidet ausschließlich die zuständige Stelle.",
         "- Automatisierte Browser-Tests sind ein Nachweis für den Prototyp, keine WCAG-Zertifizierung.",
         f"- AccessibilityReviewV1 umfasst {len(packet['accessibility_review']['checks'])} reproduzierbare Prüfungen; kritische Fehler blockieren den jeweiligen Einsatzumfang.",
