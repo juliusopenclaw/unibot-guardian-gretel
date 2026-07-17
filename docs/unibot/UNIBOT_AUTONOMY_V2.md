@@ -71,10 +71,10 @@ or readiness-tail work. All new autonomous work uses this v2 policy and
 
 ## Mantle 2.1 Queue
 
-The semantic-precision benchmark, Native companion hardening, live Colab
-canary, and 180-scenario evaluation are complete and bound to the current
-public release evidence. The optional local language-realizer benchmark
-remains a `candidate`, not an executable order. While the open draft PR awaits
-human review, the autonomy loop must remain inactive: it creates no new model
-call, patch, receipt-only commit, or release decision. Learner notebook
-content is outside the GLM provider scope in every stage.
+The current semantic-precision benchmark remains the only `ready` item. Native
+companion hardening, live Colab canaries, the 180-scenario evaluation, and the
+optional local language-realizer benchmark are ordered `candidate` items. The
+benchmark is already covered by the current public release evidence; while the
+open draft PR awaits human review, the autonomy loop remains inactive and
+creates no new model call, patch, receipt-only commit, or release decision.
+Learner notebook content is outside the GLM provider scope in every stage.
