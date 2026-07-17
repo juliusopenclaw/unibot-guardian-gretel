@@ -110,8 +110,8 @@ class UniBotInstitutionalAuditTests(unittest.TestCase):
             result = audit_institutional_review_bundle(_build_bundle(Path(temporary)))
 
         self.assertEqual(result["status"], "pass")
-        self.assertEqual(result["file_count"], 12)
-        self.assertEqual(result["verified_file_count"], 11)
+        self.assertEqual(result["file_count"], 13)
+        self.assertEqual(result["verified_file_count"], 12)
         self.assertEqual(result["release_verification_status"], "pass")
         self.assertEqual(result["provider_calls"], 0)
         self.assertTrue(result["read_only"])

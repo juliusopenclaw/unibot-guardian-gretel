@@ -41,6 +41,32 @@ grading, proctoring, or KI-detection evidence.
 | Public release leaks private material. | Public build excludes emails, private course files, health data, local paths, and raw AI transcripts. |
 | Exam mode uses not-cleared KI. | `exam_controlled` blocks external KI unless a written clearance reference is present. |
 
+## Controlled Exam Rehearsal v1
+
+The controlled rehearsal is a separate synthetic review track. It does not
+upgrade Mantle 2.1 or Colab into an exam-security product.
+
+| Rehearsal risk | Control and residual boundary |
+| --- | --- |
+| A different or modified starting notebook is used. | Version 1 accepts one public fixture by exact raw SHA-256, sanitizes it, binds both hashes into an immutable contract, and edits a separate private working copy. |
+| Jupyter or notebook code reaches an external service. | The host must have no external default route. Jupyter and its kernels run under a macOS sandbox that allows only loopback network traffic. |
+| Jupyter inherits local provider credentials or user configuration. | The process receives a minimal environment with no inherited API keys and separate empty Jupyter, IPython, cache, and configuration directories. The server root contains only the private working notebook. |
+| Network access returns during the session. | An independent monitor freezes the state, terminates the Jupyter process group, and records `aborted`; it never silently resumes. A managed institutional network remains required for a real exam. |
+| The learner believes the browser saved changes when it did not. | The local Jupyter adapter binds host, port, and fixed rehearsal URL path, then requires exactly one visible enabled save control. A different loopback tab and absent or ambiguous detection fail closed. It never reads notebook output. |
+| Preparation or state persistence fails after process startup. | Partial rehearsal directories are removed; Jupyter and the network monitor are stopped before the error is returned. A second learning or rehearsal session is rejected before startup. |
+| The contract or completion artifact is changed. | Contract, starting notebook, help report, network evidence, final file, and canonical notebook hashes are bound. `unibot rehearsal verify` rejects drift. |
+| A receipt exposes learner work or device details. | `ExamSubmissionManifestV1` contains counts, timestamps, policy fields, and hashes only; no cell text, output, name, transcript, session secret, or local path. |
+| Browser or Companion crashes. | Persisted state contains metadata only. A safe state may resume; inconsistent or network-unsafe state becomes `aborted`. |
+| The local demonstration is presented as an approved examination. | Every contract and receipt carries `not_cleared`; there is no grading, proctoring, automatic submission, identity proof, or software-issued approval. |
+
+The macOS sandbox is demonstration evidence, not a general endpoint-security
+claim. Notebook code still runs with the signed-in macOS user's filesystem
+rights. The rehearsal does not control another device, the physical
+environment, an administrator, or software outside the isolated Jupyter process. A real
+examination therefore needs a university-managed device, browser, network,
+identity process, incident route, accessibility decision, and written human
+approval.
+
 ## Security Boundary
 
 A standard browser extension can support transparency and visible filtering, but

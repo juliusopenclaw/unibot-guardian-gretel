@@ -191,6 +191,20 @@ remains available for development and one alpha compatibility cycle.
 - Real exams remain `not_cleared` and require institutional, privacy, security,
   teaching, managed-browser, and controlled-network approval.
 
+## Controlled synthetic rehearsal
+
+The separate `synthetic_exam_rehearsal` scope demonstrates a stricter A0-A2
+flow with the fixed public fixture. It requires the host to be offline, runs
+local Jupyter under a loopback-only macOS sandbox, freezes the gateway before
+export, and emits a metadata-only integrity receipt. The side panel can resume
+the local metadata state after reconnection and never reads notebook output.
+
+This is a controlled rehearsal for institutional review, not an exam mode.
+Its status remains `not_cleared`; it provides no automatic submission,
+grading, identity evidence, proctoring, or legal approval. The complete
+contract and reproducible checks are in
+`UNIBOT_CONTROLLED_EXAM_REHEARSAL_V1.md`.
+
 ## Verification
 
 - Unit and API tests cover immutable contracts, A0-A4 boundaries, adaptive

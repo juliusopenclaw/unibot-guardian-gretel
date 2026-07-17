@@ -263,7 +263,7 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
             result = write_institutional_review_bundle(Path(temporary) / "review-bundle")
             bundle_root = Path(temporary) / "review-bundle"
             self.assertEqual(result["status"], "written")
-            self.assertEqual(result["file_count"], 9)
+            self.assertEqual(result["file_count"], 10)
             self.assertEqual(result["exam_deployment_status"], "not_cleared")
             self.assertRegex(result["source_commit"], r"^[0-9a-f]{40}$")
             self.assertEqual(result["source_provenance_status"], "verified")
@@ -274,6 +274,7 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
             self.assertTrue((bundle_root / "institutional-accessibility-walkthrough.md").is_file())
             self.assertTrue((bundle_root / "institutional-review-decision-template.md").is_file())
             self.assertTrue((bundle_root / "PUBLIC-DEMO.md").is_file())
+            self.assertTrue((bundle_root / "CONTROLLED-EXAM-REHEARSAL-V1.md").is_file())
             self.assertTrue((bundle_root / "synthetic_python_practice.ipynb").is_file())
             self.assertTrue((bundle_root / "unibot-mantle.zip").is_file())
             self.assertTrue((bundle_root / "MANIFEST.json").is_file())
@@ -373,7 +374,7 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
                 )
 
             self.assertEqual(result["status"], "written")
-            self.assertEqual(result["file_count"], 12)
+            self.assertEqual(result["file_count"], 13)
             self.assertEqual(result["source_commit"], source_commit)
             self.assertRegex(result["release_evidence_sha256"], r"^[0-9a-f]{64}$")
             self.assertRegex(result["colab_canary_sha256"], r"^[0-9a-f]{64}$")

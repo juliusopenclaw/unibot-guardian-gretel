@@ -46,6 +46,14 @@ Studierenden- oder Pruefungseinsatz ist nicht Gegenstand der vorliegenden
 Freigabe und erfordert gesonderte menschliche, datenschutzrechtliche und
 institutionelle Entscheidungen.
 
+Als naechster technischer Zwischenschritt bildet eine kontrollierte
+Pruefungssimulation den vollstaendigen Ablauf mit genau einem oeffentlichen,
+synthetischen Notebook ab. Sie versiegelt den Ausgangszustand, verlangt einen
+offline geschalteten Mac, isoliert Jupyter auf Loopback, begrenzt Hilfe auf A0
+bis A2 und exportiert Notebook und Metadatenbeleg atomar. Ihr Status
+`ready_for_institutional_rehearsal_review` ist ein Reviewstatus und keine
+Pruefungsfreigabe; `exam_deployment_status` bleibt `not_cleared`.
+
 ## 1. Einleitung
 
 Python-Notebooks verbinden Text, Code, Daten und Ergebnisse in einer
@@ -178,6 +186,22 @@ erzwingt keine vollstaendige Netzwerkisolation und kann andere Geraete nicht
 kontrollieren. Fuer einen echten Pruefungsbetrieb waeren institutionell
 verwaltete Container-, Netzwerk-, Browser- und Geraeterichtlinien notwendig.
 
+Die getrennte kontrollierte Pruefungssimulation v1 haertet diesen Demonstrator:
+Sie akzeptiert nur die fest gehashte oeffentliche Fixture. Nach Download und
+Bereinigung bindet `ExamRehearsalContractV1` Ausgangs- und Bereinigungshash,
+Tutor- und Regelversion, A0-A2, Netzwerkregel und Aufbewahrung. Jupyter und
+Kernel laufen unter einer macOS-Sandbox ohne externe Netzberechtigung; ein
+zweiter lokaler Waechter bricht beim Wiederauftreten einer externen Route ab.
+Der Jupyter-Prozess erbt keine Provider-Schluessel oder normale
+Benutzerkonfiguration; Serverwurzel, Cache, Konfiguration und Laufzeit werden
+in getrennte private Verzeichnisse gebunden. Dies ist keine vollstaendige
+Dateisystem-Isolation des angemeldeten macOS-Kontos und bleibt deshalb fuer
+echte Pruefungen eine institutionelle Infrastrukturaufgabe.
+Der Abschluss stoppt Kernel und Gateway vor der Validierung und dem atomaren
+Export. `ExamSubmissionManifestV1` enthaelt nur Hashes, Zeitpunkte,
+Zellanzahlen und Grenzen, keine Zelltexte, Namen oder lokalen Pfade. SHA-256
+belegt Integritaet, aber weder Identitaet noch Eigenleistung.
+
 ## 6. Implementierung
 
 Die Referenzimplementierung verwendet Python ab Version 3.11, lokal
@@ -185,7 +209,8 @@ standardmaessig Python 3.12. Die Notebookvalidierung erfolgt mit `nbformat`.
 Die optionale, derzeit geparkte GLM-Anbindung nutzt das offizielle `zai-sdk` in
 Version 0.2.3.
 Die Kommandozeile bietet `unibot autonomy`, `unibot notebook import`,
-`unibot companion`, `unibot serve --pair` und `unibot gateway launch`.
+`unibot companion`, `unibot serve --pair`, `unibot gateway launch` und
+`unibot rehearsal start|status|finish|verify|delete`.
 
 Die API v2 stellt Gesundheit, Kopplung, Sitzung, sokratische Hilfe,
 Notebook-Import und Metadatenexport bereit. V1 bleibt fuer eine Alpha-Phase

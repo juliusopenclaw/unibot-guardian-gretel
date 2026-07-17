@@ -65,6 +65,7 @@ def _review_start_here_markdown(source_commit: str) -> str:
             "- `institutional-presentation.md`: Gesamtpaket für die Review-Sitzung.",
             "- `institutional-accessibility-walkthrough.md`: acht menschlich zu bewertende Barrierefreiheitsprüfungen.",
             "- `institutional-review-decision-template.md`: absichtlich leer; es kann keine Freigabe automatisch erzeugen.",
+            "- `CONTROLLED-EXAM-REHEARSAL-V1.md`: Ablauf, Sicherheitsgrenze und Prüfschritte der künstlichen A0-A2-Simulation.",
             "- `review-board-packet.md`: Rollen, offene Entscheidungen, rote Linien und benötigte Nachweise.",
             "- `review-board-packet.json`: dieselbe Review-Grundlage als strukturierter, öffentlicher Nachweis.",
             "",
@@ -273,6 +274,7 @@ def write_release_candidate_bundle(output_dir: str | Path) -> dict[str, Any]:
                 "institutional-plain-language-brief.md": "institutional-plain-language-brief.md",
                 "institutional-accessibility-walkthrough.md": "institutional-accessibility-walkthrough.md",
                 "institutional-review-decision-template.md": "institutional-review-decision-template.md",
+                "CONTROLLED-EXAM-REHEARSAL-V1.md": "CONTROLLED-EXAM-REHEARSAL-V1.md",
                 "MANIFEST.json": "INSTITUTIONAL-MANIFEST.json",
             }
             for source_name, target_name in institutional_names.items():

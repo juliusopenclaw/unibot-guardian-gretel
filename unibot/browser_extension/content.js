@@ -202,10 +202,67 @@
     return colabAdapter() || jupyterAdapter() || selectionAdapter();
   }
 
+  async function saveActiveJupyterNotebook(expectedBinding) {
+    const bindingMatches = expectedBinding
+      && expectedBinding.schema_version === 'unibot-rehearsal-browser-binding-v1'
+      && expectedBinding.hostname === window.location.hostname
+      && Number.isInteger(expectedBinding.port)
+      && expectedBinding.port === Number(window.location.port)
+      && expectedBinding.pathname === window.location.pathname;
+    if (!bindingMatches) {
+      return { saved: false, reason: 'rehearsal_browser_binding_mismatch', notebook_content_read: false };
+    }
+    const selectors = [
+      "button[data-command='docmanager:save']",
+      "button[title^='Save']",
+      "button[aria-label^='Save']"
+    ];
+    const controls = Array.from(new Set(selectors.flatMap((selector) => Array.from(document.querySelectorAll(selector)))))
+      .filter((control) => !control.disabled && control.getClientRects().length > 0);
+    if (controls.length !== 1) {
+      return {
+        saved: false,
+        reason: controls.length ? 'ambiguous_jupyter_save_control' : 'jupyter_save_control_not_found',
+        notebook_content_read: false
+      };
+    }
+    controls[0].click();
+    const deadline = Date.now() + 5000;
+    const pendingSelector = [
+      ".jp-DocumentContext-title.jp-mod-dirty",
+      ".jp-mod-saving",
+      "[data-status='dirty']",
+      "[data-status='saving']"
+    ].join(",");
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    while (document.querySelector(pendingSelector) && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    if (document.querySelector(pendingSelector)) {
+      return {
+        saved: false,
+        reason: "jupyter_save_not_confirmed",
+        notebook_content_read: false
+      };
+    }
+    return {
+      saved: true,
+      adapter: 'jupyterlab',
+      method: 'visible_save_control',
+      browser_binding_matched: true,
+      notebook_content_read: false
+    };
+  }
+
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-    if (!message || message.type !== "UNIBOT_GET_SELECTION") {
+    if (!message) {
       return false;
     }
+    if (message.type === "UNIBOT_SAVE_NOTEBOOK") {
+      saveActiveJupyterNotebook(message.expected_binding).then(sendResponse);
+      return true;
+    }
+    if (message.type !== "UNIBOT_GET_SELECTION") return false;
     const cell = activeNotebookCell();
     sendResponse({
       selectedText: collectVisibleSelection(),

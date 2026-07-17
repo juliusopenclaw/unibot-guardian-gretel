@@ -14,6 +14,7 @@ from .public_safety import scan_text
 RELEASE_AUDIT_SCHEMA_VERSION = "UniBotReleaseAuditV1"
 REQUIRED_ARTIFACT_NAMES = frozenset(
     {
+        "CONTROLLED-EXAM-REHEARSAL-V1.md",
         "INSTITUTIONAL-MANIFEST.json",
         "PUBLIC-DEMO.md",
         "REVIEW-START-HERE.md",
@@ -186,6 +187,34 @@ def audit_release_candidate(candidate_dir: str | Path, *, repository: str | Path
                         issues.append("institutional_source_provenance_not_verified")
                     if institutional_provenance.get("commit") != provenance.get("commit"):
                         issues.append("institutional_provenance_commit_mismatch")
+                _require_field(
+                    institutional_manifest,
+                    "controlled_rehearsal.status",
+                    "ready_for_institutional_rehearsal_review",
+                    "controlled_rehearsal_status",
+                    issues,
+                )
+                _require_field(
+                    institutional_manifest,
+                    "controlled_rehearsal.allowed_help_levels",
+                    ["A0", "A1", "A2"],
+                    "controlled_rehearsal_help_boundary",
+                    issues,
+                )
+                _require_field(
+                    institutional_manifest,
+                    "controlled_rehearsal.exam_deployment_status",
+                    "not_cleared",
+                    "controlled_rehearsal_exam_status",
+                    issues,
+                )
+                _require_field(
+                    institutional_manifest,
+                    "controlled_rehearsal.automatic_submission",
+                    False,
+                    "controlled_rehearsal_submission_boundary",
+                    issues,
+                )
 
             presentation = _read_json_object(
                 root / "institutional-presentation.json", "institutional_presentation", issues
@@ -341,6 +370,7 @@ def audit_release_candidate(candidate_dir: str | Path, *, repository: str | Path
         safety_targets = [
             root / name
             for name in (
+                "CONTROLLED-EXAM-REHEARSAL-V1.md",
                 "institutional-presentation.json",
                 "institutional-presentation.md",
                 "institutional-accessibility-walkthrough.md",
