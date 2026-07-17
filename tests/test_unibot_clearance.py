@@ -241,6 +241,9 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
 
         walkthrough = build_accessibility_review_walkthrough(packet)
         self.assertIn("# UniBot: Accessibility-Walkthrough", walkthrough)
+        self.assertIn("## Worum es geht", walkthrough)
+        self.assertIn("Tastatur-Grundablauf", walkthrough)
+        self.assertIn("Woran erkennen wir es?", walkthrough)
         self.assertIn("`not_tested`", walkthrough)
         self.assertIn("Keine Namen, Diagnosen", walkthrough)
         self.assertIn("200 percent", packet["evidence"]["browser_mantle"]["accessibility_evidence"]["automated_checks"][-1])

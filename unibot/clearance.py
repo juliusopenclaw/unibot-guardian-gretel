@@ -1132,11 +1132,58 @@ def build_accessibility_review_walkthrough(
     packet = packet or build_institutional_presentation_packet()
     review = packet["accessibility_review"]
     evidence = packet["evidence"]["browser_mantle"]["accessibility_evidence"]
+    check_text = {
+        "keyboard_core_flow": (
+            "Tastatur-Grundablauf",
+            "Nur-Tastatur-Prüfung",
+            "Start, Zellwahl, Hilfe, Exportvorschau und Löschen müssen mit sichtbarem Fokus bedienbar sein.",
+        ),
+        "screen_reader_status": (
+            "Statusansagen mit Screenreader",
+            "Screenreader mit synthetischem Notebook",
+            "Bedienelemente, ausgewählter Bereich, Fehler und Status müssen verständlich beschriftet angesagt werden.",
+        ),
+        "zoom_and_reflow": (
+            "Vergrößerung und Umfluss",
+            "200-Prozent-Zoom und 280-Pixel-Seitenbereich",
+            "Der Kernablauf muss ohne versteckte Bedienelemente und ohne horizontales Scrollen nutzbar bleiben.",
+        ),
+        "contrast_and_focus": (
+            "Kontrast und Fokus",
+            "Menschliche Sichtprüfung",
+            "Text, Bedienelemente, Fokus, Fehler und deaktivierte Zustände müssen unterscheidbar bleiben.",
+        ),
+        "uncertain_cell_fallback": (
+            "Sichere Zellwahl bei Unsicherheit",
+            "Fixture für unsichere Adapter-Erkennung",
+            "UniBot muss eine ausdrückliche Auswahl verlangen und darf niemals eine Zelle erraten.",
+        ),
+        "cognitive_load_and_language": (
+            "Verständlichkeit und Belastung",
+            "Menschlicher Aufgaben-Durchlauf",
+            "Nächste Aktion, Hilfestufe, Unsicherheit und Stop-/Löschmöglichkeit müssen ohne versteckte Annahmen verständlich sein.",
+        ),
+        "fallback_without_companion": (
+            "Verhalten ohne Companion",
+            "Fixture ohne Native-Messaging-Host",
+            "Bei einem Ausfall muss eine klare Fehlermeldung erscheinen; manuelle Auswahl oder Abbruch müssen ohne Datenverlust möglich sein.",
+        ),
+        "privacy_and_non_disclosure": (
+            "Datenschutz und Nicht-Offenlegung",
+            "Synthetische Aufgabe mit Speicherscan",
+            "Diagnosen, Unterstützungsstatus, rohes Notebook und Lernendentext dürfen nicht im Review-Nachweis erscheinen.",
+        ),
+    }
     lines = [
         "# UniBot: Accessibility-Walkthrough",
         "",
         "**Status:** menschlicher Prüfbogen; keine WCAG-Zertifizierung und keine Freigabe",
         "**Geltungsbereich:** lokale Lern- und Übungsversion mit synthetischer Notebook-Aufgabe",
+        "",
+        "## Worum es geht",
+        "Dieser Bogen prüft, ob unterschiedliche Personen die Lernhilfe bedienen und ihre Unterstützung selbstbestimmt nutzen können.",
+        "Geprüft wird die Bedienbarkeit der Oberfläche, nicht die Person und nicht ihre fachliche Leistung.",
+        "Jede Person darf abbrechen; gespeichert werden nur vereinbarte Ergebnis-Kategorien und Evidenz-Hashes.",
         "",
         "## Datenschutz vor dem Test",
         "- Nur `fixtures/public/synthetic_python_practice.ipynb` oder eine gleichwertige synthetische Aufgabe verwenden.",
@@ -1154,11 +1201,15 @@ def build_accessibility_review_walkthrough(
         "## Prüfschritte",
     ]
     for number, check in enumerate(review["checks"], start=1):
+        title, method, pass_condition = check_text.get(
+            check["check_id"],
+            (check["check_id"], check["method"], check["pass_condition"]),
+        )
         lines.extend(
             [
-                f"### {number}. `{check['check_id']}`",
-                f"**Methode:** {check['method']}",
-                f"**Vorgehen:** {check['pass_condition']}",
+                f"### {number}. `{check['check_id']}` – {title}",
+                f"**Prüfmethode:** {method}",
+                f"**Woran erkennen wir es?** {pass_condition}",
                 "**Ergebnis:** `not_tested`  ",
                 f"**Evidenz-ID:** `accessibility.{check['check_id']}`",
                 "",
