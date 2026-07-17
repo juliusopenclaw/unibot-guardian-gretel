@@ -1308,8 +1308,8 @@ def write_institutional_review_bundle(
             "reason": "public_demo_evidence_blocked",
             "exam_deployment_status": "not_cleared",
         }
-    with tempfile.TemporaryDirectory(prefix="unibot-institutional-extension-") as temporary:
-        extension_path = Path(temporary) / "unibot-mantle.zip"
+    with tempfile.TemporaryDirectory(prefix="unibot-institutional-extension-") as temporary_dir:
+        extension_path = Path(temporary_dir) / "unibot-mantle.zip"
         extension_result = package_extension(extension_path)
         if extension_result.get("status") != "written" or extension_result.get("public_safety_status") != "pass":
             return {
@@ -1392,17 +1392,17 @@ def write_institutional_review_bundle(
     os.chmod(root, 0o700)
     for name, content in contents.items():
         target = root / name
-        temporary = root / f".{name}.{os.getpid()}.tmp"
-        temporary.write_text(content, encoding="utf-8")
-        os.chmod(temporary, 0o600)
-        os.replace(temporary, target)
+        temporary_path = root / f".{name}.{os.getpid()}.tmp"
+        temporary_path.write_text(content, encoding="utf-8")
+        os.chmod(temporary_path, 0o600)
+        os.replace(temporary_path, target)
         os.chmod(target, 0o600)
     for name, content in binary_contents.items():
         target = root / name
-        temporary = root / f".{name}.{os.getpid()}.tmp"
-        temporary.write_bytes(content)
-        os.chmod(temporary, 0o600)
-        os.replace(temporary, target)
+        temporary_path = root / f".{name}.{os.getpid()}.tmp"
+        temporary_path.write_bytes(content)
+        os.chmod(temporary_path, 0o600)
+        os.replace(temporary_path, target)
         os.chmod(target, 0o600)
     return {
         "schema_version": INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION,
