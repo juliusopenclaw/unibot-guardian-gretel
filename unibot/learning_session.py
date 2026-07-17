@@ -74,6 +74,14 @@ def _help_level(value: Any, *, fallback: str = "A2") -> str:
     return candidate if candidate in HELP_COSTS_V1 else fallback
 
 
+def require_practice_boundary_confirmation(payload: dict[str, Any] | None) -> None:
+    """Require an explicit learner acknowledgement on every public transport."""
+    if not isinstance(payload, dict):
+        raise ValueError("practice_scope_confirmation_required")
+    if payload.get("practice_scope") != "practice_only" or payload.get("practice_scope_confirmed") is not True:
+        raise ValueError("practice_scope_confirmation_required")
+
+
 def _session_id(value: Any) -> str:
     candidate = str(value or "").strip()
     if not _SESSION_ID_PATTERN.fullmatch(candidate):

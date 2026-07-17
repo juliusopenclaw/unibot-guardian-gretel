@@ -47,6 +47,10 @@ learning, or independent work.
   sends `session.start`, and the local Companion rejects native start messages
   that omit the same confirmation. This is a boundary control, not a legal or
   examination approval.
+- The compatible paired HTTP API requires the same explicit confirmation when
+  creating `/api/v2/session/contracts` and rejects `/api/v2/socratic/help`
+  until that practice session exists. The older direct practice route remains
+  an alpha compatibility path and does not create an examination session.
 - The deterministic tutor analyzes Python syntax, visible traceback terms,
   skill tags, local formula cards, and versioned official source anchors.
 - Raw task, cell, attempt, and tutor transcript text are not persisted.

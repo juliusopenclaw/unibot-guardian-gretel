@@ -28,6 +28,7 @@ from .learning_session import (
     cleanup_expired_sessions,
     delete_session_artifacts,
     register_session_notebook,
+    require_practice_boundary_confirmation,
     session_notebook_ids,
 )
 from .notebook_intake import (
@@ -242,10 +243,9 @@ class CompanionRuntime:
                     else None,
                 )
             if message_type == "session.start":
-                if (
-                    payload.get("practice_scope") != "practice_only"
-                    or payload.get("practice_scope_confirmed") is not True
-                ):
+                try:
+                    require_practice_boundary_confirmation(payload)
+                except ValueError:
                     return self._response(
                         request_id,
                         "blocked",

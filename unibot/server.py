@@ -113,7 +113,7 @@ from .gretel_glm_evolve import (
 )
 from .handoff import build_authority_handoff_markdown, build_authority_handoff_packet
 from .ledger import append_ledger_event, export_public_ledger_summary, read_ledger, summarize_ledger
-from .learning_session import HELP_LEVELS_V1, LearningSession
+from .learning_session import HELP_LEVELS_V1, LearningSession, require_practice_boundary_confirmation
 from .loop_lab import run_loop_lab
 from .material_coverage_run import build_course_material_coverage_run
 from .materials import (
@@ -4031,6 +4031,7 @@ class UniBotRequestHandler(BaseHTTPRequestHandler):
                 self._write_json(503, {"status": "secure-server-configuration-required"})
                 return
             try:
+                require_practice_boundary_confirmation(payload)
                 server.learning_session = LearningSession.start(
                     payload,
                     storage_root=server.session_ledger_path.parent / "learning",
@@ -4040,7 +4041,20 @@ class UniBotRequestHandler(BaseHTTPRequestHandler):
                 return
             self._write_json(201, {"status": "active", "contract": server.learning_session.contract})
             return
-        if path == "/api/v2/socratic/help" and server and server.learning_session:
+        if path == "/api/v2/socratic/help":
+            if server is None:
+                self._write_json(503, {"status": "secure-server-configuration-required"})
+                return
+            if server.learning_session is None:
+                self._write_json(
+                    409,
+                    {
+                        "status": "practice-session-required",
+                        "reason": "Start a confirmed practice session before requesting tutor help.",
+                        "exam_deployment_status": "not_cleared",
+                    },
+                )
+                return
             try:
                 validate_tutor_turn_session(server.learning_session, cast(TutorTurnRequestV1, payload))
                 response: dict[str, Any] = dict(
