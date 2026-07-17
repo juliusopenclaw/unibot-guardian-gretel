@@ -13,7 +13,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
-from .autonomy_v3 import build_public_3gr_self_check_work_item, evaluate_three_golden_rules
 from .source_cards import build_source_card_drift_report
 
 
