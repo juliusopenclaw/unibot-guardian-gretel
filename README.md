@@ -70,6 +70,7 @@ full provenance statement is in `AUTHORS.md`.
   Its `MANIFEST.json` is bound to the exact clean public Git commit and records
   no local path, learner content, or institutional decision.
 - Inspect the autonomous lane: `unibot autonomy preflight`
+- Run the public synthetic Three Golden Rules gate: `unibot evaluate 3gr --json`
 - Health check for the developer API: `GET /api/v2/health` on the selected
   loopback port. Port `8765` remains the CLI default but is not used by the
   Chrome companion transport.
@@ -115,9 +116,11 @@ upload.
   output hashes, and the source commit. It never stores raw logs, notebook
   text, learner attempts, credentials, or local paths. Evidence is technical
   reproducibility, not institutional approval or exam clearance.
-- The evidence gates include the autonomy preflight, Ruff, mypy, pip-audit,
-  the full Python suite, browser/package checks, the local Chrome canary,
-  pipeline smoke, public safety, Guardian benchmark, and source-card drift.
+- The evidence gates include the autonomy preflight, the synthetic Three Golden
+  Rules gate, Ruff, mypy, pip-audit, the full Python suite, browser/package
+  checks, the local Chrome canary, pipeline smoke, public safety, Guardian
+  benchmark, and source-card drift. A failed 3GR gate blocks the evidence; it
+  never creates an automatic fix or merge.
 
 ## Open Science Boundary
 

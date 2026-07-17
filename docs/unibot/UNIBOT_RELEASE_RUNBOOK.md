@@ -38,14 +38,27 @@ binds actual local gate results to the same clean source commit:
 unibot release evidence --output ../unibot-release-evidence.json --repo .
 ```
 
-It runs the fixed autonomy-preflight, Ruff, mypy, pip-audit, Python, browser,
-extension-package, Chrome-canary, pipeline, public-safety, Guardian-benchmark,
-and source-card gates. It stores only gate status, safe aggregate metrics,
+It runs the fixed autonomy-preflight, synthetic Three Golden Rules, Ruff, mypy,
+pip-audit, Python, browser, extension-package, Chrome-canary, pipeline,
+public-safety, Guardian-benchmark, and source-card gates. The 3GR gate checks
+that a bounded change has a reusable rule, positive and negative harness
+evidence, and a human-gated improvement monitor. It stores only gate status, safe aggregate metrics,
 duration, and SHA-256 hashes of command output;
 raw logs, notebook text, learner attempts, credentials, and local paths are not
 stored. The evidence file must remain outside the checkout so that adding it
 cannot make the measured source tree dirty. A changed commit, dirty worktree,
 missing gate, or modified evidence hash is blocked.
+
+The direct public self-check is also available for a quick review without
+running the full suite:
+
+```text
+unibot evaluate 3gr --json
+```
+
+This command uses only a fixed synthetic contract. It proves the release
+boundary, not learning effectiveness, accessibility conformance, legal
+compliance, university approval, or examination clearance.
 
 ## Human Release Handoff
 
