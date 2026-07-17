@@ -42,6 +42,7 @@ QUALITY_FILES = (
     "unibot/gateway.py",
     "unibot/cli.py",
     "unibot/clearance.py",
+    "unibot/institutional_audit.py",
     "unibot/companion.py",
     "unibot/extension_package.py",
     "unibot/release_candidate.py",
