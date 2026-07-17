@@ -13,12 +13,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
+from .autonomy_v3 import build_public_3gr_self_check_work_item, evaluate_three_golden_rules
 from .source_cards import build_source_card_drift_report
 
 
 RELEASE_EVIDENCE_SCHEMA_VERSION = "UniBotReleaseEvidenceV1"
 REQUIRED_GATE_IDS = (
     "autonomy_preflight",
+    "three_golden_rules",
     "ruff",
     "mypy",
     "dependency_audit",
@@ -153,6 +155,21 @@ def _guardian_metrics(text: str) -> dict[str, Any]:
         parsed.get("provider_context_contains_held_out_cases", False)
     )
     metrics["raw_case_text_in_report"] = bool(parsed.get("raw_case_text_in_report", False))
+    return metrics
+
+
+def _three_golden_rules_metrics(text: str) -> dict[str, Any]:
+    parsed = _last_json_object(text) or {}
+    metrics = _status_metrics(
+        text,
+        ("status", "automatic_apply", "human_review_required", "canary_merges_evaluated"),
+    )
+    gates = parsed.get("gates")
+    if isinstance(gates, dict):
+        for key in ("generalize", "harness_engineering", "recursive_self_improvement"):
+            value = gates.get(key)
+            if isinstance(value, bool):
+                metrics[key] = value
     return metrics
 
 
@@ -315,6 +332,21 @@ def write_release_evidence(output_path: str | Path, *, repository: str | Path) -
             and metrics.get("ready_for_shadow") is True
             and metrics.get("provider_call_executed") is False
             and metrics.get("direct_main_change_blocked") is True,
+        ),
+        _run_gate(
+            "three_golden_rules",
+            "three_golden_rules_self_check",
+            [sys.executable, "-m", "unibot.cli", "evaluate", "3gr", "--json"],
+            repo,
+            timeout_seconds=60,
+            parser=_three_golden_rules_metrics,
+            success=lambda metrics: metrics.get("status") == "pass"
+            and metrics.get("generalize") is True
+            and metrics.get("harness_engineering") is True
+            and metrics.get("recursive_self_improvement") is True
+            and metrics.get("automatic_apply") is False
+            and metrics.get("human_review_required") is True
+            and metrics.get("canary_merges_evaluated") is False,
         ),
         _run_gate(
             "ruff",

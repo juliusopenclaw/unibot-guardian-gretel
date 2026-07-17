@@ -29,6 +29,19 @@ class UniBotCliV2Tests(unittest.TestCase):
         self.assertFalse(payload["raw_case_text_in_report"])
         self.assertFalse(payload["provider_context_contains_held_out_cases"])
 
+    def test_3gr_evaluation_command_runs_public_synthetic_self_check(self) -> None:
+        with io.StringIO() as output, redirect_stdout(output):
+            exit_code = main(["evaluate", "3gr", "--json"])
+            payload = json.loads(output.getvalue())
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(payload["status"], "pass")
+        self.assertEqual(payload["mode"], "public_synthetic_self_check")
+        self.assertTrue(all(payload["gates"].values()))
+        self.assertFalse(payload["automatic_apply"])
+        self.assertTrue(payload["human_review_required"])
+        self.assertFalse(payload["canary_merges_evaluated"])
+
     def test_autonomy_status_is_machine_readable_and_never_grants_merge(self) -> None:
         with tempfile.TemporaryDirectory() as temporary, io.StringIO() as output, redirect_stdout(output):
             exit_code = main(["autonomy", "status", "--repo", temporary])

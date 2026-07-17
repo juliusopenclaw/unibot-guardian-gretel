@@ -12,6 +12,7 @@ from unibot.autonomy_v3 import (
     AutonomyLease,
     AutonomyRunV3,
     AutonomyStore,
+    build_public_3gr_self_check_work_item,
     CodexReviewV1,
     EvolutionChunkContractV1,
     GLMReviewV2,
@@ -310,6 +311,17 @@ class AutonomyV3Tests(unittest.TestCase):
                 approved_after_last_push=True,
             )["lanes"]["canary_merges"]["successful_runs"], 3)
             store.close()
+
+    def test_public_3gr_self_check_is_synthetic_and_execution_safe(self) -> None:
+        item = build_public_3gr_self_check_work_item()
+        evaluation = evaluate_three_golden_rules(item)
+
+        self.assertEqual(evaluation["status"], "pass")
+        self.assertEqual(item.validate_for_execution(), [])
+        self.assertEqual(item.issue_number, None)
+        self.assertFalse(evaluation["automatic_apply"])
+        self.assertTrue(evaluation["human_review_required"])
+        self.assertFalse(evaluation["canary_merges_evaluated"])
 
     def test_budget_warns_at_fifteen_and_stops_above_twenty(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

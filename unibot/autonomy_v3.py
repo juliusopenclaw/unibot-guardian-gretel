@@ -1066,6 +1066,33 @@ def evaluate_three_golden_rules(item: WorkItemV3) -> dict[str, Any]:
     }
 
 
+def build_public_3gr_self_check_work_item() -> WorkItemV3:
+    """Return a fixed public contract used by release verification.
+
+    This contract is deliberately synthetic. It proves that the release path
+    still requires a reusable rule, positive and negative harness fixtures,
+    and a human-gated improvement monitor without touching learner data.
+    """
+    return WorkItemV3(
+        work_id="release-3gr-self-check",
+        source="measured_gap",
+        hypothesis="Every public release must preserve a reusable three-rule improvement contract.",
+        product_delta="Verify generalization, harness evidence, and human-gated recursive improvement.",
+        risk="low",
+        allowed_files=("docs/unibot/UNIBOT_GOLDEN_RULES.md", "unibot/autonomy_v3.py"),
+        test_ids=("autonomy.v3", "public.safety"),
+        base_commit="0000000",
+        evolution_chunk=EvolutionChunkContractV1(
+            failure_class="release.3gr",
+            generalized_rule="Every bounded release change needs reusable transfer and regression evidence.",
+            transfer_targets=("release.evidence", "autonomy.loop"),
+            positive_fixture_ids=("synthetic.3gr.allowed",),
+            negative_fixture_ids=("synthetic.3gr.blocked",),
+            recurrence_monitor_id="release.3gr.recurrence",
+        ),
+    )
+
+
 def bind_three_golden_rules_evidence(
     item: WorkItemV3,
     evidence: ImplementationEvidenceV1,

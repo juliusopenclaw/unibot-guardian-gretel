@@ -17,6 +17,7 @@ from .autonomy_v3 import (
     WorkItemV3,
     autonomy_doctor,
     autonomy_loop_status,
+    build_public_3gr_self_check_work_item,
     default_test_registry,
     evaluate_three_golden_rules,
     prepare_autonomy_loop,
@@ -503,13 +504,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 item = WorkItemV3.from_dict(json.loads(args.work_item.read_text(encoding="utf-8")))
                 payload = evaluate_three_golden_rules(item)
             else:
-                store = AutonomyStore(args.state_db)
-                try:
-                    payload = three_golden_rules_status(store)
-                finally:
-                    store.close()
+                payload = evaluate_three_golden_rules(build_public_3gr_self_check_work_item())
+                payload["mode"] = "public_synthetic_self_check"
             _print_json(payload)
-            return 0 if payload["status"] in {"pass", "ok"} else 2
+            return 0 if payload["status"] == "pass" else 2
         if args.command == "notebook" and args.notebook_command == "import":
             _print_json(dict(import_notebook(args.source, args.output_root)))
             return 0
