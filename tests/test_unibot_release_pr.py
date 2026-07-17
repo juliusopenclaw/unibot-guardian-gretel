@@ -38,6 +38,8 @@ class UniBotReleasePrDraftTests(unittest.TestCase):
             self.assertIn("REVIEW-START-HERE-SHA-256", draft["body"])
             self.assertIn("Einfache institutionelle Kurzinfo-SHA-256", draft["body"])
             self.assertIn("Accessibility-Walkthrough-SHA-256", draft["body"])
+            self.assertIn("Review-Board-Paket JSON-SHA-256", draft["body"])
+            self.assertIn("Review-Board-Paket Markdown-SHA-256", draft["body"])
             self.assertIn("Drei Golden Rules (3GR)", draft["body"])
             self.assertIn("Gitleaks v3", draft["body"])
             self.assertRegex(draft["demo_fixture_sha256"], r"^[0-9a-f]{64}$")
@@ -45,6 +47,8 @@ class UniBotReleasePrDraftTests(unittest.TestCase):
             self.assertRegex(draft["review_start_here_sha256"], r"^[0-9a-f]{64}$")
             self.assertRegex(draft["institutional_plain_language_brief_sha256"], r"^[0-9a-f]{64}$")
             self.assertRegex(draft["institutional_accessibility_walkthrough_sha256"], r"^[0-9a-f]{64}$")
+            self.assertRegex(draft["review_board_packet_sha256"], r"^[0-9a-f]{64}$")
+            self.assertRegex(draft["review_board_markdown_sha256"], r"^[0-9a-f]{64}$")
             self.assertNotIn("/" + "Users/", draft["body"])
             self.assertEqual(scan_text(draft["body"], "pr-draft-test")["status"], "pass")
 

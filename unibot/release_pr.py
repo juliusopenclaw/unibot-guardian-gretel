@@ -118,6 +118,22 @@ def build_release_pr_draft(
         ),
         "",
     )
+    review_board_json_hash = next(
+        (
+            str(record.get("sha256", ""))
+            for record in manifest.get("files", [])
+            if isinstance(record, dict) and record.get("name") == "review-board-packet.json"
+        ),
+        "",
+    )
+    review_board_markdown_hash = next(
+        (
+            str(record.get("sha256", ""))
+            for record in manifest.get("files", [])
+            if isinstance(record, dict) and record.get("name") == "review-board-packet.md"
+        ),
+        "",
+    )
     manifest_hash = _sha256_file(manifest_path)
     verification_lines = [
         "- Verifikations-Evidenz: noch nicht aufgezeichnet; die folgende Prüfliste ist kein Testergebnis.",
@@ -173,10 +189,13 @@ def build_release_pr_draft(
             f"- REVIEW-START-HERE-SHA-256: `{review_start_hash}`",
             f"- Einfache institutionelle Kurzinfo-SHA-256: `{institutional_brief_hash}`",
             f"- Accessibility-Walkthrough-SHA-256: `{accessibility_walkthrough_hash}`",
+            f"- Review-Board-Paket JSON-SHA-256: `{review_board_json_hash}`",
+            f"- Review-Board-Paket Markdown-SHA-256: `{review_board_markdown_hash}`",
             f"- Institutioneller Evidenz-Hash: `{evidence_hash}`",
             "- Public-Safety-Scan: bestanden; keine privaten Dateien, Pfade, Schlüssel oder Lerninhalte enthalten.",
             "- Release-Audit: bestanden; keine Netzwerk-, Provider-, Git- oder automatischen Merge-Effekte.",
             "- Öffentliche Demo-Fixture: `fixtures/public/synthetic_python_practice.ipynb`.",
+            "- `review-board-packet.md` und `.json`: Rollen, offene Entscheidungen, rote Linien und menschliche Freigabegates für die institutionelle Prüfung.",
             "",
             "## Verifikations-Evidenz",
             "",
@@ -240,6 +259,8 @@ def build_release_pr_draft(
         "review_start_here_sha256": review_start_hash,
         "institutional_plain_language_brief_sha256": institutional_brief_hash,
         "institutional_accessibility_walkthrough_sha256": accessibility_walkthrough_hash,
+        "review_board_packet_sha256": review_board_json_hash,
+        "review_board_markdown_sha256": review_board_markdown_hash,
         "institutional_evidence_hash": evidence_hash,
         "audit_status": audit["status"],
         "public_safety_status": scan["status"],
