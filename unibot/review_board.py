@@ -1011,12 +1011,15 @@ def build_review_board_packet(
 def build_review_board_packet_markdown(packet: dict[str, Any] | None = None) -> str:
     """Render the same public review packet that was used for JSON export."""
     packet = packet or build_review_board_packet()
+    def public_reviewer_label(value: str) -> str:
+        return value.replace(" / Nachteilsausgleich", " / Unterstuetzungsfragen")
+
     reviewer_lines = "\n".join(
-        f"- **{item['reviewer']}**: {item['mandate']}"
+        f"- **{public_reviewer_label(item['reviewer'])}**: {item['mandate']}"
         for item in packet["reviewer_packets"]
     )
     decision_lines = "\n".join(
-        f"- {item['reviewer']}: {item['question']} ({item['priority']})"
+        f"- {public_reviewer_label(item['reviewer'])}: {item['question']} ({item['priority']})"
         for item in packet["open_decision_register"]
     )
     redline_lines = "\n".join(f"- {line}" for line in packet["cross_cutting_red_lines"])
@@ -1035,7 +1038,7 @@ def build_review_board_packet_markdown(packet: dict[str, Any] | None = None) -> 
     release_claim_alignment = packet["release_claim_summary_alignment"]
     professor_uni_brief = packet["professor_uni_review_brief"]
     alignment_lines = "\n".join(
-        f"- {item['reviewer']}: claims {', '.join(item['claim_ids'])}; checks {', '.join(item['readiness_check_ids'])}"
+        f"- {public_reviewer_label(item['reviewer'])}: claims {', '.join(item['claim_ids'])}; checks {', '.join(item['readiness_check_ids'])}"
         for item in alignment["reviewer_alignment"]
     )
     thesis_evaluation_lines = "\n".join(
