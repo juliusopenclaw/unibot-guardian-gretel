@@ -123,7 +123,7 @@ try {
     developmentPairing = true;
   }
 
-  const page = await context.newPage();
+  let page = await context.newPage();
   let testSessionCreated = false;
   await page.goto(`chrome-extension://${extensionId}/v2/sidepanel.html`);
   if ((await page.locator("h1").textContent()) !== "UniBot Guardian") throw new Error("Side panel did not render");
@@ -135,21 +135,31 @@ try {
   }
   const connectionStatus = (await page.locator("#connectionStatus").textContent()) || "";
   const companionConnected = ["Lokal bereit", "Sitzung fortgesetzt", "Sitzung aktiv"].includes(connectionStatus);
-  const sessionResumed = connectionStatus === "Sitzung fortgesetzt";
+  let sessionResumed = connectionStatus === "Sitzung fortgesetzt";
   if (process.env.UNIBOT_REQUIRE_NATIVE === "1" && !companionConnected) {
     throw new Error("Native companion was required but not discovered by this browser build");
   }
   if (companionConnected && !sessionResumed) {
+    await page.locator("#practiceBoundary").check();
     await page.locator("#startSession").click();
     await page.locator("#connectionStatus").filter({ hasText: "Sitzung aktiv" }).waitFor({ timeout: 10_000 });
     testSessionCreated = true;
   }
+  if (testSessionCreated) {
+    await page.close();
+    page = await context.newPage();
+    await page.goto(`chrome-extension://${extensionId}/v2/sidepanel.html`);
+    await page.locator("#connectionStatus").filter({ hasText: "Sitzung fortgesetzt" }).waitFor({ timeout: 10_000 });
+    sessionResumed = true;
+  }
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
   if (overflow) throw new Error("Side panel has horizontal overflow");
   if (testSessionCreated) {
+    await page.getByRole("tab", { name: "Rueckblick", exact: true }).click();
     page.once("dialog", (dialog) => dialog.accept());
     await page.locator("#deleteSession").click();
-    await page.locator("#sessionOutput").filter({ hasText: "gelöscht" }).waitFor({ timeout: 10_000 });
+    await page.locator("#reviewOutput").filter({ hasText: "Keine Sitzungsdaten" }).waitFor({ timeout: 10_000 });
+    await page.locator("#connectionStatus").filter({ hasText: "Lokal bereit" }).waitFor({ timeout: 10_000 });
   }
   process.stdout.write(JSON.stringify({
     status: "pass",
