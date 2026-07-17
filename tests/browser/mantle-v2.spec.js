@@ -158,6 +158,73 @@ test("content script refuses ambiguous Colab cell detection instead of guessing"
   expect(response.selectedCell.source).toBe("");
 });
 
+test("content script saves one visible local Jupyter notebook without reading content", async ({ page }) => {
+  await page.route("http://127.0.0.1:8899/**", (route) => route.fulfill({
+    contentType: "text/html",
+    body: "<button title='Save the notebook'>Save</button>"
+  }));
+  await page.goto("http://127.0.0.1:8899/lab/tree/synthetic.ipynb");
+  await page.evaluate(() => {
+    window.__saveClicks = 0;
+    document.querySelector("button").addEventListener("click", () => { window.__saveClicks += 1; });
+    window.__unibotListener = null;
+    window.chrome = {
+      runtime: {
+        onMessage: {
+          addListener(listener) { window.__unibotListener = listener; }
+        }
+      }
+    };
+  });
+  await page.addScriptTag({ path: path.join(extensionRoot, "content.js") });
+  const response = await page.evaluate(() => new Promise((resolve) => {
+    window.__unibotListener({
+      type: "UNIBOT_SAVE_NOTEBOOK",
+      expected_binding: {
+        schema_version: "unibot-rehearsal-browser-binding-v1",
+        hostname: "127.0.0.1",
+        port: 8899,
+        pathname: "/lab/tree/synthetic.ipynb"
+      }
+    }, {}, resolve);
+  }));
+
+  expect(response.saved).toBe(true);
+  expect(response.browser_binding_matched).toBe(true);
+  expect(response.notebook_content_read).toBe(false);
+  expect(await page.evaluate(() => window.__saveClicks)).toBe(1);
+});
+
+test("content script refuses to save a different loopback notebook", async ({ page }) => {
+  await page.route("http://127.0.0.1:8899/**", (route) => route.fulfill({
+    contentType: "text/html",
+    body: "<button title='Save the notebook'>Save</button>"
+  }));
+  await page.goto("http://127.0.0.1:8899/lab/tree/other.ipynb");
+  await page.evaluate(() => {
+    window.__saveClicks = 0;
+    document.querySelector("button").addEventListener("click", () => { window.__saveClicks += 1; });
+    window.__unibotListener = null;
+    window.chrome = { runtime: { onMessage: { addListener(listener) { window.__unibotListener = listener; } } } };
+  });
+  await page.addScriptTag({ path: path.join(extensionRoot, "content.js") });
+  const response = await page.evaluate(() => new Promise((resolve) => {
+    window.__unibotListener({
+      type: "UNIBOT_SAVE_NOTEBOOK",
+      expected_binding: {
+        schema_version: "unibot-rehearsal-browser-binding-v1",
+        hostname: "127.0.0.1",
+        port: 8899,
+        pathname: "/lab/tree/unibot-synthetic-rehearsal.ipynb"
+      }
+    }, {}, resolve);
+  }));
+
+  expect(response.saved).toBe(false);
+  expect(response.reason).toBe("rehearsal_browser_binding_mismatch");
+  expect(await page.evaluate(() => window.__saveClicks)).toBe(0);
+});
+
 test("sidepanel starts a native session, captures a cell, requests A0-A4 help, and renders review metadata", async ({ page }) => {
   await page.addInitScript(() => {
     let onNativeMessage = null;
@@ -261,7 +328,8 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
 
   await page.goto(pathToFileURL(path.join(extensionRoot, "v2", "sidepanel.html")).href);
   await expect(page.locator("#connectionStatus")).toHaveText("Lokal bereit");
-  await expect(page.locator("#releaseStatus")).toHaveText("Lokaler Uebungsbetrieb: bereit. Allgemeine Verteilung: noch nicht freigegeben.");
+  await expect(page.locator("#releaseStatus")).toContainText("Lokaler Uebungsbetrieb: bereit");
+  await expect(page.locator("#releaseStatus")).toContainText("Allgemeine Verteilung: noch nicht freigegeben");
   await page.locator("#startSession").click();
   await expect(page.locator("#sessionOutput")).toContainText("freiwillige Übung, keine Prüfung");
   await page.locator("#practiceBoundary").check();
@@ -370,6 +438,238 @@ test("sidepanel imports a local notebook through the path-free chunked native ha
   expect(nativeTypes).toContain("notebook.upload.chunk");
   expect(nativeTypes).toContain("notebook.upload.finish");
   expect(nativeTypes).not.toContain("notebook.import");
+});
+
+test("sidepanel runs the synthetic A0-A2 rehearsal and finishes through native save", async ({ page }) => {
+  await page.addInitScript(() => {
+    let onNativeMessage = null;
+    window.__nativeTypes = [];
+    window.__saveRequest = null;
+    const report = {
+      event_count: 1,
+      own_attempt_count: 1,
+      by_help_level: { A2: 1 },
+      assistance_points_used: 5,
+      accessibility_usage_metadata_collected: false,
+      transfer_tasks: [{ status: "not_started" }]
+    };
+    const nativePort = {
+      onMessage: { addListener(listener) { onNativeMessage = listener; } },
+      onDisconnect: { addListener() {} },
+      postMessage(message) {
+        window.__nativeTypes.push(message.type);
+        let response = {
+          request_id: message.request_id,
+          status: "ready",
+          local_practice_status: "ready_for_local_practice",
+          distribution_status: "blocked_human_release_gates"
+        };
+        if (message.type === "notebook.upload.start" || message.type === "notebook.upload.chunk") {
+          response = { request_id: message.request_id, status: "uploading" };
+        } else if (message.type === "notebook.upload.finish") {
+          response = {
+            request_id: message.request_id,
+            status: "ok",
+            notebook_id: "c".repeat(16),
+            manifest: {
+              cell_count: 2,
+              outputs_removed: 0,
+              source_sha256: "f65a9b818bd0247cd1026d2750352597aaf47c672796374965d33379286c2b50",
+              sanitized_sha256: "c".repeat(64)
+            }
+          };
+        } else if (message.type === "rehearsal.start") {
+          response = {
+            request_id: message.request_id,
+            status: "active",
+            contract: {
+              session_id: "synthetic-rehearsal-session",
+              practice_scope: "synthetic_exam_rehearsal",
+              assistance_mode: "adaptive",
+              fixed_help_level: "A0",
+              max_help_level: "A2"
+            },
+            rehearsal_contract: { rehearsal_id: "a".repeat(32) },
+            rehearsal: {
+              status: "active",
+              browser_binding: {
+                schema_version: "unibot-rehearsal-browser-binding-v1",
+                hostname: "127.0.0.1",
+                port: 8899,
+                pathname: "/lab/tree/unibot-synthetic-rehearsal.ipynb"
+              },
+              exam_deployment_status: "not_cleared"
+            }
+          };
+        } else if (message.type === "rehearsal.finish") {
+          response = {
+            request_id: message.request_id,
+            status: "exported",
+            report,
+            receipt: {
+              receipt_hash: "d".repeat(64),
+              automatic_submission: false,
+              exam_deployment_status: "not_cleared"
+            }
+          };
+        } else if (message.type === "gateway.status") {
+          response = { request_id: message.request_id, status: "stopped" };
+        }
+        queueMicrotask(() => onNativeMessage?.(response));
+      }
+    };
+    window.chrome = {
+      runtime: {
+        connectNative() { return nativePort; },
+        lastError: null
+      },
+      tabs: {
+        async query() { return [{ id: 17 }]; },
+        async sendMessage(_id, message) {
+          if (message.type === "UNIBOT_SAVE_NOTEBOOK") {
+            window.__saveRequest = message;
+            return { saved: true, browser_binding_matched: true, notebook_content_read: false };
+          }
+          return {};
+        }
+      }
+    };
+  });
+
+  await page.goto(pathToFileURL(path.join(extensionRoot, "v2", "sidepanel.html")).href);
+  await page.locator("#sessionMode").selectOption("rehearsal");
+  await expect(page.locator("#startSession")).toBeDisabled();
+  await page.locator("#notebookFile").setInputFiles(path.join(root, "fixtures", "public", "synthetic_python_practice.ipynb"));
+  await page.locator("#importNotebook").click();
+  await expect(page.locator("#notebookOutput")).toContainText("Bereinigtes Notebook bereit");
+  await page.locator("#practiceBoundary").check();
+  await expect(page.locator("#startSession")).toBeEnabled();
+  await page.locator("#startSession").click();
+  await expect(page.locator("#connectionStatus")).toHaveText("Simulation aktiv");
+  await expect(page.locator("input[name='helpLevel'][value='A3']")).toBeDisabled();
+  await expect(page.locator("input[name='helpLevel'][value='A4']")).toBeDisabled();
+  await expect(page.locator("#finishRehearsal")).toBeEnabled();
+  await page.locator("#finishRehearsal").click();
+  await expect(page.locator("#connectionStatus")).toHaveText("Simulation abgeschlossen");
+  await expect(page.locator("#sessionOutput")).toContainText("Automatische Abgabe: nein");
+  const nativeTypes = await page.evaluate(() => window.__nativeTypes);
+  const saveRequest = await page.evaluate(() => window.__saveRequest);
+  expect(nativeTypes).toContain("rehearsal.start");
+  expect(nativeTypes).toContain("rehearsal.finish");
+  expect(saveRequest.expected_binding.pathname).toBe("/lab/tree/unibot-synthetic-rehearsal.ipynb");
+});
+
+test("sidepanel keeps a running practice gateway stoppable before rehearsal", async ({ page }) => {
+  await page.addInitScript(() => {
+    let onNativeMessage = null;
+    window.__nativeTypes = [];
+    const nativePort = {
+      onMessage: { addListener(listener) { onNativeMessage = listener; } },
+      onDisconnect: { addListener() {} },
+      postMessage(message) {
+        window.__nativeTypes.push(message.type);
+        let response = {
+          request_id: message.request_id,
+          status: "ready",
+          local_practice_status: "ready_for_local_practice",
+          distribution_status: "blocked_human_release_gates"
+        };
+        if (message.type === "gateway.status") {
+          response = {
+            request_id: message.request_id,
+            status: "active",
+            gateway: { notebook_id: "a".repeat(16), process_id: 123, port: 8765 }
+          };
+        } else if (message.type === "gateway.stop") {
+          response = { request_id: message.request_id, status: "stopped" };
+        }
+        queueMicrotask(() => onNativeMessage?.(response));
+      }
+    };
+    window.chrome = {
+      runtime: { connectNative() { return nativePort; }, lastError: null }
+    };
+  });
+
+  await page.goto(pathToFileURL(path.join(extensionRoot, "v2", "sidepanel.html")).href);
+  await expect(page.locator("#stopGateway")).toBeEnabled();
+  await page.locator("#sessionMode").selectOption("rehearsal");
+  await expect(page.locator("#stopGateway")).toBeEnabled();
+  await page.locator("#stopGateway").click();
+  await expect(page.locator("#stopGateway")).toBeDisabled();
+  const nativeTypes = await page.evaluate(() => window.__nativeTypes);
+  expect(nativeTypes).toContain("gateway.stop");
+});
+
+test("sidepanel resumes a frozen rehearsal and completes export without a dead Jupyter tab", async ({ page }) => {
+  await page.addInitScript(() => {
+    let onNativeMessage = null;
+    window.__tabQueries = 0;
+    const report = {
+      event_count: 1,
+      own_attempt_count: 1,
+      by_help_level: { A1: 1 },
+      assistance_points_used: 0,
+      transfer_tasks: [{ status: "not_started" }]
+    };
+    const nativePort = {
+      onMessage: { addListener(listener) { onNativeMessage = listener; } },
+      onDisconnect: { addListener() {} },
+      postMessage(message) {
+        let response = { request_id: message.request_id, status: "stopped" };
+        if (message.type === "companion.status") {
+          response = {
+            request_id: message.request_id,
+            status: "ready",
+            local_practice_status: "ready_for_local_practice",
+            distribution_status: "blocked_human_release_gates",
+            rehearsal_resume_available: true,
+            active_rehearsal_metadata: { rehearsal_id: "a".repeat(32) }
+          };
+        } else if (message.type === "rehearsal.status") {
+          response = {
+            request_id: message.request_id,
+            status: "frozen",
+            rehearsal: {
+              status: "frozen",
+              rehearsal_id: "a".repeat(32),
+              notebook_id: "c".repeat(16)
+            },
+            contract: {
+              session_id: "synthetic-rehearsal-session",
+              practice_scope: "synthetic_exam_rehearsal",
+              assistance_mode: "adaptive",
+              fixed_help_level: "A0",
+              max_help_level: "A2"
+            },
+            report
+          };
+        } else if (message.type === "rehearsal.finish") {
+          response = {
+            request_id: message.request_id,
+            status: "exported",
+            report,
+            receipt: { receipt_hash: "d".repeat(64) }
+          };
+        }
+        queueMicrotask(() => onNativeMessage?.(response));
+      }
+    };
+    window.chrome = {
+      runtime: { connectNative() { return nativePort; }, lastError: null },
+      tabs: {
+        async query() { window.__tabQueries += 1; return []; },
+        async sendMessage() { throw new Error("frozen rehearsal must not use Jupyter tab"); }
+      }
+    };
+  });
+
+  await page.goto(pathToFileURL(path.join(extensionRoot, "v2", "sidepanel.html")).href);
+  await expect(page.locator("#connectionStatus")).toHaveText("Simulation fortgesetzt");
+  await expect(page.locator("#finishRehearsal")).toBeEnabled();
+  await page.locator("#finishRehearsal").click();
+  await expect(page.locator("#connectionStatus")).toHaveText("Simulation abgeschlossen");
+  expect(await page.evaluate(() => window.__tabQueries)).toBe(0);
 });
 
 test("sidepanel remains usable at the narrow supported width", async ({ page }) => {

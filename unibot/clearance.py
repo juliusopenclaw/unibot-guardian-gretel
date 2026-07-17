@@ -1301,10 +1301,40 @@ def write_institutional_review_bundle(
             "exam_deployment_status": "not_cleared",
         }
     fixture_scan = scan_text(fixture_text, "synthetic_python_practice.ipynb")
+    rehearsal_spec_source = (
+        Path(__file__).resolve().parents[1]
+        / "docs"
+        / "unibot"
+        / "UNIBOT_CONTROLLED_EXAM_REHEARSAL_V1.md"
+    )
+    if rehearsal_spec_source.is_symlink() or not rehearsal_spec_source.is_file():
+        return {
+            "schema_version": INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION,
+            "artifact_type": "unibot_institutional_review_bundle",
+            "status": "blocked",
+            "reason": "controlled_rehearsal_spec_missing_or_unsafe",
+            "exam_deployment_status": "not_cleared",
+        }
+    try:
+        rehearsal_spec_text = rehearsal_spec_source.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return {
+            "schema_version": INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION,
+            "artifact_type": "unibot_institutional_review_bundle",
+            "status": "blocked",
+            "reason": "controlled_rehearsal_spec_unreadable",
+            "exam_deployment_status": "not_cleared",
+        }
+    rehearsal_spec_scan = scan_text(rehearsal_spec_text, "CONTROLLED-EXAM-REHEARSAL-V1.md")
     demo_evidence = build_public_demo_evidence()
     demo_markdown = build_public_demo_markdown(demo_evidence)
     demo_scan = scan_text(demo_markdown, "PUBLIC-DEMO.md")
-    if fixture_scan["status"] != "pass" or demo_evidence.get("status") != "ready_for_human_demo" or demo_scan["status"] != "pass":
+    if (
+        fixture_scan["status"] != "pass"
+        or rehearsal_spec_scan["status"] != "pass"
+        or demo_evidence.get("status") != "ready_for_human_demo"
+        or demo_scan["status"] != "pass"
+    ):
         return {
             "schema_version": INSTITUTIONAL_REVIEW_BUNDLE_SCHEMA_VERSION,
             "artifact_type": "unibot_institutional_review_bundle",
@@ -1471,6 +1501,7 @@ def write_institutional_review_bundle(
         "institutional-review-decision-template.md": build_institutional_review_decision_template_markdown(
             packet["institutional_review_decision_template"]
         ),
+        "CONTROLLED-EXAM-REHEARSAL-V1.md": rehearsal_spec_text,
         "PUBLIC-DEMO.md": demo_markdown,
         "synthetic_python_practice.ipynb": fixture_text,
     }
@@ -1521,6 +1552,17 @@ def write_institutional_review_bundle(
             "notebook_code_executed": demo_evidence["safety"]["notebook_code_executed"],
             "provider_calls": demo_evidence["safety"]["provider_calls"],
             "extension_package_sha256": extension_result["package_sha256"],
+        },
+        "controlled_rehearsal": {
+            "status": "ready_for_institutional_rehearsal_review",
+            "specification_file": "CONTROLLED-EXAM-REHEARSAL-V1.md",
+            "fixture_name": "synthetic_python_practice.ipynb",
+            "fixture_sha256": hashlib.sha256(fixture_bytes).hexdigest(),
+            "allowed_help_levels": ["A0", "A1", "A2"],
+            "provider_calls": 0,
+            "automatic_submission": False,
+            "automatic_assessment": False,
+            "exam_deployment_status": "not_cleared",
         },
         "release_verification": {
             "release_evidence_file": "RELEASE-EVIDENCE.json" if "RELEASE-EVIDENCE.json" in contents else None,

@@ -10,7 +10,13 @@ const state = {
   requestCounter: 0,
   contract: null,
   sessionActive: false,
+  mode: "practice",
+  rehearsalId: "",
+  rehearsalStatus: "",
+  rehearsalBrowserBinding: null,
   notebookId: "",
+  notebookSourceSha256: "",
+  gatewayActive: false,
   selectedCell: null,
   lastReview: null,
   transferTask: null,
@@ -22,13 +28,17 @@ const state = {
 const elements = {
   connectionStatus: document.querySelector("#connectionStatus"),
   releaseStatus: document.querySelector("#releaseStatus"),
+  sessionMode: document.querySelector("#sessionMode"),
   pseudonym: document.querySelector("#pseudonym"),
   courseId: document.querySelector("#courseId"),
   maxHelpLevel: document.querySelector("#maxHelpLevel"),
   fixedHelpLevel: document.querySelector("#fixedHelpLevel"),
   practiceBoundary: document.querySelector("#practiceBoundary"),
+  boundaryLabel: document.querySelector("#boundaryLabel"),
+  practiceBoundaryNote: document.querySelector("#practiceBoundaryNote"),
   startSession: document.querySelector("#startSession"),
   stopSession: document.querySelector("#stopSession"),
+  finishRehearsal: document.querySelector("#finishRehearsal"),
   sessionOutput: document.querySelector("#sessionOutput"),
   notebookSource: document.querySelector("#notebookSource"),
   notebookFile: document.querySelector("#notebookFile"),
@@ -56,7 +66,8 @@ const elements = {
   showExportPreview: document.querySelector("#showExportPreview"),
   exportPreview: document.querySelector("#exportPreview"),
   exportConfirmRow: document.querySelector("#exportConfirmRow"),
-  confirmExport: document.querySelector("#confirmExport")
+  confirmExport: document.querySelector("#confirmExport"),
+  scopeBoundary: document.querySelector("#scopeBoundary")
 };
 
 function setConnection(text, status) {
@@ -74,7 +85,12 @@ function renderCompanionReleaseStatus(status) {
     blocked_human_release_gates: "Allgemeine Verteilung: noch nicht freigegeben",
     ready_for_distribution: "Allgemeine Verteilung: menschliche Freigabe liegt vor"
   }[status.distribution_status] || "Allgemeine Verteilung: Status unbekannt";
-  elements.releaseStatus.textContent = `${localStatus}. ${distributionStatus}.`;
+  const rehearsalStatus = {
+    ready_for_offline_preflight: "Künstliche Simulation: JupyterLab bereit; Offline-Prüfung folgt beim Start",
+    jupyterlab_missing: "Künstliche Simulation: JupyterLab fehlt",
+    prerequisites_missing: "Künstliche Simulation: Voraussetzungen fehlen"
+  }[status.controlled_rehearsal_status] || "Künstliche Simulation: Status beim Start geprüft";
+  elements.releaseStatus.textContent = `${localStatus}. ${distributionStatus}. ${rehearsalStatus}.`;
   elements.releaseStatus.dataset.state = status.local_practice_status === "ready_for_local_practice"
     && status.distribution_status === "blocked_human_release_gates" ? "ready" : "attention";
 }
@@ -114,8 +130,13 @@ function persistAccessibilityPreference() {
 function syncSessionControls() {
   const hasContract = Boolean(state.contract);
   const active = hasContract && state.sessionActive;
-  elements.startSession.disabled = active || (hasContract && !state.sessionActive);
-  elements.stopSession.disabled = !active;
+  const rehearsal = state.mode === "rehearsal";
+  const syntheticFixtureReady = state.notebookSourceSha256 === "f65a9b818bd0247cd1026d2750352597aaf47c672796374965d33379286c2b50";
+  elements.startSession.disabled = active || (hasContract && !state.sessionActive) || (rehearsal && !syntheticFixtureReady);
+  elements.stopSession.disabled = !active || rehearsal;
+  elements.stopSession.hidden = rehearsal;
+  elements.finishRehearsal.hidden = !rehearsal;
+  elements.finishRehearsal.disabled = !rehearsal || !["active", "frozen"].includes(state.rehearsalStatus);
   elements.capture.disabled = !active;
   elements.ask.disabled = !active;
   elements.refreshReview.disabled = !hasContract;
@@ -123,25 +144,26 @@ function syncSessionControls() {
   elements.deleteSession.disabled = !hasContract;
   const transferReport = state.lastReview?.transfer_tasks?.[0];
   const transferRecorded = transferReport?.status === "recorded";
-  const transferVisible = Boolean(hasContract && !active && !transferRecorded);
+  const transferVisible = Boolean(!rehearsal && hasContract && !active && !transferRecorded);
   elements.showTransferTask.disabled = !transferVisible;
   elements.recordTransfer.hidden = !state.transferTask || transferRecorded;
   elements.transferAnswerLabel.hidden = !state.transferTask || transferRecorded;
   elements.transferAnswer.hidden = !state.transferTask || transferRecorded;
   elements.recordTransfer.disabled = !state.transferTask || transferRecorded || !elements.transferAnswer.value.trim();
 
+  elements.sessionMode.disabled = hasContract;
   [elements.pseudonym, elements.courseId, elements.maxHelpLevel, elements.fixedHelpLevel]
-    .forEach((control) => { control.disabled = hasContract; });
+    .forEach((control) => { control.disabled = hasContract || rehearsal; });
   elements.practiceBoundary.disabled = hasContract;
   document.querySelectorAll("input[name='assistanceMode']").forEach((control) => {
-    control.disabled = hasContract;
+    control.disabled = hasContract || rehearsal;
   });
 
   document.querySelectorAll("input[name='helpLevel']").forEach((control) => {
     const levelIndex = HELP_LEVELS.indexOf(control.value);
-    const maximumIndex = HELP_LEVELS.indexOf(state.contract?.max_help_level || "A4");
+    const maximumIndex = HELP_LEVELS.indexOf(state.contract?.max_help_level || (rehearsal ? "A2" : "A4"));
     const fixedLevel = state.contract?.fixed_help_level || elements.fixedHelpLevel.value;
-    const allowed = !hasContract
+    const allowed = (!hasContract && (!rehearsal || levelIndex <= HELP_LEVELS.indexOf("A2")))
       || (state.sessionActive && (state.contract.assistance_mode === "fixed"
         ? control.value === fixedLevel
         : levelIndex >= 0 && levelIndex <= maximumIndex));
@@ -160,6 +182,30 @@ function syncSessionControls() {
       if (fallback) fallback.checked = true;
     }
   }
+  elements.openGateway.disabled = rehearsal || !state.notebookId || state.gatewayActive;
+  elements.stopGateway.disabled = !state.gatewayActive;
+}
+
+function syncModePresentation() {
+  state.mode = elements.sessionMode.value === "rehearsal" ? "rehearsal" : "practice";
+  const rehearsal = state.mode === "rehearsal";
+  elements.boundaryLabel.textContent = rehearsal
+    ? "Künstliche Prüfungssimulation und Status nicht freigegeben bestätigen"
+    : "Freiwillige Übung bestätigen";
+  elements.practiceBoundaryNote.textContent = rehearsal
+    ? "Nur das veröffentlichte künstliche Notebook; A0-A2, lokaler Offline-Betrieb, keine echte Klausur oder automatische Abgabe."
+    : "Diese Sitzung ist kein Prüfungseinsatz. Hilfe und Rückblick bleiben lokal; es gibt keine automatische Note oder KI-Erkennung.";
+  elements.startSession.textContent = rehearsal ? "Simulation starten" : "Sitzung starten";
+  elements.scopeBoundary.textContent = rehearsal
+    ? "A0-A2. Künstliche Simulation. Keine Note, Überwachung, automatische Abgabe oder Prüfungsfreigabe."
+    : "A0-A4. Lernbetrieb. Keine Note, KI-Erkennung oder Pruefungsfreigabe.";
+  if (rehearsal) {
+    elements.maxHelpLevel.value = "A2";
+    document.querySelector("input[name='assistanceMode'][value='adaptive']").checked = true;
+    const a2 = document.querySelector("input[name='helpLevel'][value='A2']");
+    if (a2) a2.checked = true;
+  }
+  syncSessionControls();
 }
 
 function scheduleReconnect() {
@@ -219,7 +265,25 @@ function connectCompanion() {
     setConnection("Lokal bereit", "ready");
     state.reconnectAttempt = 0;
     state.connecting = false;
-    if (status.resume_available) {
+    if (status.rehearsal_resume_available) {
+      const resumed = await nativeRequest("rehearsal.status", {
+        rehearsal_id: status.active_rehearsal_metadata?.rehearsal_id || ""
+      });
+      state.mode = "rehearsal";
+      state.rehearsalId = resumed.rehearsal.rehearsal_id;
+      state.rehearsalStatus = resumed.rehearsal.status;
+      state.rehearsalBrowserBinding = resumed.rehearsal.browser_binding || null;
+      state.contract = resumed.contract;
+      state.sessionActive = resumed.rehearsal.status === "active";
+      state.notebookId = resumed.rehearsal.notebook_id || "";
+      elements.sessionMode.value = "rehearsal";
+      elements.practiceBoundary.checked = true;
+      state.lastReview = resumed.report;
+      syncModePresentation();
+      setConnection("Simulation fortgesetzt", "ready");
+      elements.sessionOutput.textContent = "Vorhandene künstliche Prüfungssimulation wurde lokal fortgesetzt.";
+      elements.reviewOutput.textContent = renderReview(state.lastReview);
+    } else if (status.resume_available) {
       const resumed = await nativeRequest("session.resume", {
         session_id: status.active_session_metadata?.session_id || ""
       });
@@ -235,8 +299,9 @@ function connectCompanion() {
       elements.sessionOutput.textContent = "Begleiter bereit. Lernsitzung starten.";
     }
     const gateway = await nativeRequest("gateway.status");
-    if (gateway.status === "active") {
-      elements.stopGateway.disabled = false;
+    state.gatewayActive = gateway.status === "active"
+      && gateway.gateway?.mode !== "synthetic_exam_rehearsal";
+    if (state.gatewayActive) {
       elements.notebookOutput.textContent = "Lokales Jupyter-Gateway ist aktiv.";
     }
     syncSessionControls();
@@ -253,14 +318,14 @@ function connectCompanion() {
   });
 }
 
-function nativeRequest(type, payload = {}) {
+function nativeRequest(type, payload = {}, timeoutMs = 10000) {
   if (!state.port) return Promise.reject(new Error("UniBot Companion ist nicht verbunden."));
   const requestId = `unibot-${Date.now()}-${++state.requestCounter}`;
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       state.pending.delete(requestId);
       reject(new Error("Der lokale Begleiter antwortet nicht."));
-    }, 10000);
+    }, timeoutMs);
     state.pending.set(requestId, { resolve, reject, timeout });
     state.port.postMessage({
       schema_version: "unibot-companion-message-v1",
@@ -274,7 +339,28 @@ function nativeRequest(type, payload = {}) {
 async function startSession() {
   if (state.contract) throw new Error("Vor einer neuen Sitzung die beendete Sitzung löschen.");
   if (!elements.practiceBoundary.checked) {
-    throw new Error("Bitte zuerst bestätigen: Diese Sitzung ist freiwillige Übung, keine Prüfung.");
+    throw new Error(state.mode === "rehearsal"
+      ? "Bitte zuerst die künstliche Simulation und den Status nicht freigegeben bestätigen."
+      : "Bitte zuerst bestätigen: Diese Sitzung ist freiwillige Übung, keine Prüfung.");
+  }
+  if (state.mode === "rehearsal") {
+    if (!state.notebookId) throw new Error("Zuerst das veröffentlichte künstliche Notebook importieren.");
+    const response = await nativeRequest("rehearsal.start", { notebook_id: state.notebookId }, 30000);
+    state.contract = response.contract;
+    state.rehearsalId = response.rehearsal_contract.rehearsal_id;
+    state.rehearsalStatus = "active";
+    state.rehearsalBrowserBinding = response.rehearsal.browser_binding;
+    state.sessionActive = true;
+    state.lastReview = null;
+    setConnection("Simulation aktiv", "ready");
+    elements.sessionOutput.textContent = [
+      "Künstliche Prüfungssimulation aktiv",
+      "Hilfestufen: A0-A2",
+      "Netz: lokal gesperrt und überwacht",
+      "Prüfungseinsatz: nicht freigegeben"
+    ].join("\n");
+    syncSessionControls();
+    return;
   }
   const mode = selectedAssistanceMode();
   const response = await nativeRequest("session.start", {
@@ -365,32 +451,36 @@ async function importNotebook() {
     response = await nativeRequest("notebook.import", { source });
   }
   state.notebookId = response.notebook_id;
-  elements.openGateway.disabled = false;
+  state.notebookSourceSha256 = response.manifest.source_sha256 || "";
+  elements.openGateway.disabled = state.mode === "rehearsal";
   elements.notebookOutput.textContent = [
     "Bereinigtes Notebook bereit",
     `Zellen: ${response.manifest.cell_count}`,
     `Entfernte Ausgaben: ${response.manifest.outputs_removed}`,
     `Hash: ${response.manifest.sanitized_sha256.slice(0, 16)}`
   ].join("\n");
+  syncSessionControls();
 }
 
 async function openGateway() {
   if (!state.notebookId) throw new Error("Notebook zuerst importieren");
   const response = await nativeRequest("gateway.launch", { notebook_id: state.notebookId });
-  elements.stopGateway.disabled = false;
+  state.gatewayActive = true;
   elements.notebookOutput.textContent = [
     "Lokales Jupyter gestartet",
     `Notebook: ${response.gateway.artifact_name}`,
     "Terminal deaktiviert. Pruefungseinsatz nicht freigegeben."
   ].join("\n");
+  syncSessionControls();
 }
 
 async function stopGateway() {
   const response = await nativeRequest("gateway.stop");
-  elements.stopGateway.disabled = true;
+  state.gatewayActive = false;
   elements.notebookOutput.textContent = response.status === "stopped"
     ? "Lokales Jupyter-Gateway wurde gestoppt."
     : "Kein lokales Jupyter-Gateway aktiv.";
+  syncSessionControls();
 }
 
 function renderTurn(turn) {
@@ -495,6 +585,47 @@ async function stopSession() {
   syncSessionControls();
 }
 
+async function finishRehearsal() {
+  if (state.mode !== "rehearsal" || !state.rehearsalId || !["active", "frozen"].includes(state.rehearsalStatus)) {
+    throw new Error("Keine abschließbare künstliche Prüfungssimulation.");
+  }
+  if (state.rehearsalStatus === "active") {
+    const tabs = globalThis.chrome?.tabs;
+    if (!tabs) throw new Error("Lokales Jupyter-Speichern ist nicht verfügbar.");
+    const [tab] = await tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) throw new Error("Kein aktiver lokaler Jupyter-Tab.");
+    const saved = await tabs.sendMessage(tab.id, {
+      type: "UNIBOT_SAVE_NOTEBOOK",
+      expected_binding: state.rehearsalBrowserBinding
+    });
+    if (!saved?.saved || saved.browser_binding_matched !== true || saved.notebook_content_read !== false) {
+      throw new Error("Jupyter konnte den aktuellen Stand nicht eindeutig speichern. Die Simulation bleibt aktiv.");
+    }
+  }
+  const response = await nativeRequest(
+    "rehearsal.finish",
+    {
+      rehearsal_id: state.rehearsalId,
+      browser_save_confirmed: true,
+      browser_binding: state.rehearsalBrowserBinding
+    },
+    130000
+  );
+  state.sessionActive = false;
+  state.rehearsalStatus = "exported";
+  state.lastReview = response.report;
+  setConnection("Simulation abgeschlossen", "ready");
+  elements.sessionOutput.textContent = [
+    "Simulation abgeschlossen und lokal gespeichert",
+    `Abschlussbeleg: ${response.receipt.receipt_hash.slice(0, 16)}`,
+    "Automatische Abgabe: nein",
+    "Prüfungseinsatz: nicht freigegeben"
+  ].join("\n");
+  elements.reviewOutput.textContent = renderReview(state.lastReview);
+  resetExportPreview();
+  syncSessionControls();
+}
+
 function resetExportPreview() {
   elements.exportPreview.hidden = true;
   elements.exportConfirmRow.hidden = true;
@@ -535,9 +666,20 @@ function exportReview() {
 async function deleteSession() {
   if (!state.contract) throw new Error("Keine Lernsitzung ausgewählt");
   if (!window.confirm("Lernsitzung und lokale Metadaten sofort löschen?")) return;
-  await nativeRequest("session.delete", { session_id: state.contract.session_id });
+  if (state.mode === "rehearsal") {
+    await nativeRequest("rehearsal.delete", { rehearsal_id: state.rehearsalId });
+  } else {
+    await nativeRequest("session.delete", { session_id: state.contract.session_id });
+  }
   state.contract = null;
   state.sessionActive = false;
+  state.rehearsalId = "";
+  state.rehearsalStatus = "";
+  state.rehearsalBrowserBinding = null;
+  state.notebookId = "";
+  state.notebookSourceSha256 = "";
+  state.mode = "practice";
+  elements.sessionMode.value = "practice";
   elements.practiceBoundary.checked = false;
   state.lastReview = null;
   state.transferTask = null;
@@ -548,6 +690,7 @@ async function deleteSession() {
   elements.reviewOutput.textContent = "Keine Sitzungsdaten.";
   elements.helpOutput.textContent = "Noch keine Anfrage.";
   resetExportPreview();
+  syncModePresentation();
   setConnection("Lokal bereit", "ready");
   syncSessionControls();
 }
@@ -596,6 +739,11 @@ tabButtons.forEach((button, index) => {
 
 elements.startSession.addEventListener("click", guarded(startSession, elements.sessionOutput));
 elements.stopSession.addEventListener("click", guarded(stopSession, elements.sessionOutput));
+elements.finishRehearsal.addEventListener("click", guarded(finishRehearsal, elements.sessionOutput));
+elements.sessionMode.addEventListener("change", () => {
+  elements.practiceBoundary.checked = false;
+  syncModePresentation();
+});
 elements.importNotebook.addEventListener("click", guarded(importNotebook, elements.notebookOutput));
 elements.openGateway.addEventListener("click", guarded(openGateway, elements.notebookOutput));
 elements.stopGateway.addEventListener("click", guarded(stopGateway, elements.notebookOutput));
@@ -619,4 +767,4 @@ elements.deleteSession.addEventListener("click", guarded(deleteSession, elements
 connectCompanion();
 resetExportPreview();
 restoreAccessibilityPreference();
-syncSessionControls();
+syncModePresentation();

@@ -22,6 +22,7 @@ _COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 _RAW_KEYS = frozenset({"stdout", "stderr", "raw_output", "command", "path", "local_path"})
 _BASE_FILES = frozenset(
     {
+        "CONTROLLED-EXAM-REHEARSAL-V1.md",
         "PUBLIC-DEMO.md",
         "institutional-accessibility-walkthrough.md",
         "institutional-plain-language-brief.md",
@@ -255,6 +256,33 @@ def audit_institutional_review_bundle(bundle_dir: str | Path) -> dict[str, Any]:
         issues.append("bundle_file_set_mismatch")
     if not _BASE_FILES.issubset(record_names):
         issues.append("bundle_base_files_missing")
+
+    rehearsal = manifest.get("controlled_rehearsal")
+    if not isinstance(rehearsal, dict):
+        issues.append("controlled_rehearsal_manifest_missing")
+    else:
+        _require(
+            rehearsal,
+            "status",
+            "ready_for_institutional_rehearsal_review",
+            "controlled_rehearsal_status_mismatch",
+            issues,
+        )
+        _require(
+            rehearsal,
+            "specification_file",
+            "CONTROLLED-EXAM-REHEARSAL-V1.md",
+            "controlled_rehearsal_specification_mismatch",
+            issues,
+        )
+        _require(rehearsal, "allowed_help_levels", ["A0", "A1", "A2"], "controlled_rehearsal_help_drift", issues)
+        _require(rehearsal, "provider_calls", 0, "controlled_rehearsal_provider_calls_not_zero", issues)
+        _require(rehearsal, "automatic_submission", False, "controlled_rehearsal_automatic_submission", issues)
+        _require(rehearsal, "automatic_assessment", False, "controlled_rehearsal_automatic_assessment", issues)
+        _require(rehearsal, "exam_deployment_status", "not_cleared", "controlled_rehearsal_exam_status_drift", issues)
+        demo = manifest.get("demo")
+        if not isinstance(demo, dict) or rehearsal.get("fixture_sha256") != demo.get("fixture_sha256"):
+            issues.append("controlled_rehearsal_fixture_hash_mismatch")
 
     presentation = _read_json(root / "institutional-presentation.json", issues, "presentation") if root.is_dir() else {}
     _require(presentation, "schema_version", "InstitutionalPresentationV1", "presentation_schema_mismatch", issues)

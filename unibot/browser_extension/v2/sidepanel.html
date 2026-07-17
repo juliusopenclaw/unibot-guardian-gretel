@@ -86,6 +86,11 @@
     <main>
       <section id="session" data-panel role="tabpanel" aria-labelledby="session-tab" tabindex="0">
         <h2 id="session-heading">Lernsitzung</h2>
+        <label for="sessionMode">Betriebsart</label>
+        <select id="sessionMode">
+          <option value="practice">Übung</option>
+          <option value="rehearsal">Künstliche Prüfungssimulation</option>
+        </select>
         <label for="pseudonym">Pseudonym</label>
         <input id="pseudonym" maxlength="80" value="Lernende Person">
         <label for="courseId">Kurs</label>
@@ -105,10 +110,11 @@
         <select id="fixedHelpLevel">
           <option>A0</option><option>A1</option><option selected>A2</option><option>A3</option><option>A4</option>
         </select>
-        <label class="check"><input id="practiceBoundary" type="checkbox" aria-describedby="practiceBoundaryNote">Freiwillige Übung bestätigen</label>
+        <label class="check"><input id="practiceBoundary" type="checkbox" aria-describedby="practiceBoundaryNote"><span id="boundaryLabel">Freiwillige Übung bestätigen</span></label>
         <div id="practiceBoundaryNote" class="support-note">Diese Sitzung ist kein Prüfungseinsatz. Hilfe und Rückblick bleiben lokal; es gibt keine automatische Note oder KI-Erkennung.</div>
         <button id="startSession" class="command" type="button">Sitzung starten</button>
         <button id="stopSession" class="command secondary" type="button" disabled>Sitzung beenden</button>
+        <button id="finishRehearsal" class="command" type="button" disabled hidden>Simulation abschließen und speichern</button>
         <output id="sessionOutput" role="status" aria-live="polite" aria-atomic="true">Lokaler Begleiter wird gesucht.</output>
         <label for="notebookSource">Oeffentliche Notebook-URL</label>
         <input id="notebookSource" type="url" placeholder="https://.../notebook.ipynb">
@@ -162,7 +168,7 @@
         <output id="reviewOutput" role="status" aria-live="polite" aria-atomic="true">Noch keine Sitzungsdaten.</output>
       </section>
 
-      <div class="boundary">A0-A4. Lernbetrieb. Keine Note, KI-Erkennung oder Pruefungsfreigabe.</div>
+      <div id="scopeBoundary" class="boundary">A0-A4. Lernbetrieb. Keine Note, KI-Erkennung oder Pruefungsfreigabe.</div>
     </main>
     <script src="sidepanel.js"></script>
   </body>

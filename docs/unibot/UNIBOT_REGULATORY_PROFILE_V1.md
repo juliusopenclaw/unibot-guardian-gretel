@@ -27,6 +27,15 @@ unveränderlichen Lernvertrag. Ein möglicher kontrollierter Prüfungstrack ist
 davon getrennt, bleibt auf einen möglichen A0-A2-Rahmen begrenzt und benötigt
 vorher eine schriftliche Entscheidung der zuständigen Stellen.
 
+Die technische Prüfungssimulation v1 ist dieser getrennte Vorbereitungsraum:
+Sie akzeptiert ausschließlich das veröffentlichte künstliche Notebook,
+verlangt einen offline geschalteten Mac, isoliert Jupyter auf Loopback und
+begrenzt die lokale Hilfe auf A0 bis A2. Ihr Ergebnisstatus
+`ready_for_institutional_rehearsal_review` bedeutet nur, dass Universität,
+Lehre, Prüfungsamt, Datenschutz, IT-Sicherheit und Inklusion einen
+reproduzierbaren Demonstrator prüfen können. Der Einsatzstatus bleibt
+unverändert `not_cleared`.
+
 ## Datenfluss
 
 - Zelltext und eigener Versuch werden nur flüchtig lokal verarbeitet.
@@ -44,6 +53,11 @@ vorher eine schriftliche Entscheidung der zuständigen Stellen.
   öffentliches synthetisches Notebook verwendet.
 - Ein Export ist freiwillig und wird vorab als Vorschau angezeigt. Er enthält
   nur pseudonyme Metadaten und Quellen-IDs.
+- Beim Abschluss der künstlichen Prüfungssimulation bleibt das bearbeitete
+  Notebook lokal. Der daneben erzeugte Integritätsbeleg enthält ausschließlich
+  Ausgangs-, Vertrags-, Netzwerk-, Hilfenachweis- und Endhash, Zeitpunkte und
+  Zellzahlen. Zelltexte, Ausgaben, Namen und lokale Pfade werden nicht in den
+  Beleg übernommen. Es gibt keine automatische Abgabe oder Benotung.
 
 Aufbewahrung, Zugriff, Löschbeleg und ein möglicher Pilot mit echten Personen
 bleiben offene Entscheidungen der zuständigen menschlichen Stellen.
@@ -144,7 +158,8 @@ Der Bundle-Befehl schreibt `institutional-presentation.json`,
 `institutional-plain-language-brief.md`, den menschlich auszufüllenden
 `institutional-accessibility-walkthrough.md`, das leere
 `institutional-review-decision-template.md`, die öffentliche synthetische
-Notebook-Fixture, das `PUBLIC-DEMO.md`-Demoskript und das deterministische
+Notebook-Fixture, die technische Spezifikation
+`CONTROLLED-EXAM-REHEARSAL-V1.md`, das `PUBLIC-DEMO.md`-Demoskript und das deterministische
 `unibot-mantle.zip`-MV3-Paket sowie ein Hash-Manifest in ein owner-lesbares
 Verzeichnis. Er schreibt nur bei grüner Public-Safety-Prüfung und enthält keine
 Notebook-, Personen- oder lokalen Pfadinhalte. Das Paket darf nur mit einem

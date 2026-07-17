@@ -32,6 +32,27 @@ full provenance statement is in `AUTHORS.md`.
   `unibot extension package --output ./unibot-mantle.zip`
 - Create the public extension plus institutional review handoff:
   `unibot release candidate --output ./unibot-review-candidate`
+
+## Controlled synthetic exam rehearsal
+
+UniBot can rehearse the complete local notebook flow with exactly the
+published synthetic fixture. The rehearsal imports and seals the fixture,
+requires the Mac to be offline, starts Jupyter with loopback-only network
+access, limits help to A0-A2, and exports the completed notebook with a
+metadata-only integrity receipt. It never submits or grades the notebook.
+
+```text
+unibot rehearsal start MANIFEST_JSON
+unibot rehearsal status [REHEARSAL_ID]
+unibot rehearsal finish REHEARSAL_ID --output COMPLETED.ipynb
+unibot rehearsal verify COMPLETED.ipynb COMPLETED.unibot-receipt.json
+unibot rehearsal delete REHEARSAL_ID
+```
+
+The status is `ready_for_institutional_rehearsal_review` and remains
+`not_cleared` for real examinations. The design, limits, data flow, threat
+controls, and reproducible review steps are documented in
+[`UNIBOT_CONTROLLED_EXAM_REHEARSAL_V1.md`](docs/unibot/UNIBOT_CONTROLLED_EXAM_REHEARSAL_V1.md).
 - Start with the nontechnical review guide in the candidate:
   `REVIEW-START-HERE.md`
 - Verify a candidate's files, hashes, public-safety fields, and source commit
@@ -162,6 +183,8 @@ upload.
   `docs/unibot/UNIBOT_REGULATORY_PROFILE_V1.md`.
 - The exact human PR and institutional meeting handoff is documented in
   `docs/unibot/UNIBOT_RELEASE_RUNBOOK.md`.
+- The controlled synthetic rehearsal is documented in
+  `docs/unibot/UNIBOT_CONTROLLED_EXAM_REHEARSAL_V1.md`.
 - Public work uses synthetic tasks, source cards, test fixtures, and redacted
   review artifacts only.
 - Exam-controlled use remains `not_cleared` until written authority clearance

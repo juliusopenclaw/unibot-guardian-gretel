@@ -40,7 +40,7 @@ class SessionContractV1(TypedDict):
     cost_policy_version: str
     help_costs: dict[str, int]
     sharing_policy: str
-    practice_scope: Literal["practice_only"]
+    practice_scope: Literal["practice_only", "synthetic_exam_rehearsal"]
     exam_deployment_status: str
     created_at_utc: str
     contract_hash: str
@@ -370,11 +370,18 @@ def cleanup_expired_sessions(storage_root: Path, *, retention_days: int = SESSIO
 
 def create_session_contract(payload: dict[str, Any] | None = None) -> SessionContractV1:
     payload = payload or {}
+    session_scope = str(payload.get("session_scope", "practice_only")).strip()
+    if session_scope not in {"practice_only", "synthetic_exam_rehearsal"}:
+        raise ValueError("session_scope is invalid")
     assistance_mode = str(payload.get("assistance_mode", "fixed")).strip().lower()
     if assistance_mode not in {"fixed", "adaptive"}:
         raise ValueError("assistance_mode must be fixed or adaptive")
     max_help_level = _help_level(payload.get("max_help_level"), fallback="A4")
     fixed_help_level = _help_level(payload.get("fixed_help_level"), fallback="A2")
+    if session_scope == "synthetic_exam_rehearsal":
+        assistance_mode = "adaptive"
+        max_help_level = "A2"
+        fixed_help_level = "A0"
     if HELP_COSTS_V1[fixed_help_level] > HELP_COSTS_V1[max_help_level]:
         raise ValueError("fixed_help_level must not exceed max_help_level")
     try:
@@ -387,16 +394,28 @@ def create_session_contract(payload: dict[str, Any] | None = None) -> SessionCon
     contract_without_hash: dict[str, Any] = {
         "schema_version": "unibot-session-contract-v1",
         "session_id": secrets.token_urlsafe(18),
-        "pseudonym": _safe_label(payload.get("pseudonym"), fallback="Lernende Person"),
-        "course_id": _safe_label(payload.get("course_id"), fallback="python-practice"),
+        "pseudonym": (
+            "Synthetic Learner"
+            if session_scope == "synthetic_exam_rehearsal"
+            else _safe_label(payload.get("pseudonym"), fallback="Lernende Person")
+        ),
+        "course_id": (
+            "synthetic-python-rehearsal-v1"
+            if session_scope == "synthetic_exam_rehearsal"
+            else _safe_label(payload.get("course_id"), fallback="python-practice")
+        ),
         "assistance_mode": assistance_mode,
         "fixed_help_level": fixed_help_level,
         "max_help_level": max_help_level,
         "planned_task_count": planned_task_count,
         "cost_policy_version": COST_POLICY_VERSION,
         "help_costs": dict(HELP_COSTS_V1),
-        "sharing_policy": "voluntary_metadata_preview_before_export",
-        "practice_scope": "practice_only",
+        "sharing_policy": (
+            "local_hash_receipt_only_no_automatic_submission"
+            if session_scope == "synthetic_exam_rehearsal"
+            else "voluntary_metadata_preview_before_export"
+        ),
+        "practice_scope": session_scope,
         "exam_deployment_status": "not_cleared",
         "created_at_utc": created_at,
     }

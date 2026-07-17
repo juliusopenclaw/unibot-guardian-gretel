@@ -45,6 +45,7 @@ from .gateway import GatewayError, launch_gateway
 from .guardian_benchmark import evaluate_guardian_benchmark, guardian_semantic_precision_work_item
 from .extension_package import package_extension
 from .institutional_audit import audit_institutional_review_bundle
+from .learning_session import LearningSession, active_session_metadata, delete_session_artifacts
 from .glm_provider import PROVIDER_SCOPE, ZaiGLMProvider, keychain_key_available
 from .notebook_intake import NotebookIntakeError, import_notebook
 from .public_safety import scan_text
@@ -54,6 +55,18 @@ from .release_audit import audit_release_candidate
 from .release_evidence import write_release_evidence
 from .release_pr import write_release_pr_draft
 from .release_handoff import write_release_handoff
+from .rehearsal import (
+    DEFAULT_REHEARSAL_ROOT,
+    DEFAULT_SESSION_ROOT,
+    delete_rehearsal,
+    finish_rehearsal,
+    load_rehearsal_contract,
+    network_isolation_preflight,
+    prepare_rehearsal,
+    rehearsal_status,
+    start_rehearsal,
+    verify_rehearsal_export,
+)
 from .server import run as run_server
 
 
@@ -213,6 +226,29 @@ def build_parser() -> argparse.ArgumentParser:
     gateway_launch.add_argument("manifest", type=Path)
     gateway_launch.add_argument("--port", type=int, default=8888)
     gateway_launch.add_argument("--dry-run", action="store_true")
+
+    rehearsal = commands.add_parser("rehearsal", help="run the fixed public synthetic exam rehearsal")
+    rehearsal_commands = rehearsal.add_subparsers(dest="rehearsal_command", required=True)
+    rehearsal_start = rehearsal_commands.add_parser("start")
+    rehearsal_start.add_argument("manifest", type=Path)
+    rehearsal_start.add_argument("--state-root", type=Path, default=DEFAULT_REHEARSAL_ROOT)
+    rehearsal_start.add_argument("--session-root", type=Path, default=DEFAULT_SESSION_ROOT)
+    rehearsal_start.add_argument("--port", type=int, default=0)
+    rehearsal_status_parser = rehearsal_commands.add_parser("status")
+    rehearsal_status_parser.add_argument("rehearsal_id", nargs="?", default="")
+    rehearsal_status_parser.add_argument("--state-root", type=Path, default=DEFAULT_REHEARSAL_ROOT)
+    rehearsal_finish = rehearsal_commands.add_parser("finish")
+    rehearsal_finish.add_argument("rehearsal_id")
+    rehearsal_finish.add_argument("--output", type=Path, required=True)
+    rehearsal_finish.add_argument("--state-root", type=Path, default=DEFAULT_REHEARSAL_ROOT)
+    rehearsal_finish.add_argument("--session-root", type=Path, default=DEFAULT_SESSION_ROOT)
+    rehearsal_verify = rehearsal_commands.add_parser("verify")
+    rehearsal_verify.add_argument("notebook", type=Path)
+    rehearsal_verify.add_argument("receipt", type=Path)
+    rehearsal_delete = rehearsal_commands.add_parser("delete")
+    rehearsal_delete.add_argument("rehearsal_id")
+    rehearsal_delete.add_argument("--state-root", type=Path, default=DEFAULT_REHEARSAL_ROOT)
+    rehearsal_delete.add_argument("--session-root", type=Path, default=DEFAULT_SESSION_ROOT)
 
     companion = commands.add_parser("companion", help="install or inspect the local Chrome companion")
     companion_commands = companion.add_subparsers(dest="companion_command", required=True)
@@ -524,6 +560,92 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "gateway" and args.gateway_command == "launch":
             _print_json(launch_gateway(args.manifest, port=args.port, dry_run=args.dry_run))
             return 0
+        if args.command == "rehearsal" and args.rehearsal_command == "start":
+            current = rehearsal_status(state_root=args.state_root)
+            if current.get("status") in {"prepared", "active", "frozen"}:
+                _print_json(
+                    {
+                        "status": "blocked",
+                        "reason": "existing_rehearsal_must_be_finished_or_deleted",
+                        "rehearsal_id": current["rehearsal_id"],
+                        "exam_deployment_status": "not_cleared",
+                    }
+                )
+                return 2
+            active_sessions = active_session_metadata(args.session_root)
+            if active_sessions:
+                _print_json(
+                    {
+                        "status": "blocked",
+                        "reason": "active_learning_session_must_be_finished_or_deleted",
+                        "active_session_count": len(active_sessions),
+                        "exam_deployment_status": "not_cleared",
+                    }
+                )
+                return 2
+            isolation = network_isolation_preflight()
+            if isolation["status"] != "ready":
+                _print_json(
+                    {
+                        "status": "blocked",
+                        "reason": "rehearsal_requires_offline_macos_isolation",
+                        "isolation": isolation,
+                        "exam_deployment_status": "not_cleared",
+                    }
+                )
+                return 2
+            session = LearningSession.start(
+                {
+                    "session_scope": "synthetic_exam_rehearsal",
+                    "assistance_mode": "adaptive",
+                    "max_help_level": "A2",
+                    "planned_task_count": 1,
+                },
+                storage_root=args.session_root,
+            )
+            contract = None
+            try:
+                contract = prepare_rehearsal(args.manifest, dict(session.contract), state_root=args.state_root)
+                started = start_rehearsal(contract["rehearsal_id"], state_root=args.state_root, port=args.port)
+            except (OSError, RuntimeError, TypeError, ValueError):
+                if contract is not None:
+                    delete_rehearsal(contract["rehearsal_id"], state_root=args.state_root)
+                delete_session_artifacts(args.session_root, session.contract["session_id"])
+                raise
+            _print_json({"status": "active", "contract": contract, "rehearsal": started})
+            return 0
+        if args.command == "rehearsal" and args.rehearsal_command == "status":
+            payload = rehearsal_status(args.rehearsal_id or None, state_root=args.state_root)
+            _print_json(payload)
+            return 0 if payload["status"] != "not_found" else 2
+        if args.command == "rehearsal" and args.rehearsal_command == "finish":
+            contract = load_rehearsal_contract(args.rehearsal_id, state_root=args.state_root)
+            session = LearningSession.resume(args.session_root, session_id=contract["learning_session_id"])
+            report = session.stop()["report"] if not session.stopped else session.report()
+            receipt = finish_rehearsal(
+                args.rehearsal_id,
+                help_report_hash=str(report["report_hash"]),
+                destination=args.output,
+                state_root=args.state_root,
+            )
+            _print_json(dict(receipt))
+            return 0
+        if args.command == "rehearsal" and args.rehearsal_command == "verify":
+            payload = verify_rehearsal_export(args.notebook, args.receipt)
+            _print_json(payload)
+            return 0 if payload["status"] == "verified" else 2
+        if args.command == "rehearsal" and args.rehearsal_command == "delete":
+            contract = load_rehearsal_contract(args.rehearsal_id, state_root=args.state_root)
+            deleted = delete_rehearsal(args.rehearsal_id, state_root=args.state_root)
+            delete_session_artifacts(args.session_root, contract["learning_session_id"])
+            _print_json(
+                {
+                    "status": "deleted" if deleted else "not_found",
+                    "rehearsal_id": args.rehearsal_id,
+                    "exam_deployment_status": "not_cleared",
+                }
+            )
+            return 0 if deleted else 2
         if args.command == "companion" and args.companion_command == "install":
             _print_json(install_companion(args.extension_id))
             return 0

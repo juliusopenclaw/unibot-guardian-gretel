@@ -20,6 +20,145 @@ from unibot.socratic_tutor import _source_anchors, analyze_cell, build_tutor_tur
 
 
 class UniBotMantleV21Tests(unittest.TestCase):
+    def test_companion_blocks_rehearsal_while_practice_gateway_is_active(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            runtime = CompanionRuntime(storage_root=Path(temporary) / "sessions")
+            with (
+                patch.object(
+                    runtime,
+                    "_reconcile_gateway_state",
+                    return_value={
+                        "notebook_id": "a" * 16,
+                        "process_id": 123,
+                        "process_group_id": 123,
+                        "port": 8765,
+                    },
+                ),
+                patch("unibot.companion.network_isolation_preflight") as preflight,
+            ):
+                response = runtime.handle(
+                    {
+                        "request_id": "rehearsal-gateway-conflict",
+                        "type": "rehearsal.start",
+                        "payload": {"notebook_id": "a" * 16},
+                    }
+                )
+
+        self.assertEqual(response["status"], "blocked")
+        self.assertEqual(response["error"], "practice_gateway_must_be_stopped_before_rehearsal")
+        preflight.assert_not_called()
+
+    def test_companion_rehearsal_is_synthetic_a2_capped_and_human_exported(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            storage_root = Path(temporary) / "sessions"
+            runtime = CompanionRuntime(storage_root=storage_root)
+            imported = runtime.handle(
+                {
+                    "request_id": "rehearsal-import",
+                    "type": "notebook.import",
+                    "payload": {
+                        "source": str(
+                            Path(__file__).resolve().parents[1]
+                            / "fixtures"
+                            / "public"
+                            / "synthetic_python_practice.ipynb"
+                        )
+                    },
+                }
+            )
+            rehearsal_id = "a" * 32
+            rehearsal_contract = {
+                "rehearsal_id": rehearsal_id,
+                "learning_session_id": "placeholder",
+                "notebook_id": imported["notebook_id"],
+            }
+            active_status = {
+                "status": "active",
+                "rehearsal_id": rehearsal_id,
+                "learning_session_id": "placeholder",
+                "notebook_id": imported["notebook_id"],
+                "browser_binding": {
+                    "schema_version": "unibot-rehearsal-browser-binding-v1",
+                    "hostname": "127.0.0.1",
+                    "port": 8899,
+                    "pathname": "/lab/tree/unibot-synthetic-rehearsal.ipynb",
+                },
+            }
+            with (
+                patch(
+                    "unibot.companion.network_isolation_preflight",
+                    return_value={"status": "ready", "sandbox_exec_available": True, "host_offline": True},
+                ),
+                patch("unibot.companion.prepare_rehearsal", return_value=rehearsal_contract) as prepare,
+                patch(
+                    "unibot.companion.start_rehearsal",
+                    return_value={"status": "active", "exam_deployment_status": "not_cleared"},
+                ),
+                patch(
+                    "unibot.companion.rehearsal_status",
+                    side_effect=[{"status": "not_found"}, active_status, {**active_status, "status": "exported"}],
+                ),
+                patch("unibot.companion.load_rehearsal_contract", return_value=rehearsal_contract),
+                patch(
+                    "unibot.companion.finish_rehearsal",
+                    return_value={
+                        "status": "ready_for_institutional_rehearsal_review",
+                        "receipt_hash": "b" * 64,
+                        "exam_deployment_status": "not_cleared",
+                    },
+                ) as finish,
+            ):
+                started = runtime.handle(
+                    {
+                        "request_id": "rehearsal-start",
+                        "type": "rehearsal.start",
+                        "payload": {"notebook_id": imported["notebook_id"]},
+                    }
+                )
+                rehearsal_contract["learning_session_id"] = started["contract"]["session_id"]
+                active_status["learning_session_id"] = started["contract"]["session_id"]
+                blocked = runtime.handle(
+                    {
+                        "request_id": "rehearsal-a3",
+                        "type": "tutor.turn",
+                        "payload": {
+                            "session_id": started["contract"]["session_id"],
+                            "task": "Warum scheitert die synthetische Zelle?",
+                            "learner_attempt": "Ich pruefe zuerst den Variablennamen.",
+                            "requested_help_level": "A3",
+                        },
+                    }
+                )
+                without_save = runtime.handle(
+                    {
+                        "request_id": "rehearsal-no-save",
+                        "type": "rehearsal.finish",
+                        "payload": {"rehearsal_id": rehearsal_id},
+                    }
+                )
+                exported = runtime.handle(
+                    {
+                        "request_id": "rehearsal-finish",
+                        "type": "rehearsal.finish",
+                        "payload": {
+                            "rehearsal_id": rehearsal_id,
+                            "browser_save_confirmed": True,
+                            "browser_binding": active_status["browser_binding"],
+                        },
+                    }
+                )
+
+        self.assertEqual(started["status"], "active")
+        self.assertEqual(started["contract"]["practice_scope"], "synthetic_exam_rehearsal")
+        self.assertEqual(started["contract"]["max_help_level"], "A2")
+        self.assertEqual(blocked["status"], "blocked")
+        self.assertEqual(blocked["error"], "rehearsal_help_level_must_be_A0_to_A2")
+        self.assertEqual(without_save["status"], "blocked")
+        self.assertEqual(exported["status"], "exported")
+        self.assertFalse(exported["receipt"].get("automatic_submission", False))
+        prepare.assert_called_once()
+        finish.assert_called_once()
+
     def test_contract_is_hash_bound_and_rejects_invalid_fixed_boundary(self) -> None:
         contract = create_session_contract(
             {

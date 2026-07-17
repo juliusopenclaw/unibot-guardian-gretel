@@ -37,6 +37,16 @@ from .notebook_intake import (
     import_notebook_bytes,
     normalize_local_notebook_label,
 )
+from .rehearsal import (
+    delete_rehearsal,
+    finish_rehearsal,
+    jupyter_lab_available,
+    load_rehearsal_contract,
+    network_isolation_preflight,
+    prepare_rehearsal,
+    rehearsal_status,
+    start_rehearsal,
+)
 from .socratic_tutor import TutorTurnRequestV1, build_tutor_turn, validate_tutor_turn_session
 
 
@@ -126,6 +136,13 @@ class CompanionRuntime:
         ).expanduser()
         self.notebook_root.mkdir(parents=True, exist_ok=True)
         os.chmod(self.notebook_root, 0o700)
+        self.rehearsal_root = (
+            APPLICATION_SUPPORT / "rehearsals"
+            if storage_root is None
+            else self.storage_root.parent / "rehearsals"
+        ).expanduser()
+        self.rehearsal_root.mkdir(parents=True, exist_ok=True)
+        os.chmod(self.rehearsal_root, 0o700)
         active_gateway = self._reconcile_gateway_state()
         self.expired_notebooks = cleanup_expired_notebooks(
             self.notebook_root,
@@ -206,6 +223,8 @@ class CompanionRuntime:
         try:
             if message_type == "companion.status":
                 active = active_session_metadata(self.storage_root)
+                current_rehearsal = rehearsal_status(state_root=self.rehearsal_root)
+                rehearsal_resumable = current_rehearsal.get("status") in {"prepared", "active", "frozen"}
                 if len(active) > 1:
                     return self._response(
                         request_id,
@@ -221,8 +240,13 @@ class CompanionRuntime:
                     session_active=bool(self.session and not self.session.stopped) or bool(active),
                     resume_available=bool(active),
                     active_session_metadata=active[0] if active else None,
+                    rehearsal_resume_available=rehearsal_resumable,
+                    active_rehearsal_metadata=current_rehearsal if rehearsal_resumable else None,
                     allowed_help_levels=list(HELP_LEVELS_V1),
                     local_practice_status="ready_for_local_practice",
+                    controlled_rehearsal_status=(
+                        "ready_for_offline_preflight" if jupyter_lab_available() else "jupyterlab_missing"
+                    ),
                     distribution_status="blocked_human_release_gates",
                     exam_deployment_status="not_cleared",
                 )
@@ -230,6 +254,17 @@ class CompanionRuntime:
                 extension_id = str(payload.get("extension_id", DEFAULT_EXTENSION_ID))
                 return self._response(request_id, "ok", diagnosis=companion_diagnose(extension_id))
             if message_type == "gateway.status":
+                current_rehearsal = rehearsal_status(state_root=self.rehearsal_root)
+                if current_rehearsal.get("status") == "active":
+                    return self._response(
+                        request_id,
+                        "active",
+                        gateway={
+                            "mode": "synthetic_exam_rehearsal",
+                            "rehearsal_id": current_rehearsal["rehearsal_id"],
+                        },
+                        exam_deployment_status="not_cleared",
+                    )
                 gateway = self._reconcile_gateway_state()
                 return self._response(
                     request_id,
@@ -276,6 +311,15 @@ class CompanionRuntime:
                 if self.session is None or self.session.stopped:
                     return self._response(request_id, "session-required", error="Start the learning session first.")
                 request_payload = dict(payload)
+                if (
+                    self.session.contract.get("practice_scope") == "synthetic_exam_rehearsal"
+                    and str(request_payload.get("requested_help_level", "A0")).upper() not in {"A0", "A1", "A2"}
+                ):
+                    return self._response(
+                        request_id,
+                        "blocked",
+                        error="rehearsal_help_level_must_be_A0_to_A2",
+                    )
                 validate_tutor_turn_session(self.session, cast(TutorTurnRequestV1, request_payload))
                 explicit_task_id = str(request_payload.get("task_id", "")).strip()
                 if explicit_task_id:
@@ -289,6 +333,12 @@ class CompanionRuntime:
             if message_type == "session.stop":
                 if self.session is None:
                     return self._response(request_id, "session-required", error="Start the learning session first.")
+                if self.session.contract.get("practice_scope") == "synthetic_exam_rehearsal":
+                    return self._response(
+                        request_id,
+                        "blocked",
+                        error="finish_synthetic_rehearsal_instead_of_stopping_learning_session",
+                    )
                 stopped_session = self.session.stop()
                 return self._response(
                     request_id,
@@ -314,6 +364,16 @@ class CompanionRuntime:
                     session_id = self.session.contract["session_id"]
                 if not session_id:
                     return self._response(request_id, "not-found", error="No learning session is selected.")
+                current_rehearsal = rehearsal_status(state_root=self.rehearsal_root)
+                if (
+                    current_rehearsal.get("status") in {"prepared", "active", "frozen"}
+                    and current_rehearsal.get("learning_session_id") == session_id
+                ):
+                    return self._response(
+                        request_id,
+                        "blocked",
+                        error="delete_synthetic_rehearsal_instead_of_learning_session",
+                    )
                 notebook_ids = session_notebook_ids(self.storage_root, session_id)
                 gateway = self._reconcile_gateway_state()
                 if gateway and str(gateway.get("notebook_id")) in notebook_ids:
@@ -438,6 +498,13 @@ class CompanionRuntime:
                 finally:
                     del raw_bytes
             if message_type == "gateway.launch":
+                current_rehearsal = rehearsal_status(state_root=self.rehearsal_root)
+                if current_rehearsal.get("status") in {"prepared", "active", "frozen"}:
+                    return self._response(
+                        request_id,
+                        "blocked",
+                        error="synthetic_rehearsal_gateway_already_controls_the_notebook",
+                    )
                 notebook_id = str(payload.get("notebook_id", ""))
                 manifest_path = self.notebook_manifests.get(notebook_id)
                 if manifest_path is None:
@@ -468,11 +535,177 @@ class CompanionRuntime:
                     )
                 return self._response(request_id, "ok", gateway=result)
             if message_type == "gateway.stop":
+                current_rehearsal = rehearsal_status(state_root=self.rehearsal_root)
+                if current_rehearsal.get("status") in {"prepared", "active", "frozen"}:
+                    return self._response(
+                        request_id,
+                        "blocked",
+                        error="finish_or_delete_synthetic_rehearsal_instead",
+                    )
                 gateway = self._reconcile_gateway_state()
                 if gateway is None:
                     return self._response(request_id, "not-found", error="Kein lokales Jupyter-Gateway aktiv.")
                 gateway_stopped = self._stop_gateway_state(gateway)
                 return self._response(request_id, "stopped", process_was_running=gateway_stopped)
+            if message_type == "rehearsal.start":
+                if active_session_metadata(self.storage_root):
+                    return self._response(
+                        request_id,
+                        "session-exists",
+                        error="An active learning session exists; resume or delete it first.",
+                    )
+                current_rehearsal = rehearsal_status(state_root=self.rehearsal_root)
+                if current_rehearsal.get("status") in {"prepared", "active", "frozen"}:
+                    return self._response(
+                        request_id,
+                        "rehearsal-exists",
+                        error="An active synthetic rehearsal exists; resume or delete it first.",
+                    )
+                if self._reconcile_gateway_state() is not None:
+                    return self._response(
+                        request_id,
+                        "blocked",
+                        error="practice_gateway_must_be_stopped_before_rehearsal",
+                    )
+                isolation = network_isolation_preflight()
+                if isolation["status"] != "ready":
+                    return self._response(
+                        request_id,
+                        "blocked",
+                        error="rehearsal_requires_offline_macos_isolation",
+                        isolation={
+                            "status": isolation["status"],
+                            "sandbox_exec_available": isolation["sandbox_exec_available"],
+                            "host_offline": isolation["host_offline"],
+                        },
+                        exam_deployment_status="not_cleared",
+                    )
+                notebook_id = str(payload.get("notebook_id", ""))
+                manifest_path = self.notebook_manifests.get(notebook_id)
+                if manifest_path is None:
+                    return self._response(request_id, "notebook-required", error="Import the synthetic notebook first.")
+                self.session = LearningSession.start(
+                    {
+                        "session_scope": "synthetic_exam_rehearsal",
+                        "assistance_mode": "adaptive",
+                        "max_help_level": "A2",
+                        "planned_task_count": 1,
+                    },
+                    storage_root=self.storage_root,
+                )
+                register_session_notebook(self.storage_root, self.session.contract["session_id"], notebook_id)
+                rehearsal_contract = None
+                try:
+                    rehearsal_contract = prepare_rehearsal(
+                        manifest_path,
+                        dict(self.session.contract),
+                        state_root=self.rehearsal_root,
+                    )
+                    started = start_rehearsal(
+                        rehearsal_contract["rehearsal_id"],
+                        state_root=self.rehearsal_root,
+                        port=int(payload.get("port", 0)),
+                    )
+                except (OSError, RuntimeError, TypeError, ValueError):
+                    if rehearsal_contract is not None:
+                        delete_rehearsal(rehearsal_contract["rehearsal_id"], state_root=self.rehearsal_root)
+                    delete_session_artifacts(self.storage_root, self.session.contract["session_id"])
+                    self.session = None
+                    raise
+                return self._response(
+                    request_id,
+                    "active",
+                    contract=self.session.contract,
+                    rehearsal_contract=rehearsal_contract,
+                    rehearsal=started,
+                )
+            if message_type == "rehearsal.status":
+                current = rehearsal_status(
+                    str(payload.get("rehearsal_id", "")).strip() or None,
+                    state_root=self.rehearsal_root,
+                )
+                if current.get("status") == "not_found":
+                    return self._response(request_id, "not-found", rehearsal=current)
+                contract = load_rehearsal_contract(current["rehearsal_id"], state_root=self.rehearsal_root)
+                session_id = str(contract["learning_session_id"])
+                if (
+                    current.get("status") in {"prepared", "active", "frozen"}
+                    and (self.session is None or self.session.contract["session_id"] != session_id)
+                ):
+                    self.session = LearningSession.resume(
+                        self.storage_root,
+                        session_id=session_id,
+                    )
+                return self._response(
+                    request_id,
+                    str(current["status"]),
+                    rehearsal=current,
+                    contract=self.session.contract if self.session is not None else None,
+                    report=self.session.report() if self.session is not None else None,
+                )
+            if message_type == "rehearsal.finish":
+                if payload.get("browser_save_confirmed") is not True:
+                    return self._response(
+                        request_id,
+                        "blocked",
+                        error="jupyter_save_confirmation_required_before_rehearsal_finish",
+                    )
+                current = rehearsal_status(
+                    str(payload.get("rehearsal_id", "")).strip() or None,
+                    state_root=self.rehearsal_root,
+                )
+                if current.get("status") not in {"active", "frozen"}:
+                    return self._response(request_id, "not-found", error="No active synthetic rehearsal.")
+                if (
+                    current.get("status") == "active"
+                    and payload.get("browser_binding") != current.get("browser_binding")
+                ):
+                    return self._response(
+                        request_id,
+                        "blocked",
+                        error="rehearsal_browser_binding_confirmation_mismatch",
+                    )
+                contract = load_rehearsal_contract(current["rehearsal_id"], state_root=self.rehearsal_root)
+                session_id = str(contract["learning_session_id"])
+                if self.session is None or self.session.contract["session_id"] != session_id:
+                    self.session = LearningSession.resume(
+                        self.storage_root,
+                        session_id=session_id,
+                    )
+                report = self.session.stop()["report"] if not self.session.stopped else self.session.report()
+                receipt = finish_rehearsal(
+                    current["rehearsal_id"],
+                    help_report_hash=str(report["report_hash"]),
+                    state_root=self.rehearsal_root,
+                )
+                return self._response(
+                    request_id,
+                    "exported",
+                    rehearsal=rehearsal_status(current["rehearsal_id"], state_root=self.rehearsal_root),
+                    receipt=receipt,
+                    report=report,
+                )
+            if message_type == "rehearsal.delete":
+                current = rehearsal_status(
+                    str(payload.get("rehearsal_id", "")).strip() or None,
+                    state_root=self.rehearsal_root,
+                )
+                if current.get("status") == "not_found":
+                    return self._response(request_id, "not-found")
+                contract = load_rehearsal_contract(current["rehearsal_id"], state_root=self.rehearsal_root)
+                deleted = delete_rehearsal(current["rehearsal_id"], state_root=self.rehearsal_root)
+                delete_session_artifacts(self.storage_root, contract["learning_session_id"])
+                notebook_path = self.notebook_root / contract["notebook_id"]
+                if notebook_path.is_dir() and not notebook_path.is_symlink():
+                    shutil.rmtree(notebook_path)
+                self.notebook_manifests.pop(contract["notebook_id"], None)
+                if self.session is not None and self.session.contract["session_id"] == contract["learning_session_id"]:
+                    self.session = None
+                return self._response(
+                    request_id,
+                    "deleted" if deleted else "not-found",
+                    rehearsal_id=current["rehearsal_id"],
+                )
             return self._response(request_id, "unknown-message", error="Unsupported companion message type.")
         except (OSError, RuntimeError, TypeError, ValueError) as exc:
             return self._response(request_id, "blocked", error=str(exc))
@@ -661,12 +894,20 @@ def companion_diagnose(extension_id: str = DEFAULT_EXTENSION_ID) -> dict[str, An
         "companion_app": DEFAULT_APP_PATH.is_dir(),
     }
     status = "ready" if all(checks.values()) else "attention"
+    rehearsal_checks = {
+        "jupyter_lab": jupyter_lab_available(),
+        "macos_sandbox": sys.platform == "darwin" and Path("/usr/bin/sandbox-exec").is_file(),
+    }
     return {
         "schema_version": "unibot-companion-diagnosis-v1",
         "status": status,
         "local_practice_status": "ready_for_local_practice" if status == "ready" else "attention",
         "distribution_status": "blocked_human_release_gates",
         "checks": checks,
+        "controlled_rehearsal_checks": rehearsal_checks,
+        "controlled_rehearsal_status": (
+            "ready_for_offline_preflight" if all(rehearsal_checks.values()) else "prerequisites_missing"
+        ),
         "app_signature_status": _app_signature_status(),
         "source_independent_runtime": runtime_ready,
         "bundled_developer_id_interpreter": False,
@@ -841,6 +1082,9 @@ def companion_status(extension_id: str = DEFAULT_EXTENSION_ID) -> dict[str, Any]
         "runtime_package_copied": runtime_ready,
         "extension_id": extension_id,
         "allowed_help_levels": list(HELP_LEVELS_V1),
+        "controlled_rehearsal_status": (
+            "ready_for_offline_preflight" if jupyter_lab_available() else "jupyterlab_missing"
+        ),
         "exam_deployment_status": "not_cleared",
     }
 
