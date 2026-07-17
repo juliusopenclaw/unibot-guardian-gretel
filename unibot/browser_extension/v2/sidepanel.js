@@ -439,7 +439,7 @@ function renderReview(report) {
     `Eigene Versuche: ${report.own_attempt_count || 0}`,
     `Hilfestufen: ${JSON.stringify(report.by_help_level || {})}`,
     `Hilfebudget genutzt: ${report.assistance_points_used || 0} Punkte`,
-    `Barrierearme Unterstützung: ${report.accessibility_support_event_count || 0} Ereignisse (kostenneutral)`,
+    "Barrierearme Darstellung: lokal und kostenneutral; Nutzung wird nicht protokolliert",
     `Transferaufgabe ohne Hilfe: ${transferStatus}`,
     "Keine automatische Note oder KI-Erkennung",
     "Pruefungseinsatz: nicht freigegeben"
@@ -507,8 +507,8 @@ function showExportPreview() {
   if (!state.lastReview) throw new Error("Rueckblick zuerst aktualisieren");
   elements.exportPreview.textContent = [
     "Exportvorschau: Es werden nur Metadaten und Hashes exportiert:",
-    "Enthalten: Hilfestufen, eigene Versuchsanzahl, Quellen-IDs, Zeitpunkte, Anzahl freiwillig markierter barrierearmer Unterstützungsereignisse, Pseudonym, Kurskennung und Vertrags-/Berichtshash.",
-    "Nicht enthalten: Zelltext, eigener Versuchstext, Transferantwort, Tutortranskript, lokale Pfade, Tokens, Note oder KI-Erkennung.",
+    "Enthalten: Hilfestufen, eigene Versuchsanzahl, Quellen-IDs, Zeitpunkte, Pseudonym, Kurskennung und Vertrags-/Berichtshash.",
+    "Nicht enthalten: Zelltext, eigener Versuchstext, Transferantwort, Tutortranskript, lokale Pfade, Tokens, Note, KI-Erkennung oder die Nutzung der barrierearmen Darstellung.",
     "Aufbewahrung: lokale Sitzungsmetadaten bis zu 7 Tage; eine von dir gespeicherte Exportdatei loescht UniBot nicht automatisch.",
     "Weitergabe: freiwillig und erst nach deiner eigenen Pruefung."
   ].join("\n");

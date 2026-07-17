@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import base64
 import hashlib
+import json
 import os
 import struct
 import subprocess
@@ -128,12 +129,54 @@ class UniBotMantleV21Tests(unittest.TestCase):
         )
         self.assertTrue(turn["accessibility_used"])
         self.assertEqual(turn["assistance_points_delta"], 5)
-        self.assertTrue(turn["help_event"]["accessibility_used"])
         self.assertTrue(turn["help_event"]["accessibility_neutral"])
         report = session.report()
-        self.assertEqual(report["accessibility_support_event_count"], 1)
-        self.assertEqual(report["accessibility_policy"], "optional_user_declared_score_neutral_no_diagnosis")
+        self.assertFalse(report["accessibility_usage_metadata_collected"])
+        self.assertEqual(report["accessibility_policy"], "optional_local_display_score_neutral_no_usage_metadata")
         self.assertEqual(report["assistance_points_used"], 5)
+
+    def test_accessibility_preference_is_not_written_to_local_event_journal(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            storage_root = Path(temporary)
+            session = LearningSession.start({}, storage_root=storage_root)
+            build_tutor_turn(
+                session,
+                {
+                    "task": "Warum entsteht ein IndexError?",
+                    "learner_attempt": "Ich pruefe zuerst die Listenlaenge.",
+                    "cell_context": "values = [1, 2, 3]\nprint(values[3])",
+                    "requested_help_level": "A2",
+                    "accessibility_used": True,
+                },
+            )
+            journal = next(storage_root.glob("*.jsonl")).read_text(encoding="utf-8")
+            self.assertNotIn("accessibility_used", journal)
+            self.assertIn("accessibility-preference usage signal", journal)
+
+    def test_resuming_an_old_journal_migrates_away_accessibility_preference(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            storage_root = Path(temporary)
+            session = LearningSession.start({}, storage_root=storage_root)
+            build_tutor_turn(
+                session,
+                {
+                    "task": "Warum entsteht ein IndexError?",
+                    "learner_attempt": "Ich pruefe zuerst die Listenlaenge.",
+                    "cell_context": "values = [1, 2, 3]\nprint(values[3])",
+                    "requested_help_level": "A2",
+                    "accessibility_used": True,
+                },
+            )
+            journal_path = next(storage_root.glob("*.jsonl"))
+            record = json.loads(journal_path.read_text(encoding="utf-8"))
+            record["schema_version"] = "unibot-local-learning-record-v1"
+            record["event"]["accessibility_used"] = True
+            journal_path.write_text(json.dumps(record) + "\n", encoding="utf-8")
+            resumed = LearningSession.resume(storage_root, session.contract["session_id"])
+            migrated = journal_path.read_text(encoding="utf-8")
+            self.assertNotIn("accessibility_used", migrated)
+            self.assertNotIn("unibot-local-learning-record-v1", migrated)
+            self.assertFalse(resumed.report()["accessibility_usage_metadata_collected"])
 
     def test_rule_pack_binds_ast_traceback_and_source_boundary(self) -> None:
         numpy = analyze_cell("Pruefe die Array-Form.", "import numpy as np\nvalues = np.array([1, 2, 3])")

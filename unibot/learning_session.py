@@ -16,6 +16,7 @@ HELP_COSTS_V1 = {"A0": 0, "A1": 0, "A2": 5, "A3": 12, "A4": 25}
 HELP_LEVELS_V1 = tuple(HELP_COSTS_V1)
 COST_POLICY_VERSION = "unibot-help-cost-v1"
 SESSION_STATE_SCHEMA_VERSION = "unibot-session-state-v1"
+LOCAL_LEARNING_RECORD_SCHEMA_VERSION = "unibot-local-learning-record-v2"
 SESSION_RETENTION_DAYS = 7
 TRANSFER_TASK_SCHEMA_VERSION = "unibot-transfer-task-v1"
 TRANSFER_TASK_ID = "synthetic-python-transfer-v1"
@@ -170,6 +171,40 @@ def _write_private_json(path: Path, payload: dict[str, Any]) -> None:
         with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
             handle.write(json.dumps(payload, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
             handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, path)
+        os.chmod(path, 0o600)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
+def _persisted_event(event: HelpEventV2 | dict[str, Any]) -> dict[str, Any]:
+    """Remove the optional accessibility preference before local persistence."""
+    persisted = dict(event)
+    persisted.pop("accessibility_used", None)
+    return persisted
+
+
+def _local_learning_record(event: HelpEventV2 | dict[str, Any]) -> dict[str, Any]:
+    return {
+        "schema_version": LOCAL_LEARNING_RECORD_SCHEMA_VERSION,
+        "event": _persisted_event(event),
+        "storage_policy": (
+            "local metadata and hashes only; no cell, task, attempt, transcript, "
+            "or accessibility-preference usage signal"
+        ),
+    }
+
+
+def _rewrite_private_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
+    temporary = path.with_name(f".{path.name}.{secrets.token_hex(6)}.tmp")
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            for record in records:
+                handle.write(json.dumps(record, ensure_ascii=True, sort_keys=True) + "\n")
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary, path)
@@ -431,17 +466,30 @@ class LearningSession:
         if state.get("contract_hash") != contract_payload.get("contract_hash"):
             raise ValueError("session state contract binding mismatch")
         events: list[HelpEventV2] = []
+        persisted_records: list[dict[str, Any]] = []
+        needs_event_migration = False
         if storage_path.exists():
             if storage_path.is_symlink() or stat.S_IMODE(storage_path.stat().st_mode) != 0o600:
                 raise ValueError("session event journal permissions are invalid")
             for line in storage_path.read_text(encoding="utf-8").splitlines():
                 record = json.loads(line)
-                if not isinstance(record, dict) or record.get("schema_version") != "unibot-local-learning-record-v1":
+                if not isinstance(record, dict) or record.get("schema_version") not in {
+                    "unibot-local-learning-record-v1",
+                    LOCAL_LEARNING_RECORD_SCHEMA_VERSION,
+                }:
                     raise ValueError("unsupported session event record")
                 event = record.get("event")
                 if not isinstance(event, dict) or event.get("session_id") != safe_id:
                     raise ValueError("session event binding mismatch")
-                events.append(cast(HelpEventV2, event))
+                sanitized_event = _persisted_event(event)
+                needs_event_migration = needs_event_migration or (
+                    record.get("schema_version") != LOCAL_LEARNING_RECORD_SCHEMA_VERSION
+                    or sanitized_event != event
+                )
+                events.append(cast(HelpEventV2, sanitized_event))
+                persisted_records.append(_local_learning_record(sanitized_event))
+            if needs_event_migration:
+                _rewrite_private_jsonl(storage_path, persisted_records)
         return cls(
             contract=cast(SessionContractV1, contract_payload),
             storage_path=storage_path,
@@ -496,11 +544,7 @@ class LearningSession:
     def _append_local(self, event: HelpEventV2) -> None:
         if self.storage_path is None:
             return
-        record = {
-            "schema_version": "unibot-local-learning-record-v1",
-            "event": event,
-            "storage_policy": "local metadata and hashes only; no cell, task, attempt, or transcript text",
-        }
+        record = _local_learning_record(event)
         flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND
         descriptor = os.open(self.storage_path, flags, 0o600)
         with os.fdopen(descriptor, "a", encoding="utf-8") as handle:
@@ -515,7 +559,6 @@ class LearningSession:
         attempts: set[str] = set()
         source_ids: set[str] = set()
         blocked_count = 0
-        accessibility_support_event_count = 0
         for event in self.events:
             level = event["effective_help_level"]
             by_level[level] = by_level.get(level, 0) + 1
@@ -523,8 +566,6 @@ class LearningSession:
             if event["attempt_hash"]:
                 attempts.add(event["attempt_hash"])
             source_ids.update(event["source_anchor_ids"])
-            if bool(event.get("accessibility_used", False)):
-                accessibility_support_event_count += 1
             if event["status"] not in {"allowed", "downgraded"}:
                 blocked_count += 1
         return {
@@ -535,7 +576,6 @@ class LearningSession:
             "assistance_points_used": sum(task_points.values()),
             "own_attempt_count": len(attempts),
             "source_anchor_ids": sorted(source_ids),
-            "accessibility_support_event_count": accessibility_support_event_count,
         }
 
     def _persist_state(self, status: str) -> None:
@@ -618,7 +658,8 @@ class LearningSession:
             "course_id": self.contract["course_id"],
             "contract_hash": self.contract["contract_hash"],
             "cost_policy_version": self.contract["cost_policy_version"],
-            "accessibility_policy": "optional_user_declared_score_neutral_no_diagnosis",
+            "accessibility_policy": "optional_local_display_score_neutral_no_usage_metadata",
+            "accessibility_usage_metadata_collected": False,
             **summary,
             "transfer_tasks": [self._transfer_report()],
             "uncertainty": "Help exposure and documented attempts do not prove authorship or learning outcome.",

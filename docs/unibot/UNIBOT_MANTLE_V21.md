@@ -112,17 +112,18 @@ learning, or independent work.
   the source tree. A signed/notarized bundled Python interpreter remains a
   separate human release gate.
 - The local JSONL record contains only hashes, levels, source IDs, timestamps,
-  assistance points, status, and an optional user-declared boolean indicating
-  that accessibility support was used. Files are owner-readable only; no
-  reason, diagnosis, or accommodation status is recorded.
+  assistance points, and status. Files are owner-readable only; the optional
+  accessibility preference is not written to the record, and no reason,
+  diagnosis, or accommodation status is recorded.
 - The optional display preference is stored locally as one boolean so that a
   learner does not have to re-enable the larger controls after a Sidepanel
   restart. It is not a profile, is not sent to a provider, and can be switched
   off at any time.
 - The voluntary report contains the pseudonym chosen for the session, contract
-  hash, help profile, attempt count, source IDs, uncertainty, the count of
-  voluntarily marked accessibility-support events, and report hash. The report
-  labels this support as score-neutral and does not infer a need or decision.
+  hash, help profile, attempt count, source IDs, uncertainty, pseudonymous
+  session metadata, and report hash. It does not contain use of the optional
+  accessibility display preference; the display remains score-neutral and the
+  report does not infer a need or decision.
   If the learner used the optional transfer task, it adds only the task ID,
   prompt/answer hashes, character count, status, and explicit
   `not_assessed`/`not_cleared` boundaries.
