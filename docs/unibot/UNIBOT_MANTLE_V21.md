@@ -131,6 +131,11 @@ remains available for development and one alpha compatibility cycle.
 ## Limits
 
 - Colab is a learning surface. DOM changes may force manual text selection.
+- The public live-Colab canary uses only the official synthetic Colab entry
+  notebook and records adapter metadata, confidence, and bounded counts. If
+  Colab exposes only read-only placeholders or no unambiguous editable cell,
+  the canary must report `manual_selection_required`; it never stores source
+  text or notebook output. Run it with `npm run test:colab-canary`.
 - A normal extension cannot prevent other tabs, external tools, copy/paste, or
   Colab network access and therefore cannot guarantee exam security.
 - Captured code is parsed but never executed by the tutor.

@@ -97,6 +97,8 @@ upload.
 - Headed MV3 package check: `npm run test:extension-package`
 - Real macOS Google Chrome canary with the installed local Companion:
   `UNIBOT_CHROME_EXECUTABLE=/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome npm run test:chrome-canary`
+- Public live Colab canary (metadata only, no notebook text or output):
+  `UNIBOT_CHROME_EXECUTABLE=/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome npm run test:colab-canary`
 - The release-candidate bundle records a clean Git commit hash and refuses to
   build from a dirty working tree. It is still a public-draft handoff, not a
   merge, publication, institutional approval, or exam release.

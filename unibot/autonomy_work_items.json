@@ -207,7 +207,7 @@
     {
       "work_id": "mantle_v21_live_colab_canary",
       "priority": 9,
-      "status": "candidate",
+      "status": "done",
       "work_kind": "product",
       "source": "measured_product_gap",
       "goal": "Measure active-cell capture confidence against a current public Colab notebook without collecting notebook output.",
