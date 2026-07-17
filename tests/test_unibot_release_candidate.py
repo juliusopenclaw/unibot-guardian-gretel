@@ -93,6 +93,8 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
             self.assertIn("Hilfe A0 bis A4", review_start)
             self.assertIn("15-Minuten-Demo; vollständige Review etwa 25 Minuten", review_start)
             self.assertIn("Die 15 Minuten sind nur der kurze Produkt-Demo-Teil", review_start)
+            self.assertIn("practice_only", review_start)
+            self.assertIn("freiwillige Übung, kein Prüfungseinsatz", review_start)
             self.assertIn("Keine finale Lösung", review_start)
             self.assertIn("Screenreader, 200-Prozent-Zoom/Reflow", review_start)
             self.assertNotIn("200-Prozent-Zoom sind technisch getestet", review_start)
@@ -100,6 +102,9 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
                 scan_text((output / "REVIEW-START-HERE.md").read_text(encoding="utf-8"), "REVIEW-START-HERE.md")["status"],
                 "pass",
             )
+            public_demo = (output / "PUBLIC-DEMO.md").read_text(encoding="utf-8")
+            self.assertIn("practice_only", public_demo)
+            self.assertIn("Ohne ausdrückliche Bestätigung", public_demo)
 
             for path in output.glob("*.json"):
                 self.assertEqual(scan_text(path.read_text(encoding="utf-8"), path.name)["status"], "pass")

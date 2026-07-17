@@ -27,6 +27,8 @@ class UniBotPublicDemoTests(unittest.TestCase):
         self.assertFalse(report["safety"]["notebook_code_executed"])
         self.assertEqual(report["safety"]["provider_calls"], 0)
         self.assertEqual(report["exam_deployment_status"], "not_cleared")
+        self.assertEqual(report["practice_scope"], "practice_only")
+        self.assertTrue(report["practice_boundary_confirmation_required"])
         self.assertEqual(scan_text(json.dumps(report, ensure_ascii=False), "public-demo-test")["status"], "pass")
 
     def test_public_demo_markdown_is_a_short_meeting_script(self) -> None:
@@ -38,6 +40,8 @@ class UniBotPublicDemoTests(unittest.TestCase):
         self.assertIn("barrierearme Darstellung einschalten", markdown)
         self.assertIn("Kostenneutralitaet", markdown)
         self.assertIn("keine Pruefungs- oder Hochschulfreigabe", markdown)
+        self.assertIn("practice_only", markdown)
+        self.assertIn("Ohne ausdrückliche Bestätigung", markdown)
         self.assertNotIn("values = [2, 4, 6]", markdown)
         self.assertEqual(scan_text(markdown, "public-demo-markdown")["status"], "pass")
 

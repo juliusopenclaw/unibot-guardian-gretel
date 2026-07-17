@@ -196,6 +196,8 @@ def build_public_demo_evidence() -> dict[str, Any]:
         if output_filter_pass and source_binding_pass and complete_solution_block_pass
         else "blocked",
         "mode": "public_synthetic_practice_only",
+        "practice_scope": "practice_only",
+        "practice_boundary_confirmation_required": True,
         "fixture_name": PUBLIC_DEMO_FIXTURE_NAME,
         "fixture_sha256": _sha256(raw_bytes),
         "sanitized_notebook_sha256": _sha256(
@@ -262,6 +264,8 @@ def build_public_demo_markdown(report: dict[str, Any] | None = None) -> str:
         f"Fixture: `{report.get('fixture_name', PUBLIC_DEMO_FIXTURE_NAME)}`",
         f"Notebook-Code ausgefuehrt: {'ja' if report.get('safety', {}).get('notebook_code_executed') else 'nein'}",
         f"Provideraufrufe: {report.get('safety', {}).get('provider_calls', 0)}",
+        "Übungsgrenze: `practice_only`; freiwillige Übung, kein Prüfungseinsatz.",
+        "Ohne ausdrückliche Bestätigung dieser Grenze startet der Companion keine Sitzung.",
         f"Quellenbindung: {'bestanden' if report.get('tutor', {}).get('source_binding_pass') else 'blockiert'}",
         f"Ausgabefilter: {'bestanden' if report.get('tutor', {}).get('output_filter_pass') else 'blockiert'}",
         "",
