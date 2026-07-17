@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import json
+import subprocess
 import tempfile
 import unittest
 from contextlib import redirect_stdout
@@ -79,6 +80,45 @@ class UniBotCliV2Tests(unittest.TestCase):
         self.assertEqual(exit_code, 2)
         self.assertEqual(payload["reason"], "rollout_gates_incomplete")
         self.assertFalse(payload["loop"]["active"])
+
+    def test_local_rollout_command_uses_disposable_actual_diff_and_no_provider(self) -> None:
+        source = Path(__file__).resolve().parents[1]
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary) / "repo"
+            subprocess.run(
+                ["git", "clone", "--no-local", "--branch", "main", "--single-branch", str(source), str(repo)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            state = Path(temporary) / "state.sqlite3"
+            with io.StringIO() as output, redirect_stdout(output):
+                exit_code = main(
+                    [
+                        "autonomy",
+                        "rollout",
+                        "local",
+                        "--repo",
+                        str(repo),
+                        "--state-db",
+                        str(state),
+                    ]
+                )
+                payload = json.loads(output.getvalue())
+
+            self.assertEqual(exit_code, 0)
+            self.assertEqual(payload["status"], "local_green")
+            self.assertEqual(payload["runner"], "deterministic_local_codex_rehearsal")
+            self.assertEqual(payload["provider_calls"], 0)
+            self.assertFalse(payload["automatic_merge"])
+            self.assertEqual(payload["evidence"]["changed_files"], ["docs/unibot/UNIBOT_GUARDIAN_BENCHMARK.md"])
+            clean = subprocess.run(
+                ["git", "-C", str(repo), "status", "--porcelain"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(clean.stdout, "")
 
     def test_public_repository_safety_uses_relative_source_names(self) -> None:
         repo = Path(__file__).resolve().parents[1]

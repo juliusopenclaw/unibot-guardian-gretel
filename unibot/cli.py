@@ -10,7 +10,10 @@ from typing import Any, Sequence
 from .autonomy_v3 import (
     AutonomyController,
     AutonomyStore,
+    CodexReviewV1,
+    ImplementationEvidenceV1,
     ProviderGate,
+    AutonomyValidationError,
     WorkItemV3,
     autonomy_doctor,
     autonomy_loop_status,
@@ -54,6 +57,34 @@ from .server import run as run_server
 
 def _print_json(payload: dict[str, Any]) -> None:
     print(json.dumps(payload, ensure_ascii=True, indent=2, sort_keys=True))
+
+
+def _local_rollout_implementer(worktree: Path, proposal: dict[str, Any], item: WorkItemV3) -> None:
+    """Create one harmless, bounded diff only inside the disposable worktree."""
+    target_name = "docs/unibot/UNIBOT_GUARDIAN_BENCHMARK.md"
+    if target_name not in item.allowed_files:
+        raise AutonomyValidationError("local_rollout_fixture_not_allowlisted")
+    target = worktree / target_name
+    if target.is_symlink() or not target.is_file():
+        raise AutonomyValidationError("local_rollout_fixture_missing_or_symlink")
+    original = target.read_text(encoding="utf-8")
+    marker = "<!-- local Codex rehearsal marker; discarded before any publication -->"
+    if marker not in original:
+        target.write_text(original.rstrip("\n") + "\n\n" + marker + "\n", encoding="utf-8")
+
+
+def _local_rollout_reviewer(evidence: ImplementationEvidenceV1, item: WorkItemV3) -> CodexReviewV1:
+    """Independently approve only an actual, allowlisted, verified rehearsal diff."""
+    changed = tuple(evidence.changed_files)
+    decision = "approve" if evidence.actual_diff_verified and changed and set(changed).issubset(item.allowed_files) else "block"
+    findings = [] if decision == "approve" else [{"severity": "high", "message": "local rehearsal diff was not verified"}]
+    return CodexReviewV1(
+        run_id=evidence.run_id,
+        diff_hash=evidence.diff_hash,
+        decision=decision,
+        findings=findings,
+        reviewer="codex-independent-local-rehearsal",
+    )
 
 
 def public_repository_safety(repo: Path) -> dict[str, Any]:
@@ -317,6 +348,26 @@ def main(argv: Sequence[str] | None = None) -> int:
                     )
                     _print_json(result)
                     return 0 if result["status"] == "shadow_green" else 2
+                if args.rollout_command == "local":
+                    repo = args.repo.resolve()
+                    base_commit = subprocess.run(
+                        ["git", "-C", str(repo), "rev-parse", "main"],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                        shell=False,
+                    ).stdout.strip()
+                    item = guardian_semantic_precision_work_item(base_commit)
+                    controller = AutonomyController(repo_root=repo, store=store)
+                    result = controller.run_local_rollout(
+                        item,
+                        implementer=_local_rollout_implementer,
+                        reviewer=_local_rollout_reviewer,
+                        test_registry_factory=default_test_registry,
+                    )
+                    result["runner"] = "deterministic_local_codex_rehearsal"
+                    _print_json(result)
+                    return 0 if result["status"] == "local_green" else 2
                 _print_json(
                     {
                         "status": "blocked",
