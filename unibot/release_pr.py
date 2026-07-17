@@ -167,6 +167,7 @@ def build_release_pr_draft(
             "",
             "Diese Entwurfs-PR bringt UniBot als lokale, sokratische Lern- und Übungshilfe für Python-Notebooks zur menschlichen öffentlichen Prüfung.",
             "Die Chrome-MV3-Erweiterung arbeitet mit dem lokalen Companion und Native Messaging. Der Tutor führt Notebookcode nicht aus und gibt keine fertige Lösung, Endwerte oder fertige Interpretation aus.",
+            "Der kompatible lokale HTTP-Weg verlangt dieselbe bestätigte `practice_only`-Sitzung und verweigert Tutorhilfe ohne aktiven Lernvertrag.",
             "Die optionale barrierearme Darstellung aktiviert lokal größere Bedienelemente sowie mehr Zeilen- und Textabstand; sie ist kostenneutral, freiwillig und keine Diagnose oder automatische Unterstützungsentscheidung.",
             "",
             "## Drei Golden Rules (3GR)",
