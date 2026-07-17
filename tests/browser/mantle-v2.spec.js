@@ -37,6 +37,25 @@ test("content script captures the active Jupyter cell without output text", asyn
   expect(response.selectedCell.source).not.toContain("private rendered output");
 });
 
+test("content script exposes a dismissible accessible practice status", async ({ page }) => {
+  await page.setContent("<main class='jp-Notebook'></main>");
+  await page.evaluate(() => {
+    window.chrome = {
+      runtime: {
+        onMessage: { addListener() {} }
+      }
+    };
+  });
+  await page.addScriptTag({ path: path.join(extensionRoot, "content.js") });
+
+  const banner = page.locator("#unibot-guardian-banner");
+  await expect(banner).toHaveAttribute("role", "status");
+  await expect(banner).toHaveAttribute("aria-label", "UniBot Guardian Lernmantel");
+  await expect(banner.getByRole("button", { name: "UniBot-Hinweis ausblenden" })).toBeVisible();
+  await banner.getByRole("button", { name: "UniBot-Hinweis ausblenden" }).click();
+  await expect(banner).toHaveCount(0);
+});
+
 test("content script captures the focused Colab cell without output text", async ({ page }) => {
   await page.setContent(`
     <main>

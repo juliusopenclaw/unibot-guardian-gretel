@@ -38,13 +38,19 @@
     }
     const banner = document.createElement("aside");
     banner.id = ROOT_ID;
-    banner.textContent = "UniBot Guardian Lernmantel aktiv";
+    banner.setAttribute("role", "status");
+    banner.setAttribute("aria-live", "polite");
+    banner.setAttribute("aria-atomic", "true");
+    banner.setAttribute("aria-label", "UniBot Guardian Lernmantel");
     banner.style.cssText = [
       "position:fixed",
       "right:12px",
       "bottom:12px",
       "z-index:2147483647",
-      "max-width:320px",
+      "display:flex",
+      "align-items:flex-start",
+      "gap:10px",
+      "width:min(320px,calc(100vw - 24px))",
       "padding:10px 12px",
       "font:13px/1.35 system-ui,sans-serif",
       "color:#111827",
@@ -53,6 +59,25 @@
       "border-radius:8px",
       "box-shadow:0 8px 22px rgba(0,0,0,.16)"
     ].join(";");
+    const message = document.createElement("span");
+    message.textContent = "UniBot Guardian Lernmantel aktiv";
+    const dismiss = document.createElement("button");
+    dismiss.type = "button";
+    dismiss.textContent = "Ausblenden";
+    dismiss.setAttribute("aria-label", "UniBot-Hinweis ausblenden");
+    dismiss.style.cssText = [
+      "flex:0 0 auto",
+      "min-height:36px",
+      "padding:6px 8px",
+      "font:inherit",
+      "color:#111827",
+      "background:#ffffff",
+      "border:1px solid #b45309",
+      "border-radius:4px",
+      "cursor:pointer"
+    ].join(";");
+    dismiss.addEventListener("click", () => banner.remove());
+    banner.append(message, dismiss);
     document.documentElement.appendChild(banner);
   }
 
