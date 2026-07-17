@@ -1,12 +1,18 @@
 # UniBot Guardian
 
-## Ein GLM-gestuetzter sokratischer Integritaetsmantel fuer Python-Notebooks
+## Eine lokal ausgefuehrte sokratische Integritaetsschicht fuer Python-Notebooks
 
 Status: oeffentlicher wissenschaftlicher Entwurf auf Bachelorarbeitsniveau
 
 Implementierung und Dokumentation: Gretel, KI-Agent
 
 Vorschlags- und Gegenpruefungsmodell: Z.AI GLM-5.2
+
+Rolle: vorgesehen fuer eine spaetere oeffentliche Vorschlags- und
+Gegenpruefung; in dieser Version geparkt
+
+Providerstatus dieser Version: GLM geparkt; 0 Provideraufrufe und 0 GLM-Beitrag
+zur Implementierung oder Dokumentation dieser Version
 
 Menschliche Projekt-, Merge- und Abgabeverantwortung: Julius oder eine andere
 ausdruecklich benannte menschliche Person
@@ -30,10 +36,12 @@ Notebook-Eingang entfernt Ausgaben, prueft Format, Herkunft und Datenschutz
 und friert das Ergebnis mit kryptographischen Hashes ein.
 
 Die Entwicklung wird transparent Gretel, einem KI-Agenten, zugeordnet.
-GLM-5.2 darf ausschliesslich bereinigte oeffentliche Projektteile fuer
-Vorschlaege und Gegenpruefungen erhalten. Das Modell kann weder Dateien
-schreiben noch GitHub-Aenderungen zusammenfuehren. Die Evaluation verwendet
-180 fest versionierte synthetische Szenarien in sechs Kategorien. Ein realer
+GLM-5.2 ist fuer eine spaetere, ausschliesslich oeffentliche Vorschlags- und
+Gegenpruefungsphase vorgesehen; in dieser Version wurde es nicht aufgerufen.
+Der wissenschaftliche Forschungskorpus umfasst 180 fest versionierte
+synthetische Szenarien. Der aktuelle Guardian-Releasebenchmark ist davon
+getrennt und verwendet 60 fuer den Provider gesperrte Held-out-Faelle.
+Ein realer
 Studierenden- oder Pruefungseinsatz ist nicht Gegenstand der vorliegenden
 Freigabe und erfordert gesonderte menschliche, datenschutzrechtliche und
 institutionelle Entscheidungen.
@@ -58,8 +66,8 @@ Die zentrale Forschungsfrage lautet:
 
 Die Arbeit leistet vier Beitraege: eine explizite Hilfestufenpolitik, eine
 lokale technische Sicherheitsgrenze, eine reproduzierbare synthetische
-Evaluation und eine transparente Arbeitsteilung zwischen Gretel, GLM-5.2 und
-menschlicher Verantwortung.
+Evaluation und eine transparente Arbeitsteilung zwischen Gretel/Codex,
+GLM-5.2 in einer geparkten Entwicklungsrolle und menschlicher Verantwortung.
 
 ## 2. Forschungsstand und Quellenbasis
 
@@ -109,13 +117,15 @@ einer Hypothese und Akzeptanztests. Reine Beleg-, Hash- oder
 Readiness-Verlaengerungen gelten nicht als Fortschritt, solange keine reale
 Sicherheitspruefung fehlschlaegt.
 
-Die Autonomie-v2-Schleife waehlt hoechstens einen Auftrag und vier Dateien pro
+Die Autonomie-v3-Schleife waehlt hoechstens einen Auftrag und vier Dateien pro
 Lauf. Ausgewaehlte, bereits von Git erfasste oeffentliche Dateien werden vor
-einem Provideraufruf gescannt. GLM-5.2 liefert ein streng strukturiertes
-`GLMProposalV1`. Gretel implementiert lokal, fuehrt fokussierte Tests aus und
-fordert anschliessend ein `GLMReviewV1` an. Laufdaten enthalten nur Hashes,
-Modellversion, Tokenzahlen, Kosten und Status. Ein menschlicher Reviewer
-entscheidet ueber das Zusammenfuehren.
+einem Provideraufruf gescannt. In der vorliegenden Version bleibt der Provider
+geparkt; die lokalen Tests und die Implementierung benoetigen GLM nicht. Fuer
+eine spaetere Aktivierung ist vorgesehen, dass GLM ein streng strukturiertes
+`GLMProposalV1` und eine daran gebundene Gegenpruefung liefert. Gretel/Codex
+implementiert lokal, prueft den tatsaechlichen Diff und ein menschlicher
+Reviewer entscheidet ueber das Zusammenfuehren. Laufdaten enthalten nur
+Hashwerte, Modellversion, Tokenzahlen, Kosten und Status.
 
 Das monatliche Providerbudget betraegt 20 USD. Pro Lauf sind zwei Aufrufe,
 60.000 Eingabe- und 8.192 Ausgabetokens erlaubt. Fehlt der Schluessel im
@@ -172,7 +182,8 @@ verwaltete Container-, Netzwerk-, Browser- und Geraeterichtlinien notwendig.
 
 Die Referenzimplementierung verwendet Python ab Version 3.11, lokal
 standardmaessig Python 3.12. Die Notebookvalidierung erfolgt mit `nbformat`.
-Die optionale GLM-Anbindung nutzt das offizielle `zai-sdk` in Version 0.2.3.
+Die optionale, derzeit geparkte GLM-Anbindung nutzt das offizielle `zai-sdk` in
+Version 0.2.3.
 Die Kommandozeile bietet `unibot autonomy`, `unibot notebook import`,
 `unibot companion`, `unibot serve --pair` und `unibot gateway launch`.
 
@@ -188,18 +199,24 @@ freizugebende Integrationslinie vorgesehen.
 
 ## 7. Evaluation
 
-Der feste Korpus umfasst 180 synthetische Szenarien. Je 30 Faelle behandeln
+Der wissenschaftliche Forschungskorpus umfasst 180 synthetische Szenarien. Je
+30 Faelle behandeln
 zulaessige sokratische Hinweise, Hilfebudget, Quellenbindung, verbotene
 Finalantworten, Datenschutzgrenzen und Prompt-Injection. Jedes Szenario
 enthaelt Kategorie, erwartete Entscheidung, Hilfestufe, Guardian-Nutzung und
 Erfolgsevidenz.
 
-Primaere technische Masse sind Recall fuer verbotene Entscheidungen und die
-Fehlblockierungsrate zulaessiger Hilfe. Der Zielwert fuer verbotene Faelle
-liegt bei mindestens 0,95; zulaessige Hilfe soll hoechstens in 0,10 der
-beobachteten Faelle falsch blockiert werden. Weitere Dimensionen sind
-Quellenbindung, Klarheit der Verweigerung, sicherer naechster Schritt,
-Datenschutz und Lernendenautonomie.
+Der aktuelle Releasebenchmark ist ein separater, fuer Providerkontexte
+gesperrter Held-out-Satz aus 60 synthetischen Faellen. Er dient der
+reproduzierbaren Freigabepruefung des Guardian und nicht dem Nachweis von
+Lernwirksamkeit oder Pruefungssicherheit.
+
+Primaere technische Freigabemasse des aktuellen Releasebenchmarks sind 100
+Prozent Blockierung vollstaendiger Loesungen, 100 Prozent korrekte
+Quellenbindung und hoechstens 5 Prozent Fehlblockierungen zulaessiger Hilfe.
+Weitere Dimensionen sind Klarheit der Verweigerung, sicherer naechster Schritt,
+Datenschutz und Hilfestufe. Diese Schwellen sind technische Gates fuer einen
+Entwurfs-PR, keine Aussage ueber Studierende.
 
 Diese Masse bewerten das System, nicht Studierende. Sie duerfen nicht in Noten,
 Taeschungswahrscheinlichkeiten oder Pruefungsreife umgedeutet werden. Eine
@@ -208,17 +225,18 @@ institutionelle Ethikentscheidung voraus.
 
 ## 8. Aktueller Ergebnisstand
 
-Der gepruefte Ausgangsstand bestand aus 636 Python-Tests und 125
-Pipeline-Pruefungen. UniBot 2.0 ergaenzt authentifizierte API-Grenzen,
-sicheren Notebook-Import, einen fokussierten A0-A4-Browser-Mantel, einen
-praxisgebundenen Gateway-Launcher, Autonomie-v2-Vertraege und den
-180-Szenarien-Korpus. Mantle 2.1 ergaenzt einen lokalen Native-Messaging-
-Begleiter, unveraenderliche Lernvertraege, inkrementelle Hilfekosten und einen
-freiwilligen metadatenbasierten Lernbericht. Neue Browserpruefungen fuehren
-Zellwahl, Sitzung, Hilfeanfrage und schmale Darstellung in Chromium aus.
+Der aktuelle gepruefte Stand umfasst 774 Python-Tests, 125 Pipeline-Pruefungen,
+13 feste Release-Gates und den separaten 60-Fall-Guardian-Releasebenchmark.
+Die Gates umfassen unter anderem Three-Golden-Rules-Selbstpruefung,
+Datenschutz- und Geheimnisscans, Hashbindung, Browserpruefung sowie eine
+metadaten-only Colab-Canary. Der aktuelle Canary erfasste nur eine synthetische
+Zellmetadatenprobe, las keine Notebookausgabe, speicherte keinen Zelltext und
+fuehrte keinen Notebookcode aus. Der oeffentliche Entwicklungs-PR ist noch
+nicht gemerged.
 
 Der Korpus und die Messfunktionen sind implementiert. Es liegen in diesem
-Entwurf noch keine empirischen Resultate aus einer Studierendenstudie und kein
+Entwurf noch keine empirischen Resultate aus einer Studierendenstudie, keine
+WCAG-Konformitaetsbestaetigung durch eine institutionelle Stelle und kein
 Nachweis einer pruefungssicheren Umgebung vor. Diese Luecken werden nicht als
 positive Ergebnisse dargestellt. Die neue Transferaufgabe ist ein
 metadata-only Messinstrument fuer eine spaetere Evaluation, kein Ergebnisnachweis
@@ -228,8 +246,11 @@ fuer einzelne Lernende.
 
 Der Guardian verwendet weiterhin regelbasierte Elemente. Umschreibungen
 koennen verbotene Inhalte verschleiern; harmlose Codefragmente koennen falsch
-markiert werden. Der semantische Praezisionsbenchmark ist deshalb der naechste
-aktive Forschungsauftrag.
+markiert werden. Der 60-Fall-Releasebenchmark ist Regressionsevidenz, aber
+kein Beleg fuer Lernwirksamkeit oder eine kontrollierte Pruefungsumgebung.
+Naechste Forschungsluecken sind die unabhaengige Barrierefreiheitspruefung,
+ein institutionell freigegebener Uebungspilot und die Auswertung der
+metadaten-only Transferaufgabe.
 
 DNS-Pruefung und Domain-Allowlist reduzieren das Risiko beim Download, ersetzen
 aber keine institutionelle Content-Infrastruktur. Browser-Erweiterungen
@@ -267,7 +288,10 @@ Quellcode, Dokumentation, Work-Queue und synthetische Szenarien liegen im
 oeffentlichen Repository. Die Python-Matrix, fokussierten Sicherheitspruefungen,
 Browser-E2E-Laeufe und naechtlichen Pipeline-Artefakte sind als GitHub Actions
 definiert. Provideraufrufe benoetigen keinen geheimen Inhalt aus dem
-Repository; der Schluessel verbleibt im lokalen Schluesselbund.
+Repository; der Schluessel verbleibt im lokalen Schluesselbund. In der
+vorliegenden Version ist der Provider geparkt und es gab 0 Provideraufrufe.
+Die Release-Evidenz bindet Gate-Status, Testnachweise und Sicherheitspruefung
+an den jeweiligen sauberen Quellcommit.
 
 Ein reproduzierbarer Review beginnt mit Installation der Entwicklungsoptionen,
 fokussierten Tests und `unibot public-safety`. Providerfreie Tests verwenden
@@ -282,10 +306,12 @@ lokalem Native Messaging, Notebook-Sanitisierung, synthetischer Evaluation und
 transparenter KI-Provenienz schafft eine wissenschaftlich pruefbare Grundlage.
 
 Die Arbeit belegt noch keine Lernwirksamkeit und keine Pruefungssicherheit.
-Der naechste Schritt ist die Messung semantischer Fehlfreigaben und
-Fehlblockierungen. Erst danach folgen freiwillige formative Pilotierung und,
-bei positiver menschlicher Pruefung, institutionelle Diskussion. Merge,
-Hochschulabgabe und Pruefungsfreigabe bleiben menschliche Entscheidungen.
+Die technische Releasekette misst bereits Fehlfreigaben, Fehlblockierungen,
+Quellenbindung und Datenschutz in synthetischen Faellen. Danach folgen die
+unabhaengige Barrierefreiheitspruefung und eine freiwillige formative
+Pilotierung, jeweils nur nach menschlicher und institutioneller Pruefung.
+Merge, Hochschulabgabe und Pruefungsfreigabe bleiben menschliche
+Entscheidungen.
 
 ## Anhang A: Reproduzierbare Befehle
 
@@ -296,6 +322,9 @@ unibot autonomy preflight
 unibot notebook import <oeffentliche-https-quelle-oder-lokale-datei>
 unibot gateway launch <manifest> --dry-run
 npm run test:browser
+unibot evaluate guardian --json
+unibot evaluate 3gr --json
+unibot release evidence --repo . --output <release-evidence.json>
 ```
 
 ## Anhang B: Provenienzvertrag

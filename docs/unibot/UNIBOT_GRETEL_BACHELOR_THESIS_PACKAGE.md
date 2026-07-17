@@ -16,7 +16,7 @@ clearance, and any real submission decision.
 
 Working title:
 
-`UniBot Guardian: A Gretel-Built GLM-Ready Socratic Integrity Layer for Coding-Practice Workflows`
+`UniBot Guardian: A Gretel-Built Local Socratic Integrity Layer for Coding-Practice Workflows`
 
 Research question:
 
@@ -25,11 +25,14 @@ replacing their own work, leaking private material, or claiming exam clearance?
 
 ## GLM Basis
 
-The implementation is GLM-ready and uses `zai/glm-5.2` as the primary model
-hint for redacted proposal packets. GLM is used only as an architecture,
-harness, documentation, and test proposal reviewer. It does not apply code,
-publish to GitHub, send messages, claim clearance, request private context, or
-issue Final-Go.
+The implementation is designed for a later public-only GLM development lane,
+but GLM is parked for this version. There were 0 provider calls and GLM made
+no contribution to this implementation or its documentation. Gretel/Codex
+implemented and documented the current local, deterministic version.
+
+When explicitly activated later, `zai/glm-5.2` may review only redacted public
+proposal packets. GLM does not apply code, publish to GitHub, send messages,
+claim clearance, request private context, or issue Final-Go.
 
 Official source cards:
 
@@ -72,11 +75,15 @@ thesis-level claim must name:
 - the human gate that still controls real submission, provider calls, or exam
   use.
 
-Current evidence claims cover Gretel authorship, GLM-5.2 basis, source-bound
-public science, public safety and privacy, the exam-boundary/no-clearance line,
-reproducible synthetic evaluation, and learner-agency boundary alignment. The
-index also carries the source-card drift status so the thesis package cannot
-silently outgrow its public sources.
+Current evidence claims cover Gretel authorship, the parked GLM role,
+source-bound public science, public safety and privacy, the exam-boundary/no-
+clearance line, reproducible synthetic evaluation, and learner-agency boundary
+alignment. The current release snapshot contains 774 Python tests, 125
+pipeline checks, 13 fixed gates, a 60-case Guardian release benchmark, and a
+metadata-only Colab canary. It does not claim learning effectiveness, WCAG
+conformance, institutional clearance, or exam safety. The index also carries
+source-card drift status so the thesis package cannot silently outgrow its
+public sources.
 
 ## Evaluation Claim Alignment
 
