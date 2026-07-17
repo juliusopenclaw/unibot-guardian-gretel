@@ -76,6 +76,10 @@ function selectedAssistanceMode() {
   return document.querySelector("input[name='assistanceMode']:checked").value;
 }
 
+function applyAccessibilityMode() {
+  document.documentElement.dataset.accessibility = elements.accessibilitySupport.checked ? "enhanced" : "default";
+}
+
 function scheduleReconnect() {
   if (state.reconnectTimer || state.port || state.connecting || !chrome.runtime?.connectNative) return;
   const delay = Math.min(5000, 500 * (2 ** Math.min(state.reconnectAttempt, 3)));
@@ -297,7 +301,7 @@ function renderTurn(turn) {
     sources ? `Quelle: ${sources}` : "",
     `Hilfebudget dieser Aufgabe: ${turn.assistance_points_for_task} Punkte (+${turn.assistance_points_delta})`,
     `Naechste erlaubte Stufe: ${turn.next_allowed_help_level}${boundary}`,
-    turn.accessibility_used ? "Barrierearme Darstellung: kostenneutral" : ""
+    turn.accessibility_used ? "Barrierearme Darstellung aktiviert: größere Bedienelemente und Abstände (kostenneutral)" : ""
   ].filter(Boolean).join("\n");
 }
 
@@ -447,8 +451,10 @@ elements.showExportPreview.addEventListener("click", guarded(showExportPreview, 
 elements.confirmExport.addEventListener("change", () => {
   elements.exportReview.disabled = !elements.confirmExport.checked || elements.exportPreview.hidden;
 });
+elements.accessibilitySupport.addEventListener("change", applyAccessibilityMode);
 elements.exportReview.addEventListener("click", guarded(exportReview, elements.reviewOutput));
 elements.deleteSession.addEventListener("click", guarded(deleteSession, elements.reviewOutput));
 
 connectCompanion();
 resetExportPreview();
+applyAccessibilityMode();

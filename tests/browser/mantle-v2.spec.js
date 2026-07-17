@@ -200,6 +200,7 @@ test("sidepanel starts a native session, captures a cell, requests A0-A4 help, a
   await page.locator("#task").fill("Warum entsteht ein Indexfehler?");
   await page.locator("#attempt").fill("Ich pruefe zuerst die Listenlaenge.");
   await page.locator("#accessibilitySupport").check();
+  await expect(page.locator("html")).toHaveAttribute("data-accessibility", "enhanced");
   await page.locator("#ask").click();
   await expect(page.locator("#helpOutput")).toContainText("Welche Laenge");
   await expect(page.locator("#helpOutput")).toContainText("5 Punkte");
