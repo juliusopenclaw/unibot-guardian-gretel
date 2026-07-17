@@ -91,6 +91,8 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
             review_start = (output / "REVIEW-START-HERE.md").read_text(encoding="utf-8")
             self.assertIn("Hier anfangen", review_start)
             self.assertIn("Hilfe A0 bis A4", review_start)
+            self.assertIn("15-Minuten-Demo; vollständige Review etwa 25 Minuten", review_start)
+            self.assertIn("Die 15 Minuten sind nur der kurze Produkt-Demo-Teil", review_start)
             self.assertIn("Keine finale Lösung", review_start)
             self.assertIn("Screenreader, 200-Prozent-Zoom/Reflow", review_start)
             self.assertNotIn("200-Prozent-Zoom sind technisch getestet", review_start)

@@ -869,7 +869,7 @@ def build_institutional_presentation_packet(*, public_safe: bool = True) -> dict
         "review_session": {
             "status": "human_review_meeting_ready",
             "suggested_duration_minutes": 25,
-            "format": "public synthetic notebook demo followed by lane-specific review",
+            "format": "öffentliche synthetische Notebook-Demo, danach rollenbezogene Prüfung",
             "requested_outcome": "Written scope, conditions, responsible role, and next review gate; no automatic approval.",
             "sequence": [
                 "State purpose, authorship, local-only data boundary, and not_cleared status.",

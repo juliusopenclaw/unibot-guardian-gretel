@@ -197,6 +197,10 @@ class UniBotInstitutionalClearanceTests(unittest.TestCase):
         self.assertIn("Bachelorarbeitsfassung", packet["research_artifact"]["label_de"])
         self.assertEqual(packet["review_session"]["status"], "human_review_meeting_ready")
         self.assertEqual(len(packet["review_session"]["office_lanes"]), 5)
+        self.assertEqual(
+            packet["review_session"]["format"],
+            "öffentliche synthetische Notebook-Demo, danach rollenbezogene Prüfung",
+        )
         self.assertIn("KI-Office / CIO-Board", [lane["office"] for lane in packet["review_session"]["office_lanes"]])
         self.assertIn(
             "unibot demo --markdown",
