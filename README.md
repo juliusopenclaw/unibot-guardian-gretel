@@ -46,6 +46,10 @@ full provenance statement is in `AUTHORS.md`.
   `unibot release handoff --output ./unibot-release-handoff --evidence ../unibot-release-evidence.json --colab-canary ../colab-live-canary.json`
 - Open `~/Applications/UniBot Companion.app` or click the extension and start a
   fixed or adaptive A0-A4 learning session.
+- The Help tab offers an optional score-neutral accessibility display mode with
+  larger controls and additional line/text spacing. It records only a neutral
+  session marker; it does not diagnose, decide accommodations, or affect a
+  grade.
 - In the extension, import either an allowlisted public `.ipynb` URL or choose a
   local `.ipynb` file. Local selection uses a bounded, hash-checked,
   path-free Native-Messaging upload and writes only the sanitized practice copy.

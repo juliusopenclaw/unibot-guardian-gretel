@@ -33,6 +33,7 @@ class UniBotReleasePrDraftTests(unittest.TestCase):
             self.assertIn("Julius", draft["body"])
             self.assertIn("Gretel / Codex", draft["body"])
             self.assertIn("Institutionelle Prüfung", draft["body"])
+            self.assertIn("barrierearme Darstellung aktiviert lokal", draft["body"])
             self.assertIn("Öffentliche Demo-Fixture-SHA-256", draft["body"])
             self.assertIn("Öffentlicher Demo-Ablauf-SHA-256", draft["body"])
             self.assertIn("REVIEW-START-HERE-SHA-256", draft["body"])
