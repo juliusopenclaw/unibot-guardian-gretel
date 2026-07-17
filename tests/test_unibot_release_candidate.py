@@ -90,6 +90,8 @@ class UniBotReleaseCandidateTests(unittest.TestCase):
             self.assertIn("Hier anfangen", review_start)
             self.assertIn("Hilfe A0 bis A4", review_start)
             self.assertIn("Keine finale Lösung", review_start)
+            self.assertIn("Screenreader, 200-Prozent-Zoom/Reflow", review_start)
+            self.assertNotIn("200-Prozent-Zoom sind technisch getestet", review_start)
             self.assertEqual(
                 scan_text((output / "REVIEW-START-HERE.md").read_text(encoding="utf-8"), "REVIEW-START-HERE.md")["status"],
                 "pass",
