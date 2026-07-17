@@ -86,11 +86,12 @@ class UniBotCliV2Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             repo = Path(temporary) / "repo"
             subprocess.run(
-                ["git", "clone", "--no-local", "--branch", "main", "--single-branch", str(source), str(repo)],
+                ["git", "clone", "--no-local", "--no-checkout", str(source), str(repo)],
                 check=True,
                 capture_output=True,
                 text=True,
             )
+            subprocess.run(["git", "-C", str(repo), "checkout", "-qb", "main", "HEAD"], check=True)
             state = Path(temporary) / "state.sqlite3"
             with io.StringIO() as output, redirect_stdout(output):
                 exit_code = main(
