@@ -118,11 +118,12 @@ review packet can be assembled locally with:
 unibot release candidate --output ./unibot-review-candidate
 ```
 
-The resulting handoff contains five files: the MV3 ZIP, the institutional
-presentation JSON and Markdown, the institutional manifest, and a release
-manifest binding their hashes and the clean public Git commit that produced
-them. The builder refuses to create the handoff from a dirty working tree. It
-remains a public-draft handoff only; it is not an exam approval, legal opinion,
+The resulting candidate contains the MV3 ZIP, the synthetic demonstration
+notebook, the public demo, the institutional presentation and accessibility
+materials, the structured and readable review-board packet, and manifests
+binding their hashes to the clean public Git commit that produced them. The
+builder refuses to create the handoff from a dirty working tree. It remains a
+public-draft handoff only; it is not an exam approval, legal opinion,
 accessibility certification, or automatic publication.
 
 The extension does not use a hard-coded API port. The older paired HTTP API
