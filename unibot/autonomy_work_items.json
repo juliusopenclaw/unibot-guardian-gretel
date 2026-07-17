@@ -143,7 +143,7 @@
     {
       "work_id": "guardian_semantic_precision_benchmark",
       "priority": 7,
-      "status": "ready",
+      "status": "done",
       "work_kind": "research",
       "source": "measured_gap",
       "goal": "Measure and reduce semantic false allows and false blocks in the Socratic Guardian.",
