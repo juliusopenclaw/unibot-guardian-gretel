@@ -38,6 +38,10 @@ class UniBotSourceCardTests(unittest.TestCase):
         self.assertIsNotNone(get_source_card("uoc-szi-assistenzstelle-2026"))
         self.assertIn("zai-glm-52", required_source_card_ids())
 
+    def test_high_risk_university_cards_preserve_authority_boundaries(self) -> None:
+        self.assertIn("exam-specific ban", get_source_card("uoc-ki-pruefungsrecht")["product_rule"])
+        self.assertIn("assistive technology", get_source_card("uoc-szi-klausurunterstuetzung-2026")["product_rule"])
+
     def test_source_card_claim_alignment_links_release_review_board_chain(self) -> None:
         drift = build_source_card_drift_report(as_of="2026-07-03")
         alignment = build_source_card_release_review_board_claim_alignment(drift)
